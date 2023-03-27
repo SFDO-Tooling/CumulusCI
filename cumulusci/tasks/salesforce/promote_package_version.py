@@ -39,6 +39,9 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             ),
             "required": False,
         },
+        "install_key": {
+            "description": "Install key for package. Default is no install key."
+        },
     }
 
     # We do use a Salesforce org, but it's the dev hub obtained using get_devhub_config,
@@ -294,6 +297,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
     def _query_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given SubscriberPackageVersionId"""
+
         return self._query_one_tooling(
             [
                 "Id",
@@ -302,9 +306,23 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 "SubscriberPackageId",
             ],
             "SubscriberPackageVersion",
-            where_clause=f"Id='{spv_id}'",
+            where_clause=self._get_spv_where_clause(spv_id),
             raise_error=True,
         )
+
+    def _get_spv_where_clause(self, spv_id: str) -> str:
+        """Get the where clause for a SubscriberPackageVersion query
+
+        Does not include the WHERE.
+        Includes the installation key if provided.
+        """
+        where_clause = f"Id='{spv_id}'"
+
+        if "install_key" in self.options:
+            install_key = self.options["install_key"]
+            where_clause += f" AND InstallationKey ='{install_key}'"
+
+        return where_clause
 
     def _query_one_tooling(
         self,

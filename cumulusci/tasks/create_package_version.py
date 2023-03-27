@@ -249,9 +249,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         ).format()
 
         # get the new version's dependencies from SubscriberPackageVersion
+        where_clause = self._get_spv_where_clause(package2_version['SubscriberPackageVersionId'])
         res = self.tooling.query(
             "SELECT Dependencies FROM SubscriberPackageVersion "
-            f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
+            f"WHERE {where_clause}"
         )
         self.return_values["dependencies"] = self._prepare_cci_dependencies(
             res["records"][0]["Dependencies"]
@@ -265,6 +266,20 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         self.logger.info(f"  Version Number: {self.return_values['version_number']}")
         self.logger.info(f"  Dependencies: {self.return_values['dependencies']}")
+
+    def _get_spv_where_clause(self, spv_id: str) -> str:
+        """Get the where clause for a SubscriberPackageVersion query
+
+        Does not include the WHERE.
+        Includes the installation key if provided.
+        """
+        where_clause = f"Id='{spv_id}'"
+
+        if "install_key" in self.options:
+            install_key = self.options["install_key"]
+            where_clause += f" AND InstallationKey ='{install_key}'"
+
+        return where_clause
 
     def _get_or_create_package(self, package_config: PackageConfig):
         """Find or create the Package2
@@ -440,7 +455,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "CalculateCodeCoverage": not skip_validation,
         }
         if "install_key" in self.options:
-            request["InstallKey"] = self.options["install_key"]
+            install_key = self.options["install_key"]
+            request["InstallKey"] = install_key
+            self.return_values["install_key"] = install_key
 
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "

@@ -36,3 +36,4 @@ For example:
 
 * Ed Rivas (jerivas)
 * Gustavo Tandeciarz (dcinzona)
+* Chandler Anderson (chanmander)
