@@ -82,14 +82,13 @@ class ScratchOrgConfig(SfdxOrgConfig):
             message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
             raise ScratchOrgException(message)
 
+        result = {}  # for type checker.
         if p.returncode:
             raise_error()
         try:
             result = json.loads(stdout)
         except json.decoder.JSONDecodeError:
             raise_error()
-
-        assert result
 
         if (
             not (res := result.get("result"))
