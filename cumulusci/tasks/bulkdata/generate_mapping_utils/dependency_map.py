@@ -77,6 +77,7 @@ def _sort_by_dependencies(
             for table in table_names
             if _table_is_free(table, dependencies, sorted_tables, priority)
         ]
+        print("LF", leaf_tables)
         sorted_tables.extend(leaf_tables)
         table_names = [table for table in table_names if table not in sorted_tables]
 

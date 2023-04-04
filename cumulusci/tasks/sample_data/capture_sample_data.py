@@ -19,7 +19,15 @@ class CaptureSampleData(BaseSalesforceApiTask):
             )
         },
         "extraction_definition": {
-            "description": "A file describing what to be extracted."
+            "description": "A file describing what to be extracted. "
+            "Defaults to `datasets/{datasetname}/{datasetname}.extract.yml` if it exists."
+        },
+        "loading_rules": {
+            "description": (
+                "Path to .load.yml file containing rules to use when loading the mapping. "
+                "Defaults to`datasets/{datasetname}/{datasetname}.load.yml` if it exists. "
+                "Multiple files can be comma separated."
+            )
         },
     }
 
@@ -35,6 +43,12 @@ class CaptureSampleData(BaseSalesforceApiTask):
             extraction_definition = Path(extraction_definition)
             if not extraction_definition.exists():
                 raise TaskOptionsError(f"Cannot find {extraction_definition}")
+
+        if loading_rules := self.options.get("loading_rules"):
+            loading_rules = Path(loading_rules)
+            if not loading_rules.exists():
+                raise TaskOptionsError(f"Cannot find {loading_rules}")
+
         with get_org_schema(
             self.sf,
             self.org_config,
@@ -61,8 +75,9 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 "RecordType",
                 "BrandTemplate",
             ]
+
             self.return_values = dataset.extract(
-                {}, self.logger, extraction_definition, opt_in_only
+                {}, self.logger, extraction_definition, opt_in_only, loading_rules
             )
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
             return self.return_values

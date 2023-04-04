@@ -9,6 +9,10 @@ from tempfile import TemporaryDirectory
 
 import yaml
 from simple_salesforce import Salesforce
+from snowfakery.cci_mapping_files.declaration_parser import (
+    SObjectRuleDeclaration,
+    SObjectRuleDeclarationFile,
+)
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig
@@ -50,6 +54,11 @@ class Dataset:
     @property
     def extract_file(self) -> Path:
         return self.path / f"{self.name}.extract.yml"
+
+    @property
+    def load_rules_file(self) -> Path:
+        # to be merged into the mapping file when it is created on extract
+        return self.path / f"{self.name}.load.yml"
 
     @property
     def mapping_file(self) -> Path:
@@ -107,10 +116,11 @@ class Dataset:
         self,
         decls: T.Sequence[ExtractDeclaration],
         opt_in_only: T.Sequence[str] = (),
+        loading_rules: T.Sequence[SObjectRuleDeclaration] = (),
     ) -> None:
         assert isinstance(self.schema, Schema)
         mapping_data = create_load_mapping_file_from_extract_declarations(
-            decls, self.schema, opt_in_only
+            decls, self.schema, opt_in_only, loading_rules
         )
         with self.mapping_file.open("w") as f:
             yaml.safe_dump(mapping_data, f, sort_keys=False)
@@ -150,6 +160,7 @@ class Dataset:
         logger: T.Optional[Logger] = None,
         extraction_definition: T.Optional[Path] = None,
         opt_in_only: T.Sequence[str] = (),
+        loading_rules_file: T.Optional[Path] = None,
     ):
         options = options or {}
         logger = logger or DEFAULT_LOGGER
@@ -167,8 +178,28 @@ class Dataset:
                 mapping=str(extract_mapping),
             )
             task()
-        self._save_load_mapping(list(decls.values()), opt_in_only)
+        loading_rules = self._parse_loading_rules_file(loading_rules_file)
+
+        self._save_load_mapping(list(decls.values()), opt_in_only, loading_rules)
         return task.return_values
+
+    def _parse_loading_rules_file(
+        self, loading_rules_file: T.Optional[Path]
+    ) -> T.List[SObjectRuleDeclaration]:
+        if loading_rules_file:
+            assert loading_rules_file.exists()
+        else:
+            if self.load_rules_file.exists():
+                loading_rules_file = self.load_rules_file
+
+        if loading_rules_file:
+            with loading_rules_file.open() as f:
+                parse_result = SObjectRuleDeclarationFile.parse_from_yaml(f)
+                loading_rules = parse_result.sobject_declarations
+        else:
+            loading_rules = []
+
+        return loading_rules
 
     def _snowfakery_dataload(self, options: T.Dict, logger: Logger) -> T.Dict:
         subtask_config = TaskConfig(

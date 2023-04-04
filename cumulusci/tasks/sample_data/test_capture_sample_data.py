@@ -60,7 +60,7 @@ class TestCaptureDatasets:
             Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
             # and extracted
             Dataset().__enter__().extract.assert_called_with(
-                {}, task.logger, None, mock.ANY
+                {}, task.logger, None, mock.ANY, None
             )
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
@@ -91,7 +91,7 @@ class TestCaptureDatasets:
             Dataset().__enter__().create.assert_called_with()
             # and extracted
             Dataset().__enter__().extract.assert_called_with(
-                {}, task.logger, extraction_definition, mock.ANY
+                {}, task.logger, extraction_definition, mock.ANY, None
             )
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
