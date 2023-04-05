@@ -101,7 +101,7 @@ $ python -m pip install --user pipx
 $ python -m pipx ensurepath
 ```
 
-Close your current cmd window and open a new one verify that `pipx` was successfully installed:
+Close your current command prompt and open a new one to verify that `pipx` was successfully installed:
 
 ```console
 pipx --version
