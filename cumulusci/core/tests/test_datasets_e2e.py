@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -113,6 +114,9 @@ class TestDatasetsE2E:
         timer.checkpoint("Before create")
         # Create a dataset directory and associated files
         dataset.create()
+        load_rules = [{"sf_object": "Account", "api": "rest"}]
+        dataset.load_rules_file.write_text(yaml.safe_dump(load_rules))
+
         timer.checkpoint("After create")
 
         # Read selected schema objects and fields into a T.Dict[str, T.List[str]]
@@ -129,7 +133,8 @@ class TestDatasetsE2E:
         dataset.update_schema_subset(objs)
         timer.checkpoint("Updated Subset")
 
-        # Read full schema in a Datastructure like {"Account": {"Name": True, "Description": False}}
+        # Read full schema in a Datastructure like
+        # {"Account": {"Name": True, "Description": False}}
         objs = dataset.read_which_fields_selected()
         assert objs["Account"]["Name"] is True
         assert objs["Account"]["Description"] is False
@@ -243,23 +248,57 @@ class TestDatasetsE2E:
 
             dataset.create()
             with TemporaryDirectory() as t:
-                def_file = Path(t) / "test_extract_definition"
-                with open(def_file, "w") as f:
-                    yaml.safe_dump({"extract": {"Account": {"fields": "Name"}}}, f)
+
+                def write_yaml(filename: str, json: Any):
+                    full_path = Path(t) / filename
+                    with open(full_path, "w") as f:
+                        yaml.safe_dump(json, f)
+                    return full_path
+
+                extract_def = write_yaml(
+                    "test_extract_definition",
+                    {
+                        "extract": {
+                            "Account": {"fields": ["Name"]},
+                            "Contact": {
+                                "fields": ["FirstName", "LastName", "AccountId"]
+                            },
+                        }
+                    },
+                )
+                loading_rules = write_yaml(
+                    "loading_rules.load.yml",
+                    [{"sf_object": "Account", "load_after": "Contact"}],
+                )
 
                 # Don't actually extract data.
                 with patch("cumulusci.tasks.bulkdata.ExtractData._run_task"):
-                    dataset.extract(extraction_definition=def_file)
+                    dataset.extract(
+                        extraction_definition=extract_def,
+                        loading_rules_file=loading_rules,
+                    )
             with open(dataset.mapping_file) as p:
                 actual = yaml.safe_load(p)
                 expected = {
+                    "Insert Contact": {
+                        "sf_object": "Contact",
+                        "table": "Contact",
+                        "fields": ["FirstName", "LastName"],
+                        "lookups": {
+                            "AccountId": {
+                                "table": "Account",
+                                "key_field": "AccountId",
+                                "after": "Insert Account",
+                            }
+                        },
+                    },
                     "Insert Account": {
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name"],
-                    }
+                    },
                 }
-                assert actual == expected, actual
+                assert tuple(actual.items()) == tuple(expected.items()), actual.items()
 
             if dataset.path.exists():
                 rmtree(dataset.path)
@@ -289,7 +328,6 @@ class TestLoadDatasets:
         assert called
 
     def test_dataset_with_no_data_or_recipe(self, sf, project_config, org_config):
-
         with setup_test(org_config), Dataset(
             "fxoyoxz", project_config, sf, org_config, schema=None
         ) as dataset, pytest.raises(BulkDataException, match="fxoyoxz"):

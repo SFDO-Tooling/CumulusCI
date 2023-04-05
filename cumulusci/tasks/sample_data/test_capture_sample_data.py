@@ -75,12 +75,17 @@ class TestCaptureDatasets:
             with open(extraction_definition, "w") as f:
                 f.write("")  # Doesn't matter. We won't parse it
 
+            loading_rules = Path(t) / "test_load_definition"
+            with open(loading_rules, "w") as f:
+                f.write("[]")  # Doesn't matter. We won't parse it
+
             Dataset().__enter__().path.exists.return_value = False
             task = create_task(
                 CaptureSampleData,
                 {
                     "dataset": "mydataset",
                     "extraction_definition": extraction_definition,
+                    "loading_rules": loading_rules,
                 },
             )
             task()
@@ -91,7 +96,7 @@ class TestCaptureDatasets:
             Dataset().__enter__().create.assert_called_with()
             # and extracted
             Dataset().__enter__().extract.assert_called_with(
-                {}, task.logger, extraction_definition, mock.ANY, None
+                {}, task.logger, extraction_definition, mock.ANY, loading_rules
             )
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
