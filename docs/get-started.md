@@ -140,7 +140,9 @@ Be precise when entering these paths. Add them at the very end of the
 Variable Value already in place. Separate each path by a semicolon (;)
 with no space between path names.
 ```
+
 (verify-your-installation)=
+
 ### Verify Your Installation
 
 In a new terminal window, verify that CumulusCI installed correctly by
