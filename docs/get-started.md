@@ -112,7 +112,7 @@ Look for a version number after entering this command, such as:
 
 If you encounter an error, such as
 `'pipx' is not recognized as an internal or external command, operable program or batch file.`,
-you can try [updating your environment variables manually](update-environment-variables-manually).
+you can try [updating your environment variables manually](#update-environment-variables-manually).
 
 Finally, install CumulusCI with this command:
 
