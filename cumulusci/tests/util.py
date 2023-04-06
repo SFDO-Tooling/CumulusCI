@@ -8,6 +8,7 @@ import tracemalloc
 from contextlib import contextmanager, nullcontext
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 import responses
@@ -260,7 +261,11 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
 
 @contextmanager
-def mock_env(home, cumulusci_key="0123456789ABCDEF"):
+def mock_env(
+    home,
+    cumulusci_key: Optional[str] = "0123456789ABCDEF",
+    CUMULUSCI_SERVICE_github=None,
+):
     real_homedir = str(Path.home())
     patches = {
         "HOME": home,
@@ -272,23 +277,32 @@ def mock_env(home, cumulusci_key="0123456789ABCDEF"):
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
         os.environ, patches
     ):
-        # don't use the real CUMULUSCI_KEY for tests
-        if "CUMULUSCI_KEY" in os.environ:
-            del os.environ["CUMULUSCI_KEY"]
-        if cumulusci_key is not None:
-            # do use a fake one, if it was supplied
-            os.environ["REAL_CUMULUSCI_KEY"] = os.environ.get("CUMULUSCI_KEY", "")
-            os.environ["CUMULUSCI_KEY"] = cumulusci_key
+
+        def hide_or_replace_var(varname, default):
+            if default is not None:
+                # do use a fake one, if it was supplied
+                os.environ["REAL_" + varname] = os.environ.get(varname, "")
+                os.environ[varname] = default
+            elif varname in os.environ:
+                del os.environ[varname]
+
+        # don't use the real CUMULUSCI_KEY and GITHUB service env for tests
+        hide_or_replace_var("CUMLUSCI_KEY", cumulusci_key)
+        hide_or_replace_var("CUMULUSCI_SERVICE_github", CUMULUSCI_SERVICE_github)
 
         yield
 
 
 def unmock_env():
-    """Reset homedir and CCI environment variable or leave them if they weren't changed"""
+    """Reset homedir and CCI environment variable
+    or leave them if they weren't changed"""
     if "REAL_HOME" in os.environ:
         cci_key = os.environ.get("REAL_CUMULUSCI_KEY") or None
         homedir = os.environ["REAL_HOME"]
-        return mock_env(homedir, cci_key)
+        CUMULUSCI_SERVICE_github = (
+            os.environ.get("REAL_CUMULUSCI_SERVICE_github") or None
+        )
+        return mock_env(homedir, cci_key, CUMULUSCI_SERVICE_github)
     else:
         return nullcontext()
 

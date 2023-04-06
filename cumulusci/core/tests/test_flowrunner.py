@@ -24,7 +24,7 @@ from cumulusci.core.flowrunner import (
 from cumulusci.core.source.local_folder import LocalFolderSource
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.tests.utils import MockLoggingHandler
-from cumulusci.tests.util import create_project_config
+from cumulusci.tests.util import create_project_config, unmock_env
 from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
 
 ORG_ID = "00D000000000001"
@@ -792,6 +792,12 @@ def test_cross_project_tasks(get_tempfile_logger):
             ]
         )
     assert "Called _run_task" in str(out.mock_calls)
+
+
+@pytest.fixture
+def read_real_env():
+    with unmock_env():
+        yield
 
 
 class TestCrossRepoFlow:
