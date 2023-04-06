@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from cumulusci.core.config import (
@@ -15,9 +17,9 @@ def project_config():
     project_config = BaseProjectConfig(universal_config, config={"no_yaml": True})
     project_config.config["services"] = {
         "connected_app": {"attributes": {"test": {"required": True}}},
-        "github": {"attributes": {"name": {"required": True}, "password": {}}},
+        "github": {"attributes": {"name4tests": {"required": True}, "pw4tests": {}}},
         "github_enterprise": {
-            "attributes": {"name": {"required": True}, "password": {}}
+            "attributes": {"name4tests": {"required": True}, "pw4tests": {}}
         },
         "not_configured": {"attributes": {"foo": {"required": True}}},
         "devhub": {"attributes": {"foo": {"required": True}}},
@@ -28,6 +30,12 @@ def project_config():
     }
     project_config.project__name = "TestProject"
     return project_config
+
+
+@pytest.fixture(autouse=True)
+def clear_environment():
+    with mock.patch("os.environ", {}):
+        yield
 
 
 @pytest.fixture
@@ -47,4 +55,4 @@ def key():
 
 @pytest.fixture
 def service_config():
-    return ServiceConfig({"name": "bar@baz.biz", "password": "test123"})
+    return ServiceConfig({"name4tests": "bar@baz.biz", "password": "test123"})

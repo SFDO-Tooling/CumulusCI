@@ -220,10 +220,10 @@ class TestBaseProjectKeychain:
         assert keychain.get_default_org() == (None, None)
 
     def test_validate_service_attributes(self, keychain):
-        # config is missing the "name" attribute
+        # config is missing the "name4tests" attribute
         service_config = ServiceConfig({"password": "test123"})
         error_message = re.escape(
-            "Missing required attribute(s) for github service: ['name']"
+            "Missing required attribute(s) for github service: ['name4tests']"
         )
         with pytest.raises(
             ServiceNotValid,
