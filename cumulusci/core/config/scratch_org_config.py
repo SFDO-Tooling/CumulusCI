@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+from typing import NoReturn
 
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -78,10 +79,11 @@ class ScratchOrgConfig(SfdxOrgConfig):
         stdout = p.stdout_text.read()
         stderr = p.stderr_text.read()
 
-        def raise_error():
+        def raise_error() -> NoReturn:
             message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
             raise ScratchOrgException(message)
 
+        result = {}  # for type checker.
         if p.returncode:
             raise_error()
         try:

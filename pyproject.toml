@@ -6,15 +6,12 @@ build-backend = "hatchling.build"
 name = "cumulusci"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
-license = {text = "BSD 3-Clause License"}
+license = { text = "BSD 3-Clause License" }
 requires-python = ">=3.8"
 authors = [
     { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
 ]
-keywords = [
-    "cumulusci",
-    "salesforce"
-]
+keywords = ["cumulusci", "salesforce"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -62,16 +59,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-docs = [
-    "myst-parser",
-    "Sphinx"
-]
-lint = [
-    "black",
-    "flake8<4",
-    "isort",
-    "pre-commit"
-]
+docs = ["myst-parser", "Sphinx"]
+lint = ["black", "flake8<4", "isort", "pre-commit"]
 test = [
     "coverage[toml]",
     "factory-boy",
@@ -104,6 +93,7 @@ path = "cumulusci/__about__.py"
 include = [
     "/cumulusci",
     '/cumulusci/**/*.*', # y[a]ml, js[on], etc.
+
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -111,14 +101,12 @@ include = [
     "/cumulusci",
     "/requirements/*", # Needed by tox
     "README.md", # needed by hatch-fancy-pypi-readme
-    "docs/history.md" # ditto
+    "docs/history.md"
+    # ditto
 ]
 
 [tool.hatch.build.targets.wheel]
 exclude = [
-    "tests/",
-    "!/cumulusci/tests", # Snowfakery uses our pytest plugins
-    "!/cumulusci/tasks/bulkdata/tests",
     "*.sql",
     "*.zip"
 ]
@@ -137,20 +125,19 @@ end-before = "\n\n<!-- latest-stop -->"
 #######################
 # Tool configurations #
 #######################
-
 [tool.black]
 exclude = '^/(\.|dist|pybuild|venv)'
 
 [tool.coverage.run]
-omit = ["*/tests/*", "cumulusci/files/*", ]
-source = ["cumulusci", ]
+omit = ["*/tests/*", "cumulusci/files/*"]
+source = ["cumulusci"]
 
 [tool.coverage.report]
-exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract" ]
+exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract"]
 
 [tool.pytest.ini_options]
 testpaths = "cumulusci"
-addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
+addopts = "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
 markers = [
     "metadeploy: mark a test that interacts with the MetaDeploy REST API",
 ]
@@ -167,3 +154,149 @@ multi_line_output = 3
 skip_glob = "cumulusci/**/__init__.py"
 known_first_party = "cumulusci"
 known_third_party = "robot"
+
+[tool.pyright]
+reportMissingImports = "warning"
+exclude = ["**/test_*", "**/tests/**"]
+# Add files to this list as you make them compatible.
+include = [
+    'cumulusci/__init__.py',
+    'cumulusci/__main__.py',
+    'cumulusci/cli/__init__.py',
+    'cumulusci/core/__init__.py',
+    'cumulusci/core/config/BaseConfig.py',
+    'cumulusci/core/config/BaseTaskFlowConfig.py',
+    'cumulusci/core/config/OrgConfig.py',
+    'cumulusci/core/config/ScratchOrgConfig.py',
+    'cumulusci/core/config/__init__.py',
+    'cumulusci/core/config/base_config.py',
+    'cumulusci/core/config/base_task_flow_config.py',
+    'cumulusci/core/config/oauth2_service_config.py',
+    'cumulusci/core/config/scratch_org_config.py',
+    'cumulusci/core/config/sfdx_org_config.py',
+    'cumulusci/core/debug.py',
+    'cumulusci/core/dependencies/__init__.py',
+    'cumulusci/core/dependencies/utils.py',
+    'cumulusci/core/exceptions.py',
+    'cumulusci/core/keychain/environment_project_keychain.py',
+    'cumulusci/core/keychain/subprocess_keychain.py',
+    'cumulusci/core/metadeploy/__init__.py',
+    'cumulusci/core/metadeploy/api.py',
+    'cumulusci/core/runtime.py',
+    'cumulusci/core/sfdx.py',
+    'cumulusci/core/source/__init__.py',
+    'cumulusci/core/source/local_folder.py',
+    'cumulusci/core/source_transforms/__init__.py',
+    'cumulusci/core/template_utils.py',
+    'cumulusci/oauth/__init__.py',
+    'cumulusci/oauth/exceptions.py',
+    'cumulusci/robotframework/__init__.py',
+    'cumulusci/robotframework/locator_manager.py',
+    'cumulusci/robotframework/pageobjects/PageObjectLibrary.py',
+    'cumulusci/robotframework/pageobjects/__init__.py',
+    'cumulusci/salesforce_api/__init__.py',
+    'cumulusci/salesforce_api/exceptions.py',
+    'cumulusci/salesforce_api/filterable_objects.py',
+    'cumulusci/salesforce_api/mc_soap_envelopes.py',
+    'cumulusci/salesforce_api/org_schema_models.py',
+    'cumulusci/salesforce_api/package_install.py',
+    'cumulusci/salesforce_api/soap_envelopes.py',
+    'cumulusci/tasks/__init__.py',
+    'cumulusci/tasks/apex/__init__.py',
+    'cumulusci/tasks/bulkdata/__init__.py',
+    'cumulusci/tasks/bulkdata/dates.py',
+    'cumulusci/tasks/bulkdata/extract_dataset_utils/calculate_dependencies.py',
+    'cumulusci/tasks/bulkdata/generate.py',
+    'cumulusci/tasks/bulkdata/generate_and_load_data_from_yaml.py',
+    'cumulusci/tasks/bulkdata/generate_mapping_utils/extract_mapping_file_generator.py',
+    'cumulusci/tasks/bulkdata/generate_mapping_utils/generate_mapping_from_declarations.py',
+    'cumulusci/tasks/bulkdata/generate_mapping_utils/mapping_generator_post_processes.py',
+    'cumulusci/tasks/bulkdata/query_transformers.py',
+    'cumulusci/tasks/bulkdata/snowfakery_utils/snowfakery_working_directory.py',
+    'cumulusci/tasks/bulkdata/snowfakery_utils/subtask_configurator.py',
+    'cumulusci/tasks/dx_convert_from.py',
+    'cumulusci/tasks/github/__init__.py',
+    'cumulusci/tasks/github/commit_status.py',
+    'cumulusci/tasks/github/merge.py',
+    'cumulusci/tasks/github/publish.py',
+    'cumulusci/tasks/github/pull_request.py',
+    'cumulusci/tasks/github/release_report.py',
+    'cumulusci/tasks/github/tag.py',
+    'cumulusci/tasks/github/util.py',
+    'cumulusci/tasks/marketing_cloud/__init__.py',
+    'cumulusci/tasks/marketing_cloud/api.py',
+    'cumulusci/tasks/marketing_cloud/get_user_info.py',
+    'cumulusci/tasks/marketing_cloud/mc_constants.py',
+    'cumulusci/tasks/metadata/__init__.py',
+    'cumulusci/tasks/metadata/ee_src.py',
+    'cumulusci/tasks/metadata_etl/__init__.py',
+    'cumulusci/tasks/metadata_etl/objects.py',
+    'cumulusci/tasks/metadata_etl/permissions.py',
+    'cumulusci/tasks/metadata_etl/remote_site_settings.py',
+    'cumulusci/tasks/metadata_etl/value_sets.py',
+    'cumulusci/tasks/preflight/__init__.py',
+    'cumulusci/tasks/push/__init__.py',
+    'cumulusci/tasks/release_notes/__init__.py',
+    'cumulusci/tasks/release_notes/exceptions.py',
+    'cumulusci/tasks/release_notes/parser.py',
+    'cumulusci/tasks/robotframework/__init__.py',
+    'cumulusci/tasks/robotframework/debugger/__init__.py',
+    'cumulusci/tasks/robotframework/debugger/model.py',
+    'cumulusci/tasks/robotframework/lint.py',
+    'cumulusci/tasks/salesforce/BaseRetrieveMetadata.py',
+    'cumulusci/tasks/salesforce/BaseSalesforceTask.py',
+    'cumulusci/tasks/salesforce/GetInstalledPackages.py',
+    'cumulusci/tasks/salesforce/SOQLQuery.py',
+    'cumulusci/tasks/salesforce/UpdateAdminProfile.py',
+    'cumulusci/tasks/salesforce/__init__.py',
+    'cumulusci/tasks/salesforce/custom_settings.py',
+    'cumulusci/tasks/salesforce/license_preflights.py',
+    'cumulusci/tasks/vlocity/exceptions.py',
+    'cumulusci/utils/classutils.py',
+    'cumulusci/utils/collections.py',
+    'cumulusci/utils/deprecation.py',
+    'cumulusci/utils/http/requests_utils.py',
+    'cumulusci/utils/iterators.py',
+    'cumulusci/utils/parallel/task_worker_queues/parallel_worker.py',
+    'cumulusci/utils/salesforce/count_sobjects.py',
+    'cumulusci/utils/waiting.py',
+    'cumulusci/utils/xml/robot_xml.py',
+    'cumulusci/utils/xml/salesforce_encoding.py',
+    'cumulusci/utils/ziputils.py'
+]
+# Do not add to this list. Instead use
+# # pyright: strict
+strict = [
+    'cumulusci/cli/__init__.py',
+    'cumulusci/core/__init__.py',
+    'cumulusci/core/debug.py',
+    'cumulusci/core/dependencies/__init__.py',
+    'cumulusci/core/keychain/environment_project_keychain.py',
+    'cumulusci/core/keychain/serialization.py',
+    'cumulusci/core/metadeploy/__init__.py',
+    'cumulusci/core/source/__init__.py',
+    'cumulusci/core/source_transforms/__init__.py',
+    'cumulusci/oauth/__init__.py',
+    'cumulusci/oauth/exceptions.py',
+    'cumulusci/robotframework/locators_*.py',
+    'cumulusci/salesforce_api/__init__.py',
+    'cumulusci/salesforce_api/filterable_objects.py',
+    'cumulusci/salesforce_api/mc_soap_envelopes.py',
+    'cumulusci/salesforce_api/soap_envelopes.py',
+    'cumulusci/tasks/__init__.py',
+    'cumulusci/tasks/apex/__init__.py',
+    'cumulusci/tasks/bulkdata/__init__.py',
+    'cumulusci/tasks/bulkdata/generate.py',
+    'cumulusci/tasks/github/__init__.py',
+    'cumulusci/tasks/marketing_cloud/__init__.py',
+    'cumulusci/tasks/marketing_cloud/mc_constants.py',
+    'cumulusci/tasks/metadata/__init__.py',
+    'cumulusci/tasks/metadata_etl/__init__.py',
+    'cumulusci/tasks/preflight/__init__.py',
+    'cumulusci/tasks/push/__init__.py',
+    'cumulusci/tasks/release_notes/__init__.py',
+    'cumulusci/tasks/release_notes/exceptions.py',
+    'cumulusci/tasks/salesforce/BaseSalesforceTask.py',
+    'cumulusci/tasks/vlocity/exceptions.py',
+    'cumulusci/utils/soql.py'
+]
