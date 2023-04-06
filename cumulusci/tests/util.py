@@ -265,6 +265,8 @@ def mock_env(
     home,
     cumulusci_key: Optional[str] = "0123456789ABCDEF",
     CUMULUSCI_SERVICE_github=None,
+    GITHUB_APP_ID=None,
+    GITHUB_APP_KEY=None,
 ):
     real_homedir = str(Path.home())
     patches = {
@@ -289,6 +291,8 @@ def mock_env(
         # don't use the real CUMULUSCI_KEY and GITHUB service env for tests
         hide_or_replace_var("CUMLUSCI_KEY", cumulusci_key)
         hide_or_replace_var("CUMULUSCI_SERVICE_github", CUMULUSCI_SERVICE_github)
+        hide_or_replace_var("GITHUB_APP_ID", GITHUB_APP_ID)
+        hide_or_replace_var("GITHUB_APP_KEY", GITHUB_APP_KEY)
 
         yield
 
@@ -302,7 +306,11 @@ def unmock_env():
         CUMULUSCI_SERVICE_github = (
             os.environ.get("REAL_CUMULUSCI_SERVICE_github") or None
         )
-        return mock_env(homedir, cci_key, CUMULUSCI_SERVICE_github)
+        GITHUB_APP_ID = os.environ.get("GITHUB_APP_ID") or None
+        GITHUB_APP_KEY = os.environ.get("GITHUB_APP_KEY") or None
+        return mock_env(
+            homedir, cci_key, CUMULUSCI_SERVICE_github, GITHUB_APP_ID, GITHUB_APP_KEY
+        )
     else:
         return nullcontext()
 
