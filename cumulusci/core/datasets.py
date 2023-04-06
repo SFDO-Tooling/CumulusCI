@@ -123,6 +123,7 @@ class Dataset:
             decls, self.schema, opt_in_only, loading_rules
         )
         with self.mapping_file.open("w") as f:
+            f.write(EDIT_MAPPING_WARNING)
             yaml.safe_dump(mapping_data, f, sort_keys=False)
 
     @contextmanager
@@ -186,6 +187,8 @@ class Dataset:
     def _parse_loading_rules_file(
         self, loading_rules_file: T.Optional[Path]
     ) -> T.List[SObjectRuleDeclaration]:
+        """Parse a loading rules file if provided, else try to parse
+        <datasets/dataset/dataset.load.yml>"""
         if loading_rules_file:
             assert loading_rules_file.exists()
         else:
@@ -225,7 +228,8 @@ class Dataset:
             self._snowfakery_dataload(options, logger)
         else:  # pragma: no cover
             raise exc.BulkDataException(
-                f"Dataset has no SQL ({self.data_file}) or recipe ({self.snowfakery_recipe})"
+                f"Dataset has no SQL ({self.data_file}) "
+                "or recipe ({self.snowfakery_recipe})"
             )
 
     def _sql_dataload(self, options: T.Dict):
@@ -287,4 +291,13 @@ DEFAULT_EXTRACT_DATA = """
 extract:
     OBJECTS(ALL):
         fields: FIELDS(ALL)
+"""
+
+EDIT_MAPPING_WARNING = """# Editing this file is usually not recommended because it will
+# be overwritten the next time you re-capture this data.
+#
+# You can change this file's contents permanently by creating a
+# .load.yml file and re-capturing:
+#
+#  https://cumulusci.readthedocs.io/en/stable/data.html#extracting-and-loading-sample-datasets
 """

@@ -3,6 +3,7 @@ from pathlib import Path
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.datasets import Dataset
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.salesforce_api.filterable_objects import OPT_IN_ONLY
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
@@ -67,14 +68,7 @@ class CaptureSampleData(BaseSalesforceApiTask):
             else:
                 verb = "Updated"
             opt_in_only = [f["name"] for f in self.tooling.describe()["sobjects"]]  # type: ignore
-            opt_in_only += [
-                "FeedItem",
-                "Translation",
-                "WebLinkLocalization",
-                "RecordTypeLocalization",
-                "RecordType",
-                "BrandTemplate",
-            ]
+            opt_in_only += OPT_IN_ONLY
 
             self.return_values = dataset.extract(
                 {}, self.logger, extraction_definition, opt_in_only, loading_rules
