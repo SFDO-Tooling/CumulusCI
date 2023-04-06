@@ -32,4 +32,4 @@ class LocalFolderSource:
 
     @property
     def allow_remote_code(self) -> bool:
-        return self.spec.allow_remote_code
+        return bool(self.spec.allow_remote_code)
