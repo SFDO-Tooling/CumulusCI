@@ -800,7 +800,9 @@ def read_real_env():
         yield
 
 
+# TODO: Get these running in CI and remove opt-in label
 class TestCrossRepoFlow:
+    @pytest.mark.opt_in()
     @pytest.mark.slow()
     def test_cross_project_tasks_2_repos_same_flow(
         self, capsys, org_config, runtime, read_real_env
@@ -812,6 +814,7 @@ class TestCrossRepoFlow:
         assert "Called _run_task" in out, out
         assert "Called _run_task 2" in out, out
 
+    @pytest.mark.opt_in()
     @pytest.mark.slow()
     def test_cross_project_other_task(self, runtime, read_real_env):
         def assert_task(task_name, class_name):
