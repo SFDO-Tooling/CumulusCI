@@ -798,9 +798,7 @@ def test_cross_project_tasks(get_tempfile_logger):
 class TestCrossRepoFlow:
     @pytest.mark.slow()
     @pytest.mark.use_real_env()
-    def test_cross_project_tasks_2_repos_same_flow(
-        self, capsys, org_config, runtime, read_real_env
-    ):
+    def test_cross_project_tasks_2_repos_same_flow(self, capsys, org_config, runtime):
         coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
         with mock.patch.object(coordinator, "logger"):
             coordinator.run(org_config)
@@ -810,7 +808,7 @@ class TestCrossRepoFlow:
 
     @pytest.mark.slow()
     @pytest.mark.use_real_env()
-    def test_cross_project_other_task(self, runtime, read_real_env):
+    def test_cross_project_other_task(self, runtime):
         def assert_task(task_name, class_name):
             task_config = runtime.project_config.get_task(task_name)
             task_class = task_config.get_class()
