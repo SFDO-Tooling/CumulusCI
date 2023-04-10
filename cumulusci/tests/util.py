@@ -267,19 +267,28 @@ def mock_env(
 ):
     cumulusci_key = cumulusci_key if cumulusci_key else "0123456789ABCDEF"
     real_homedir = str(Path.home())
-    patches = {
+    new_environment = {
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
         "CUMULUSCI_SYSTEM_CERTS": "True",
         "PATH": os.environ["PATH"],
     }
+    new_environment.update(os.environ)
     if pythonpath := os.environ.get("PYTHONPATH"):
-        patches["PYTHONPATH"] = pythonpath
+        new_environment["PYTHONPATH"] = pythonpath
 
-    # among other things, this will hide CUMULUSCI_KEY and CUMULUSCI_SERVICE_github
+    # among other things, this will hide CUMULUSCI_KEY, GITHUB_APP_ID
+    # and CUMULUSCI_SERVICE_github
+    #
+    # Everything else is left as-is to leave stuff like PATH, PYTHONPATH
+    # and at least one more that seems to cause Windows to fail.
+    for key in tuple(new_environment.keys()):
+        if "CUMULUSCI_" in key or "GITHUB_" in key:
+            del key
+
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
-        os.environ, patches, clear=True
+        os.environ, new_environment, clear=True
     ):
         yield
 
