@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from unittest import mock
 
@@ -802,11 +803,16 @@ def read_real_env():
 
 # TODO: Get these running in CI and remove opt-in label
 class TestCrossRepoFlow:
-    @pytest.mark.opt_in()
     @pytest.mark.slow()
     def test_cross_project_tasks_2_repos_same_flow(
         self, capsys, org_config, runtime, read_real_env
     ):
+        print("GITHUB_APP_ID", os.environ["GITHUB_APP_ID"])
+        print(
+            "envvars, length",
+            len(os.environ["CUMULUSCI_SERVICE_github"]),
+            len(os.environ["GITHUB_APP_KEY"]),
+        )
         coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
         with mock.patch.object(coordinator, "logger"):
             coordinator.run(org_config)
@@ -814,9 +820,15 @@ class TestCrossRepoFlow:
         assert "Called _run_task" in out, out
         assert "Called _run_task 2" in out, out
 
-    @pytest.mark.opt_in()
     @pytest.mark.slow()
     def test_cross_project_other_task(self, runtime, read_real_env):
+        print("GITHUB_APP_ID", os.environ["GITHUB_APP_ID"])
+        print(
+            "envvars, length",
+            len(os.environ["CUMULUSCI_SERVICE_github"]),
+            len(os.environ["GITHUB_APP_KEY"]),
+        )
+
         def assert_task(task_name, class_name):
             task_config = runtime.project_config.get_task(task_name)
             task_class = task_config.get_class()
@@ -842,6 +854,3 @@ class TestCrossRepoFlow:
                 "disallowed_repo:untrusted_child_task"
             )
             task_config.get_class()
-
-
-# TODO: Test each scenario
