@@ -804,14 +804,20 @@ def read_real_env():
 # TODO: Get these running in CI and remove opt-in label
 class TestCrossRepoFlow:
     @pytest.mark.slow()
+    @pytest.mark.use_real_env()
     def test_cross_project_tasks_2_repos_same_flow(
         self, capsys, org_config, runtime, read_real_env
     ):
-        print("GITHUB_APP_ID", os.environ["GITHUB_APP_ID"])
+        print("GITHUB_APP_ID", os.environ.get("GITHUB_APP_ID", "MISSING"))
+        print("REAL_GITHUB_APP_ID", os.environ.get("REAL_GITHUB_APP_ID", "MISSING"))
+        print("HOME", os.environ.get("HOME", "MISSING"))
+        print("REAL_HOME", os.environ.get("REAL_HOME", "MISSING"))
         print(
             "envvars, length",
-            len(os.environ["CUMULUSCI_SERVICE_github"]),
-            len(os.environ["GITHUB_APP_KEY"]),
+            len(os.environ.get("CUMULUSCI_SERVICE_github", "")),
+            len(os.environ.get("GITHUB_APP_KEY", "")),
+            len(os.environ.get("REAL_CUMULUSCI_SERVICE_github", "")),
+            len(os.environ.get("REAL_GITHUB_APP_KEY", "")),
         )
         coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
         with mock.patch.object(coordinator, "logger"):
@@ -821,12 +827,13 @@ class TestCrossRepoFlow:
         assert "Called _run_task 2" in out, out
 
     @pytest.mark.slow()
+    @pytest.mark.use_real_env()
     def test_cross_project_other_task(self, runtime, read_real_env):
-        print("GITHUB_APP_ID", os.environ["GITHUB_APP_ID"])
+        print("GITHUB_APP_ID", os.environ.get("GITHUB_APP_ID", "MISSING"))
         print(
             "envvars, length",
-            len(os.environ["CUMULUSCI_SERVICE_github"]),
-            len(os.environ["GITHUB_APP_KEY"]),
+            len(os.environ.get("CUMULUSCI_SERVICE_github", "")),
+            len(os.environ.get("GITHUB_APP_KEY", "")),
         )
 
         def assert_task(task_name, class_name):
