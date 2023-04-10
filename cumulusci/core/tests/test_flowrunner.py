@@ -24,7 +24,7 @@ from cumulusci.core.flowrunner import (
 from cumulusci.core.source.local_folder import LocalFolderSource
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.tests.utils import MockLoggingHandler
-from cumulusci.tests.util import create_project_config, unmock_env
+from cumulusci.tests.util import create_project_config
 from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
 
 ORG_ID = "00D000000000001"
@@ -794,19 +794,11 @@ def test_cross_project_tasks(get_tempfile_logger):
     assert "Called _run_task" in str(out.mock_calls)
 
 
-@pytest.fixture
-def read_real_env():
-    with unmock_env():
-        yield
-
-
 # TODO: Get these running in CI and remove opt-in label
 class TestCrossRepoFlow:
-    @pytest.mark.opt_in()
     @pytest.mark.slow()
-    def test_cross_project_tasks_2_repos_same_flow(
-        self, capsys, org_config, runtime, read_real_env
-    ):
+    @pytest.mark.use_real_env()
+    def test_cross_project_tasks_2_repos_same_flow(self, capsys, org_config, runtime):
         coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
         with mock.patch.object(coordinator, "logger"):
             coordinator.run(org_config)
@@ -814,9 +806,9 @@ class TestCrossRepoFlow:
         assert "Called _run_task" in out, out
         assert "Called _run_task 2" in out, out
 
-    @pytest.mark.opt_in()
     @pytest.mark.slow()
-    def test_cross_project_other_task(self, runtime, read_real_env):
+    @pytest.mark.use_real_env()
+    def test_cross_project_other_task(self, runtime):
         def assert_task(task_name, class_name):
             task_config = runtime.project_config.get_task(task_name)
             task_class = task_config.get_class()
@@ -842,6 +834,3 @@ class TestCrossRepoFlow:
                 "disallowed_repo:untrusted_child_task"
             )
             task_config.get_class()
-
-
-# TODO: Test each scenario
