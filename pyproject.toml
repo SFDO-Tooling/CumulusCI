@@ -259,6 +259,7 @@ include = [
     'cumulusci/utils/iterators.py',
     'cumulusci/utils/parallel/task_worker_queues/parallel_worker.py',
     'cumulusci/utils/salesforce/count_sobjects.py',
+    'cumulusci/tests/util.py',
     'cumulusci/utils/waiting.py',
     'cumulusci/utils/xml/robot_xml.py',
     'cumulusci/utils/xml/salesforce_encoding.py',

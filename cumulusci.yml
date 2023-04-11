@@ -8,6 +8,12 @@ sources:
     ccitest:
         github: https://github.com/SFDO-Tooling/CumulusCI-Test
         branch: main
+        allow_remote_code: True
+    local_fake:
+        path: cumulusci/core/tests/fake_remote_repo
+        allow_remote_code: True
+    disallowed_repo:
+        path: cumulusci/core/tests/untrusted_repo_parent
 
     omni:
         github: https://github.com/SalesforceFoundation/omni-cci
@@ -163,6 +169,20 @@ flows:
         steps:
             1:
                 task: None
+
+    test_cross_project_custom_tasks:
+        steps:
+            1:
+                task: ccitest:example_task
+
+            2:
+                task: local_fake:example_task
+
+            3:
+                task: local_fake:example_task_from_subdirectory
+
+            4:
+                flow: local_fake:run_child_tasks
 
     test_upserts_snowfakery:
         steps:
