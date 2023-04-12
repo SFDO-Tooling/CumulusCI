@@ -1,13 +1,18 @@
 import logging
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
 import cumulusci
+from cumulusci.cli import cci
+from cumulusci.cli.tests.test_cci import MagicMock
 from cumulusci.core.config import FlowConfig, OrgConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import (
     FlowConfigError,
     FlowInfiniteLoopError,
+    TaskImportError,
     TaskNotFoundError,
 )
 from cumulusci.core.flowrunner import (
@@ -16,9 +21,11 @@ from cumulusci.core.flowrunner import (
     StepSpec,
     TaskRunner,
 )
+from cumulusci.core.source.local_folder import LocalFolderSource
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
 
 ORG_ID = "00D000000000001"
 
@@ -747,3 +754,83 @@ def test_log_options__options_is_list__sensitive(task_runner, task_options_sensi
 
     task.logger.info.assert_any_call("  color:")
     task.logger.info.assert_any_call("    - ********")
+
+
+def include_fake_project(self: BaseProjectConfig, _spec) -> BaseProjectConfig:
+    # cumulusci/core/source/local_folder.py
+    source = LocalFolderSource(
+        self,
+        LocalFolderSourceModel(path=Path("cumulusci/core/tests/fake_remote_repo/")),
+    )
+    project = source.fetch()
+    return project
+
+
+# This grossness is inherited from `test_cci.py`...needs to be
+# fixed centrally!
+@mock.patch(
+    "cumulusci.cli.runtime.CliRuntime.get_org",
+    lambda *args, **kwargs: (MagicMock(), MagicMock()),
+)
+@mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
+@mock.patch("pdb.post_mortem", MagicMock())
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
+@mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+def test_cross_project_tasks(get_tempfile_logger):
+    # get_tempfile_logger doesn't clean up after itself which breaks other tests
+    get_tempfile_logger.return_value = mock.Mock(), ""
+    with mock.patch("cumulusci.core.debug._DEBUG_MODE", get=lambda: True), mock.patch(
+        "logging.Logger.info", wraps=lambda data: print(data)
+    ) as out:
+        cci.main(
+            [
+                "cci",
+                "task",
+                "run",
+                "local_fake:example_task",
+            ]
+        )
+    assert "Called _run_task" in str(out.mock_calls)
+
+
+# TODO: Get these running in CI and remove opt-in label
+class TestCrossRepoFlow:
+    @pytest.mark.slow()
+    @pytest.mark.use_real_env()
+    def test_cross_project_tasks_2_repos_same_flow(self, capsys, org_config, runtime):
+        coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
+        with mock.patch.object(coordinator, "logger"):
+            coordinator.run(org_config)
+            out = str(coordinator.logger.mock_calls)
+        assert "Called _run_task" in out, out
+        assert "Called _run_task 2" in out, out
+
+    @pytest.mark.slow()
+    @pytest.mark.use_real_env()
+    def test_cross_project_other_task(self, runtime):
+        def assert_task(task_name, class_name):
+            task_config = runtime.project_config.get_task(task_name)
+            task_class = task_config.get_class()
+            assert task_class.__name__ == class_name, (task_class.__name__, class_name)
+
+        assert_task("local_fake:example_task", "ExampleTask")
+
+        assert_task("local_fake:example_task_from_subdirectory", "ExampleTask2")
+
+        assert_task("local_fake:task_from_child_project", "ExampleTask3")
+
+        with pytest.raises(TaskNotFoundError, match="bad_classpath"):
+            assert_task("local_fake:bad_classpath", "FAILED")
+
+        with pytest.raises(TaskImportError, match="tasks.untrusted_parent"):
+            task_config = runtime.project_config.get_task(
+                "disallowed_repo:example_task"
+            )
+            task_config.get_class()
+
+        with pytest.raises(TaskImportError, match="tasks.untrusted_child"):
+            task_config = runtime.project_config.get_task(
+                "disallowed_repo:untrusted_child_task"
+            )
+            task_config.get_class()
