@@ -120,7 +120,8 @@ tasks specific to your project when running `cci task list`.
 Congratulations! You created a new custom task in CumulusCI.
 
 If you've built a custom task in Python, you can make it available to
-the project by adding the task under the `tasks` section of the
+the project by adding the task to a `tasks` subdirectory in the repo
+and under the `tasks` section of the
 `cumulusci.yml` file. (Let's assume that your task's class is named
 `MyNewTaskClassName` and exists in the file `tasks/task_file.py`.)
 
@@ -131,6 +132,11 @@ tasks:
         class_path: tasks.task_file.MyNewTaskClassName
         group: projectName
 ```
+
+This task will be accessible directly to this project. It will also
+be accessible to any other project that adds this as a source
+(see [Tasks and Flows from a Different Project](tasks-and-flows-from-a-different-project)) with
+`allow_remote_code: True`.
 
 (use-variables-for-task-options)=
 
@@ -473,6 +479,17 @@ flows:
 
 This flow uses NPSP's `install_prod` flow to install NPSP as a managed
 package, and then run this project's own `dev_org` flow.
+
+If the flow uses tasks that are implemented in custom Python code
+(see [Add a Custom Task](#add-a-custom-task))
+then you must instruct CumulusCI to allow that code to run:
+
+```yaml
+sources:
+    eda:
+        github: https://github.com/SalesforceFoundation/EDA
+        allow_remote_code: True
+```
 
 (scratch-org-configurations)=
 
