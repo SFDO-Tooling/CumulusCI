@@ -548,9 +548,16 @@ class MappingStep(CCIDictModel):
             by_alias=by_alias, exclude_defaults=exclude_defaults, **kwargs
         )
         if fields := out.get("fields"):
+            # Convert dicts of {"Name": "Name", "Role": "Role"}
+            # (an old-fashioned syntax)
+            # into a more modern ["Name", "Role"] -type format.
             keys = list(fields.keys())
             if keys == list(fields.values()):
                 out["fields"] = keys
+
+        # flatten enum to string
+        if isinstance(out.get("api"), DataApi):
+            out["api"] = out["api"].value
         return out
 
 
