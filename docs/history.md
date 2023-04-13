@@ -3,17 +3,19 @@
 <!-- latest-start -->
 
 ## v3.75.0 (2023-04-13)
+
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
+
 ### Changes 🎉
-* Fix bug that prevented "api" declaration in `extract_declaration` from being respected during `capture_sample_dataset`. by [@prescod](https://github.com/prescod) in [#3568](https://github.com/SFDO-Tooling/CumulusCI/pull/3568)
-* Update windows install steps by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3571](https://github.com/SFDO-Tooling/CumulusCI/pull/3571)
-* CCI projects can now run tasks from their "sources" even when they are custom tasks coded in Python. By [@prescod](https://github.com/prescod) in [#3345](https://github.com/SFDO-Tooling/CumulusCI/pull/3345)
-* The `capture_sample_data` task now looks for a `datasetname.load.yml` file to influence how it generates its .mapping file for subquent loads. By [@prescod](https://github.com/prescod) in [#3569](https://github.com/SFDO-Tooling/CumulusCI/pull/3569)
+
+-   Fix bug that prevented "api" declaration in `extract_declaration` from being respected during `capture_sample_dataset`. by [@prescod](https://github.com/prescod) in [#3568](https://github.com/SFDO-Tooling/CumulusCI/pull/3568)
+-   Update windows install steps by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3571](https://github.com/SFDO-Tooling/CumulusCI/pull/3571)
+-   CCI projects can now run tasks from their "sources" even when they are custom tasks coded in Python. By [@prescod](https://github.com/prescod) in [#3345](https://github.com/SFDO-Tooling/CumulusCI/pull/3345)
+-   The `capture_sample_data` task now looks for a `datasetname.load.yml` file to influence how it generates its .mapping file for subquent loads. By [@prescod](https://github.com/prescod) in [#3569](https://github.com/SFDO-Tooling/CumulusCI/pull/3569)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.74.0...v3.75.0
-
 
 <!-- latest-stop -->
 
