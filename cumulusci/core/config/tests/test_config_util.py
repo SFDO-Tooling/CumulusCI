@@ -35,10 +35,8 @@ def repo_root():
                             {
                                 "namespace": "hed",
                                 "version": "1.99",
-                                "dependencies": [
-                                    {"namespace": "pub", "version": "1.5"}
-                                ],
                             },
+                            {"namespace": "pub", "version": "1.5"},
                         ]
                     }
                 },

@@ -5,15 +5,17 @@ Note: If you change the model here, you should run `make schema`
 to update the JSON Schema version in cumulusci.jsonschema.json
 """
 
+import os
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from pydantic import Field, root_validator, validator
 from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
 from cumulusci.core.enums import StrEnum
+from cumulusci.core.exceptions import ConfigError
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
@@ -24,7 +26,7 @@ default_logger = getLogger(__name__)
 #  type aliases
 PythonClassPath = str
 URL = str
-
+CUMULUSCI_IGNORE_YAML_ERRORS = os.environ.get("CUMULUSCI_IGNORE_YAML_ERRORS") == "True"
 
 # additionalProperties here works around an
 # incompatibility with VSCode's Red Hat YAML validator
@@ -257,8 +259,8 @@ def parse_from_yaml(source) -> dict:
 
 def validate_data(
     data: Union[dict, list],
-    context: str = None,
-    on_error: callable = None,
+    context: Optional[str] = None,
+    on_error: Optional[Callable] = None,
 ):
     """Validate data which has already been loaded into a dictionary or list.
 
@@ -290,10 +292,16 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
         logger.warning("  %s\n    %s", loc, error["msg"])
     if not has_shown_yaml_error_message:
         logger.error(
-            "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
             "If you need to put non-standard data in your CumulusCI file "
             "(for some form of project-specific setting), put it in "
             "the `project: custom:` section of `cumulusci.yml` ."
+            "\n\n"
+            "If you have no immediate control over the `cumulusci.yml` you can set "
+            "an environment variable called `CUMULUSCI_IGNORE_YAML_ERRORS` to `True`."
+            "\n\n"
+            "This will buy you time, but you should still fix your YAML. "
+            "This workaround will only work for a few months. "
+            "Eventually we will require all YAML files to be correct."
         )
         logger.error(
             "If you think your YAML has no error, please report the bug to the CumulusCI team."
@@ -303,7 +311,10 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
 
 
 def cci_safe_load(
-    source: DataInput, context: str = None, on_error: callable = None, logger=None
+    source: DataInput,
+    context: Optional[str] = None,
+    on_error: Optional[Callable] = None,
+    logger=None,
 ) -> dict:
     """Load a CumulusCI.yml file and issue warnings for unknown structures."""
     errors = []
@@ -322,9 +333,9 @@ def cci_safe_load(
             validate_data(data, context=context, on_error=on_error)
             if errors:
                 _log_yaml_errors(logger, errors)
+
+                raise ConfigError("Error validating cumulusci.yml", context)
         except Exception as e:
-            # should never be executed
-            print(f"Error validating cumulusci.yml {e}")
             if on_error:
                 on_error(
                     {
@@ -333,7 +344,8 @@ def cci_safe_load(
                         "type": "exception",
                     }
                 )
-            pass
+            if not CUMULUSCI_IGNORE_YAML_ERRORS:
+                raise
         return data or {}
 
 

@@ -1,5 +1,5 @@
 from pathlib import Path, Sequence
-from typing import IO, Union
+from typing import IO, Callable, Optional, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.error_wrappers import ErrorWrapper
@@ -31,7 +31,10 @@ class CCIModel(BaseModel):
 
     @classmethod
     def validate_data(
-        cls, data: Union[dict, list], context: str = None, on_error: callable = None
+        cls,
+        data: Union[dict, list],
+        context: Optional[str] = None,
+        on_error: Optional[Callable] = None,
     ):
         """Validate data which has already been loaded into a dictionary or list.
 
