@@ -123,7 +123,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
     def _build_org_create_args(self) -> List[str]:
         args = ["-f", self.config_file, "-w", "120"]
-        devhub_username: str | None = self._choose_devhub_username()
+        devhub_username: Optional[str] = self._choose_devhub_username()
         if devhub_username:
             args += ["--targetdevhubusername", devhub_username]
         if not self.namespaced:
@@ -141,8 +141,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             args += [f"adminEmail={self.email_address}"]
         if self.default:
             args += ["-s"]
-        instance = self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE")
-        if instance:
+        if instance := self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE"):
             args += [f"instance={instance}"]
         return args
 
