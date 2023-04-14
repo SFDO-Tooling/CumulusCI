@@ -277,6 +277,10 @@ def mock_env(
     if pythonpath := os.environ.get("PYTHONPATH"):
         patches["PYTHONPATH"] = pythonpath
 
+    all_vars = set(os.environ.keys())
+    new_vars = set(patches.keys())
+    print("Hidden vars", sorted(all_vars.difference(new_vars)))
+
     # among other things, this will hide CUMULUSCI_KEY and CUMULUSCI_SERVICE_github
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
         os.environ, patches, clear=True
