@@ -25,7 +25,6 @@ def import_global(path: str):
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
-    mod = __import__(module, fromlist=[str(components[-1])])
 
     if get_debug_mode():
         import sys
@@ -35,6 +34,8 @@ def import_global(path: str):
         logger.info(f"Looking in sys.path {sys.path}")
         if components[0] == "tasks":
             logger.info(f"With tasks.__path__ {sys.modules['tasks'].__path__}")
+
+    mod = __import__(module, fromlist=[str(components[-1])])
     return getattr(mod, str(components[-1]))
 
 
