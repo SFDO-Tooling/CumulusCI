@@ -2,6 +2,19 @@
 
 <!-- latest-start -->
 
+## v3.75.1 (2023-04-14)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Issues Fixed 🩴
+* Ensure that top-level 'tasks' directory is read for custom tasks by [@prescod](https://github.com/prescod) in [#3582](https://github.com/SFDO-Tooling/CumulusCI/pull/3582)
+
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.0...v3.75.1
+
+
+<!-- latest-stop -->
+
 ## v3.75.0 (2023-04-13)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -16,8 +29,6 @@
 -   The `capture_sample_data` task now looks for a `datasetname.load.yml` file to influence how it generates its .mapping file for subquent loads. By [@prescod](https://github.com/prescod) in [#3569](https://github.com/SFDO-Tooling/CumulusCI/pull/3569)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.74.0...v3.75.0
-
-<!-- latest-stop -->
 
 ## v3.74.0 (2023-03-06)
 
