@@ -267,7 +267,7 @@ def mock_env(
 ):
     cumulusci_key = cumulusci_key if cumulusci_key else "0123456789ABCDEF"
     real_homedir = str(Path.home())
-    patches = {
+    new_environment = {
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
@@ -275,18 +275,18 @@ def mock_env(
         "PATH": os.environ["PATH"],
     }
     if pythonpath := os.environ.get("PYTHONPATH"):
-        patches["PYTHONPATH"] = pythonpath
+        new_environment["PYTHONPATH"] = pythonpath
 
     # copy over all of the environment ones because Windows
     # needs something not listed above and I don't know what
     # it is.
     for key, value in os.environ.items():
         if "CUMULUSCI_" not in key and "GITHUB_" not in key:
-            patches[key] = value
+            new_environment[key] = value
 
     # among other things, this will hide CUMULUSCI_KEY and CUMULUSCI_SERVICE_github
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
-        os.environ, patches, clear=True
+        os.environ, new_environment, clear=True
     ):
         yield
 
