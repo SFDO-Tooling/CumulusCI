@@ -285,7 +285,8 @@ def mock_env(
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
         "CUMULUSCI_KEY": cumulusci_key,
-    }.update(ENV_CLONE)
+        **ENV_CLONE,
+    }
 
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
         os.environ, new_environment, clear=True
