@@ -260,6 +260,19 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         yield
 
 
+# copy over most of the environment because Windows needs something
+# non-obvious and it is quite laborius to figure out what it is.
+
+# but we want to hide the CUMULUSCI_ and GITHUB_ related stuff from tests.
+ENV_CLONE = {
+    key: value
+    for key, value in os.environ.items()
+    if "CUMULUSCI_" not in key and "GITHUB_" not in key
+}
+
+ENV_CLONE["CUMULUSCI_SYSTEM_CERTS"] = "True"
+
+
 @contextmanager
 def mock_env(
     home,
@@ -271,20 +284,9 @@ def mock_env(
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
-        "CUMULUSCI_SYSTEM_CERTS": "True",
-        "PATH": os.environ["PATH"],
-    }
-    if pythonpath := os.environ.get("PYTHONPATH"):
-        new_environment["PYTHONPATH"] = pythonpath
+        "CUMULUSCI_KEY": cumulusci_key,
+    }.update(ENV_CLONE)
 
-    # copy over all of the environment ones because Windows
-    # needs something not listed above and I don't know what
-    # it is.
-    for key, value in os.environ.items():
-        if "CUMULUSCI_" not in key and "GITHUB_" not in key:
-            new_environment[key] = value
-
-    # among other things, this will hide CUMULUSCI_KEY and CUMULUSCI_SERVICE_github
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
         os.environ, new_environment, clear=True
     ):
