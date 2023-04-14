@@ -673,8 +673,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             self.logger.debug(f"Adding {directory} to tasks.__path__")
             tasks.__path__.append(directory)
         if get_debug_mode():
+            spec = getattr(self.source, "spec", ".")
             self.logger.debug(
-                f"After importing {self.source.spec}:  tasks.__path__ {tasks.__path__}"
+                f"After importing {spec}:  tasks.__path__ {tasks.__path__}"
             )
 
     def construct_subproject_config(self, **kwargs) -> "BaseProjectConfig":
