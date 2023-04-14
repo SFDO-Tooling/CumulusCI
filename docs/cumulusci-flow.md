@@ -340,8 +340,8 @@ repository, you can set the `update_future_releases` option on the
 ```yaml
 tasks:
     github_automerge_feature:
-    options:
-        update_future_releases: True
+        options:
+            update_future_releases: True
 ```
 
 ### Orphan Branches

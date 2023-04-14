@@ -1,6 +1,6 @@
 import io
 import os
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from http.client import HTTPMessage
 from logging import getLogger
 from pathlib import Path
@@ -96,10 +96,19 @@ create_task_fixture = fixture(create_task_fixture, scope="function")
 @pytest.fixture(autouse=True)
 def patch_home_and_env(request):
     "Patch the default home directory and $HOME environment for all tests at once."
-    with TemporaryDirectory(prefix="fake_home_") as home, mock_env(home):
-        Path(home, ".cumulusci").mkdir()
-        Path(home, ".cumulusci/cumulusci.yml").touch()
-        yield
+
+    use_real_env = request.node.get_closest_marker("use_real_env")
+
+    with TemporaryDirectory(prefix="fake_home_") as home:
+        if use_real_env:
+            mock_env_cm = nullcontext()
+        else:
+            mock_env_cm = mock_env(home)
+
+        with mock_env_cm:
+            Path(home, ".cumulusci").mkdir()
+            Path(home, ".cumulusci/cumulusci.yml").touch()
+            yield
 
 
 @pytest.fixture()

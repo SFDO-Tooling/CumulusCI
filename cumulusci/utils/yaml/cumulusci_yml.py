@@ -190,6 +190,7 @@ class GitHubSourceModel(HashableBaseModel):
     tag: Optional[str]
     release: Optional[GitHubSourceRelease]
     description: Optional[str]
+    allow_remote_code: Optional[bool] = False
 
     @root_validator
     def validate(cls, values):
@@ -214,6 +215,7 @@ class GitHubSourceModel(HashableBaseModel):
 
 class LocalFolderSourceModel(HashableBaseModel):
     path: DirectoryPath
+    allow_remote_code: Optional[bool] = False
 
 
 class CumulusCLIConfig(CCIDictModel):

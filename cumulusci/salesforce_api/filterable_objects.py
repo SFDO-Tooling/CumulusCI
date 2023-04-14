@@ -1,3 +1,17 @@
+# discovered by trial and error. Usually extended with a list of
+# tooling objects. i.e. any object which is both a tooling object
+# and also a "regular" sobject will be skipped.
+OPT_IN_ONLY = [
+    "ApexClass",
+    "ApexTrigger",
+    "FeedItem",
+    "Translation",
+    "WebLinkLocalization",
+    "RecordTypeLocalization",
+    "RecordType",
+    "BrandTemplate",
+]
+
 NOT_COUNTABLE = (
     "ContentDocumentLink",  # ContentDocumentLink requires a filter by a single Id on ContentDocumentId or LinkedEntityId
     "ContentFolderItem",  # Implementation restriction: ContentFolderItem requires a filter by Id or ParentContentFolderId
@@ -34,6 +48,7 @@ NOT_EXTRACTABLE = NOT_COUNTABLE + (
     "PermissionSetLicenseAssign",
     "PermissionSetTabSetting",
     "Profile",
+    "RecordType",
     "User",
     "UserAppInfo",
     "UserAppMenuCustomization",
