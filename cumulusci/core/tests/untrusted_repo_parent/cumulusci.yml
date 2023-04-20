@@ -1,0 +1,26 @@
+project:
+    name: Untrusted-Repo-Parent
+
+sources:
+    # trusted by the parent but not the root cumulusci
+    untrusted_child:
+        path: cumulusci/core/tests/untrusted_repo_child
+        allow_remote_code: True
+
+tasks:
+    example_task:
+        description: An example project-level task that does nothing
+        class_path: tasks.untrusted_parent.ExampleTask
+
+    untrusted_child_task:
+        description: An example project-level task that does nothing
+        class_path: tasks.untrusted_child.ExampleTask
+
+flows:
+    untrusted:
+        steps:
+            1:
+                task: example_task
+
+            2:
+                task: untrusted_child:example_task
