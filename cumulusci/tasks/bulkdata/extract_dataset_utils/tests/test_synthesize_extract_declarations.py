@@ -315,7 +315,7 @@ class TestSynthesizeExtractDeclarations:
                 )
             )
 
-    def test_parse_real_file(self, cumulusci_test_repo_root, org_config):
+    def test_parse_real_file(self, cumulusci_test_repo_root, org_config, caplog):
         declarations = ExtractRulesFile.parse_extract(
             cumulusci_test_repo_root / "datasets/test_minimal.extract.yml"
         )
@@ -338,11 +338,15 @@ class TestSynthesizeExtractDeclarations:
             include_counts=True,
         ) as schema:
             decls = flatten_declarations(declarations.values(), schema)
+            logs = str(caplog.record_tuples)
+            assert "MissingFieldShouldWarn" in logs
+            assert "MissingObjectShouldWarn__c" in logs
             decls = {decl.sf_object: decl for decl in decls}
             assert decls["Opportunity"].fields == [
                 "Name",
                 "ContactId",
                 "AccountId",
+                "MissingFieldShouldWarn",
                 "CloseDate",  # pull these in because they required
                 "StageName",
             ]

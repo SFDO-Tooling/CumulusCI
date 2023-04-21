@@ -3,6 +3,7 @@ from pathlib import Path
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.datasets import Dataset
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.filterable_objects import OPT_IN_ONLY
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
@@ -30,6 +31,9 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 "Multiple files can be comma separated."
             )
         },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
+        },
     }
 
     org_config: OrgConfig
@@ -37,9 +41,13 @@ class CaptureSampleData(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.options.setdefault("dataset", "default")
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema") or False
+        )
 
     def _run_task(self):
         name = self.options["dataset"]
+        drop_missing_schema = self.options["drop_missing_schema"]
         if extraction_definition := self.options.get("extraction_definition"):
             extraction_definition = Path(extraction_definition)
             if not extraction_definition.exists():
@@ -71,7 +79,12 @@ class CaptureSampleData(BaseSalesforceApiTask):
             opt_in_only += OPT_IN_ONLY
 
             self.return_values = dataset.extract(
-                {}, self.logger, extraction_definition, opt_in_only, loading_rules
+                {},
+                self.logger,
+                extraction_definition,
+                opt_in_only,
+                loading_rules,
+                drop_missing_schema,
             )
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
             return self.return_values

@@ -5,9 +5,12 @@ extract:
             - Name
             - ContactId
             - AccountId
+            - MissingFieldShouldWarn
     Contact: # Extract required Contact fields
         fields: FIELDS(REQUIRED)
     Account: # Extract required Account fields
         fields: FIELDS(REQUIRED)
     OBJECTS(CUSTOM): # Extract every field on Custom objects
+        fields: FIELDS(ALL)
+    MissingObjectShouldWarn__c: # Filtered out because not in org
         fields: FIELDS(ALL)

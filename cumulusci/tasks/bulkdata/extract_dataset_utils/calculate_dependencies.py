@@ -1,4 +1,5 @@
 import typing as T
+from logging import Logger, getLogger
 
 from cumulusci.salesforce_api.filterable_objects import NOT_EXTRACTABLE
 from cumulusci.salesforce_api.org_schema import Schema
@@ -7,6 +8,8 @@ from .synthesize_extract_declarations import (
     SimplifiedExtractDeclaration,
     synthesize_declaration_for_sobject,
 )
+
+DEFAULT_LOGGER = getLogger(__file__)
 
 
 class SObjDependency(T.NamedTuple):
@@ -27,8 +30,11 @@ def _calculate_dependencies_for_declarations(
     dependencies = {}
     for decl in decls:
         assert isinstance(decl.sf_object, str)
-        new_dependencies = _collect_dependencies_for_sobject(
-            decl.sf_object, decl.fields, schema, only_required_fields=False
+        new_dependencies = (
+            _collect_dependencies_for_sobject(
+                decl.sf_object, decl.fields, schema, only_required_fields=False
+            )
+            or {}
         )
         dependencies.update(new_dependencies)
     return dependencies
@@ -39,32 +45,46 @@ def _collect_dependencies_for_sobject(
     fields: T.List[str],
     schema: Schema,
     only_required_fields: bool,
-) -> T.Dict[str, T.List[SObjDependency]]:
+    logger: Logger = DEFAULT_LOGGER,
+) -> T.Optional[T.Dict[str, T.List[SObjDependency]]]:
     """Ensure that required lookups are fulfilled for a single SObject
 
     Do this by adding its referent tables (in full) to the extract.
     Module-internal helper function.
     """
     dependencies = {}
-    for field_name in fields:
-        field_info = schema[source_sfobject].fields[field_name]
-        if not field_info.createable:  # pragma: no cover
-            continue
-        references = field_info.referenceTo
-        if len(references) == 1 and not references[0] == "RecordType":
-            target = references[0]
+    obj_info = schema[source_sfobject]
 
-            target_disallowed = target in NOT_EXTRACTABLE
-            field_disallowed = target_disallowed or not field_info.createable
-            field_allowed = not (only_required_fields or field_disallowed)
-            if field_info.requiredOnCreate or field_allowed:
-                dependencies.setdefault(source_sfobject, []).append(
-                    SObjDependency(
-                        source_sfobject, target, field_name, field_info.requiredOnCreate
-                    )
-                )
+    for field_name in fields:
+        field_info = obj_info.fields.get(field_name)
+        if not field_info:
+            logger.warning(f"Cannot find field {field_name} in {obj_info.name}.")
+        if field_info and field_info.createable:
+            dep = dependency_for_field(
+                field_info, only_required_fields, source_sfobject, field_name
+            )
+            if dep:
+                sobjdeps = dependencies.setdefault(source_sfobject, [])
+                sobjdeps.append(dep)
 
     return dependencies
+
+
+def dependency_for_field(
+    field_info, only_required_fields, source_sfobject, field_name
+) -> T.Optional[SObjDependency]:
+    references = field_info.referenceTo
+    if len(references) == 1 and not references[0] == "RecordType":
+        target = references[0]
+
+        target_disallowed = target in NOT_EXTRACTABLE
+        field_disallowed = target_disallowed or not field_info.createable
+        field_allowed = not (only_required_fields or field_disallowed)
+        if field_info.requiredOnCreate or field_allowed:
+            return SObjDependency(
+                source_sfobject, target, field_name, field_info.requiredOnCreate
+            )
+    return None
 
 
 def extend_declarations_to_include_referenced_tables(
@@ -95,11 +115,14 @@ def extend_declarations_to_include_referenced_tables(
                     target_table, required_fields, schema[target_table].fields
                 )
 
-                new_dependencies = _collect_dependencies_for_sobject(
-                    target_table,
-                    decls[target_table].fields,
-                    schema,
-                    only_required_fields=True,
+                new_dependencies = (
+                    _collect_dependencies_for_sobject(
+                        target_table,
+                        decls[target_table].fields,
+                        schema,
+                        only_required_fields=True,
+                    )
+                    or {}
                 )
                 dependencies.update(new_dependencies)
                 to_process.append(target_table)

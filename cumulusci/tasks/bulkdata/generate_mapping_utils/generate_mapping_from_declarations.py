@@ -98,8 +98,8 @@ def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables
         # Record types are not treated as lookup.
         if field_name == "RecordTypeId":
             return False
-        schema_info_for_field = sobject_schema_info.fields[field_name]
-        target = schema_info_for_field.referenceTo
+        schema_info_for_field = sobject_schema_info.fields.get(field_name)
+        target = schema_info_for_field.referenceTo if schema_info_for_field else None
         return target
 
     simple_fields, lookups = partition(is_lookup, decl.fields)
