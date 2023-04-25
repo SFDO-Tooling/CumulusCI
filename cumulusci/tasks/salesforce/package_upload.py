@@ -11,6 +11,10 @@ class PackageUpload(BaseSalesforceApiTask):
     api_version = "48.0"
     task_options = {
         "name": {"description": "The name of the package version.", "required": True},
+        "version_number": {
+            "description": "The version number in the format Major.Minor (e.g., 1.0 or 4.563)",
+            "required": True
+        },
         "production": {
             "description": "If True, uploads a production release.  Defaults to uploading a beta"
         },
@@ -41,6 +45,13 @@ class PackageUpload(BaseSalesforceApiTask):
         self.upload_id = None
         self.package_id = None
 
+        # Parse major and minor version from version_number
+        version_number = self.options.get("version_number", None)
+        if version_number:
+            major_version, minor_version = map(int, version_number.split('.'))
+            self.major_version = major_version
+            self.minor_version = minor_version
+
         # Set the namespace option to the value from cumulusci.yml if not already set
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
@@ -69,6 +80,8 @@ class PackageUpload(BaseSalesforceApiTask):
             "VersionName": self.options["name"],
             "IsReleaseVersion": production,
             "MetadataPackageId": self.package_id,
+            "MajorVersion": self.major_version,
+            "MinorVersion": self.minor_version
         }
 
         if "description" in self.options:
