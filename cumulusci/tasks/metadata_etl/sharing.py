@@ -29,7 +29,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
 
-        # If this option is comming directly from the CLI
+        # If this option is coming directly from the CLI
         # then we need to appropriately parse the string
         option_val = self.options["org_wide_defaults"]
         if isinstance(option_val, str):
