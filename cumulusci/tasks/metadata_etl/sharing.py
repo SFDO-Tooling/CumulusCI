@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
@@ -27,6 +28,13 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
     def _init_options(self, kwargs):
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
+
+        # If this option is comming directly from the CLI
+        # then we need to appropriately parse the string
+        option_val = self.options["org_wide_defaults"]
+        if isinstance(option_val, str):
+            self.options["org_wide_defaults"] = json.loads(option_val)
+
         self.api_names = {
             self._inject_namespace(elem["api_name"])
             for elem in self.options["org_wide_defaults"]

@@ -74,6 +74,19 @@ class TestSetOrgWideDefaults:
         assert len(entry) == 1
         assert entry[0].text == "Read"
 
+    def test_set_owd__parse_owd_option_from_cli(self):
+        task = create_task(
+            SetOrgWideDefaults,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "org_wide_defaults": '[{"api_name": "Account","internal_sharing_model": "Private", "external_sharing_model": "Private" }]',
+            },
+        )
+        task._init_options({})
+        assert isinstance(task.options["org_wide_defaults"], list)
+
     def test_sets_owd__missing_tags(self):
         task = create_task(
             SetOrgWideDefaults,
