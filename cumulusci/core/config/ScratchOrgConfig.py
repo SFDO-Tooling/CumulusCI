@@ -187,16 +187,16 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         p = sfdx("force:org:delete -p", self.username, "Deleting scratch org")
 
-        stdout = []
-        for line in p.stdout_text:
-            stdout.append(line)
-            if line.startswith("An error occurred deleting this org"):
+        output = []
+        for line in list(p.stdout_text) + list(p.stderr_text):
+            output.append(line)
+            if "error" in line.lower():
                 self.logger.error(line)
             else:
                 self.logger.info(line)
 
         if p.returncode:
-            message = f"Failed to delete scratch org: \n{''.join(stdout)}"
+            message = "Failed to delete scratch org"
             raise ScratchOrgException(message)
 
         # Flag that this org has been deleted

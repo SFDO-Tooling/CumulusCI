@@ -90,17 +90,15 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
             CreateConnectedApp(self.project_config, self.task_config)
 
     @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._run_command")
-    def test_set_default_username(self, run_command_mock):
-        """ _set_default_username calls _run_command """
+    def test_get_command(self, run_command_mock):
+        del self.task_config.config["options"]["username"]
         task = CreateConnectedApp(self.project_config, self.task_config)
         run_command_mock.side_effect = lambda **kw: kw["output_handler"](
             b'{"result":[{"value":"username"}]}'
         )
-        task._set_default_username()
-        run_command_mock.assert_called_once()
-        self.assertEqual(
-            self.task_log["info"], ["Getting username for the default devhub from sfdx"]
-        )
+        task.tempdir = "asdf"
+        command = task._get_command()
+        assert command == "sfdx force:mdapi:deploy --wait 5 -u username -d asdf"
 
     def test_process_json_output(self):
         """ _process_json_output returns valid json """

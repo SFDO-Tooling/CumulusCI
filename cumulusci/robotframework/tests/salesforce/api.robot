@@ -74,7 +74,7 @@ Salesforce Query Where Not Equal
     @{records} =  Salesforce Query  Contact
     ...              select=Id,FirstName,LastName
     ...              where= LastName!='${new_contact}[LastName]'
-    ...              FirstName=${new_contact}[FirstName]
+    ...              Id=${new_contact}[Id]
     ${cnt}=    Get length    ${records}
     Should Be Equal As Numbers   ${cnt}  0
 

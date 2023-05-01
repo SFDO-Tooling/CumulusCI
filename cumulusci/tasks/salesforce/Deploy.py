@@ -1,3 +1,4 @@
+import pathlib
 from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -79,7 +80,11 @@ class Deploy(BaseSalesforceMetadataApiTask):
             path = self.options.get("path")
 
         package_zip = self._get_package_zip(path)
-        self.logger.info("Payload size: {} bytes".format(len(package_zip)))
+        if package_zip is not None:
+            self.logger.info("Payload size: {} bytes".format(len(package_zip)))
+        else:
+            self.logger.warning("Deployment package is empty; skipping deployment.")
+            return
 
         return self.api_class(
             self,
@@ -102,6 +107,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_package_zip(self, path):
         assert path, f"Path should be specified for {self.__class__.name}"
+        if not pathlib.Path(path).exists():
+            self.logger.warning(f"{path} not found.")
+            return
         namespace = self.options["namespace_inject"]
         options = {
             **self.options,
@@ -113,9 +121,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
             "namespaced_org": self._is_namespaced_org(namespace),
         }
 
-        return MetadataPackageZipBuilder(
+        package_zip = MetadataPackageZipBuilder(
             path=path, options=options, logger=self.logger
-        ).as_base64()
+        )
+        if not package_zip.zf.namelist():
+            return
+        return package_zip.as_base64()
 
     def freeze(self, step):
         steps = super(Deploy, self).freeze(step)

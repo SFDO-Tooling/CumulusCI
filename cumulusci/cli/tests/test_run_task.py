@@ -43,6 +43,13 @@ def test_task_run(runtime):
     DummyTask._run_task.assert_called_once()
 
 
+def test_task_run__no_project(runtime):
+    runtime.project_config = None
+    runtime.project_config_error = Exception("Broken")
+    with pytest.raises(Exception, match="Broken"):
+        cci.RunTaskCommand().get_command(Mock, "dummy-task")
+
+
 def test_task_run__debug_before(runtime):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()

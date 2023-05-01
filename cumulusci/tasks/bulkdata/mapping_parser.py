@@ -65,6 +65,9 @@ class MappingLookup(CCIDictModel):
         )
 
 
+SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
+
+
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
@@ -179,10 +182,11 @@ class MappingStep(CCIDictModel):
     @validator("record_type")
     @classmethod
     def record_type_is_deprecated(cls, v):
-        logger.warning(
-            "record_type is deprecated. Just supply a RecordTypeId column declaration and it will be inferred"
-        )
-        return v
+        if SHOULD_REPORT_RECORD_TYPE_DEPRECATION:
+            logger.warning(
+                "record_type is deprecated. Just supply a RecordTypeId column declaration and it will be inferred"
+            )
+            return v
 
     @validator("oid_as_pk")
     @classmethod

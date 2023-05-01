@@ -269,9 +269,14 @@ Open App Launcher
     Page Should Contain  All Apps
 
 Populate Field
+    [Setup]     Run keywords
+    ...  Go to object home  Account
+    ...  AND  Click Object Button  New
+    [Teardown]  Run keywords
+    ...  Click modal button  Cancel
+    ...  AND  Wait Until Modal Is Closed
+
     ${account_name} =    Get fake data  company
-    Go To Object Home    Account
-    Click Object Button  New
     Populate Field       Account Name  ${account_name}
     ${locator} =         Get Locator  object.field  Account Name
     ${value} =           Get Value  ${locator}
@@ -281,27 +286,32 @@ Populate Field
     Should Be Equal      ${value}  ${account_name}
 
 Populate Lookup Field
+    [Setup]     Run keywords
+    ...  Go to object home  Contact
+    ...  AND  Click Object Button  New
+    [Teardown]  Run keywords
+    ...  Click modal button  Cancel
+    ...  AND  Wait Until Modal Is Closed
+
     &{account} =           Create Account
-    Go To Object Home      Contact
-    Click Object Button    New
     Populate Lookup Field  Account Name  ${account}[Name]
-    ${locator} =           Get Locator  object.field_lookup_value  Account Name
-    ${value} =             Get Text  ${locator}
-    Should Be Equal        ${value}  ${account}[Name]
+    Field value should be  Account Name  ${account}[Name]
 
 Populate Form
+    [Setup]     Run keywords
+    ...  Go to object home  Account
+    ...  AND  Click Object Button  New
+    [Teardown]  Run keywords
+    ...  Click modal button  Cancel
+    ...  AND  Wait Until Modal Is Closed
+
     ${account_name} =    Get fake data  company
-    Go To Object Home    Account
-    Click Object Button  New
     Populate Form
     ...  Ticker Symbol=CASH
     ...  Account Name=${account_name}
-    ${locator} =         Get Locator  object.field  Account Name
-    ${value} =           Get Value  ${locator}
-    Should Be Equal      ${value}  ${account_name}
-    ${locator}=          Get Locator  object.field  Ticker Symbol
-    ${value} =           Get Value  ${locator}
-    Should Be Equal      ${value}  CASH
+
+    Field value should be  Ticker Symbol  CASH
+    Field value should be  Account Name  ${account_name}
 
 Select Dropdown Value
     [Documentation]  Select Dropdown Value happy path tests
@@ -315,7 +325,7 @@ Select Dropdown Value
 
     # these two fields look and act identical, but they are
     # implemented differently in the DOM *sigh*
-    Select dropdown value  Salutation   Mr.
+    Select dropdown value  Salutation   Dr.
 
     Select dropdown value  Lead Source  Purchased List
 
@@ -331,7 +341,7 @@ Select Dropdown Value
     Wait until keyword succeeds  5 seconds  2 seconds
     ...    Object field should be  Contact  ${contact id}  LeadSource  Purchased List
     Wait until keyword succeeds  5 seconds  2 seconds
-    ...    Object field should be  Contact  ${contact id}  Salutation  Mr.
+    ...    Object field should be  Contact  ${contact id}  Salutation  Dr.
 
 Select Dropdown Value exceptions
     [Documentation]  Verify that the keyword throws appropriate errors

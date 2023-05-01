@@ -2,6 +2,115 @@
 History
 =======
 
+3.25.0 (2020-12-10)
+-------------------
+
+Changes:
+
+- New tasks:
+
+  - ``assign_permission_set_groups`` assigns Permission Set Groups to a user if not already assigned.
+  - ``assign_permission_set_licenses`` assigns Permission Set Licenses to a user if not already assigned.
+
+- New preflight checks for use with MetaDeploy install plans:
+
+  - ``check_enhanced_notes_enabled`` checks if Enhanced Notes are enabled
+
+  - ``check_my_domain_active`` checks if My Domain is active
+
+- The ``github_copy_subtree`` task has a new option, ``renames``, which allows mapping between local and target path names when publishing to support renaming a file or directory from the source repository in the target repository.
+
+- The ``ensure_record_types`` task has a new option, ``record_type_description``, which can be used to set the description of the new record type if it is created.
+
+- Robot Framework:
+
+  - New keyword ``Field value should be``
+  - New keyword ``Modal should show edit error for fields`` to check form field error notifications in Spring '21
+  - Adjusted ``Get field value`` and ``Select dropdown value`` fields to work in Spring '21
+
+- Command line improvements:
+
+  - The various ``cci org`` commands now accept an org name with the ``--org`` option, for better consistency with other commands. Specifying an org name without ``--org`` also still works.
+
+  - Running ``cci org default`` without specifying an org name will now display the current default org.
+
+- Org configs now have properties ``org_config.is_multiple_currencies_enabled`` and ``org_config.is_advanced_currency_management_enabled`` which can be used to check if these features are enabled.
+
+- The ``MergeBranchOld`` task, which was previously deprecated, has now been removed.
+
+Issues closed:
+
+- Fixed the ``update_dependencies`` task to handle automatic injection of namespace prefixes when deploying an unpackaged dependency.
+
+- Fixed the ``query`` task, which was completely broken.
+
+- Fixed the ``connected_app`` task to pass the correct username to sfdx. Thanks @atrancadoris
+
+- Fixed the display of task options with an underscore in ``cci task info`` output.
+
+- Fixed a confusing warning when creating record types using Snowfakery. (#2093)
+
+- Improved handling of errors while deleting a scratch org.
+
+3.24.1 (2020-12-01)
+-------------------
+
+Issues Closed:
+
+- Fixed a regression that prevented running unmanaged flows on persistent orgs, due to the use of the ``include_beta`` option while installing dependencies, which is not allowed for persistent orgs. We changed the ``update_dependencies`` task to ignore the option and log a warning when running against a persistent org, instead of erroring.
+
+
+3.24.0 (2020-11-30)
+-------------------
+
+Critical Changes:
+
+- The flows ``dev_org``, ``dev_org_namespaced``, ``qa_org``, ``ci_feature``, and ``install_beta`` now run the ``update_dependencies`` task with the ``include_beta`` option enabled, so dependencies will be installed using the most recent beta release instead of the most recent final release. The ``beta_dependencies`` flow is no longer used and is considered deprecated.
+
+- The flows ``ci_feature_beta_deps`` and ``dev_org_beta_deps`` are now deprecated and should be replaced by their default equivalents above.
+
+- The ``ci_feature_2gp`` flow has been changed to use ``config_apextest`` instead of ``config_managed`` to avoid configuration steps that are unnecessary for running Apex tests. This means that in order for ``ci_feature_2gp`` to work, ``config_apextest`` must be set up to work in both managed and unmanaged contexts.
+
+- When connecting GitHub using ``cci service connect github``, we now prompt for a personal access token instead of a password. (GitHub has removed support for accessing the API using a password as of November 2020.) If you already had a token stored in the ``password`` field, it will be transparently migrated to ``token``. If you were specifying ``--password`` on the command line when running this command, you need to switch to ``--token`` instead.
+
+- Removed the old ``cumulusci.tasks.command.SalesforceBrowserTest`` task class which has not been used for some time.
+
+Changes:
+
+- Added a standard ``qa_org_2gp`` flow, which can be used to set up a QA org using a 2nd-generation package version that was previously created using the ``build_feature_test_package`` flow. This flow makes use of the ``config_qa`` flow, which means that ``config_qa`` must be set up to work in both managed and unmanaged contexts. This flow is considered experimental and may change at any time.
+
+- The ``batch_apex_wait`` task can now wait for Queueable Apex jobs in addition to batch Apex.
+
+- The ``custom_settings_value_wait`` task now waits if the expected Custom Settings record does not yet exist, and does case insensitive comparison of field names.
+
+- Preflight checks:
+
+  - Added a task, ``check_sobject_permissions``, to validate sObject permissions.
+  - Added a task, ``check_advanced_currency_management``, to determine whether or not Advanced Currency Management is active.
+
+- Robot Framework:
+
+  - In the Robot Framework Salesforce resource, the ``Open Test Browser`` keyword now accepts an optional ``useralias`` argument which can be used to open a browser as a different user. The user must already have been created or authenticated using the Salesforce CLI.
+
+- Updated to `Snowfakery 1.3 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.3>`_.
+
+Issues Closed:
+
+- Improved error handling of REST API responses to confirm they are JSON.
+
+- Fixed error handling in the ``load_dataset`` task in Windows.
+
+- Fixed a bug where pressing ``Ctrl+C`` while running ``cci org connect`` in Windows did not exit. (#2027)
+
+- Fixed a bug where deploying an LWC component bundle using the ``deploy`` task did not include files in subfolders.
+
+- Fixed the ``deploy`` task so that deploying an empty metadata directory does not error.
+
+- Fixed a bug where the ``namespace_inject`` option was not included when freezing deploy steps for MetaDeploy, causing namespace injection to not work when running the plan in MetaDeploy.
+
+- Fixed a bug where running the ``robot`` task as a cross-project task could not load Robot Framework libraries from the other project.
+
+
 3.23.0 (2020-11-12)
 -------------------
 

@@ -151,3 +151,24 @@ class TestSalesforceEncoding:
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out.strip()
+
+    def test_with_element_rather_than_doc(self):
+        xml_in = """
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Account MD Isolation Rollup</label>
+    <protected>false</protected>
+    <values>
+        <field>dlrs__Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>""".strip()
+
+        tree = etree.parse(StringIO(xml_in))
+
+        xml_out = serialize_xml_for_salesforce(tree.getroot(), xml_declaration=False)
+        assert xml_in == xml_out.strip()
+
+        xml_out = serialize_xml_for_salesforce(
+            tree.getroot()[-1][0], xml_declaration=False
+        )
+        assert xml_out.strip() == "<field>dlrs__Active__c</field>"

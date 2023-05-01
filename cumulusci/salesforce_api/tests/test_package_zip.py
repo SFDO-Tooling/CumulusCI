@@ -263,30 +263,18 @@ class TestMetadataPackageZipBuilder:
         assert builder._include_directory([]) is True
 
         # not include lwc directory
-        assert builder._include_directory(["lwc"]) is False
+        assert builder._include_directory(["lwc"]) is True
 
         # include any lwc sub-directory (i.e. lwc component directory)
         assert builder._include_directory(["lwc", "myComponent"]) is True
         assert builder._include_directory(["lwc", "lwc"]) is True
+        assert (
+            builder._include_directory(["lwc", "myComponent", "sub-1", "sub-2"]) is True
+        )
 
-        # not include any sub-*-directory of a lwc sub-directory
-        assert builder._include_directory(["lwc", "myComponent", "__tests__"]) is False
-        assert (
-            builder._include_directory(["lwc", "myComponent", "sub-1", "sub-2"])
-            is False
-        )
-        assert (
-            builder._include_directory(
-                ["lwc", "myComponent", "sub-1", "sub-2", "sub-3"]
-            )
-            is False
-        )
-        assert (
-            builder._include_directory(
-                ["lwc", "myComponent", "sub-1", "sub-2", "sub-3", "sub-4"]
-            )
-            is False
-        )
+        # don't include __tests__ within lwc components
+        assert not builder._include_directory(["lwc", "myComponent", "__tests__"])
+        assert not builder._include_directory(["lwc", "myComponent", "__mocks__"])
 
         # include any non-lwc directory
         assert builder._include_directory(["not-lwc"]) is True
@@ -296,23 +284,18 @@ class TestMetadataPackageZipBuilder:
         # include any sub_* directory of a non-lwc directory
         assert builder._include_directory(["not-lwc", "sub-1"]) is True
         assert builder._include_directory(["not-lwc", "sub-1", "sub-2"]) is True
-        assert (
-            builder._include_directory(["not-lwc", "sub-1", "sub-2", "sub-3"]) is True
-        )
-        assert (
-            builder._include_directory(["not-lwc", "sub-1", "sub-2", "sub-3", "sub-4"])
-            is True
-        )
 
     def test_include_file(self):
         builder = MetadataPackageZipBuilder()
 
-        lwc_component_directory = ["lwc", "myComponent"]
-        non_lwc_component_directories = [
-            [],
+        lwc_component_directories = [
             ["lwc"],
+            ["lwc", "myComponent"],
             ["lwc", "myComponent", "sub-1"],
             ["lwc", "myComponent", "sub-2"],
+        ]
+        non_lwc_component_directories = [
+            [],
             ["classes"],
             ["objects", "sub-1"],
             ["objects", "sub-1", "sub-2"],
@@ -320,39 +303,34 @@ class TestMetadataPackageZipBuilder:
 
         # file endings in lwc component whitelist
         for file_ending in [".js", ".js-meta.xml", ".html", ".css", ".svg"]:
-            # lwc_component_directory
-            assert (
-                builder._include_file(
-                    lwc_component_directory, "file_name" + file_ending
-                )
-                is True
-            )
-
-            # non_lwc_component_directories
+            for d in lwc_component_directories:
+                assert builder._include_file(d, "file_name" + file_ending)
             for d in non_lwc_component_directories:
-                assert builder._include_file(d, "file_name" + file_ending) is True
+                assert builder._include_file(d, "file_name" + file_ending)
 
         # file endings not in lwc component whitelist
         for file_ending in ["", ".json", ".xml", ".cls", ".cls-meta.xml", ".object"]:
-            # lwc_component_directory
-            assert (
-                builder._include_file(
-                    lwc_component_directory, "file_name" + file_ending
-                )
-                is False
-            )
-
-            # non_lwc_component_directories
+            for d in lwc_component_directories:
+                assert not builder._include_file(d, "file_name" + file_ending)
             for d in non_lwc_component_directories:
-                assert builder._include_file(d, "file_name" + file_ending) is True
+                assert builder._include_file(d, "file_name" + file_ending)
 
     def test_convert_sfdx(self):
         with temporary_dir() as path:
+            touch("README.md")  # make sure there's something in the directory
             with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
                 builder = MetadataPackageZipBuilder()
                 with builder._convert_sfdx_format(path, "Test Package"):
                     pass
         sfdx.assert_called_once()
+
+    def test_convert_sfdx__skipped_if_directory_empty(self):
+        with temporary_dir() as path:
+            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
+                builder = MetadataPackageZipBuilder()
+                with builder._convert_sfdx_format(path, "Test Package"):
+                    pass
+        sfdx.assert_not_called()
 
     def test_removes_feature_parameters_from_unlocked_package(self):
         with temporary_dir() as path:

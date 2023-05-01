@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 import requests
 from simple_salesforce import Salesforce
+from simple_salesforce.exceptions import SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import CumulusCIException
@@ -42,6 +43,7 @@ class OrgConfig(BaseConfig):
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
+        self._multiple_currencies_is_enabled = False
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -348,6 +350,135 @@ class OrgConfig(BaseConfig):
                 for field in self.salesforce_client.Account.describe()["fields"]
             )
         return self._is_person_accounts_enabled
+
+    @property
+    def is_multiple_currencies_enabled(self):
+        """
+        Returns if the org has `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ enabled by checking if the `CurrencyType <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_currencytype.htm>`_ Sobject is exposed.
+
+
+        **Notes**
+
+        - Multiple Currencies cannot be disabled once enabled.
+        - Enabling `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ exposes both the `CurrencyType <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_currencytype.htm>`_ and the `DatedConversionRate <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_datedconversionrate.htm>`_ Sobjects.
+
+        **Enable Multiple Currencies programatically**
+
+        `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ can be enabled with Metadata API by updating the org's `CurrencySettings <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_currencysettings.htm>`_ as the following:
+
+        .. code-block:: xml
+
+            <?xml version="1.0" encoding="UTF-8"?>
+            <CurrencySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+                <!-- Enables Multiple Currencies -->
+                <enableMultiCurrency>true</enableMultiCurrency>
+            </CurrencySettings>
+
+        **Example**
+
+        Selectively run a task in a flow only if Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_multiple_currencies/mapping.yml
+                                sql_path: datasets/with_multiple_currencies/data.sql
+                            when: org_config.is_multiple_currencies_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_multple_currencies/mapping.yml
+                                sql_path: datasets/without_multple_currencies/data.sql
+                            when: not org_config.is_multiple_currencies_enabled
+
+        """
+        # When Multiple Currencies is enabled, the CurrencyType Sobject is exposed.
+        # If Mutiple Currencies is not enabled:
+        # - CurrencyType Sobject is not exposed.
+        # - simple_salesforce raises a SalesforceResourceNotFound exception when trying to describe CurrencyType.
+        # NOTE: Multiple Currencies can be enabled through Metadata API by setting CurrencySettings.enableMultiCurrency as "true". Therefore, we should try to dynamically check if Multiple Currencies is enabled.
+        # NOTE: Once enabled, Multiple Currenies cannot be disabled.
+        if not self._multiple_currencies_is_enabled:
+            try:
+                # Multiple Currencies is enabled if CurrencyType can be described (implying the Sobject is exposed).
+                self.salesforce_client.CurrencyType.describe()
+                self._multiple_currencies_is_enabled = True
+            except SalesforceResourceNotFound:
+                # CurrencyType Sobject is not exposed meaning Multiple Currencies is not enabled.
+                # Keep self._multiple_currencies_is_enabled False.
+                pass
+        return self._multiple_currencies_is_enabled
+
+    @property
+    def is_advanced_currency_management_enabled(self):
+        """
+        Returns if the org has `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ enabled by checking if both:
+
+        - `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ is enabled (which exposes the ``DatedConversionRate`` Sobject).
+        - ``DatedConversionRate`` is createable.
+
+        **Notes**
+
+        - If Advanced Currency Management (ACM) is disabled, ``DatedConversionRate`` is no longer createable.
+        - Multiple Currencies cannot be disabled once enabled.
+
+        **Enable Advanced Currency Managment (ACM) programatically**
+
+        `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ can be enabled with Metadata API by updating the org's `CurrencySettings <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_currencysettings.htm>`_ as the following:
+
+        .. code-block:: xml
+
+            <?xml version="1.0" encoding="UTF-8"?>
+            <CurrencySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+                <!-- Enables Multiple Currencies -->
+                <enableMultiCurrency>true</enableMultiCurrency>
+
+                <!-- Enables Advanced Currency Management (ACM) -->
+                <enableCurrencyEffectiveDates>true</enableCurrencyEffectiveDates>
+            </CurrencySettings>
+
+        **Example**
+
+        Selectively run a task in a flow only if `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_acm/mapping.yml
+                                sql_path: datasets/with_acm/data.sql
+                            when: org_config.is_advanced_currency_management_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_acm/mapping.yml
+                                sql_path: datasets/without_acm/data.sql
+                            when: not org_config.is_advanced_currency_management_enabled
+
+        """
+        # NOTE: Advanced Currency Management (ACM) can be enabled via Metadata API by setting:
+        # - CurrencySettings.enableMultiCurrency as "true" to enable Multiple Currencies.
+        # - CurrencySettings.enableCurrencyEffectiveDates as "true" to enable Advanced Currency Management (ACM).
+        # NOTE: Once enabled, Multiple Currenies cannot be disabled.
+        # Avdanced Currency Management (ACM) is enabled if:
+        # - Multiple Currencies is enabled (which exposes the DatedConversionRate Sobject)
+        # - DatedConversionRate Sobject is createable.
+        # Advanced Currency Management (ACM) can be disabled, and if so, DatedConversionRate Sobject will no longer be createable.
+        try:
+            # Always check the describe since ACM can be disabled.
+            return self.salesforce_client.DatedConversionRate.describe()["createable"]
+        except SalesforceResourceNotFound:
+            # DatedConversionRate Sobject is not exposed meaning Multiple Currencies is not enabled.
+            return False
 
     def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies"""

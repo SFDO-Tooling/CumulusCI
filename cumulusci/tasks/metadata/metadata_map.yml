@@ -271,7 +271,7 @@ liveChatDeployments:
 
 lwc:
     - type: LightningComponentBundle
-      class: BundleParser
+      class: LWCBundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser

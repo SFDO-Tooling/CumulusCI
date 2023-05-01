@@ -254,10 +254,17 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
                 </td>
                 <td class="kwargs">
                   
-                  <i>org=None</i>
+                  <i>org=None</i>, 
+                  
+                  <i>**userfields</i>
                   
                 </td>
-                <td class="kwdoc"><p>Returns the login url which will automatically log into the target Salesforce org.  By default, the org_name passed to the library constructor is used but this can be overridden with the org option to log into a different org.</p></td>
+                <td class="kwdoc"><p>Returns the login url which will automatically log into the target Salesforce org.  By default, the org_name passed to the library constructor is used but this can be overridden with the org option to log into a different org.</p>
+<p>If userfields are provided, the username and access token for the given user will be used. If not provided, the access token for the org's default user will be used.</p>
+<p>Example:</p>
+<pre>
+${login url}=  Login URL  alias=dadvisor
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="CumulusCI.Run Task">
@@ -678,6 +685,24 @@ Wait for modal to appear    New    Contact   expected_heading=New Contact
 <p>(Only records specifically recorded using the Store Session Record keyword are deleted.)</p></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Field Value Should Be">
+                <td class="kwname">
+                  Field Value Should Be
+                </td>
+                <td class="kwargs">
+                  
+                  <i>label</i>, 
+                  
+                  <i>expected_value</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Verify that the form field for the given label is the expected value</p>
+<p>Example:</p>
+<pre>
+Field value should be    Account Name    ACME Labs
+</pre></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Generate Test Data">
                 <td class="kwname">
                   Generate Test Data
@@ -994,10 +1019,13 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                 </td>
                 <td class="kwargs">
                   
-                  <i>heading</i>
+                  <i>heading</i>, 
+                  
+                  <i>tries=10</i>
                   
                 </td>
-                <td class="kwdoc"><p>Scrolls down until the specified related list loads.</p></td>
+                <td class="kwdoc"><p>Scrolls down until the specified related list loads.</p>
+<p>If the related list isn't found, the keyword will scroll down in 100 pixel increments to trigger lightning into loading the list. This process of scrolling will be repeated until the related list has been loaded or we've tried several times (the default is 10 tries)</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Log Browser Capabilities">
@@ -1207,14 +1235,21 @@ ${contact id}=  Salesforce Insert  Contact
                   
                 </td>
                 <td class="kwdoc"><p>Constructs and runs a simple SOQL query and returns a list of dictionaries.</p>
-<p>By default the results will only contain object Ids. You can specify a SOQL SELECT clase via keyword arguments by passing a comma-separated list of fields with the <code>select</code> keyword argument.</p>
-<p>Example:</p>
+<p>By default the results will only contain object Ids. You can specify a SOQL SELECT clause via keyword arguments by passing a comma-separated list of fields with the <code>select</code> keyword argument.</p>
+<p>You can supply keys and values to match against in keyword arguments, or a full SOQL where-clause in a keyword argument named <code>where</code>. If you supply both, they will be combined with a SOQL "AND".</p>
+<p>Examples:</p>
 <p>The following example searches for all Contacts where the first name is "Eleanor". It returns the "Name" and "Id" fields and logs them to the robot report:</p>
 <pre>
 @{records}=  Salesforce Query  Contact  select=Id,Name
+...          FirstName=Eleanor
 FOR  ${record}  IN  @{records}
     log  Name: ${record['Name']} Id: ${record['Id']}
 END
+</pre>
+<p>Or with a WHERE-clause, we can look for every contact where the first name is NOT Eleanor.</p>
+<pre>
+@{records}=  Salesforce Query  Contact  select=Id,Name
+...          where=FirstName!='Eleanor'
 </pre></td>
               </tr>
               
@@ -1544,12 +1579,16 @@ Wait until page contains element title:Object Manager
                   
                   <i>alias=${NONE}</i>, 
                   
-                  <i>wait=True</i>
+                  <i>wait=True</i>, 
+                  
+                  <i>useralias=${NONE}</i>
                   
                 </td>
                 <td class="kwdoc"><p>Opens a test browser to the org.</p>
 <p>The variable ${BROWSER} determines which browser should open. The following four browsers are explicitly supported: chrome, firefox, headlesschrome, and headlessfirefox. Any other value will be passed directly to the SeleniumLibrary 'Open Browser' keyword.</p>
 <p>Once the browser has been opened, it will be set to the given size (default=${DEFAULT BROWSER SIZE})</p>
+<p>If you open multiple browsers you can use the optional argument `alias` to give each browser a name. This name can be used when calling the `Switch Browser` keyword from SeleniumLibrary</p>
+<p>The optional argument 'useralias' may be used to specify a specific user by their alias; if not specified then the org's default user will be used.</p>
 <p>The keyword `Log Browser Capabilities` will automatically be called. The keyword will also call `Wait Until Salesforce is Ready` unless the `wait` parameter is set to False.</p></td>
               </tr>
               
@@ -1740,6 +1779,19 @@ Wait for modal to appear   Edit  Contact
                 </td>
                 <td class="kwdoc"><p>Verify that the modal contains the following errors</p>
 <p>This will look for the given message in the standard SLDS component (&lt;ul class='errorsList'&gt;)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Modal Should Show Edit Error For Fields">
+                <td class="kwname">
+                  Modal Should Show Edit Error For Fields
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*field_names</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Verify that a dialog is showing requiring a review of the given fields</p>
+<p>This works by looking for a the "we hit a snag" popup, and then looking for an anchor tag with the attribute force-recordediterror_recordediterror, along with the given text.</p></td>
               </tr>
               
               <tr class="kwrow" id="BasePageObjects.py.Populate Field">
@@ -1985,6 +2037,19 @@ Wait for modal to appear   New  Contact
 <p>This will look for the given message in the standard SLDS component (&lt;ul class='errorsList'&gt;)</p></td>
               </tr>
               
+              <tr class="kwrow" id="BasePageObjects.py.Modal Should Show Edit Error For Fields">
+                <td class="kwname">
+                  Modal Should Show Edit Error For Fields
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*field_names</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Verify that a dialog is showing requiring a review of the given fields</p>
+<p>This works by looking for a the "we hit a snag" popup, and then looking for an anchor tag with the attribute force-recordediterror_recordediterror, along with the given text.</p></td>
+              </tr>
+              
               <tr class="kwrow" id="BasePageObjects.py.Populate Field">
                 <td class="kwname">
                   Populate Field
@@ -2059,165 +2124,11 @@ Populate form
           </table>
         </div> 
         
-        <div class="section" pageobject="ObjectManager-">
-
-          
-          <div class='pageobject-header'>
-
-            <table class='pageobject-header'>
-              <tbody>
-	        <tr class='data'>
-	          <td title='Page Type'>ObjectManager</td>
-	          
-	        </tr>
-	        <tr class='labels'>
-	          <td>Page Type</td>
-	          
-	        </tr>
-              </tbody>
-            </table>
-          </div>
-          
-
-          <div class='description' title='Description'><p>A page object representing the Object Manager of an object. Example</p>
-<pre>
-Go to page   ObjectManager  Contact
-</pre></div>
-          <table class="kwtable" title='Table of keywords'>
-            <tbody>
-              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Create Currency Field">
-                <td class="kwname">
-                  Create Currency Field
-                </td>
-                <td class="kwargs">
-                  
-                  <i>field_name</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Creates a currency field by taking in the field name</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Create Custom Field">
-                <td class="kwname">
-                  Create Custom Field
-                </td>
-                <td class="kwargs">
-                  
-                  <i>**kwargs</i>
-                  
-                </td>
-                <td class="kwdoc"><p>creates a custom field if one doesn't already exist by the given name (Field_Name)</p>
-<pre>
- Example
-Create custom field
-...  Object=Payment
-...  Field_Type=Formula
-...  Field_Name=Is Opportunity From Prior Year
-...  Formula=YEAR( npe01__Opportunity__r.CloseDate ) &lt; YEAR( npe01__Payment_Date__c )
-</pre></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Create Formula Field">
-                <td class="kwname">
-                  Create Formula Field
-                </td>
-                <td class="kwargs">
-                  
-                  <i>field_name</i>, 
-                  
-                  <i>formula</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Creates a formula field by providing the field_name, formula and forumla fields</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Create Lookup Field">
-                <td class="kwname">
-                  Create Lookup Field
-                </td>
-                <td class="kwargs">
-                  
-                  <i>field_name</i>, 
-                  
-                  <i>related</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Creates a Lookpup field by taking in the inputs field_name and related field</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Create Text Field">
-                <td class="kwname">
-                  Create Text Field
-                </td>
-                <td class="kwargs">
-                  
-                  <i>field_name</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Creates a text field by taking in the field name</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Delete Custom Field">
-                <td class="kwname">
-                  Delete Custom Field
-                </td>
-                <td class="kwargs">
-                  
-                  <i>field_name</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Searches for the custom field and performs the delete action from the actions menu next to the field</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Is Field Present">
-                <td class="kwname">
-                  Is Field Present
-                </td>
-                <td class="kwargs">
-                  
-                  <i>field_name</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Searches for the field name (field_name) and asserts the field got created</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
-                <td class="kwname">
-                  Log Current Page Object
-                </td>
-                <td class="kwargs">
-                  
-                </td>
-                <td class="kwdoc"><p>Logs the name of the current page object</p>
-<p>The current page object is also returned as an object</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Switch Tab To">
-                <td class="kwname">
-                  Switch Tab To
-                </td>
-                <td class="kwargs">
-                  
-                  <i>tab</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Clicks on the name of the tab specified and sets the page view to be on the tab specified Example</p>
-<pre>
-Switch Tab To     Fields &amp; Relationships
-</pre></td>
-              </tr>
-              
-            </tbody>
-          </table>
-        </div> 
-        
       </div>
       
     </div>
     <div class="footer">
-      Generated on Friday July 24, 02:02 PM - cumulusci v3.16.0.dev1
+      Generated on Wednesday December 09, 09:25 PM - cumulusci v3.24.1
     </div>
   </body>
 </html>

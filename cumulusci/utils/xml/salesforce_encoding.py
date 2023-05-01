@@ -7,13 +7,25 @@ METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 _supported_events = ("start", "end", "start-ns", "end-ns", "comment")
 
 
-def serialize_xml_for_salesforce(xdoc, xml_declaration=True):
+def serialize_xml_for_salesforce(
+    element_or_tree, xml_declaration=True, include_parent_namespaces=False
+):
     r = xml_encoding if xml_declaration else ""
+    if hasattr(element_or_tree, "getroot"):
+        root = element_or_tree.getroot()
+    else:
+        root = element_or_tree
 
-    new_namespace_declarations = {}
-    all_namespaces = {}
+    assert hasattr(
+        root, "nsmap"
+    ), "Passed object should be lxml.etree._ElementTree or lxml.etree._ElementTree"
 
-    for action, elem in etree.iterwalk(xdoc, events=_supported_events):
+    if include_parent_namespaces:
+        new_namespace_declarations = {prefix: url for prefix, url in root.nsmap.items()}
+    else:
+        new_namespace_declarations = {}
+    all_namespaces = {url: prefix for prefix, url in root.nsmap.items()}
+    for action, elem in etree.iterwalk(root, events=_supported_events):
         if action == "start-ns":
             prefix, ns = elem
             new_namespace_declarations[prefix] = ns

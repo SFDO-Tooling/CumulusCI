@@ -371,6 +371,21 @@ class BundleParser(BaseMetadataParser):
         return members
 
 
+class LWCBundleParser(BaseMetadataParser):
+    def _parse_item(self, item):
+        members = []
+        path = self.directory + "/" + item
+
+        # Skip non-directories
+        if not os.path.isdir(path) or item.startswith("__"):
+            return members
+
+        # item is a directory; add directory to members and ignore processing directory's files
+        members.append(item)
+
+        return members
+
+
 class DocumentParser(MetadataFolderParser):
     def _parse_subitem(self, item, subitem):
         return [item + "/" + subitem]

@@ -149,9 +149,13 @@ StepResult = namedtuple(
 
 
 class FlowCallback(object):
-    """A place for code running a flow to inject callbacks to run during the flow.
+    """A subclass of FlowCallback allows code running a flow
+    to inject callback methods to run during the flow. Anything you
+    would like the FlowCallback to have access to can be passed to the
+    constructor. This is typically used to pass a Django model or model id
+    when running a flow inside of a web app.
 
-    A subclass of FlowCallback can use its own constructor to track context, e.g. to refer to a Django model:
+    Example subclass of FlowCallback:
 
         class CustomFlowCallback(FlowCallback):
             def __init__(self, model):
@@ -160,19 +164,49 @@ class FlowCallback(object):
             def post_task(self, step, result):
                 # do something to record state on self.model
 
-    (An instance of the custom FlowCallback class would be passed to FlowCoordinator.)
+    Once a subclass is defined, you can instantiate it, and
+    pass it as the value for the 'callbacks' keyword argument
+    when instantiating a FlowCoordinator.
+
+    Example running a flow with custom callbacks:
+
+        custom_callbacks = CustomFlowCallbacks(model_instance)
+        flow_coordinator = FlowCoordinator(
+            project_config,
+            flow_config,
+            name=flow_name,
+            options=options,
+            callbacks=custom_callbacks,
+        )
+        flow_coordinator.run(org_config)
+
+
     """
 
     def pre_flow(self, coordinator):
+        """This is passed an instance of FlowCoordinator,
+        that pertains to the flow which is about to run."""
         pass
 
     def post_flow(self, coordinator):
+        """This is passed an instance of FlowCoordinator,
+        that pertains to the flow just finished running.
+        This step executes whether or not the flow completed
+        successfully."""
         pass
 
     def pre_task(self, step):
+        """This is passed an instance StepSpec, that
+        pertains to the task which is about to run."""
         pass
 
     def post_task(self, step, result):
+        """This method is called after a task has executed.
+
+        :param step: Instance of StepSpec that relates to the task which executed
+        :param result: Instance of the StepResult class that was run. Attributes of
+        interest include, `result.result`, `result.return_values`, and `result.exception`
+        """
         pass
 
 

@@ -244,11 +244,11 @@ Options\n------------------------------------------\n\n
     def test_get_option_usage_string(self, option_info):
         name = option_info[0]["name"]
         usage_str1 = utils.get_option_usage_string(name, option_info[0])
-        assert usage_str1 == "--option-one OPTIONONE"
+        assert usage_str1 == "--option_one OPTIONONE"
 
         name = option_info[1]["name"]
         usage_str2 = utils.get_option_usage_string(name, option_info[1])
-        assert usage_str2 == "--option-two OPTIONTWO"
+        assert usage_str2 == "--option_two OPTIONTWO"
 
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])

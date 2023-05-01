@@ -1,6 +1,7 @@
 import contextlib
 import json
 import os
+import textwrap
 
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import temporary_dir
@@ -8,7 +9,7 @@ from cumulusci.utils import temporary_dir
 
 SETTINGS_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <{settingsName} xmlns="http://soap.sforce.com/2006/04/metadata">
-    {values}
+{values}
 </{settingsName}>"""
 ORGPREF = """<preferences>
     <settingName>{name}</settingName>
@@ -72,7 +73,7 @@ def build_settings_package(settings: dict, api_version: str):
         for section, section_settings in settings.items():
             settings_name = capitalize(section)
             if section == "orgPreferenceSettings":
-                values = "\n    ".join(
+                values = "    " + "\n    ".join(
                     line
                     for line in "\n".join(
                         ORGPREF.format(name=capitalize(k), value=v)
@@ -80,16 +81,30 @@ def build_settings_package(settings: dict, api_version: str):
                     ).splitlines()
                 )
             else:
-                values = "\n    ".join(
-                    f"<{k}>{v}</{k}>" for k, v in section_settings.items()
-                )
+                values = textwrap.indent(_dict_to_xml(section_settings), "    ")
             # e.g. AccountSettings -> settings/Account.settings
             settings_file = os.path.join(
                 "settings", settings_name[: -len("Settings")] + ".settings"
             )
             with open(settings_file, "w") as f:
                 f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
+            print(SETTINGS_XML.format(settingsName=settings_name, values=values))
         with open("package.xml", "w") as f:
             f.write(PACKAGE_XML.format(api_version=api_version))
 
         yield path
+
+
+def _dict_to_xml(d: dict) -> str:
+    items = []
+    for k, v in d.items():
+        if isinstance(v, dict):
+            v = "\n" + textwrap.indent(_dict_to_xml(v), "    ") + "\n"
+        elif isinstance(v, str):
+            pass
+        elif isinstance(v, bool):
+            v = str(v).lower()
+        else:
+            raise TypeError(f"Unexpected type {type(v)} for {k}")
+        items.append(f"<{k}>{v}</{k}>")
+    return "\n".join(items)

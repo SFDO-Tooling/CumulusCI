@@ -12,8 +12,12 @@ from urllib.parse import parse_qs
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 import webbrowser
+import threading
+import random
+import time
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -121,30 +125,66 @@ class SalesforceOAuth2(object):
         return response
 
 
+class HTTPDTimeout(threading.Thread):
+    "Establishes a timeout for a SimpleHTTPServer"
+    daemon = True  # allow the process to quit even if the timeout thread
+    # is still alive
+
+    def __init__(self, httpd, timeout):
+        self.httpd = httpd
+        self.timeout = timeout
+        super().__init__()
+
+    def run(self):
+        "Check every second for HTTPD or quit after timeout"
+        target_time = time.time() + self.timeout
+        while time.time() < target_time:
+            time.sleep(1)
+            if not self.httpd:
+                break
+
+        if self.httpd:  # extremely minor race condition
+            self.httpd.shutdown()
+
+    def quit(self):
+        "Quit before timeout"
+        self.httpd = None
+
+
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     parent = None
 
     def do_GET(self):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)
+
         if "error" in args:
             http_status = http.client.BAD_REQUEST
             http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
         else:
             http_status = http.client.OK
-            http_body = "Congratulations! Your authentication succeeded."
+            emoji = random.choice(["🎉", "👍", "👍🏿", "🥳", "🎈"])
+            http_body = f"""<html>
+            <h1 style="font-size: large">{emoji}</h1>
+            <p>Congratulations! Your authentication succeeded.</p>"""
             code = args["code"]
             self.parent.response = self.parent.oauth_api.get_token(code)
             if self.parent.response.status_code >= http.client.BAD_REQUEST:
                 http_status = self.parent.response.status_code
                 http_body = self.parent.response.text
         self.send_response(http_status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+
         self.end_headers()
-        self.wfile.write(http_body.encode("ascii"))
+        self.wfile.write(http_body.encode("utf-8"))
         if self.parent.response is None:
             response = requests.Response()
             response.status_code = http_status
             response._content = http_body
             self.parent.response = response
+
+        #  https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.shutdown
+        # shutdown() must be called while serve_forever() is running in a different thread otherwise it will deadlock.
+        threading.Thread(target=self.server.shutdown).start()
 
 
 class CaptureSalesforceOAuth(object):
@@ -168,12 +208,26 @@ class CaptureSalesforceOAuth(object):
             + "If you are unable to log in to Salesforce you can "
             + "press ctrl+c to kill the server and return to the command line."
         )
-        self.httpd.handle_request()
+        # Implement the 300 second timeout
+        timeout_thread = HTTPDTimeout(self.httpd, self.httpd_timeout)
+        timeout_thread.start()
+        # use serve_forever because it is smarter about polling for Ctrl-C
+        # on Windows.
+        #
+        # There are two ways it can be shutdown.
+        # 1. Get a callback from Salesforce.
+        # 2. Timeout
+        self.httpd.serve_forever()
+
+        # timeout thread can stop polling and just finish
+        timeout_thread.quit()
         self._check_response(self.response)
         return safe_json_from_response(self.response)
 
     def _check_response(self, response):
-        if response.status_code == http.client.OK:
+        if not response:
+            raise CumulusCIUsageError("Authentication timed out or otherwise failed.")
+        elif response.status_code == http.client.OK:
             return
         raise SalesforceOAuthError(
             f"status_code: {response.status_code} content: {response.content}"

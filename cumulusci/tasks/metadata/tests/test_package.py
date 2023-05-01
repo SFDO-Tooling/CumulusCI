@@ -13,6 +13,7 @@ from cumulusci.tasks.metadata.package import BusinessProcessParser
 from cumulusci.tasks.metadata.package import CustomLabelsParser
 from cumulusci.tasks.metadata.package import CustomObjectParser
 from cumulusci.tasks.metadata.package import DocumentParser
+from cumulusci.tasks.metadata.package import LWCBundleParser
 from cumulusci.tasks.metadata.package import MetadataFilenameParser
 from cumulusci.tasks.metadata.package import MetadataFolderParser
 from cumulusci.tasks.metadata.package import MetadataParserMissingError
@@ -198,6 +199,41 @@ class TestBundleParser(unittest.TestCase):
             with open(os.path.join(path, "file"), "w"):
                 pass
             parser = BundleParser("TestMDT", path, "object", delete=False)
+            self.assertEqual([], parser._parse_item("file"))
+
+
+class TestLWCBundleParser(unittest.TestCase):
+    def test_parse_item(self):
+        with temporary_dir() as path:
+            item_path = os.path.join(path, "Test")
+            os.mkdir(item_path)
+            with open(os.path.join(item_path, ".hidden"), "w"):
+                pass
+            # subitems should be ignored
+            with open(os.path.join(item_path, "Test.object"), "w"):
+                pass
+            parser = LWCBundleParser(
+                "LightningComponentBundle", path, "object", delete=False
+            )
+            self.assertEqual(["Test"], parser._parse_item("Test"))
+
+    def test_parse_item__no_tests_mocks(self):
+        with temporary_dir() as path:
+            # Test and mock directories should be ignored.
+            item_path = os.path.join(path, "__tests__")
+            os.mkdir(item_path)
+            parser = LWCBundleParser(
+                "LightningComponentBundle", path, None, delete=False
+            )
+            self.assertEqual([], parser._parse_item("__tests__"))
+
+    def test_parse_item__non_directory(self):
+        with temporary_dir() as path:
+            with open(os.path.join(path, "file"), "w"):
+                pass
+            parser = LWCBundleParser(
+                "LightningComponentBundle", path, None, delete=False
+            )
             self.assertEqual([], parser._parse_item("file"))
 
 

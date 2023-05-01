@@ -211,3 +211,21 @@ class TestMetadataTree:
 </CustomMetadata>""".strip()
         CustomMetadata = fromstring(xml)
         assert xml.strip() == CustomMetadata.tostring().strip()
+
+    def test_namespaced_to_string__do_not_output_namespaces(self):
+        CustomMetadata = fromstring(standard_xml)
+
+        xml_out = CustomMetadata.find("bar").find("name").tostring()
+        assert xml_out.strip() == "<name>Bar1</name>", xml_out.strip()
+
+    def test_namespaced_to_string__output_namespaces(self):
+        CustomMetadata = fromstring(standard_xml)
+        xml_out = (
+            CustomMetadata.find("bar")
+            .find("name")
+            .tostring(xml_declaration=True, include_parent_namespaces=True)
+        )
+        expected_out = """<?xml version="1.0" encoding="UTF-8"?> <name xmlns="http://soap.sforce.com/2006/04/metadata">Bar1</name>"""
+        assert (
+            " ".join(xml_out.split()).strip() == " ".join(expected_out.split()).strip()
+        ), xml_out.strip()

@@ -86,6 +86,7 @@ class Robot(BaseSalesforceTask):
                 )
 
         listeners = self.options["options"].setdefault("listener", [])
+
         if process_bool_arg(self.options.get("verbose") or False):
             listeners.append(KeywordLogger())
 
@@ -107,6 +108,9 @@ class Robot(BaseSalesforceTask):
         options["outputdir"] = os.path.relpath(
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
+        # Set as a return value so other things that want to use
+        # this file (e.g. MetaCI) know where it is
+        self.return_values["robot_outputdir"] = options["outputdir"]
 
         # get_namespace will potentially download sources that have
         # yet to be downloaded. For these downloaded sources we'll add
@@ -164,13 +168,30 @@ class Robot(BaseSalesforceTask):
             num_failed = result.returncode
 
         else:
+            # Save it so that we can restore it later
+            orig_sys_path = sys.path.copy()
+
             # Add each source to PYTHONPATH. Robot recommends that we
             # use pythonpathsetter instead of directly setting
             # sys.path. <shrug>
             for path in source_paths.values():
                 pythonpathsetter.add_path(path, end=True)
 
-            num_failed = robot_run(*self.options["suites"], **options)
+            # Make sure the path to the repo root is on sys.path. Normally
+            # it will be, but if we're running this task from another repo
+            # it might not be.
+            #
+            # Note: we can't just set the pythonpath option; that
+            # option is specifically called out as not being supported
+            # by robot.run. Plus, robot recommends we call a special
+            # function instead of directly modifying sys.path
+            if self.project_config.repo_root not in sys.path:
+                pythonpathsetter.add_path(self.project_config.repo_root)
+
+            try:
+                num_failed = robot_run(*self.options["suites"], **options)
+            finally:
+                sys.path = orig_sys_path
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes
