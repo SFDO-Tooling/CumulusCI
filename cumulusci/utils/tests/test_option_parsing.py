@@ -1,15 +1,15 @@
 from datetime import date
-
 from pathlib import Path
 
 import pytest
 
 from cumulusci.core.config import (
-    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     TaskConfig,
+    UniversalConfig,
 )
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils.options import (
     CCIOptions,
@@ -17,8 +17,6 @@ from cumulusci.utils.options import (
     ListOfStringsOption,
     MappingOption,
 )
-from cumulusci.core.exceptions import TaskOptionsError
-
 
 ORG_ID = "00D000000000001"
 USERNAME = "sample@example"
@@ -128,7 +126,7 @@ class TestTaskOptionsParsing:
 
     def test_exception_in_parsing(self):
         task_config = TaskConfig(
-            {"options": {"the_mapping": "aaaaa:bbbb:cccc", "req": 1}}
+            {"options": {"the_mapping": "aaaaa,bbbb:cccc", "req": 1}}
         )
         with pytest.raises(TaskOptionsError) as e:
             TaskToTestTypes(self.project_config, task_config, self.org_config)

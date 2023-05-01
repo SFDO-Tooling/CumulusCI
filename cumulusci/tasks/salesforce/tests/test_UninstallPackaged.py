@@ -1,15 +1,15 @@
 import io
-from unittest import mock
 import zipfile
+from unittest import mock
 
-
-import responses
 import pytest
+import responses
 
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.tests.util import create_project_config
+
 from .util import create_task
-from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
 class TestUninstallPackaged:
@@ -37,6 +37,7 @@ class TestUninstallPackaged:
 </Package>"""
             == result
         )
+        zf.close()
 
     @responses.activate
     def test_error_handling(self):

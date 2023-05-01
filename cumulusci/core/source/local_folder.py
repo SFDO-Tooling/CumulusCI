@@ -1,11 +1,14 @@
 import os
 
+from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
+
 
 class LocalFolderSource:
-    def __init__(self, project_config, spec):
+    def __init__(self, project_config, spec: LocalFolderSourceModel):
         self.project_config = project_config
         self.spec = spec
-        self.path = self.spec["path"]
+        self.path = spec.path
+        self.location = self.path
 
     def __repr__(self):
         return f"<LocalFolderSource {str(self)}>"
@@ -26,3 +29,7 @@ class LocalFolderSource:
     @property
     def frozenspec(self):
         raise NotImplementedError("Cannot construct frozenspec for local folder")
+
+    @property
+    def allow_remote_code(self) -> bool:
+        return bool(self.spec.allow_remote_code)

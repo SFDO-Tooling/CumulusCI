@@ -1,19 +1,13 @@
 from cumulusci.core.exceptions import DependencyLookupError
-import re
-
-import github3
-
+from cumulusci.core.github import get_version_id_from_commit
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
-VERSION_ID_RE = re.compile(r"version_id: (\S+)")
-
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
+    api_version = "52.0"
 
-    api_version = "50.0"
-
-    task_options = {
+    task_options = {  # type: ignore  -- should use `class Options instead`
         "context": {
             "description": "Name of the commit status context",
             "required": True,
@@ -30,22 +24,19 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
         version_id = self.options.get("version_id")
         if version_id is None:
             try:
-                commit = repo.commit(commit_sha)
-            except github3.exceptions.NotFoundError:
-                raise DependencyLookupError(
-                    f"Could not find commit {commit_sha} on github"
+                version_id = get_version_id_from_commit(repo, commit_sha, context)
+            except DependencyLookupError as e:
+                self.logger.error(e)
+                self.logger.error(
+                    "This error usually means your local commit has not been pushed "
+                    "or that a feature test package has not yet been built."
                 )
-            for status in commit.status().statuses:
-                if status.state == "success" and status.context == context:
-                    match = VERSION_ID_RE.search(status.description)
-                    if match:
-                        version_id = match.group(1)
 
         if version_id:
             dependencies = self._get_dependencies(version_id)
         else:
             raise DependencyLookupError(
-                f"Could not find package version id in '{context}' commit status."
+                f"Could not find package version id in '{context}' commit status for commit {commit_sha}."
             )
 
         self.return_values = {"dependencies": dependencies, "version_id": version_id}

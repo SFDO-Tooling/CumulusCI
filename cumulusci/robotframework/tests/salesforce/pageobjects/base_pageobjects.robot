@@ -29,13 +29,6 @@ HomePage
     go to page  Home  Task
     Current page should be  Home  Task
 
-ListingPage
-    [Documentation]
-    ...  Verify we can go to the generic Listing page
-    ...  (assuming we don't have an explicit TaskListingPage)
-    Go to page              Listing  Task
-    Current page should be  Listing  Task
-
 DetailPage
     [Documentation]
     ...  Verify we can go to the generic Detail page
@@ -104,7 +97,4 @@ NewModal - Modal errors
     Click modal button  Save
     capture page screenshot
     ${api}=   Get latest API version
-    Run keyword if  int(float($api)) >= 51
-    ...  Modal should show edit error for fields   Name
-    ...  ELSE
-    ...  Modal should contain errors    These required fields must be completed: Last Name
+    Modal should show edit error for fields   Name

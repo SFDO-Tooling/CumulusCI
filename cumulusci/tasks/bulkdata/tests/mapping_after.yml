@@ -5,7 +5,7 @@ Insert Accounts:
     fields:
         Id: sf_id
     lookups:
-        ParentId: 
+        ParentId:
             after: Insert Accounts
             table: accounts
         Primary_Contact__c:
@@ -27,6 +27,6 @@ Insert Opportunities:
     table: opportunities
     fields:
         Id: sf_id
-    lookups: 
+    lookups:
         AccountId:
             table: accounts

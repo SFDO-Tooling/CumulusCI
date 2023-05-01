@@ -78,8 +78,20 @@ Salesforce Query Where Not Equal
     ${cnt}=    Get length    ${records}
     Should Be Equal As Numbers   ${cnt}  0
 
+Salesforce Query Where Limit Order
+    &{anon_contact} =  Create Contact
+    &{anon_contact} =  Create Contact
+    ${contact_id} =  Salesforce Insert  Contact  FirstName=xyzzy   LastName=xyzzy
+    @{records} =    Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where= LastName!='xyzzy'
+    ...              order_by=LastName desc
+    ...              limit=2
+    ${cnt}=    Get length    ${records}
+    Should Be Equal As Numbers   ${cnt}  2
 
-SOQL Query
+
+SOQL Query - single line
     &{new_contact} =  Create Contact
     &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '${new_contact}[Id]'
     @{records} =  Get From Dictionary  ${result}  records
@@ -87,6 +99,19 @@ SOQL Query
     Should Be Equal  ${result}[totalSize]  ${1}
     Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
     Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
+SOQL Query - multiline
+    [Documentation]  Verify that a SOQL query can span multiple lines
+    [Tags]  W-10244357
+    &{contact1} =  Create Contact
+    &{contact2} =  Create Contact
+
+    &{result}=  SOQL Query
+    ...  SELECT Id, FirstName, LastName
+    ...  FROM   Contact
+    ...  WHERE  Id = '${contact1}[Id]'  OR  Id = '${contact2}[Id]'
+
+    Should Be Equal as numbers  ${result}[totalSize]  2
 
 Salesforce Delete Session Records
     [Documentation]

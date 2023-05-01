@@ -1,13 +1,14 @@
 import json
-import re
 import os
+import re
+
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import TaskOptionsError, ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.sfdx import SFDXBaseTask, SFDX_CLI
-from cumulusci.utils import random_alphanumeric_underscore
-from cumulusci.utils import temporary_dir
+from cumulusci.oauth.client import PROD_LOGIN_URL
+from cumulusci.tasks.sfdx import SFDX_CLI, SFDXBaseTask
+from cumulusci.utils import random_alphanumeric_underscore, temporary_dir
 
 CONNECTED_APP = """<?xml version="1.0" encoding="UTF-8"?>
 <ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -139,7 +140,7 @@ class CreateConnectedApp(SFDXBaseTask):
         if not self.options["overwrite"]:
             try:
                 connected_app = self.project_config.keychain.get_service(
-                    "connected_app"
+                    "connected_app", self.options["label"]
                 )
             except ServiceNotConfigured:  # pragma: no cover
                 pass
@@ -152,10 +153,12 @@ class CreateConnectedApp(SFDXBaseTask):
     def _connect_service(self):
         self.project_config.keychain.set_service(
             "connected_app",
+            self.options["label"],
             ServiceConfig(
                 {
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
+                    "login_url": PROD_LOGIN_URL,
                     "callback_url": "http://localhost:8080/callback",
                 }
             ),

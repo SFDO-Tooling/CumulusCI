@@ -1,21 +1,21 @@
-from abc import ABCMeta, abstractmethod
-import enum
-from pathlib import Path
 import tempfile
+from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from urllib.parse import quote, unquote
 
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import inject_namespace
-from cumulusci.core.config import TaskConfig
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
-class MetadataOperation(enum.Enum):
+class MetadataOperation(StrEnum):
     DEPLOY = "deploy"
     RETRIEVE = "retrieve"
 
@@ -184,6 +184,9 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
         """Synthesize a package.xml for generated metadata."""
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()
+
+    def _get_package_xml_content(self, operation) -> str:
+        return ""
 
     def _transform(self):
         self._synthesize()

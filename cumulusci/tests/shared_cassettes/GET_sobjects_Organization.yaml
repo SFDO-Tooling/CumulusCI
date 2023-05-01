@@ -1,0 +1,49 @@
+request:
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000
+    body: null
+    headers: &id001
+        Request-Headers:
+            - Elided
+response:
+    status: &id002
+        code: 200
+        message: OK
+    headers: &id003
+        Content-Type:
+            - application/json;charset=UTF-8
+        Others: Elided
+    body:
+        string: "{\n  \"attributes\" : {\n    \"type\" : \"Organization\",\n    \"url\"\
+            \ : \"/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000\"\n  },\n\
+            \  \"Id\" : \"00D0xORGID00000000\",\n  \"Name\" : \"CumulusCI - Dev Workspace\"\
+            ,\n  \"Division\" : null,\n  \"Street\" : null,\n  \"City\" : null,\n  \"\
+            State\" : null,\n  \"PostalCode\" : null,\n  \"Country\" : \"US\",\n  \"Latitude\"\
+            \ : null,\n  \"Longitude\" : null,\n  \"GeocodeAccuracy\" : null,\n  \"Address\"\
+            \ : {\n    \"city\" : null,\n    \"country\" : \"US\",\n    \"geocodeAccuracy\"\
+            \ : null,\n    \"latitude\" : null,\n    \"longitude\" : null,\n    \"postalCode\"\
+            \ : null,\n    \"state\" : null,\n    \"street\" : null\n  },\n  \"Phone\"\
+            \ : null,\n  \"Fax\" : null,\n  \"PrimaryContact\" : \"User User\",\n  \"\
+            DefaultLocaleSidKey\" : \"en_US\",\n  \"TimeZoneSidKey\" : \"America/Los_Angeles\"\
+            ,\n  \"LanguageLocaleKey\" : \"en_US\",\n  \"ReceivesInfoEmails\" : true,\n\
+            \  \"ReceivesAdminInfoEmails\" : true,\n  \"PreferencesRequireOpportunityProducts\"\
+            \ : false,\n  \"PreferencesTransactionSecurityPolicy\" : false,\n  \"PreferencesTerminateOldestSession\"\
+            \ : false,\n  \"PreferencesConsentManagementEnabled\" : true,\n  \"PreferencesAutoSelectIndividualOnMerge\"\
+            \ : false,\n  \"PreferencesLightningLoginEnabled\" : true,\n  \"PreferencesOnlyLLPermUserAllowed\"\
+            \ : false,\n  \"FiscalYearStartMonth\" : 1,\n  \"UsesStartDateAsFiscalYearName\"\
+            \ : false,\n  \"DefaultAccountAccess\" : \"Edit\",\n  \"DefaultContactAccess\"\
+            \ : \"ControlledByParent\",\n  \"DefaultOpportunityAccess\" : \"Edit\",\n\
+            \  \"DefaultLeadAccess\" : \"ReadEditTransfer\",\n  \"DefaultCaseAccess\"\
+            \ : \"ReadEditTransfer\",\n  \"DefaultCalendarAccess\" : \"HideDetailsInsert\"\
+            ,\n  \"DefaultPricebookAccess\" : \"ReadSelect\",\n  \"DefaultCampaignAccess\"\
+            \ : \"All\",\n  \"DelegatedAuthenticationServiceUrl\" : null,\n  \"SystemModstamp\"\
+            \ : \"2022-03-17T16:21:26.000+0000\",\n  \"ComplianceBccEmail\" : null,\n\
+            \  \"UiSkin\" : \"Theme3\",\n  \"SignupCountryIsoCode\" : \"US\",\n  \"TrialExpirationDate\"\
+            \ : \"2022-03-25T16:21:17.000+0000\",\n  \"NumKnowledgeService\" : 2,\n  \"\
+            OrganizationType\" : \"Developer Edition\",\n  \"NamespacePrefix\" : null,\n\
+            \  \"InstanceName\" : \"CS420\",\n  \"IsSandbox\" : true,\n  \"WebToCaseDefaultOrigin\"\
+            \ : \"Web\",\n  \"MonthlyPageViewsUsed\" : 0,\n  \"MonthlyPageViewsEntitlement\"\
+            \ : 0,\n  \"IsReadOnly\" : false,\n  \"CreatedDate\" : \"2022-03-17T15:37:35.000+0000\"\
+            ,\n  \"CreatedById\" : \"0057e00000RmwSWAAZ\",\n  \"LastModifiedDate\" : \"\
+            2022-03-17T16:21:24.000+0000\",\n  \"LastModifiedById\" : \"0057e00000RmwSWAAZ\"\
+            \n}"

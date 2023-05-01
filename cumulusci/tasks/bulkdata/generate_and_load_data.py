@@ -1,19 +1,20 @@
 import os
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Optional, Union
 
 from sqlalchemy import MetaData, create_engine
 
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import import_global
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.utils import generate_batches
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.utils import import_global
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class GenerateAndLoadData(BaseSalesforceApiTask):
-    """ Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching."""
+    """Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching."""
 
     task_docs = """
     Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching.
@@ -94,14 +95,17 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
         self.database_url = self.options.get("database_url")
         num_records = self.options.get("num_records")
-        if not num_records:
-            raise TaskOptionsError(
-                "Please specify the number of records to generate with num_records"
-            )
-        self.num_records = int(num_records)
-        self.batch_size = int(self.options.get("batch_size", self.num_records))
-        if self.batch_size <= 0:
-            raise TaskOptionsError("Batch size should be greater than zero")
+
+        self.num_records = int(num_records) if num_records is not None else None
+
+        batch_size = self.options.get("batch_size", self.num_records)
+        if batch_size is not None:
+            self.batch_size = int(batch_size)
+
+            if self.batch_size <= 0:
+                raise TaskOptionsError("Batch size should be greater than zero")
+        else:
+            self.batch_size = None
         class_path = self.options.get("data_generation_task")
         if class_path:
             self.data_generation_task = import_global(class_path)
@@ -128,20 +132,28 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             if working_directory:
                 tempdir = Path(working_directory)
                 tempdir.mkdir(exist_ok=True)
-            for current_batch_size, index in generate_batches(
-                self.num_records, self.batch_size
-            ):
-                self.logger.info(
-                    f"Generating a data batch, batch_size={current_batch_size} "
-                    f"index={index} total_records={self.num_records}"
+            if self.batch_size:
+                batches = generate_batches(self.num_records, self.batch_size)
+            else:
+                batches = [(None, 0, 1)]
+            results = []
+            for current_batch_size, index, total_batches in batches:
+                if total_batches > 1:
+                    self.logger.info(
+                        f"Generating a data batch, batch_size={current_batch_size} "
+                        f"index={index} total_records={self.num_records}"
+                    )
+                res = self._generate_batch(
+                    database_url=self.database_url,
+                    tempdir=self.working_directory or tempdir,
+                    mapping_file=self.mapping_file,
+                    batch_size=current_batch_size,
+                    index=index,
+                    total_batches=total_batches,
                 )
-                self._generate_batch(
-                    self.database_url,
-                    self.working_directory or tempdir,
-                    self.mapping_file,
-                    current_batch_size,
-                    index,
-                )
+                results.append(res)
+        self.return_values = {"load_results": results}
+        return self.return_values
 
     def _datagen(self, subtask_options):
         task_config = TaskConfig({"options": subtask_options})
@@ -150,7 +162,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         )
         data_gen_task()
 
-    def _dataload(self, subtask_options):
+    def _dataload(self, subtask_options) -> dict:
         subtask_config = TaskConfig({"options": subtask_options})
         subtask = LoadData(
             project_config=self.project_config,
@@ -161,8 +173,18 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             stepnum=self.stepnum,
         )
         subtask()
+        return subtask.return_values
 
-    def _generate_batch(self, database_url, tempdir, mapping_file, batch_size, index):
+    def _generate_batch(
+        self,
+        *,
+        database_url: Optional[str],
+        tempdir: Union[Path, str, None],
+        mapping_file: Union[Path, str, None],
+        batch_size: Optional[int],
+        index: int,
+        total_batches: int,
+    ) -> dict:
         """Generate a batch in database_url or a tempfile if it isn't specified."""
         if not database_url:
             sqlite_path = Path(tempdir) / "generated_data.db"
@@ -188,7 +210,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         self._datagen(subtask_options)
         if not subtask_options.get("mapping"):
             subtask_options["mapping"] = mapping_file
-        self._dataload(subtask_options)
+        return self._dataload(subtask_options)
 
     def _setup_engine(self, database_url):
         """Set up the database engine"""

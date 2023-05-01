@@ -1,19 +1,20 @@
-from unittest import mock
 import base64
 import io
 import os
 import pathlib
-import unittest
 import zipfile
 
-from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
-from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+import pytest
+
+from cumulusci.salesforce_api.package_zip import (
+    BasePackageZipBuilder,
+    CreatePackageZipBuilder,
+    DestructiveChangesZipBuilder,
+    InstallPackageZipBuilder,
+    MetadataPackageZipBuilder,
+    UninstallPackageZipBuilder,
+)
+from cumulusci.utils import temporary_dir, touch
 
 
 class TestBasePackageZipBuilder:
@@ -34,7 +35,7 @@ class TestBasePackageZipBuilder:
 
 
 class TestMetadataPackageZipBuilder:
-    def test_builder(self):
+    def test_builder(self, task_context):
         with temporary_dir() as path:
 
             # add package.xml
@@ -132,6 +133,7 @@ class TestMetadataPackageZipBuilder:
                     "namespace_inject": "ns",
                     "namespace_strip": "ns",
                 },
+                context=task_context,
             )
 
             # make sure result can be read as a zipfile
@@ -151,8 +153,9 @@ class TestMetadataPackageZipBuilder:
                 "objects/CustomObject__c",
                 "objects/does-not-exist-in-schema/some.file",
             }
+            zf.close()
 
-    def test_add_files_to_package(self):
+    def test_add_files_to_package(self, task_context):
         with temporary_dir() as path:
             expected = []
 
@@ -249,15 +252,15 @@ class TestMetadataPackageZipBuilder:
                 expected.append("objects/does-not-exist-in-schema/some.file")
 
             # test
-            builder = MetadataPackageZipBuilder()
+            builder = MetadataPackageZipBuilder(context=task_context)
 
             expected_set = set(expected)
             builder._add_files_to_package(path)
             actual_set = set(builder.zf.namelist())
             assert expected_set == actual_set
 
-    def test_include_directory(self):
-        builder = MetadataPackageZipBuilder()
+    def test_include_directory(self, task_context):
+        builder = MetadataPackageZipBuilder(context=task_context)
 
         # include root directory
         assert builder._include_directory([]) is True
@@ -285,8 +288,8 @@ class TestMetadataPackageZipBuilder:
         assert builder._include_directory(["not-lwc", "sub-1"]) is True
         assert builder._include_directory(["not-lwc", "sub-1", "sub-2"]) is True
 
-    def test_include_file(self):
-        builder = MetadataPackageZipBuilder()
+    def test_include_file(self, task_context):
+        builder = MetadataPackageZipBuilder(context=task_context)
 
         lwc_component_directories = [
             ["lwc"],
@@ -315,24 +318,7 @@ class TestMetadataPackageZipBuilder:
             for d in non_lwc_component_directories:
                 assert builder._include_file(d, "file_name" + file_ending)
 
-    def test_convert_sfdx(self):
-        with temporary_dir() as path:
-            touch("README.md")  # make sure there's something in the directory
-            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
-                builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
-                    pass
-        sfdx.assert_called_once()
-
-    def test_convert_sfdx__skipped_if_directory_empty(self):
-        with temporary_dir() as path:
-            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
-                builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
-                    pass
-        sfdx.assert_not_called()
-
-    def test_removes_feature_parameters_from_unlocked_package(self):
+    def test_removes_feature_parameters_from_unlocked_package(self, task_context):
         with temporary_dir() as path:
             pathlib.Path(path, "package.xml").write_text(
                 """<?xml version="1.0" encoding="utf-8"?>
@@ -346,7 +332,7 @@ class TestMetadataPackageZipBuilder:
             featureParameters.mkdir()
             (featureParameters / "test.featureParameterInteger").touch()
             builder = MetadataPackageZipBuilder(
-                path=path, options={"package_type": "Unlocked"}
+                path=path, options={"package_type": "Unlocked"}, context=task_context
             )
             assert (
                 "featureParameters/test.featureParameterInteger"
@@ -356,39 +342,39 @@ class TestMetadataPackageZipBuilder:
             assert b"FeatureParameterInteger" not in package_xml
 
 
-class TestCreatePackageZipBuilder(unittest.TestCase):
+class TestCreatePackageZipBuilder:
     def test_init__missing_name(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CreatePackageZipBuilder(None, "43.0")
 
     def test_init__missing_api_version(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CreatePackageZipBuilder("TestPackage", None)
 
 
-class TestInstallPackageZipBuilder(unittest.TestCase):
+class TestInstallPackageZipBuilder:
     def test_init__missing_namespace(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             InstallPackageZipBuilder(None, "1.0")
 
     def test_init__missing_version(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             InstallPackageZipBuilder("testns", None)
 
 
-class TestDestructiveChangesZipBuilder(unittest.TestCase):
+class TestDestructiveChangesZipBuilder:
     def test_call(self):
         builder = DestructiveChangesZipBuilder("", "1.0")
         names = builder.zf.namelist()
-        self.assertIn("package.xml", names)
-        self.assertIn("destructiveChanges.xml", names)
+        assert "package.xml" in names
+        assert "destructiveChanges.xml" in names
 
 
-class TestUninstallPackageZipBuilder(unittest.TestCase):
+class TestUninstallPackageZipBuilder:
     def test_init__missing_namespace(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             UninstallPackageZipBuilder(None, "1.0")
 
     def test_call(self):
         builder = UninstallPackageZipBuilder("testns", "1.0")
-        self.assertIn("destructiveChanges.xml", builder.zf.namelist())
+        assert "destructiveChanges.xml" in builder.zf.namelist()

@@ -9,24 +9,26 @@ based on mrbelvedere/mpinstaller/mdapi.py
 
 import base64
 import http.client
+import io
 import re
 import time
 from collections import defaultdict
-from xml.dom.minidom import parseString
 from xml.sax.saxutils import escape
 from zipfile import ZipFile
-import io
 
 import requests
+from defusedxml.minidom import parseString
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+from cumulusci.core.exceptions import ApexTestException, CumulusCIException
 from cumulusci.salesforce_api import soap_envelopes
-from cumulusci.core.exceptions import ApexTestException
-from cumulusci.utils import zip_subfolder, parse_api_datetime
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
-from cumulusci.salesforce_api.exceptions import MetadataParseError
-from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+    MetadataParseError,
+)
+from cumulusci.utils import parse_api_datetime, zip_subfolder
 
 # If pyOpenSSL is installed, make sure it's not used for requests
 # (it's not needed in the verisons of Python we support)
@@ -36,6 +38,8 @@ except ImportError:
     pass
 else:
     pyopenssl.extract_from_urllib3()
+
+INVALID_CROSS_REF_ERROR = "INVALID_CROSS_REFERENCE_KEY: No package named"
 
 retry_policy = Retry(backoff_factor=0.3)
 
@@ -74,22 +78,8 @@ class BaseMetadataApiCall(object):
             raise MetadataApiError(response.text, response)
 
     def _build_endpoint_url(self):
-        # Parse org id from id which ends in /ORGID/USERID
         org_id = self.task.org_config.org_id
-        # If "My Domain" is configured in the org, the instance_url needs to be
-        # parsed differently
         instance_url = self.task.org_config.instance_url
-        if instance_url.find(".my.salesforce.com") != -1:
-            # Parse instance_url with My Domain configured
-            # URL will be in the format
-            # https://name--name.na11.my.salesforce.com and should be
-            # https://na11.salesforce.com
-            instance_url = re.sub(
-                r"https://.*\.(\w+)\.my\.salesforce\.com",
-                r"https://\1.salesforce.com",
-                instance_url,
-            )
-        # Build the endpoint url from the instance_url
         endpoint = f"{instance_url}/services/Soap/m/{self.api_version}/{org_id}"
         return endpoint
 
@@ -362,6 +352,11 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
         )
 
     def _process_response(self, response):
+        if INVALID_CROSS_REF_ERROR in response.content.decode("utf-8"):
+            raise CumulusCIException(
+                f"No package found in org with name: {self.package_name}"
+            )
+
         # Parse the metadata zip file from the response
         zipstr = parseString(response.content).getElementsByTagName("zipFile")
         if zipstr:
@@ -623,3 +618,63 @@ class ApiListMetadata(BaseMetadataApiCall):
             metadata.append(result_data)
         self.metadata[self.metadata_type].extend(metadata)
         return self.metadata
+
+
+class ApiNewProfile(BaseMetadataApiCall):
+    check_interval = 1
+    soap_envelope_start = soap_envelopes.CREATE_PROFILE
+    soap_action_start = "create"
+    API_VERSION = "53.0"
+
+    def __init__(
+        self,
+        task,
+        api_version=None,
+        name: str = "",
+        description: str = "",
+        license_id: str = "",
+    ):
+        super(ApiNewProfile, self).__init__(task, api_version)
+
+        self.name = name
+        self.description = description
+        self.license_id = license_id
+
+        if int(float(self.api_version)) < 53:
+            raise MetadataApiError(
+                "Creating a blank profile via this API requires a Winter '22 org or later.",
+                None,
+            )
+
+    def _build_endpoint_url(self):
+        org_id = self.task.org_config.org_id
+        instance_url = self.task.org_config.instance_url
+        # Overwrite to call the Partner WSDL endpoint
+        endpoint = f"{instance_url}/services/Soap/u/{self.API_VERSION}/{org_id}"
+        return endpoint
+
+    def _build_envelope_start(self):
+        return self.soap_envelope_start.format(
+            name=escape(self.name),
+            description=escape(self.description),
+            license_id=escape(self.license_id),
+        )
+
+    def _process_response(self, response):
+        resp_xml = parseString(response.content)
+        # Return id of newly created profile.
+        profile_id_text = resp_xml.getElementsByTagName("id")[0].firstChild
+        if profile_id_text:
+            return profile_id_text.nodeValue
+        # Handle errors
+        errors = resp_xml.getElementsByTagName("errors")
+        if errors:
+            raise MetadataApiError(
+                "\n".join(
+                    node.getElementsByTagName("message")[0].firstChild.nodeValue
+                    for node in errors
+                ),
+                response,
+            )
+        # Unknown response
+        raise MetadataApiError(f"Unexpected response: {response.text}", response)

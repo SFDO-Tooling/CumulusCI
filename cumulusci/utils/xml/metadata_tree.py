@@ -15,12 +15,12 @@ Or to give a more Salesforce-y example:
 Account
 """
 
-from typing import Union, Generator
+from typing import Generator, Union
 
 from lxml import etree
 
+from . import lxml_parse_file, lxml_parse_string
 from .salesforce_encoding import serialize_xml_for_salesforce
-
 
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 
@@ -37,16 +37,16 @@ def parse(source):
 
     """
     if hasattr(source, "open"):  # for pathlib.Path objects
-        with source.open() as stream:
-            doc = etree.parse(stream)
+        with source.open(encoding="utf-8") as stream:
+            doc = lxml_parse_file(stream)
     else:
-        doc = etree.parse(source)
+        doc = lxml_parse_file(source)
     return MetadataElement(doc.getroot())
 
 
 def fromstring(source):
     """Parse a Metadata Tree from a string"""
-    return MetadataElement(etree.fromstring(source))
+    return MetadataElement(lxml_parse_string(source).getroot())
 
 
 class MetadataElement:

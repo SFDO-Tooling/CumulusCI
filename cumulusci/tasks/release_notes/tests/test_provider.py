@@ -1,23 +1,23 @@
-from datetime import datetime
-from datetime import timedelta
 import http.client
-from unittest import mock
 import os
 import shutil
 import tempfile
-import unittest
+from datetime import datetime, timedelta
+from unittest import mock
 
-from cumulusci.core.github import get_github_api
+import pytest
 import responses
 
-from cumulusci.core.exceptions import GithubApiError
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.tasks.release_notes.provider import BaseChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
+from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.provider import (
+    BaseChangeNotesProvider,
+    DirectoryChangeNotesProvider,
+    GithubChangeNotesProvider,
+    StaticChangeNotesProvider,
+)
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
@@ -38,17 +38,18 @@ PARSER_CONFIG = [
 ]
 
 
-class TestBaseChangeNotesProvider(unittest.TestCase):
+class TestBaseChangeNotesProvider:
     def test_init(self):
         provider = BaseChangeNotesProvider("test")
         assert provider.release_notes_generator == "test"
 
     def test_call_raises_notimplemented(self):
         provider = BaseChangeNotesProvider("test")
-        self.assertRaises(NotImplementedError, provider.__call__)
+        with pytest.raises(NotImplementedError):
+            provider.__call__()
 
 
-class TestStaticChangeNotesProvider(unittest.TestCase):
+class TestStaticChangeNotesProvider:
     def test_empty_list(self):
         provider = StaticChangeNotesProvider("test", [])
         assert list(provider()) == []
@@ -62,7 +63,7 @@ class TestStaticChangeNotesProvider(unittest.TestCase):
         assert list(provider()) == ["abc", "d", "e"]
 
 
-class TestDirectoryChangeNotesProvider(unittest.TestCase):
+class TestDirectoryChangeNotesProvider:
     def get_empty_dir(self):
         tempdir = tempfile.mkdtemp()
         return os.path.join(tempdir)
@@ -94,8 +95,8 @@ class TestDirectoryChangeNotesProvider(unittest.TestCase):
         assert list(provider()) == dir_content
 
 
-class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestGithubChangeNotesProvider(GithubApiTestMixin):
+    def setup_method(self):
         # Set up the mock release_tag lookup response
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
         # Tag that does not exist
@@ -165,7 +166,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         responses.add(method=responses.GET, url=api_url, json=expected_response)
 
     def _mock_current_tag_ref(self):
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, self.current_tag)
+        api_url = "{}/git/ref/tags/{}".format(self.repo_api_url, self.current_tag)
         expected_response_current_tag_ref = self._get_expected_tag_ref(
             self.current_tag, self.current_tag_sha
         )
@@ -174,7 +175,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
 
     def _mock_invalid_tag(self):
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, self.invalid_tag)
+        api_url = "{}/git/ref/tags/{}".format(self.repo_api_url, self.invalid_tag)
         expected_response = {
             "message": "Not Found",
             "documentation_url": "https://developer.github.com/v3",
@@ -217,7 +218,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         responses.add(method=responses.GET, url=api_url, json=expected_response)
 
     def _mock_last_tag_ref(self):
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, self.last_tag)
+        api_url = "{}/git/ref/tags/{}".format(self.repo_api_url, self.last_tag)
         expected_response_last_tag_ref = self._get_expected_tag_ref(
             self.last_tag, self.last_tag_sha
         )
@@ -299,26 +300,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         self._mock_invalid_tag()
         generator = self._create_generator(self.invalid_tag)
         provider = GithubChangeNotesProvider(generator, self.invalid_tag)
-        with self.assertRaises(GithubApiNotFoundError):
-            provider.current_tag_info
-
-    @responses.activate
-    def test_current_tag_is_lightweight(self):
-        self.mock_util.mock_get_repo()
-        tag = "release/lightweight"
-        generator = self._create_generator(tag)
-        provider = GithubChangeNotesProvider(generator, tag)
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, tag)
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json={
-                "object": {"type": "commit", "url": "", "sha": ""},
-                "url": "",
-                "ref": "tags/{}".format(tag),
-            },
-        )
-        with self.assertRaises(GithubApiError):
+        with pytest.raises(GithubApiNotFoundError):
             provider.current_tag_info
 
     @responses.activate
@@ -337,8 +319,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         current_tag = provider.current_tag_info["tag"]
         last_tag = provider.last_tag_info["tag"]
 
-        self.assertEqual(current_tag.tag, expected_current_tag["tag"])
-        self.assertEqual(last_tag.tag, expected_last_tag["tag"])
+        assert current_tag.tag == expected_current_tag["tag"]
+        assert last_tag.tag == expected_last_tag["tag"]
 
     @responses.activate
     def test_current_tag_without_last_no_last_found(self):
@@ -351,8 +333,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
-        self.assertEqual(provider.last_tag, None)
-        self.assertEqual(provider.last_tag_info, None)
+        assert provider.last_tag is None
+        assert provider.last_tag_info is None
 
     @responses.activate
     def test_no_pull_requests_in_repo(self):
@@ -373,7 +355,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
 
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
-        self.assertEqual(list(provider()), [])
+        assert list(provider()) == []
 
     @responses.activate
     def test_no_pull_requests_in_range(self):
@@ -401,7 +383,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
 
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
-        self.assertEqual(list(provider()), [])
+        assert list(provider()) == []
 
     @responses.activate
     def test_one_pull_request_in_range(self):
@@ -419,9 +401,9 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
         provider_list = list(provider())
         pr_body_list = ["pull 1"]
-        self.assertEqual(len(provider_list), len(pr_body_list))
+        assert len(provider_list) == len(pr_body_list)
         for pr, pr_body in zip(provider_list, pr_body_list):
-            self.assertEqual(pr.body, pr_body)
+            assert pr.body == pr_body
 
     @responses.activate
     def test_multiple_pull_requests_in_range(self):
@@ -440,9 +422,9 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         provider_list = list(provider())
         pr_body_list = []
         pr_body_list = ["pull 1", "pull 2", "pull 3", "pull 8"]
-        self.assertEqual(len(provider_list), len(pr_body_list))
+        assert len(provider_list) == len(pr_body_list)
         for pr, pr_body in zip(provider_list, pr_body_list):
-            self.assertEqual(pr.body, pr_body)
+            assert pr.body == pr_body
 
     @responses.activate
     def test_pull_requests_with_no_last_tag(self):
@@ -470,9 +452,9 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
             "pull 7",
             "pull 8",
         ]
-        self.assertEqual(len(provider_list), len(pr_body_list))
+        assert len(provider_list) == len(pr_body_list)
         for pr, pr_body in zip(provider_list, pr_body_list):
-            self.assertEqual(pr.body, pr_body)
+            assert pr.body == pr_body
 
     @responses.activate
     def test_get_version_from_tag(self):
@@ -480,6 +462,6 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         tag = "beta/1.0-Beta_1"
         generator = self._create_generator(tag)
         provider = GithubChangeNotesProvider(generator, tag)
-        self.assertEqual("1.0-Beta_1", provider._get_version_from_tag(tag))
-        with self.assertRaises(ValueError):
+        assert provider._get_version_from_tag(tag) == "1.0-Beta_1"
+        with pytest.raises(ValueError):
             provider._get_version_from_tag("bogus")

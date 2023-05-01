@@ -1,69 +1,69 @@
 Insert Accounts:
-  api: bulk
-  sf_object: Account
-  table: Account
-  fields:
-    Name: Name
-    Description: Description
-    BillingStreet: BillingStreet
-    BillingCity: BillingCity
-    BillingState: BillingState
-    BillingPostalCode: BillingPostalCode
-    BillingCountry: BillingCountry
-    ParentId: ParentId
-    ShippingStreet: ShippingStreet
-    ShippingCity: ShippingCity
-    ShippingState: ShippingState
-    ShippingPostalCode: ShippingPostalCode
-    ShippingCountry: ShippingCountry
-    Phone: Phone
-    Fax: Fax
-    Website: Website
-    NumberOfEmployees: NumberOfEmployees
-    AccountNumber: AccountNumber
-    Site: Site
-    Type: Type
-  lookups:
-    ParentId:
-      table: Account
-      after: Insert Accounts
+    api: bulk
+    sf_object: Account
+    table: Account
+    fields:
+        Name: Name
+        Description: Description
+        BillingStreet: BillingStreet
+        BillingCity: BillingCity
+        BillingState: BillingState
+        BillingPostalCode: BillingPostalCode
+        BillingCountry: BillingCountry
+        ParentId: ParentId
+        ShippingStreet: ShippingStreet
+        ShippingCity: ShippingCity
+        ShippingState: ShippingState
+        ShippingPostalCode: ShippingPostalCode
+        ShippingCountry: ShippingCountry
+        Phone: Phone
+        Fax: Fax
+        Website: Website
+        NumberOfEmployees: NumberOfEmployees
+        AccountNumber: AccountNumber
+        Site: Site
+        Type: Type
+    lookups:
+        ParentId:
+            table: Account
+            after: Insert Accounts
 
 Insert Contacts:
-  api: bulk
-  sf_object: Contact
-  table: Contact
-  fields:
-    Salutation: Salutation
-    FirstName: FirstName
-    LastName: LastName
-    Email: Email
-    Phone: Phone
-    MobilePhone: MobilePhone
-    OtherPhone: OtherPhone
-    HomePhone: HomePhone
-    Title: Title
-    Birthdate: Birthdate
-    MailingStreet: MailingStreet
-    MailingCity: MailingCity
-    MailingState: MailingState
-    MailingPostalCode: MailingPostalCode
-    MailingCountry: MailingCountry
-  lookups:
-    AccountId:
-      table: Account
-      key_field: AccountId
+    api: bulk
+    sf_object: Contact
+    table: Contact
+    fields:
+        Salutation: Salutation
+        FirstName: FirstName
+        LastName: LastName
+        Email: Email
+        Phone: Phone
+        MobilePhone: MobilePhone
+        OtherPhone: OtherPhone
+        HomePhone: HomePhone
+        Title: Title
+        Birthdate: Birthdate
+        MailingStreet: MailingStreet
+        MailingCity: MailingCity
+        MailingState: MailingState
+        MailingPostalCode: MailingPostalCode
+        MailingCountry: MailingCountry
+    lookups:
+        AccountId:
+            table: Account
+            key_field: AccountId
 
 Insert Opportunities:
-  api: bulk
-  sf_object: Opportunity
-  table: Opportunity
-  fields:
-    Name: Name
-    StageName: StageName
-    CloseDate: CloseDate
-    Amount: Amount
-  lookups:
-    AccountId:
-      table: Account
-    ContactId:
-      table: Contact
+    api: bulk
+    sf_object: Opportunity
+    table: Opportunity
+    fields:
+        Name: Name
+        StageName: StageName
+        CloseDate: CloseDate
+        Amount: Amount
+    lookups:
+        AccountId:
+            table: Account
+        ContactId:
+            table: Contact

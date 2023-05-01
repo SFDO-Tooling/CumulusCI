@@ -1,0 +1,6 @@
+- option: row_count
+- option: account_name
+- object: Account
+  count: ${{row_count}}
+  fields:
+      name: Account ${{account_name}}

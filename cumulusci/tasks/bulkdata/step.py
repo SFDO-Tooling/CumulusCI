@@ -1,24 +1,29 @@
-from abc import ABCMeta, abstractmethod
-from collections import namedtuple
-from contextlib import contextmanager
 import csv
-from enum import Enum
 import io
 import os
 import pathlib
 import tempfile
 import time
-from typing import Dict, Any, List
+from abc import ABCMeta, abstractmethod
+from contextlib import contextmanager
+from typing import Any, Dict, List, NamedTuple, Optional
 
-import lxml.etree as ET
 import requests
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import get_batch_iterator
+from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
+from cumulusci.utils.classutils import namedtuple_as_simple_dict
+from cumulusci.utils.xml import lxml_parse_string
+
+DEFAULT_BULK_BATCH_SIZE = 10_000
+DEFAULT_REST_BATCH_SIZE = 200
+MAX_REST_BATCH_SIZE = 200
+csv.field_size_limit(2**27)  # 128 MB
 
 
-class DataOperationType(Enum):
+class DataOperationType(StrEnum):
     """Enum defining the API data operation requested."""
 
     INSERT = "insert"
@@ -26,9 +31,12 @@ class DataOperationType(Enum):
     DELETE = "delete"
     HARD_DELETE = "hardDelete"
     QUERY = "query"
+    UPSERT = "upsert"
+    ETL_UPSERT = "etl_upsert"
+    SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
-class DataApi(Enum):
+class DataApi(StrEnum):
     """Enum defining requested Salesforce data API for an operation."""
 
     BULK = "bulk"
@@ -36,7 +44,7 @@ class DataApi(Enum):
     SMART = "smart"
 
 
-class DataOperationStatus(Enum):
+class DataOperationStatus(StrEnum):
     """Enum defining outcome values for a data operation."""
 
     SUCCESS = "Success"
@@ -46,15 +54,24 @@ class DataOperationStatus(Enum):
     ABORTED = "Aborted"
 
 
-DataOperationResult = namedtuple("Result", ["id", "success", "error"])
-DataOperationJobResult = namedtuple(
-    "DataOperationJobResult",
-    ["status", "job_errors", "records_processed", "total_row_errors"],
-)
+class DataOperationResult(NamedTuple):
+    id: str
+    success: bool
+    error: str
+
+
+class DataOperationJobResult(NamedTuple):
+    status: DataOperationStatus
+    job_errors: List[str]
+    records_processed: int
+    total_row_errors: int = 0
+
+    def simplify(self):
+        return namedtuple_as_simple_dict(self)
 
 
 @contextmanager
-def download_file(uri, bulk_api):
+def download_file(uri, bulk_api, *, chunk_size=8192):
     """Download the Bulk API result file for a single batch,
     and remove it when the context manager exits."""
     try:
@@ -62,7 +79,8 @@ def download_file(uri, bulk_api):
         resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
         resp.raise_for_status()
         f = os.fdopen(handle, "wb")
-        for chunk in resp.iter_content(chunk_size=None):
+        for chunk in resp.iter_content(chunk_size=chunk_size):  # VCR needs a chunk_size
+            # specific chunk_size seems to make no measurable perf difference
             f.write(chunk)
 
         f.close()
@@ -83,50 +101,61 @@ class BulkJobMixin:
         response.raise_for_status()
         return self._parse_job_state(response.content)
 
-    def _parse_job_state(self, xml):
+    def _parse_job_state(self, xml: str):
         """Parse the Bulk API return value and generate a summary status record for the job."""
-        tree = ET.fromstring(xml)
+        tree = lxml_parse_string(xml)
         statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
         state_messages = [
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
         ]
 
-        failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
-        record_failure_count = int(failures.text) if failures is not None else 0
-        processed = tree.find(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
-        records_processed = int(processed.text) if processed is not None else 0
+        # Get how many total records failed across all the batches.
+        failures = tree.findall(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
+        record_failure_count = sum([int(failure.text) for failure in (failures or [])])
 
+        # Get how many total records processed across all the batches.
+        processed = tree.findall(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
+        records_processed_count = sum(
+            [int(processed.text) for processed in (processed or [])]
+        )
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
         # PK Chunking is not currently supported.
         if "Not Processed" in statuses:
             return DataOperationJobResult(
-                DataOperationStatus.ABORTED, [], records_processed, record_failure_count
+                DataOperationStatus.ABORTED,
+                [],
+                records_processed_count,
+                record_failure_count,
             )
         elif "InProgress" in statuses or "Queued" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.IN_PROGRESS,
                 [],
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
         elif "Failed" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE,
                 state_messages,
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
 
+        # All the records submitted in this job failed.
         if record_failure_count:
             return DataOperationJobResult(
                 DataOperationStatus.ROW_FAILURE,
                 [],
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
 
         return DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], records_processed, record_failure_count
+            DataOperationStatus.SUCCESS,
+            [],
+            records_processed_count,
+            record_failure_count,
         )
 
     def _wait_for_job(self, job_id):
@@ -141,7 +170,15 @@ class BulkJobMixin:
                 break
 
             time.sleep(10)
-        self.logger.info(f"Job {job_id} finished with result: {result.status.value}")
+        plural_errors = "Errors" if result.total_row_errors != 1 else "Error"
+        errors = (
+            f": {result.total_row_errors} {plural_errors}"
+            if result.total_row_errors
+            else ""
+        )
+        self.logger.info(
+            f"Job {job_id} finished with result: {result.status.value}{errors}"
+        )
         if result.status is DataOperationStatus.JOB_FAILURE:
             for state_message in result.job_errors:
                 self.logger.error(f"Batch failure message: {state_message}")
@@ -301,8 +338,12 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             context=context,
             fields=fields,
         )
+        self.api_options = api_options.copy()
+        self.api_options["batch_size"] = (
+            self.api_options.get("batch_size") or DEFAULT_BULK_BATCH_SIZE
+        )
         self.csv_buff = io.StringIO(newline="")
-        self.csv_writer = csv.writer(self.csv_buff)
+        self.csv_writer = csv.writer(self.csv_buff, quoting=csv.QUOTE_ALL)
 
     def start(self):
         self.job_id = self.bulk.create_job(
@@ -310,6 +351,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.operation.value,
             contentType="CSV",
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
+            external_id_name=self.api_options.get("update_key"),
         )
 
     def end(self):
@@ -319,11 +361,12 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     def load_records(self, records):
         self.batch_ids = []
 
-        for count, csv_batch in enumerate(self._batch(records)):
+        batch_size = self.api_options["batch_size"]
+        for count, csv_batch in enumerate(self._batch(records, batch_size)):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
-    def _batch(self, records, n=10000, char_limit=10000000):
+    def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
 
@@ -415,47 +458,65 @@ class RestApiDmlOperation(BaseDmlOperation):
             for field in getattr(context.sf, sobject).describe()["fields"]
         }
         self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+        self.api_options = api_options.copy()
+        self.api_options["batch_size"] = (
+            self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE
+        )
+        self.api_options["batch_size"] = min(
+            self.api_options["batch_size"], MAX_REST_BATCH_SIZE
+        )
+
+    def _record_to_json(self, rec):
+        result = dict(zip(self.fields, rec))
+        for boolean_field in self.boolean_fields:
+            try:
+                result[boolean_field] = process_bool_arg(result[boolean_field] or False)
+            except TypeError as e:
+                raise BulkDataException(e)
+
+        # Remove empty fields (different semantics in REST API)
+        # We do this for insert only - on update, any fields set to `null`
+        # are meant to be blanked out.
+        if self.operation is DataOperationType.INSERT:
+            result = {
+                k: result[k]
+                for k in result
+                if result[k] is not None and result[k] != ""
+            }
+        elif self.operation in (DataOperationType.UPDATE, DataOperationType.UPSERT):
+            result = {k: (result[k] if result[k] != "" else None) for k in result}
+
+        result["attributes"] = {"type": self.sobject}
+        return result
 
     def load_records(self, records):
-        def _convert(rec):
-            result = dict(zip(self.fields, rec))
-            for boolean_field in self.boolean_fields:
-                try:
-                    result[boolean_field] = process_bool_arg(
-                        result[boolean_field] or False
-                    )
-                except TypeError as e:
-                    raise BulkDataException(e)
-
-            # Remove empty fields (different semantics in REST API)
-            # We do this for insert only - on update, any fields set to `null`
-            # are meant to be blanked out.
-            if self.operation is DataOperationType.INSERT:
-                result = {
-                    k: result[k]
-                    for k in result
-                    if result[k] is not None and result[k] != ""
-                }
-
-            result["attributes"] = {"type": self.sobject}
-            return result
+        """Load, update, upsert or delete records into the org"""
 
         self.results = []
         method = {
             DataOperationType.INSERT: "POST",
             DataOperationType.UPDATE: "PATCH",
             DataOperationType.DELETE: "DELETE",
+            DataOperationType.UPSERT: "PATCH",
         }[self.operation]
 
-        for chunk in get_batch_iterator(
-            self.api_options.get("batch_size", 200), records
-        ):
+        update_key = self.api_options.get("update_key")
+        for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
-                url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
+                url_string = "?ids=" + ",".join(
+                    self._record_to_json(rec)["Id"] for rec in chunk
+                )
                 json = None
             else:
-                url_string = ""
-                json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
+                if update_key:
+                    assert self.operation == DataOperationType.UPSERT
+                    url_string = f"/{self.sobject}/{update_key}"
+                else:
+                    url_string = ""
+                json = {
+                    "allOrNone": False,
+                    "records": [self._record_to_json(rec) for rec in chunk],
+                }
 
             self.results.extend(
                 self.sf.restful(
@@ -498,7 +559,7 @@ def get_query_operation(
     api_options: Dict,
     context: Any,
     query: str,
-    api: DataApi,
+    api: Optional[DataApi] = DataApi.SMART,
 ) -> BaseQueryOperation:
     """Create an appropriate QueryOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk > 2000 records) if DataApi.SMART
@@ -509,7 +570,7 @@ def get_query_operation(
     if api_version < 42.0 and api is not DataApi.BULK:
         api = DataApi.BULK
 
-    if api is DataApi.SMART:
+    if api in (DataApi.SMART, None):
         record_count_response = context.sf.restful(
             f"limits/recordCount?sObjects={sobject}"
         )
@@ -526,7 +587,7 @@ def get_query_operation(
         return BulkApiQueryOperation(
             sobject=sobject, api_options=api_options, context=context, query=query
         )
-    else:
+    elif api is DataApi.REST:
         return RestApiQueryOperation(
             sobject=sobject,
             api_options=api_options,
@@ -534,6 +595,8 @@ def get_query_operation(
             query=query,
             fields=fields,
         )
+    else:
+        raise AssertionError(f"Unknown API: {api}")
 
 
 def get_dml_operation(
@@ -543,19 +606,22 @@ def get_dml_operation(
     fields: List[str],
     api_options: Dict,
     context: Any,
-    api: DataApi,
     volume: int,
+    api: Optional[DataApi] = DataApi.SMART,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
     or if the operation is HARD_DELETE, which is only available for Bulk)."""
+
+    context.logger.debug(f"Creating {operation} Operation for {sobject} using {api}")
+    assert isinstance(operation, DataOperationType)
 
     # REST Collections requires 42.0.
     api_version = float(context.sf.sf_version)
     if api_version < 42.0 and api is not DataApi.BULK:
         api = DataApi.BULK
 
-    if api is DataApi.SMART:
+    if api in (DataApi.SMART, None):
         api = (
             DataApi.BULK
             if volume >= 2000 or operation is DataOperationType.HARD_DELETE
@@ -564,8 +630,10 @@ def get_dml_operation(
 
     if api is DataApi.BULK:
         api_class = BulkApiDmlOperation
-    else:
+    elif api is DataApi.REST:
         api_class = RestApiDmlOperation
+    else:
+        raise AssertionError(f"Unknown API: {api}")
 
     return api_class(
         sobject=sobject,

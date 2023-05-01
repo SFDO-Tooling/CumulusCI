@@ -1,8 +1,8 @@
-from typing import List, Dict, Any
 import json
 from inspect import signature
+from typing import Any, Dict, List
 
-from pydantic import Field, create_model, FilePath, DirectoryPath
+from pydantic import DirectoryPath, Field, FilePath, create_model
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
@@ -92,7 +92,7 @@ def parse_list_of_pairs_dict_arg(arg):
     elif isinstance(arg, str):
         rc = {}
         for key_value in arg.split(","):
-            subparts = key_value.split(":")
+            subparts = key_value.split(":", maxsplit=1)
             if len(subparts) == 2:
                 key, value = subparts
                 if key in rc:

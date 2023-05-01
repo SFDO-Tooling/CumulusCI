@@ -1,9 +1,10 @@
-from unittest import mock
 import io
 import os
+from unittest import mock
 
 from cumulusci.tasks.salesforce import SOQLQuery
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 

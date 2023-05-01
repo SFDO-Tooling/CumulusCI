@@ -1,0 +1,110 @@
+{
+    "namespace": {
+        "category": "",
+        "prepend": "",
+        "append": "",
+        "timestamp": true
+    },
+    "config": {
+        "preserveCategories": true
+    },
+    "name": "cci-deploy",
+    "modelVersion": "4",
+    "references": {
+        "assets/0": []
+    },
+    "input": [
+        {
+            "key": "companyName"
+        }
+    ],
+    "entities": {
+        "assets": {
+            "0": {
+                "issues": [],
+                "data": {
+                    "assetType": {
+                        "id": 209,
+                        "name": "textonlyemail"
+                    },
+                    "data": {
+                        "email": {
+                            "options": {
+                                "characterEncoding": "utf-8"
+                            },
+                            "attributes": [
+                                {
+                                    "displayName": "__AdditionalEmailAttribute1",
+                                    "name": "__AdditionalEmailAttribute1",
+                                    "value": "",
+                                    "order": 1,
+                                    "channel": "email",
+                                    "attributeType": "AdditionalEmailAttribute"
+                                }
+                            ],
+                            "legacy": {
+                                "legacyId": 283739,
+                                "legacyKey": "0a7bf006-eb2b-4338-a1bc-173e6c3c9013",
+                                "legacyType": "email",
+                                "legacyCategoryId": 1745906
+                            }
+                        }
+                    },
+                    "description": "A test email.",
+                    "name": "Test",
+                    "contentType": "application/vnd.etmc.email.Message; kind=textOnly",
+                    "views": {
+                        "subjectline": {
+                            "contentType": "application/vnd.etmc.email.View; kind=subjectline",
+                            "content": "A subject line",
+                            "meta": {},
+                            "availableViews": [],
+                            "data": {
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
+                            },
+                            "modelVersion": 2
+                        },
+                        "text": {
+                            "content": "code",
+                            "availableViews": [],
+                            "data": {
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
+                            },
+                            "modelVersion": 2
+                        },
+                        "subscriptioncenter": {
+                            "availableViews": [],
+                            "data": {
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
+                            },
+                            "modelVersion": 2
+                        },
+                        "forwardText": {
+                            "availableViews": [],
+                            "data": {
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
+                            },
+                            "modelVersion": 2
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

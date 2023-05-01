@@ -1,0 +1,83 @@
+# This is a hand-edited file. Real VCRs will compress much more than
+# this file.
+version: 1
+interactions:
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: Blah Blah Blah
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Account/describe
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: Blah blah blah Account
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: Blah Blah
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/75023000003Rs2qAAC
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/xml
+              Others: Elided
+          body:
+              string:
+                  "<?xml version=\"1.0\" encoding=\"UTF-8\"?><jobInfo\n   xmlns=\"http://www.force.com/2009/06/asyncapi/dataload\"\
+                  >\n <id>75023000003Rs2qAAC</id>\n <operation>insert</operation>\n <object>Account</object>\n\
+                  \ <createdById>00523000002KbrQAAS</createdById>\n <createdDate>2022-03-30T07:57:00.000Z</createdDate>\n\
+                  \ <systemModstamp>2022-03-30T07:57:00.000Z</systemModstamp>\n <state>Closed</state>\n\
+                  \ <concurrencyMode>Parallel</concurrencyMode>\n <contentType>CSV</contentType>\n\
+                  \ <numberBatchesQueued>1</numberBatchesQueued>\n <numberBatchesInProgress>0</numberBatchesInProgress>\n\
+                  \ <numberBatchesCompleted>0</numberBatchesCompleted>\n <numberBatchesFailed>0</numberBatchesFailed>\n\
+                  \ <numberBatchesTotal>1</numberBatchesTotal>\n <numberRecordsProcessed>0</numberRecordsProcessed>\n\
+                  \ <numberRetries>0</numberRetries>\n <apiVersion>vxx.0</apiVersion>\n <numberRecordsFailed>0</numberRecordsFailed>\n\
+                  \ <totalProcessingTime>0</totalProcessingTime>\n <apiActiveProcessingTime>0</apiActiveProcessingTime>\n\
+                  \ <apexProcessingTime>0</apexProcessingTime>\n</jobInfo>"

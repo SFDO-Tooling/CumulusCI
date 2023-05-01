@@ -3,7 +3,6 @@ import os
 
 from cumulusci.tasks.salesforce import Deploy
 
-
 deploy_options = copy.deepcopy(Deploy.task_options)
 deploy_options["path"][
     "description"
@@ -54,12 +53,14 @@ class DeployBundles(Deploy):
                 os.path.join(os.path.realpath(path), item),
                 os.path.realpath(self.project_config.repo_root),
             ).replace(os.sep, "/")
+
+            # TODO: copying the options for this task
+            # to freeze a different task is not ideal.
             dependency = self.options.copy()
             dependency.pop("path")
             dependency.update(
                 {
-                    "repo_owner": self.project_config.repo_owner,
-                    "repo_name": self.project_config.repo_name,
+                    "github": self.project_config.repo_url,
                     "ref": self.project_config.repo_commit,
                     "subfolder": subpath,
                 }

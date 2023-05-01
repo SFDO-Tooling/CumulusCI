@@ -1,15 +1,14 @@
 import base64
 import io
-import unittest
 import zipfile
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.tasks.salesforce import CreatePackage
+
 from .util import create_task
 
 
-class TestCreatePackage(unittest.TestCase):
+class TestCreatePackage:
     def test_get_package_zip(self):
         project_config = BaseProjectConfig(
             UniversalConfig(),
@@ -20,3 +19,4 @@ class TestCreatePackage(unittest.TestCase):
         zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
         package_xml = zf.read("package.xml")
         assert b"<fullName>TestPackage</fullName>" in package_xml
+        zf.close()

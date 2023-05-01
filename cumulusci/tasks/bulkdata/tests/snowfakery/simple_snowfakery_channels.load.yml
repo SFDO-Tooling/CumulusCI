@@ -1,0 +1,13 @@
+- user_channels:
+      - user: channeltest
+        recipe_options:
+            account_name: channeltest
+            some_number: 42
+      - user: channeltest-b
+        recipe_options:
+            account_name: channeltest-b
+            some_number: 42
+      - user: channeltest-c
+        recipe_options:
+            account_name: channeltest-c
+      - user: Account

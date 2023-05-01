@@ -1,12 +1,12 @@
 from unittest import mock
-import unittest
 
 from cumulusci.tasks.salesforce import UninstallPackage
 from cumulusci.tests.util import create_project_config
+
 from .util import create_task
 
 
-class TestUninstallPackage(unittest.TestCase):
+class TestUninstallPackage:
     @mock.patch(
         "cumulusci.salesforce_api.package_zip.UninstallPackageZipBuilder.__call__"
     )

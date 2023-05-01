@@ -1,0 +1,3 @@
+version: 1
+interactions:
+    - include_file: GET_sobjects_Organization.yaml

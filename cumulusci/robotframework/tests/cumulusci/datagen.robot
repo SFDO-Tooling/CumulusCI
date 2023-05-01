@@ -81,4 +81,4 @@ Test Snowfakery
     ...     num_records=20
     ...     num_records_tablename=Account
     ...     batch_size=5
-    ...     generator_yaml=cumulusci/tasks/bulkdata/tests/simple_snowfakery.yml
+    ...     generator_yaml=cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.recipe.yml

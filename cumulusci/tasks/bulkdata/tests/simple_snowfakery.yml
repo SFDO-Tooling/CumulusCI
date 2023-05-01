@@ -1,5 +1,0 @@
-- object: Account
-  fields:
-    Name:
-      fake: name
-    ShippingCountry: Canada

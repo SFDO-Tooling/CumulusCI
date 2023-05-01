@@ -1,11 +1,12 @@
+import logging
 import re
 import urllib.parse
 
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.versions import PackageVersionNumber
 from cumulusci.oauth.salesforce import PROD_LOGIN_URL, SANDBOX_LOGIN_URL
-from .exceptions import GithubIssuesError
 
 
 class BaseChangeNotesParser(object):
@@ -183,15 +184,17 @@ class GithubIssuesParser(IssuesParser):
         "prod": "Included in production release",
     }
 
-    def __init__(self, release_notes_generator, title, issue_regex=None):
-        super(GithubIssuesParser, self).__init__(
-            release_notes_generator, title, issue_regex
-        )
+    def __new__(cls, release_notes_generator, title, issue_regex=None):
         if not release_notes_generator.has_issues:
-            raise GithubIssuesError(
-                "Cannot use {}".format(self.__class__.__name__)
-                + " because issues are disabled for this repository."
+            logging.getLogger(__file__).warn(
+                "Issues are disabled for this repository. Falling back to change notes parser."
             )
+            return GithubLinesParser(release_notes_generator, title)
+
+        return super().__new__(cls)
+
+    def __init__(self, release_notes_generator, title, issue_regex=None):
+        super().__init__(release_notes_generator, title, issue_regex)
         self.link_pr = release_notes_generator.link_pr
         self.pr_number = None
         self.pr_url = None
@@ -269,16 +272,11 @@ class GithubIssuesParser(IssuesParser):
             return
         if is_beta:
             comment_prefix = self.ISSUE_COMMENT["beta"]
-            version_parts = re.findall(
-                r"{}(\d+\.\d+)-Beta_(\d+)".format(prefix_beta),
-                self.release_notes_generator.current_tag,
-            )
-            version_str = "{} (Beta {})".format(*version_parts[0])
         else:
             comment_prefix = self.ISSUE_COMMENT["prod"]
-            version_str = self.release_notes_generator.current_tag.replace(
-                prefix_prod, ""
-            )
+        version_str = PackageVersionNumber.parse_tag(
+            self.release_notes_generator.current_tag, prefix_beta, prefix_prod
+        ).format()
         has_comment = False
         for comment in issue.comments():
             if comment.body.startswith(comment_prefix):

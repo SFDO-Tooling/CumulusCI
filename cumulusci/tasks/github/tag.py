@@ -1,14 +1,11 @@
 from datetime import datetime
 
-import github3.exceptions
-
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.github import get_tag_by_name
 from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class CloneTag(BaseGithubTask):
-
-    task_options = {
+    task_options = {  # type: ignore  -- should use `class Options instead`
         "src_tag": {
             "description": "The source tag to clone.  Ex: beta/1.0-Beta_2",
             "required": True,
@@ -20,30 +17,21 @@ class CloneTag(BaseGithubTask):
     }
 
     def _run_task(self):
+        src_tag_name = self.options["src_tag"]
         repo = self.get_repo()
-        ref = repo.ref("tags/{}".format(self.options["src_tag"]))
-        try:
-            src_tag = repo.tag(ref.object.sha)
-        except github3.exceptions.NotFoundError:
-            message = "Tag {} not found".format(self.options["src_tag"])
-            self.logger.error(message)
-            raise GithubException(message)
+        src_tag = get_tag_by_name(repo, src_tag_name)
 
         tag = repo.create_tag(
             tag=self.options["tag"],
-            message="Cloned from {}".format(self.options["src_tag"]),
+            message=f"Cloned from {src_tag_name}",
             sha=src_tag.sha,
             obj_type="commit",
             tagger={
                 "name": self.github_config.username,
                 "email": self.github_config.email,
-                "date": "{}Z".format(datetime.utcnow().isoformat()),
+                "date": f"{datetime.utcnow().isoformat()}Z",
             },
         )
-        self.logger.info(
-            "Tag {} created by cloning {}".format(
-                self.options["tag"], self.options["src_tag"]
-            )
-        )
+        self.logger.info(f"Tag {self.options['tag']} created by cloning {src_tag_name}")
 
         return tag

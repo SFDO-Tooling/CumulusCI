@@ -1,8 +1,9 @@
-import pytest
-
 from io import BytesIO
 from pathlib import Path
-from cumulusci.utils.xml.metadata_tree import METADATA_NAMESPACE, parse, fromstring
+
+import pytest
+
+from cumulusci.utils.xml.metadata_tree import METADATA_NAMESPACE, fromstring, parse
 
 standard_xml = f"""<Data xmlns='{METADATA_NAMESPACE}'>
                 <foo>Foo</foo>

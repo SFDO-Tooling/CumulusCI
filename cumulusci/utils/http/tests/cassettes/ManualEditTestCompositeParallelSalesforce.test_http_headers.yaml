@@ -1,0 +1,32 @@
+interactions:
+- request:
+    body: '{"compositeRequest": [{"referenceId": "CCI__RefId__0__", "method": "GET",
+      "url": "/services/data/v49.0/sobjects", "httpHeaders": {"If-Modified-Since":
+      "Thu, 03 Sep 2020 21:35:07 GMT"}}, {"referenceId": "CCI__RefId__1__", "method":
+      "GET", "url": "/services/data/v49.0/sobjects", "httpHeaders": {"If-Modified-Since":
+      "Thu, 03 Sep 2020 21:35:07 GMT"}}, {"referenceId": "CCI__RefId__2__", "method":
+      "GET", "url": "/services/data/v49.0/sobjects", "httpHeaders": {"If-Modified-Since":
+      "Thu, 03 Sep 2020 21:35:07 GMT"}}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/v49.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : null,\n    \"httpHeaders\"
+        : {\n      \"ETag\" : \"\\\"baf7f695\\\"\",\n      \"Last-Modified\" : \"Fri,
+        14 Aug 2020 20:53:02 GMT\"\n    },\n    \"httpStatusCode\" : 304,\n    \"referenceId\"
+        : \"CCI__RefId__0__\"\n  }, {\n    \"body\" : null,\n    \"httpHeaders\" :
+        {\n      \"ETag\" : \"\\\"baf7f695\\\"\",\n      \"Last-Modified\" : \"Fri,
+        14 Aug 2020 20:53:02 GMT\"\n    },\n    \"httpStatusCode\" : 304,\n    \"referenceId\"
+        : \"CCI__RefId__1__\"\n  }, {\n    \"body\" : null,\n    \"httpHeaders\" :
+        {\n      \"ETag\" : \"\\\"baf7f695\\\"\",\n      \"Last-Modified\" : \"Fri,
+        14 Aug 2020 20:53:02 GMT\"\n    },\n    \"httpStatusCode\" : 304,\n    \"referenceId\"
+        : \"CCI__RefId__2__\"\n  } ]\n}"
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

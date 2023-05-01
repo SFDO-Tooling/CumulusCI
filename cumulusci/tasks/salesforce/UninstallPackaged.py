@@ -1,8 +1,6 @@
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.tasks.salesforce import UninstallLocal
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import zip_subfolder
+from cumulusci.utils import temporary_dir, zip_subfolder
 
 
 class UninstallPackaged(UninstallLocal):
@@ -16,15 +14,15 @@ class UninstallPackaged(UninstallLocal):
             "description": "Sets the purgeOnDelete option for the deployment.  Defaults to True",
             "required": True,
         },
+        "dry_run": {
+            "description": "Perform a dry run of the operation without actually deleting any components, and display the components that would be deleted."
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackaged, self)._init_options(kwargs)
         if "package" not in self.options:
             self.options["package"] = self.project_config.project__package__name
-        self.options["purge_on_delete"] = process_bool_arg(
-            self.options.get("purge_on_delete", True)
-        )
 
     def _retrieve_packaged(self):
         retrieve_api = ApiRetrievePackaged(

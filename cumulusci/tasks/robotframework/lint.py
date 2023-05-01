@@ -1,11 +1,12 @@
-from pathlib import Path
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import process_list_arg
-from cumulusci.core.exceptions import CumulusCIFailure
-import rflint
 import glob
 import os
+from pathlib import Path
+
+import rflint
+
+from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 
 
 class RobotLint(BaseTask):
@@ -53,7 +54,7 @@ class RobotLint(BaseTask):
 
     """
 
-    task_options = {
+    task_options = {  # type: ignore  -- should use `class Options instead`
         "configure": {
             "description": "List of rule configuration values, in the form of rule:args.",
             "default": None,

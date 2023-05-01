@@ -17,7 +17,7 @@ from cumulusci.core.utils import process_bool_arg
 
 
 class Command(BaseTask):
-    """ Execute a shell command in a subprocess """
+    """Execute a shell command in a subprocess"""
 
     task_docs = """
         **Example Command-line Usage:**
@@ -25,14 +25,14 @@ class Command(BaseTask):
 
         **Example Task to Run Command:**
 
-        ..code-block:: yaml
+        .. code-block:: yaml
 
             hello_world:
                 description: Says hello world
                 class_path: cumulusci.tasks.command.Command
                 options:
-                command: echo 'Hello World!'
-    """
+                    command: echo 'Hello World!'
+"""
 
     task_options = {
         "command": {"description": "The command to execute", "required": True},
@@ -110,7 +110,7 @@ class Command(BaseTask):
 
         interactive_mode = process_bool_arg(self.options["interactive"])
 
-        self.logger.info("Running command: %s", command)
+        self.logger.info(f"Running command: {command}")
 
         p = sarge.Command(
             command,
@@ -134,6 +134,7 @@ class Command(BaseTask):
                 elif p.poll() is not None:
                     break
             p.wait()
+        self.return_values = {"returncode": p.returncode}
 
         # Handle return code
         if not return_code_handler:

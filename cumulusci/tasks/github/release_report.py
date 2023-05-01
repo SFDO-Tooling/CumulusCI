@@ -1,13 +1,12 @@
 import json
 import re
 
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import parse_datetime
+from cumulusci.core.utils import parse_datetime, process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class ReleaseReport(BaseGithubTask):
-    task_options = {
+    task_options = {  # type: ignore  -- should use `class Options instead`
         "date_start": {
             "description": "Filter out releases created before this date (YYYY-MM-DD)"
         },

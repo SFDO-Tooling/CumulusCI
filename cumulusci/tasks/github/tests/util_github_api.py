@@ -1,13 +1,15 @@
-from random import randint, choice
-from string import digits, ascii_lowercase
+import typing as T
 from datetime import datetime
+from random import choice, randint
+from string import ascii_lowercase, digits
+
 from cumulusci.tests.util import random_sha
 
 date_format = "%Y-%m-%dT%H:%M:%SZ"
 
 
-class GithubApiTestMixin(object):
-    """ Mixin that provide common values and mocked http responses for tests of code that talks to the Github API """
+class GithubApiTestMixin:
+    """Mixin that provide common values and mocked http responses for tests of code that talks to the Github API"""
 
     def init_github(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
@@ -168,7 +170,9 @@ class GithubApiTestMixin(object):
         }
         return response_body
 
-    def _get_expected_tag(self, name, commit_sha, tag_sha=None, tag_date=None):
+    def _get_expected_tag(
+        self, name, commit_sha, tag_sha=None, tag_date=None, message=None
+    ):
         if tag_sha is None:
             tag_sha = self._random_sha()
         if not tag_date:
@@ -177,7 +181,7 @@ class GithubApiTestMixin(object):
         return {
             "sha": tag_sha,
             "url": "",
-            "message": "",
+            "message": message or "",
             "object": {"url": "", "sha": commit_sha, "type": "commit"},
             "tag": name,
             "tagger": {"date": tag_date},
@@ -185,7 +189,7 @@ class GithubApiTestMixin(object):
 
     def _get_expected_tag_ref(self, tag, sha):
         return {
-            "ref": "refs/tags/{}".format(tag),
+            "ref": f"refs/tags/{tag}",
             "object": {"type": "tag", "sha": sha, "url": ""},
             "name": tag,
             "url": "",
@@ -323,9 +327,12 @@ class GithubApiTestMixin(object):
         else:
             default_branch = "main"
         pr = {
+            "active_lock_reason": "too heated",
             "additions": [],
             "assignee": None,
             "assignees": [],
+            "auto_merge": False,
+            "author_association": None,
             "base": {
                 "ref": default_branch,
                 "sha": commit_sha,
@@ -343,6 +350,7 @@ class GithubApiTestMixin(object):
             "created_at": merged_date,
             "deletions": [],
             "diff_url": "",
+            "draft": False,
             "head": {"ref": "some-other-branch", "sha": commit_sha, "label": ""},
             "html_url": "https://github.com/TestOwner/TestRepo/pulls/{}".format(
                 issue_number
@@ -350,6 +358,7 @@ class GithubApiTestMixin(object):
             "id": pull_id,
             "issue_url": "{}/issues/{}".format(self.repo_api_url, issue_number),
             "_links": {},
+            "locked": True,
             "merge_commit_sha": merge_sha,
             "mergeable": not merged_date,
             "mergeable_state": "clean",
@@ -358,6 +367,8 @@ class GithubApiTestMixin(object):
             "merged_by": None,
             "number": issue_number,
             "patch_url": "",
+            "requested_teams": "",
+            "requested_reviewers": "",
             "review_comment_url": "",
             "review_comments": [],
             "review_comments_url": "",
@@ -429,6 +440,89 @@ class GithubApiTestMixin(object):
             "user": self._get_expected_user("user"),
         }
 
+    def _get_expected_releases(
+        self, owner: str, repo: str, release_names: T.List[str]
+    ) -> T.List[T.Dict]:
+        releases = []
+        for release in release_names:
+            releases.append(
+                {
+                    "url": f"https://api.github.com/repos/{owner}/{repo}/releases/{release}",
+                    "html_url": "https://github.com/octocat/Hello-World/releases/v1.0.0",
+                    "assets_url": "https://api.github.com/repos/octocat/Hello-World/releases/1/assets",
+                    "upload_url": "https://uploads.github.com/repos/octocat/Hello-World/releases/1/assets{?name,label}",
+                    "tarball_url": "https://api.github.com/repos/octocat/Hello-World/tarball/v1.0.0",
+                    "zipball_url": "https://api.github.com/repos/octocat/Hello-World/zipball/v1.0.0",
+                    "id": 1,
+                    "node_id": "MDc6UmVsZWFzZTE=",
+                    "tag_name": release,
+                    "target_commitish": "master",
+                    "name": release,
+                    "body": "Description of the release",
+                    "draft": False,
+                    "prerelease": False,
+                    "created_at": "2013-02-27T19:35:32Z",
+                    "published_at": "2013-02-27T19:35:32Z",
+                    "author": {
+                        "login": "octocat",
+                        "id": 1,
+                        "node_id": "MDQ6VXNlcjE=",
+                        "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+                        "gravatar_id": "",
+                        "url": "https://api.github.com/users/octocat",
+                        "html_url": "https://github.com/octocat",
+                        "followers_url": "https://api.github.com/users/octocat/followers",
+                        "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+                        "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+                        "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+                        "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+                        "organizations_url": "https://api.github.com/users/octocat/orgs",
+                        "repos_url": "https://api.github.com/users/octocat/repos",
+                        "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+                        "received_events_url": "https://api.github.com/users/octocat/received_events",
+                        "type": "User",
+                        "site_admin": False,
+                    },
+                    "assets": [
+                        {
+                            "url": f"https://api.github.com/repos/{owner}/{repo}/releases/assets/1",
+                            "browser_download_url": "https://github.com/octocat/Hello-World/releases/download/v1.0.0/example.zip",
+                            "id": 1,
+                            "node_id": "MDEyOlJlbGVhc2VBc3NldDE=",
+                            "name": "example.zip",
+                            "label": "short description",
+                            "state": "uploaded",
+                            "content_type": "application/zip",
+                            "size": 1024,
+                            "download_count": 42,
+                            "created_at": "2013-02-27T19:35:32Z",
+                            "updated_at": "2013-02-27T19:35:32Z",
+                            "uploader": {
+                                "login": "octocat",
+                                "id": 1,
+                                "node_id": "MDQ6VXNlcjE=",
+                                "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+                                "gravatar_id": "",
+                                "url": "https://api.github.com/users/octocat",
+                                "html_url": "https://github.com/octocat",
+                                "followers_url": "https://api.github.com/users/octocat/followers",
+                                "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+                                "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+                                "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+                                "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+                                "organizations_url": "https://api.github.com/users/octocat/orgs",
+                                "repos_url": "https://api.github.com/users/octocat/repos",
+                                "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+                                "received_events_url": "https://api.github.com/users/octocat/received_events",
+                                "type": "User",
+                                "site_admin": False,
+                            },
+                        }
+                    ],
+                }
+            )
+        return releases
+
     def _get_expected_release(self, tag_name, **kw):
         now = datetime.now().isoformat()
         release = {
@@ -441,7 +535,7 @@ class GithubApiTestMixin(object):
             "draft": False,
             "html_url": "",
             "id": 1,
-            "name": "release",
+            "name": "1.0",
             "prerelease": False,
             "published_at": now,
             "tag_name": tag_name,
@@ -452,6 +546,11 @@ class GithubApiTestMixin(object):
         }
         release.update(kw)
         return release
+
+    def _get_expected_prerelease_tag_gql(self, tag_name):
+        return {
+            "data": {"repository": {"releases": {"nodes": [{"tagName": tag_name}]}}}
+        }
 
     def _random_sha(self):
         return random_sha()

@@ -143,3 +143,21 @@ CHECK_RETRIEVE_STATUS = """<?xml version="1.0" encoding="utf-8"?>
     </checkRetrieveStatus>
   </soap:Body>
 </soap:Envelope>"""
+
+CREATE_PROFILE = """<?xml version="1.0" encoding="utf-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:partner.soap.sforce.com" xmlns:urn1="urn:sobject.partner.soap.sforce.com">
+  <soapenv:Header>
+    <urn:SessionHeader>
+      <urn:sessionId>###SESSION_ID###</urn:sessionId>
+    </urn:SessionHeader>
+  </soapenv:Header>
+  <soapenv:Body>
+    <urn:create>
+      <urn:sObjects xsi:type="urn1:Profile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <Name>{name}</Name>
+        <Description>{description}</Description>
+        <UserLicenseId>{license_id}</UserLicenseId>
+      </urn:sObjects>
+    </urn:create>
+  </soapenv:Body>
+</soapenv:Envelope>"""

@@ -19,7 +19,7 @@ class SfdxOrgConfig(OrgConfig):
             return self._sfdx_info
 
         # On-demand creation of scratch orgs
-        if self.create_org is not None and not self.created:
+        if self.createable and not self.created:
             self.create_org()
 
         username = self.config.get("username")
@@ -197,7 +197,7 @@ class SfdxOrgConfig(OrgConfig):
             raise SfdxOrgException(message)
 
     def refresh_oauth_token(self, keychain):
-        """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
+        """Use sfdx force:org:describe to refresh token instead of built in OAuth handling"""
         if hasattr(self, "_sfdx_info"):
             # Cache the sfdx_info for 1 hour to avoid unnecessary calls out to sfdx CLI
             delta = datetime.datetime.utcnow() - self._sfdx_info_date

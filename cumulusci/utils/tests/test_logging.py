@@ -1,13 +1,13 @@
 import os
 import sys
-from unittest.mock import patch, Mock
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from cumulusci.utils.logging import (
-    tee_stdout_stderr,
     get_gist_logger,
     get_rot_file_logger,
     strip_ansi_sequences,
+    tee_stdout_stderr,
 )
 
 

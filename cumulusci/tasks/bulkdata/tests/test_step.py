@@ -1,31 +1,29 @@
 import io
 import json
-import unittest
 from unittest import mock
 
-import responses
 import pytest
+import responses
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import (
-    download_file,
-    DataOperationType,
-    DataOperationStatus,
-    DataOperationResult,
-    DataOperationJobResult,
-    BulkJobMixin,
-    BulkApiQueryOperation,
-    BulkApiDmlOperation,
-    RestApiQueryOperation,
-    RestApiDmlOperation,
-    DataApi,
-    get_query_operation,
-    get_dml_operation,
-)
 from cumulusci.tasks.bulkdata.load import LoadData
-from cumulusci.tests.util import mock_describe_calls
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
+    BulkApiQueryOperation,
+    BulkJobMixin,
+    DataApi,
+    DataOperationJobResult,
+    DataOperationResult,
+    DataOperationStatus,
+    DataOperationType,
+    RestApiDmlOperation,
+    RestApiQueryOperation,
+    download_file,
+    get_dml_operation,
+    get_query_operation,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, mock_describe_calls
 
 BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 <batch>
@@ -39,7 +37,7 @@ BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 </root>"""
 
 
-class TestDownloadFile(unittest.TestCase):
+class TestDownloadFile:
     @responses.activate
     def test_download_file(self):
         url = "https://example.com"
@@ -52,7 +50,7 @@ class TestDownloadFile(unittest.TestCase):
             assert f.read() == "TEST\u2014"
 
 
-class TestBulkDataJobTaskMixin(unittest.TestCase):
+class TestBulkDataJobTaskMixin:
     @responses.activate
     def test_job_state_from_batches(self):
         mixin = BulkJobMixin()
@@ -77,33 +75,27 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
         mixin.bulk = mock.Mock()
         mixin.bulk.jobNS = "http://ns"
 
-        assert (
-            mixin._parse_job_state(
-                BULK_BATCH_RESPONSE.format(
-                    **{
-                        "first_state": "Not Processed",
-                        "first_message": "Test",
-                        "second_state": "Completed",
-                        "second_message": "",
-                    }
-                )
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Not Processed",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
             )
-            == DataOperationJobResult(DataOperationStatus.ABORTED, [], 0, 0)
-        )
+        ) == DataOperationJobResult(DataOperationStatus.ABORTED, [], 0, 0)
 
-        assert (
-            mixin._parse_job_state(
-                BULK_BATCH_RESPONSE.format(
-                    **{
-                        "first_state": "InProgress",
-                        "first_message": "Test",
-                        "second_state": "Completed",
-                        "second_message": "",
-                    }
-                )
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "InProgress",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
             )
-            == DataOperationJobResult(DataOperationStatus.IN_PROGRESS, [], 0, 0)
-        )
+        ) == DataOperationJobResult(DataOperationStatus.IN_PROGRESS, [], 0, 0)
 
         assert mixin._parse_job_state(
             BULK_BATCH_RESPONSE.format(
@@ -118,26 +110,59 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             DataOperationStatus.JOB_FAILURE, ["Bad", "Worse"], 0, 0
         )
 
-        assert (
-            mixin._parse_job_state(
-                BULK_BATCH_RESPONSE.format(
-                    **{
-                        "first_state": "Completed",
-                        "first_message": "Test",
-                        "second_state": "Completed",
-                        "second_message": "",
-                    }
-                )
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Completed",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
             )
-            == DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
-        )
+        ) == DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
-            "  <batch><state>Completed</state></batch>"
-            "  <numberRecordsFailed>200</numberRecordsFailed>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 0, 200)
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 0, 400
+        ), "Multiple batches in single job"
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
+            "</root>"
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 0, 200
+        ), "Single batch"
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "    </batch>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "    </batch>"
+            "</root>"
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 20, 400
+        ), "Multiple batches in single job"
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
@@ -145,7 +170,9 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "  <numberRecordsFailed>200</numberRecordsFailed>"
             "  <numberRecordsProcessed>10</numberRecordsProcessed>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 10, 200)
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 10, 200
+        ), "Single batch"
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):
@@ -209,7 +236,7 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
         mixin.logger.error.assert_any_call("Batch failure message: Test2")
 
 
-class TestBulkApiQueryOperation(unittest.TestCase):
+class TestBulkApiQueryOperation:
     def test_query(self):
         context = mock.Mock()
         query = BulkApiQueryOperation(
@@ -347,7 +374,7 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         assert list(results) == []
 
 
-class TestBulkApiDmlOperation(unittest.TestCase):
+class TestBulkApiDmlOperation:
     def test_start(self):
         context = mock.Mock()
         context.bulk.create_job.return_value = "JOB"
@@ -363,7 +390,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         step.start()
 
         context.bulk.create_job.assert_called_once_with(
-            "Contact", "insert", contentType="CSV", concurrency="Parallel"
+            "Contact",
+            "insert",
+            contentType="CSV",
+            concurrency="Parallel",
+            external_id_name=None,
         )
         assert step.job_id == "JOB"
 
@@ -434,7 +465,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             pass
 
         context.bulk.create_job.assert_called_once_with(
-            "Contact", "insert", contentType="CSV", concurrency="Parallel"
+            "Contact",
+            "insert",
+            contentType="CSV",
+            concurrency="Parallel",
+            external_id_name=None,
         )
         assert step.job_id == "JOB"
 
@@ -453,15 +488,15 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         )
 
         serialized = step._serialize_csv_record(step.fields)
-        assert serialized == b"Id,FirstName,LastName\r\n"
+        assert serialized == b'"Id","FirstName","LastName"\r\n'
 
         record = ["1", "Bob", "Ross"]
         serialized = step._serialize_csv_record(record)
-        assert serialized == b"1,Bob,Ross\r\n"
+        assert serialized == b'"1","Bob","Ross"\r\n'
 
         record = ["col1", "multiline\ncol2"]
         serialized = step._serialize_csv_record(record)
-        assert serialized == b'col1,"multiline\ncol2"\r\n'
+        assert serialized == b'"col1","multiline\ncol2"\r\n'
 
     def test_batch(self):
         context = mock.Mock()
@@ -479,13 +514,13 @@ class TestBulkApiDmlOperation(unittest.TestCase):
 
         assert len(results) == 2
         assert list(results[0]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test\r\n".encode("utf-8"),
-            "Test2\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test"\r\n'.encode("utf-8"),
+            '"Test2"\r\n'.encode("utf-8"),
         ]
         assert list(results[1]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test3\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test3"\r\n'.encode("utf-8"),
         ]
 
     def test_batch__character_limit(self):
@@ -513,13 +548,13 @@ class TestBulkApiDmlOperation(unittest.TestCase):
 
         assert len(results) == 2
         assert list(results[0]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test\r\n".encode("utf-8"),
-            "Test2\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test"\r\n'.encode("utf-8"),
+            '"Test2"\r\n'.encode("utf-8"),
         ]
         assert list(results[1]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test3\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test3"\r\n'.encode("utf-8"),
         ]
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
@@ -578,7 +613,7 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         step.job_id = "JOB"
         step.batch_ids = ["BATCH1", "BATCH2"]
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             list(step.get_results())
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
@@ -709,12 +744,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -723,7 +758,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -763,12 +798,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -777,7 +812,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -881,12 +916,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -895,7 +930,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -929,12 +964,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -943,7 +978,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {
                     "id": "003000000000003",
@@ -997,12 +1032,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.DELETE,
-            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000001,003000000000002",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects?ids=003000000000001,003000000000002",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -1011,7 +1046,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.DELETE,
-            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000003",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects?ids=003000000000003",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -1051,12 +1086,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000001", "success": True}],
             status=200,
         )
@@ -1165,7 +1200,7 @@ class TestGetOperationFunctions:
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
-    def test_get_query_operation__old_api(self, rest_query, bulk_query):
+    def test_get_query_operation__old_api_version(self, rest_query, bulk_query):
         context = mock.Mock()
         context.sf.sf_version = "39.0"
         op = get_query_operation(
@@ -1179,6 +1214,40 @@ class TestGetOperationFunctions:
         assert op == bulk_query.return_value
 
         context.sf.restful.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__bad_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        with pytest.raises(AssertionError, match="Unknown API"):
+            get_query_operation(
+                sobject="Test",
+                fields=["Id"],
+                api_options={},
+                context=context,
+                query="SELECT Id FROM Test",
+                api="foo",
+            )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__inferred_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.restful.return_value = {
+            "sObjects": [{"name": "Test", "count": 10000}]
+        }
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Test",
+        )
+        assert op == bulk_query.return_value
+
+        context.sf.restful.called_once_with("limits/recordCount?sObjects=Test")
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
@@ -1269,7 +1338,24 @@ class TestGetOperationFunctions:
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
-    def test_get_dml_operation__old_api(self, rest_dml, bulk_dml):
+    def test_get_dml_operation__inferred_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
+                volume=1,
+            )
+            == rest_dml.return_value
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__old_api_version(self, rest_dml, bulk_dml):
         context = mock.Mock()
         context.sf.sf_version = "39.0"
         assert (
@@ -1284,3 +1370,85 @@ class TestGetOperationFunctions:
             )
             == bulk_dml.return_value
         )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__bad_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        with pytest.raises(AssertionError, match="Unknown API"):
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
+                api=42,
+                volume=1,
+            )
+
+    def test_cleanup_date_strings__insert(self):
+        """Empty date strings should be removed from INSERT operations"""
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.Test__c.describe = lambda: {
+            "name": "Test__c",
+            "fields": [
+                {"name": "Birthdate", "type": "date"},
+                {"name": "IsHappy", "type": "boolean"},
+                {"name": "Name", "type": "string"},
+            ],
+        }
+
+        step = get_dml_operation(
+            sobject="Test__c",
+            operation=DataOperationType.INSERT,
+            fields=["Birthdate", "IsHappy", "Name"],
+            api_options={},
+            context=context,
+            api=DataApi.REST,
+            volume=1,
+        )
+        json_out = step._record_to_json(["", "", "Bill"])
+        assert json_out == {
+            "IsHappy": False,
+            "Name": "Bill",
+            "attributes": {"type": "Test__c"},
+        }, json_out
+        # Empty dates (and other fields) should be filtered out of INSERTs
+        assert "BirthDate" not in json_out  # just for emphasis
+
+    @pytest.mark.parametrize(
+        "operation", ((DataOperationType.UPSERT, DataOperationType.UPDATE))
+    )
+    def test_cleanup_date_strings__upsert_update(self, operation):
+        """Empty date strings should be NULLED for UPSERT and UPDATE operations"""
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.Test__c.describe = lambda: {
+            "name": "Test__c",
+            "fields": [
+                {"name": "Birthdate", "type": "date"},
+                {"name": "IsHappy", "type": "boolean"},
+                {"name": "Name", "type": "string"},
+            ],
+        }
+
+        step = get_dml_operation(
+            sobject="Test__c",
+            operation=operation,
+            fields=["Birthdate", "IsHappy", "Name"],
+            api_options={},
+            context=context,
+            api=DataApi.REST,
+            volume=1,
+        )
+        # Empty dates (and other fields) should be NULLED in UPSERTs
+        # Booleans become False for backwards-compatibility reasons.
+        json_out = step._record_to_json(["", "", "Bill"])
+        assert json_out == {
+            "Birthdate": None,
+            "IsHappy": False,
+            "Name": "Bill",
+            "attributes": {"type": "Test__c"},
+        }, json_out

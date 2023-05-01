@@ -1,28 +1,27 @@
-from typing import Union, IO
 from pathlib import Path, Sequence
-
-from yaml import safe_load
+from typing import IO, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
-from cumulusci.utils.fileutils import load_from_source
+from cumulusci.utils.yaml.safer_loader import load_from_source, load_yaml_data
 
 
 class CCIModel(BaseModel):
-    """Base class for CumulusCI's Pydantic models"""
+    # Base class for CumulusCI's Pydantic models
 
     _magic_fields = ["fields"]
 
     @classmethod
     def parse_from_yaml(cls, source: Union[str, Path, IO]):
         "Parse from a path, url, path-like or file-like"
-        with load_from_source(source) as (path, file):
-            data = safe_load(file)
-            return cls.parse_obj(data, path).__root__
+        with load_from_source(source) as (f, path):
+            data = load_yaml_data(f)
+            obj = cls.parse_obj(data, path)
+            return getattr(obj, "__root__", obj)
 
     @classmethod
-    def parse_obj(cls, data: [dict, list], path: str = None):
+    def parse_obj(cls, data: Union[dict, list], path: str = None):
         "Parse a structured dict or list into Model objects"
         try:
             return super().parse_obj(data)
@@ -98,8 +97,8 @@ class CCIModel(BaseModel):
 
 
 class CCIDictModel(CCIModel):
-    """A base class that acts as both a model and a dict. For transitioning from
-    one to the other."""
+    # A base class that acts as both a model and a dict. For transitioning from
+    # one to the other.
 
     def __getitem__(self, name):
         """Pretend to a do my_dict[name]"""
@@ -146,3 +145,12 @@ def _add_filenames(e: ValidationError, filename):
         assert processed, f"Should have processed by now {val}, {repr(val)}"
 
     _recursively_add_filenames(e.raw_errors)
+
+
+class HashableBaseModel(CCIModel):
+    # Base Pydantic model class that has a functional `hash()` method.
+    # Requires that model can be converted to JSON.
+
+    # See https://github.com/samuelcolvin/pydantic/issues/1303
+    def __hash__(self):
+        return hash((type(self),) + tuple(self.json()))

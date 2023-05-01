@@ -1,19 +1,31 @@
-from unittest import mock
-import unittest
 import logging
+from pathlib import Path
+from unittest import mock
+
+import pytest
 
 import cumulusci
-from cumulusci.core.exceptions import FlowConfigError
-from cumulusci.core.exceptions import FlowInfiniteLoopError
-from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.config import FlowConfig
-from cumulusci.core.flowrunner import FlowCoordinator
-from cumulusci.core.flowrunner import PreflightFlowCoordinator
-from cumulusci.core.flowrunner import StepSpec
+from cumulusci.cli import cci
+from cumulusci.cli.tests.test_cci import MagicMock
+from cumulusci.core.config import FlowConfig, OrgConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.exceptions import (
+    FlowConfigError,
+    FlowInfiniteLoopError,
+    TaskImportError,
+    TaskNotFoundError,
+)
+from cumulusci.core.flowrunner import (
+    FlowCoordinator,
+    PreflightFlowCoordinator,
+    StepSpec,
+    TaskRunner,
+)
+from cumulusci.core.source.local_folder import LocalFolderSource
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import OrgConfig
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
 
 ORG_ID = "00D000000000001"
 
@@ -47,16 +59,15 @@ class _SfdcTask(BaseTask):
         return -1
 
 
-class AbstractFlowCoordinatorTest(object):
+class AbstractFlowCoordinatorTest:
     @classmethod
-    def setUpClass(cls):
-        super(AbstractFlowCoordinatorTest, cls).setUpClass()
+    def setup_class(cls):
         logger = logging.getLogger(cumulusci.__name__)
         logger.setLevel(logging.DEBUG)
         cls._flow_log_handler = MockLoggingHandler(logging.DEBUG)
         logger.addHandler(cls._flow_log_handler)
 
-    def setUp(self):
+    def setup_method(self):
         self.project_config = create_project_config("TestOwner", "TestRepo")
         self.org_config = OrgConfig(
             {"username": "sample@example", "org_id": ORG_ID}, "test", mock.Mock()
@@ -71,7 +82,7 @@ class AbstractFlowCoordinatorTest(object):
         pass
 
 
-class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
+class TestFullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
     def test_each_flow(self):
         for flow_name in [
             flow_info["name"] for flow_info in self.project_config.list_flows()
@@ -80,15 +91,13 @@ class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCas
                 flow_config = self.project_config.get_flow(flow_name)
                 flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
             except Exception as exc:
-                self.fail("Error creating flow {}: {}".format(flow_name, str(exc)))
-            self.assertIsNotNone(
-                flow.steps, "Flow {} parsed to no steps".format(flow_name)
-            )
-            print("Parsed flow {} as {} steps".format(flow_name, len(flow.steps)))
+                self.fail(f"Error creating flow {flow_name}: {str(exc)}")
+            assert flow.steps is not None, f"Flow {flow_name} parsed to no steps"
+            print(f"Parsed flow {flow_name} as {len(flow.steps)} steps")
 
 
-class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
-    """ Tests the expectations of a BaseFlow caller """
+class TestSimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
+    """Tests the expectations of a BaseFlow caller"""
 
     def _setup_project_config(self):
         self.project_config.config["tasks"] = {
@@ -128,8 +137,8 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow_config = FlowConfig({"steps": {"1": {"task": "pass_name"}}})
         flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
 
-        self.assertEqual(len(flow.steps), 1)
-        self.assertEqual(hasattr(flow, "logger"), True)
+        assert len(flow.steps) == 1
+        assert hasattr(flow, "logger") is True
 
     def test_step_sorting(self):
         self.project_config.config["flows"] = {
@@ -156,7 +165,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             + "\n    2) flow: nested_flow"
             + "\n        1) task: pass_name"
         )
-        self.assertEqual(expected_output, actual_output)
+        assert expected_output == actual_output
 
     def test_get_flow_steps(self):
         self.project_config.config["flows"]["test"] = {
@@ -172,7 +181,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             "    2) flow: nested_flow",
             "        1) task: pass_name",
         ]
-        self.assertEqual(expected_output, actual_output)
+        assert expected_output == actual_output
 
     def test_get_flow_steps__for_docs(self):
         self.project_config.config["flows"]["test"] = {
@@ -188,7 +197,26 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             "    2) flow: nested_flow",
             "        1) task: pass_name",
         ]
-        self.assertEqual(expected_output, actual_output)
+        assert expected_output == actual_output
+
+    def test_get_flow_steps__verbose(self):
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {
+                "1": {
+                    "task": "pass_name",
+                    "options": {"option_name": "option_value"},
+                }
+            },
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_flow_steps(verbose=True)
+        expected_output = [
+            "1) task: pass_name [from current folder]",
+            "   options:\n       option_name: option_value",
+        ]
+        assert expected_output == actual_output
 
     def test_get_summary__substeps(self):
         flow = FlowCoordinator.from_steps(
@@ -225,7 +253,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         ) == actual_output
 
     def test_init__options(self):
-        """ A flow can accept task options and pass them to the task. """
+        """A flow can accept task options and pass them to the task."""
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig(
@@ -242,7 +270,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         )
 
         # the first step should have the option
-        self.assertEqual("bar", flow.steps[0].task_config["options"]["response"])
+        assert flow.steps[0].task_config["options"]["response"] == "bar"
 
     def test_init__nested_options(self):
         self.project_config.config["flows"]["test"] = {
@@ -253,12 +281,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         }
         flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
-        self.assertEqual("bar", flow.steps[0].task_config["options"]["foo"])
-
-    def test_init_ambiguous_step(self):
-        flow_config = FlowConfig({"steps": {1: {"task": "None", "flow": "None"}}})
-        with self.assertRaises(FlowConfigError):
-            FlowCoordinator(self.project_config, flow_config, name="test")
+        assert flow.steps[0].task_config["options"]["foo"] == "bar"
 
     def test_init__bad_classpath(self):
         self.project_config.config["tasks"] = {
@@ -273,7 +296,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 "steps": {1: {"task": "classless"}},
             }
         )
-        with self.assertRaises(FlowConfigError):
+        with pytest.raises(FlowConfigError):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__task_not_found(self):
@@ -286,17 +309,17 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 "steps": {1: {"task": "pass_name"}, 2: {"task": "do_delightulthings"}},
             }
         )
-        with self.assertRaises(TaskNotFoundError):
+        with pytest.raises(TaskNotFoundError):
             FlowCoordinator(self.project_config, flow_config)
 
     def test_init__no_steps_in_config(self):
         flow_config = FlowConfig({})
-        with self.assertRaises(FlowConfigError):
+        with pytest.raises(FlowConfigError):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init_old_format(self):
         flow_config = FlowConfig({"tasks": {}})
-        with self.assertRaises(FlowConfigError):
+        with pytest.raises(FlowConfigError):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init_recursive_flow(self):
@@ -307,33 +330,95 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             }
         }
         flow_config = self.project_config.get_flow("self_referential_flow")
-        with self.assertRaises(FlowInfiniteLoopError):
+        with pytest.raises(FlowInfiniteLoopError):
             FlowCoordinator(
                 self.project_config, flow_config, name="self_referential_flow"
             )
 
+    def test_init_flow__with_infinite_loop(self):
+        """Test a more complicated flow tree with recursion"""
+        self.project_config.config["flows"] = {
+            "grandchild_flow": {
+                "description": "A flow that runs inside another flow",
+                "steps": {1: {"task": "pass_name"}},
+            },
+            "parent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"task": "pass_name"},
+                    3: {"flow": "grandchild_flow"},
+                },
+            },
+            "grandparent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"flow": "parent_flow"},
+                    3: {"task": "pass_name"},
+                    5: {"flow": "recursive_flow"},
+                },
+            },
+            "recursive_flow": {
+                "description": "A flow that calls grandparent flow adding recursion",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"flow": "grandparent_flow"},
+                },
+            },
+        }
+        flow_config = self.project_config.get_flow("grandparent_flow")
+        with pytest.raises(FlowInfiniteLoopError):
+            FlowCoordinator(self.project_config, flow_config, name="grandparent_flow")
+
+    def test_init_flow__without_infinite_loop(self):
+        """It's OK if a flow is called multiple times if not recursive"""
+        self.project_config.config["flows"] = {
+            "grandchild_flow": {
+                "description": "A flow that runs inside another flow",
+                "steps": {1: {"task": "pass_name"}},
+            },
+            "parent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"task": "pass_name"},
+                    3: {"flow": "grandchild_flow"},
+                },
+            },
+            "grandparent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "parent_flow"},
+                    2: {"flow": "grandchild_flow"},
+                    3: {"task": "pass_name"},
+                    4: {"task": "pass_name"},
+                },
+            },
+        }
+        flow_config = self.project_config.get_flow("grandparent_flow")
+        FlowCoordinator(self.project_config, flow_config, name="grandparent_flow")
+
     def test_from_steps(self):
         steps = [StepSpec("1", "test", {}, _TaskReturnsStuff, None)]
         flow = FlowCoordinator.from_steps(self.project_config, steps)
-        self.assertEqual(1, len(flow.steps))
+        assert 1 == len(flow.steps)
 
     def test_run__one_task(self):
-        """ A flow with one task will execute the task """
+        """A flow with one task will execute the task"""
         flow_config = FlowConfig(
             {"description": "Run one task", "steps": {1: {"task": "pass_name"}}}
         )
         flow = FlowCoordinator(self.project_config, flow_config)
-        self.assertEqual(1, len(flow.steps))
+        assert 1 == len(flow.steps)
 
         flow.run(self.org_config)
 
-        self.assertTrue(
-            any(flow_config.description in s for s in self.flow_log["info"])
-        )
-        self.assertEqual({"name": "supername"}, flow.results[0].return_values)
+        assert any(flow_config.description in s for s in self.flow_log["info"])
+        assert {"name": "supername"} == flow.results[0].return_values
 
     def test_run__nested_flow(self):
-        """ Flows can run inside other flows """
+        """Flows can run inside other flows"""
         self.project_config.config["flows"]["test"] = {
             "description": "Run a task and a flow",
             "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
@@ -341,11 +426,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
-        self.assertEqual(2, len(flow.steps))
-        self.assertEqual(flow.results[0].return_values, flow.results[1].return_values)
+        assert 2 == len(flow.steps)
+        assert flow.results[0].return_values == flow.results[1].return_values
 
     def test_run__nested_flow_2(self):
-        """ Flows can run inside other flows and call other flows """
+        """Flows can run inside other flows and call other flows"""
         self.project_config.config["flows"]["test"] = {
             "description": "Run a task and a flow",
             "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow_2"}},
@@ -353,12 +438,12 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
-        self.assertEqual(3, len(flow.steps))
-        self.assertEqual(flow.results[0].return_values, flow.results[1].return_values)
-        self.assertEqual(flow.results[1].return_values, flow.results[2].return_values)
+        assert 3 == len(flow.steps)
+        assert flow.results[0].return_values == flow.results[1].return_values
+        assert flow.results[1].return_values == flow.results[2].return_values
 
     def test_run__option_backrefs(self):
-        """ A flow's options reach into return values from other tasks. """
+        """A flow's options reach into return values from other tasks."""
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig(
@@ -377,7 +462,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         # the flow results for the second task should be 'name'
-        self.assertEqual("supername", flow.results[1].result)
+        assert flow.results[1].result == "supername"
 
     def test_run__option_backref_not_found(self):
         # instantiate a flow with two tasks
@@ -395,7 +480,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         )
 
         flow = FlowCoordinator(self.project_config, flow_config)
-        with self.assertRaises(NameError):
+        with pytest.raises(NameError):
             flow.run(self.org_config)
 
     def test_run__nested_option_backrefs(self):
@@ -413,7 +498,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
 
-        self.assertEqual("supername", flow.results[-1].result)
+        assert flow.results[-1].result == "supername"
 
     def test_run__skip_flow_None(self):
         flow_config = FlowConfig(
@@ -430,7 +515,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         callbacks.pre_task.assert_not_called()
 
     def test_run__skip_from_init(self):
-        """ A flow can receive during init a list of tasks to skip """
+        """A flow can receive during init a list of tasks to skip"""
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig(
@@ -449,7 +534,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow.run(self.org_config)
 
         # the number of results should be 1 instead of 2
-        self.assertEqual(1, len(flow.results))
+        assert 1 == len(flow.results)
 
     def test_run__skip_conditional_step(self):
         flow_config = FlowConfig({"steps": {1: {"task": "pass_name", "when": "False"}}})
@@ -458,17 +543,17 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         assert len(flow.results) == 0
 
     def test_run__task_raises_exception_fail(self):
-        """ A flow aborts when a task raises an exception """
+        """A flow aborts when a task raises an exception"""
 
         flow_config = FlowConfig(
             {"description": "Run a task", "steps": {1: {"task": "raise_exception"}}}
         )
         flow = FlowCoordinator(self.project_config, flow_config)
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             flow.run(self.org_config)
 
     def test_run__task_raises_exception_ignore(self):
-        """ A flow continues when a task configured with ignore_failure raises an exception """
+        """A flow continues when a task configured with ignore_failure raises an exception"""
 
         flow_config = FlowConfig(
             {
@@ -481,20 +566,20 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         )
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
-        self.assertEqual(2, len(flow.results))
-        self.assertIsNotNone(flow.results[0].exception)
+        assert 2 == len(flow.results)
+        assert flow.results[0].exception is not None
 
     def test_run__no_steps(self):
-        """ A flow with no tasks will have no results. """
+        """A flow with no tasks will have no results."""
         flow_config = FlowConfig({"description": "Run no tasks", "steps": {}})
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
 
-        self.assertEqual([], flow.steps)
-        self.assertEqual([], flow.results)
+        assert [] == flow.steps
+        assert [] == flow.results
 
     def test_run__prints_org_id(self):
-        """ A flow with an org prints the org ID """
+        """A flow with an org prints the org ID"""
 
         flow_config = FlowConfig(
             {
@@ -507,7 +592,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
         org_id_logs = [s for s in self.flow_log["info"] if ORG_ID in s]
 
-        self.assertEqual(1, len(org_id_logs))
+        assert 1 == len(org_id_logs)
 
     def test_init_org_updates_keychain(self):
         self.org_config.save = save = mock.Mock()
@@ -525,13 +610,13 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         save.assert_called_once()
 
 
-class StepSpecTest(unittest.TestCase):
+class TestStepSpec:
     def test_repr(self):
         spec = StepSpec(1, "test_task", {}, None, None, skip=True)
-        assert "<!SKIP! StepSpec 1:test_task {}>" == repr(spec)
+        assert repr(spec) == "<!SKIP! StepSpec 1:test_task {}>"
 
 
-class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCase):
+class TestPreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest):
     def test_run(self):
         flow_config = FlowConfig(
             {
@@ -561,13 +646,191 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         flow = PreflightFlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
 
-        self.assertDictEqual(
-            {
-                None: [{"status": "error", "message": "Failed plan check"}],
-                "1": [{"status": "error", "message": "Failed step check 2"}],
-            },
-            flow.preflight_results,
-        )
+        assert {
+            None: [{"status": "error", "message": "Failed plan check"}],
+            "1": [{"status": "error", "message": "Failed step check 2"}],
+        } == flow.preflight_results
         # Make sure task result got cached
         key = ("log", (("level", "info"), ("line", "plan")))
-        assert key in flow._task_cache.results
+        assert key in flow._task_caches[flow.project_config].results
+
+    def test_run__cross_project_preflights(self):
+        other_project_config = mock.MagicMock()
+        other_project_config.source.__str__.return_value = "other source"
+        other_project_config.tasks = {
+            "foo": {
+                "class_path": "cumulusci.tasks.util.LogLine",
+                "options": {"level": "info", "line": "test"},
+            }
+        }
+        flow = PreflightFlowCoordinator.from_steps(
+            self.project_config,
+            [
+                StepSpec(
+                    "1/1",
+                    "other:test1",
+                    {
+                        "checks": [{"when": "not tasks.foo()", "action": "error"}],
+                    },
+                    None,
+                    other_project_config,
+                    from_flow="test",
+                ),
+                StepSpec(
+                    "1/2", "test2", {}, None, self.project_config, from_flow="test"
+                ),
+            ],
+        )
+        flow.run(self.org_config)
+        key = ("foo", ())
+        assert key in flow._task_caches[other_project_config].results
+        # log doesn't return anything => None is falsy => preflight is True
+        # which results in the action taking place (error)
+        assert {
+            "1/1": [{"status": "error", "message": None}],
+        } == flow.preflight_results
+
+
+@pytest.fixture
+def task_runner():
+    return TaskRunner(None, None)
+
+
+@pytest.fixture
+def task_options():
+    return {"color": {"description": "It's a color!", "required": True}}
+
+
+@pytest.fixture
+def task_options_sensitive():
+    return {
+        "color": {"description": "It's a color!", "required": True, "sensitive": True}
+    }
+
+
+def test_log_options__no_task_options(task_runner):
+    task = mock.Mock()
+    task.task_options = None
+    task_runner._log_options(task)
+
+    task.logger.info.assert_called_once_with("No task options present")
+
+
+def test_log_options__options_not_list(task_runner, task_options):
+    task = mock.Mock()
+    task.task_options = task_options
+    task.options = {"color": "burgundy"}
+    task_runner._log_options(task)
+
+    task.logger.info.assert_called_with("  color: burgundy")
+
+
+def test_log_options__options_not_list__sensitive(task_runner, task_options_sensitive):
+    task = mock.Mock()
+    task.task_options = task_options_sensitive
+    task.options = {"color": "burgundy"}
+    task_runner._log_options(task)
+
+    task.logger.info.assert_called_with("  color: ********")
+
+
+def test_log_options__options_is_list(task_runner, task_options):
+    task = mock.Mock()
+    task.task_options = task_options
+    task.options = {"color": ["burgundy", "chartreuse", "turquoise"]}
+    task_runner._log_options(task)
+
+    task.logger.info.assert_any_call("  color:")
+    task.logger.info.assert_any_call("    - burgundy")
+    task.logger.info.assert_any_call("    - chartreuse")
+    task.logger.info.assert_any_call("    - turquoise")
+
+
+def test_log_options__options_is_list__sensitive(task_runner, task_options_sensitive):
+    task = mock.Mock()
+    task.task_options = task_options_sensitive
+    task.options = {"color": ["burgundy", "chartreuse", "turquoise"]}
+    task_runner._log_options(task)
+
+    task.logger.info.assert_any_call("  color:")
+    task.logger.info.assert_any_call("    - ********")
+
+
+def include_fake_project(self: BaseProjectConfig, _spec) -> BaseProjectConfig:
+    # cumulusci/core/source/local_folder.py
+    source = LocalFolderSource(
+        self,
+        LocalFolderSourceModel(path=Path("cumulusci/core/tests/fake_remote_repo/")),
+    )
+    project = source.fetch()
+    return project
+
+
+# This grossness is inherited from `test_cci.py`...needs to be
+# fixed centrally!
+@mock.patch(
+    "cumulusci.cli.runtime.CliRuntime.get_org",
+    lambda *args, **kwargs: (MagicMock(), MagicMock()),
+)
+@mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
+@mock.patch("pdb.post_mortem", MagicMock())
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
+@mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+def test_cross_project_tasks(get_tempfile_logger):
+    # get_tempfile_logger doesn't clean up after itself which breaks other tests
+    get_tempfile_logger.return_value = mock.Mock(), ""
+    with mock.patch("cumulusci.core.debug._DEBUG_MODE", get=lambda: True), mock.patch(
+        "logging.Logger.info", wraps=lambda data: print(data)
+    ) as out:
+        cci.main(
+            [
+                "cci",
+                "task",
+                "run",
+                "local_fake:example_task",
+            ]
+        )
+    assert "Called _run_task" in str(out.mock_calls)
+
+
+# TODO: Get these running in CI and remove opt-in label
+class TestCrossRepoFlow:
+    @pytest.mark.slow()
+    @pytest.mark.use_real_env()
+    def test_cross_project_tasks_2_repos_same_flow(self, capsys, org_config, runtime):
+        coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
+        with mock.patch.object(coordinator, "logger"):
+            coordinator.run(org_config)
+            out = str(coordinator.logger.mock_calls)
+        assert "Called _run_task" in out, out
+        assert "Called _run_task 2" in out, out
+
+    @pytest.mark.slow()
+    @pytest.mark.use_real_env()
+    def test_cross_project_other_task(self, runtime):
+        def assert_task(task_name, class_name):
+            task_config = runtime.project_config.get_task(task_name)
+            task_class = task_config.get_class()
+            assert task_class.__name__ == class_name, (task_class.__name__, class_name)
+
+        assert_task("local_fake:example_task", "ExampleTask")
+
+        assert_task("local_fake:example_task_from_subdirectory", "ExampleTask2")
+
+        assert_task("local_fake:task_from_child_project", "ExampleTask3")
+
+        with pytest.raises(TaskNotFoundError, match="bad_classpath"):
+            assert_task("local_fake:bad_classpath", "FAILED")
+
+        with pytest.raises(TaskImportError, match="tasks.untrusted_parent"):
+            task_config = runtime.project_config.get_task(
+                "disallowed_repo:example_task"
+            )
+            task_config.get_class()
+
+        with pytest.raises(TaskImportError, match="tasks.untrusted_child"):
+            task_config = runtime.project_config.get_task(
+                "disallowed_repo:untrusted_child_task"
+            )
+            task_config.get_class()

@@ -1,17 +1,17 @@
+import pytest
 import responses
-import unittest
-from cumulusci.tasks.salesforce import PublishCommunity
-from cumulusci.core.exceptions import SalesforceException
-from cumulusci.core.exceptions import TaskOptionsError
 from simple_salesforce.exceptions import SalesforceResourceNotFound
-from .util import create_task
 
+from cumulusci.core.exceptions import SalesforceException, TaskOptionsError
+from cumulusci.tasks.salesforce import PublishCommunity
+
+from .util import create_task
 
 task_options = {"name": "Test Community"}
 task_options_with_id = {"name": "Test Community", "community_id": "000000000000000000"}
 
 
-class test_PublishCommunity(unittest.TestCase):
+class TestPublishCommunity:
     @responses.activate
     def test_publishes_community(self):
         cc_task = create_task(PublishCommunity, task_options)
@@ -72,9 +72,9 @@ class test_PublishCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(2, len(responses.calls))
-        self.assertEqual(communities_url, responses.calls[0].request.url)
-        self.assertEqual(community_publish_url, responses.calls[1].request.url)
+        assert 2 == len(responses.calls)
+        assert communities_url == responses.calls[0].request.url
+        assert community_publish_url == responses.calls[1].request.url
 
     @responses.activate
     def test_publishes_community_with_id(self):
@@ -99,8 +99,8 @@ class test_PublishCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(1, len(responses.calls))
-        self.assertEqual(community_publish_url, responses.calls[0].request.url)
+        assert 1 == len(responses.calls)
+        assert community_publish_url == responses.calls[0].request.url
 
     @responses.activate
     def test_throws_exception_for_bad_name(self):
@@ -144,7 +144,7 @@ class test_PublishCommunity(unittest.TestCase):
         )
 
         cc_task._init_task()
-        with self.assertRaises(SalesforceException):
+        with pytest.raises(SalesforceException):
             cc_task._run_task()
 
     @responses.activate
@@ -168,7 +168,7 @@ class test_PublishCommunity(unittest.TestCase):
             ],
         )
 
-        with self.assertRaises(SalesforceResourceNotFound):
+        with pytest.raises(SalesforceResourceNotFound):
             cc_task._init_task()
             cc_task._run_task()
 
@@ -177,5 +177,5 @@ class test_PublishCommunity(unittest.TestCase):
         cc_task = create_task(PublishCommunity, {})
 
         cc_task._init_task()
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             cc_task._run_task()

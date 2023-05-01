@@ -1,12 +1,11 @@
+import tempfile
 from pathlib import Path
 from unittest import mock
-import tempfile
 
-from lxml import etree
 import pytest
+from lxml import etree
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import (
     BaseMetadataETLTask,
     BaseMetadataSynthesisTask,
@@ -14,6 +13,7 @@ from cumulusci.tasks.metadata_etl import (
     MetadataSingleEntityTransformTask,
     UpdateMetadataFirstChildTextTask,
 )
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml.metadata_tree import fromstring
 
 

@@ -1,34 +1,36 @@
-from unittest import mock
-import unittest
-import shutil
-import tempfile
-import pytest
+import csv
 import os.path
 import re
+import shutil
 import sys
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
+from unittest import mock
 from xml.etree import ElementTree as ET
 
-from cumulusci.core.config import TaskConfig, UniversalConfig, BaseProjectConfig
+import pytest
+import responses
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder
+
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
 from cumulusci.core.tests.utils import MockLoggerMixin
-from cumulusci.tasks.robotframework import Robot
-from cumulusci.tasks.robotframework import RobotLibDoc
-from cumulusci.tasks.robotframework import RobotTestDoc
-from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.robotframework import Robot, RobotLibDoc, RobotTestDoc
 from cumulusci.tasks.robotframework.debugger import DebugListener
-from cumulusci.tasks.robotframework.robotframework import KeywordLogger
-from cumulusci.utils import touch, temporary_dir
-
-
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
+from cumulusci.tasks.robotframework.robotframework import KeywordLogger
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.utils import temporary_dir, touch
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
-class TestRobot(unittest.TestCase):
+class TestRobot:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_run_task_with_failure(self, robot_run):
         robot_run.return_value = 1
         task = create_task(Robot, {"suites": "tests", "pdb": True})
-        with self.assertRaises(RobotTestFailure):
+        with pytest.raises(RobotTestFailure):
             task()
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -46,9 +48,9 @@ class TestRobot(unittest.TestCase):
         for error_code in expected.keys():
             robot_run.return_value = error_code
             task = create_task(Robot, {"suites": "tests", "pdb": True})
-            with self.assertRaises(RobotTestFailure) as error:
+            with pytest.raises(RobotTestFailure) as e:
                 task()
-            self.assertEqual(str(error.exception), expected[error_code])
+            assert str(e.value) == expected[error_code]
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
@@ -80,10 +82,21 @@ class TestRobot(unittest.TestCase):
                 "include": "foo, bar",
                 "exclude": "a,  b",
                 "vars": "uno, dos, tres",
+                "skip": "xyzzy,plugh",
             },
         )
-        for option in ("test", "include", "exclude", "vars", "suites"):
+        for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
+
+    def test_options_converted_to_dict(self):
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": "outputdir:/tmp/example,loglevel:DEBUG",
+            },
+        )
+        assert isinstance(task.options["options"], dict)
 
     def test_process_arg_requires_int(self):
         """Verify we throw a useful error for non-int "processes" option"""
@@ -94,49 +107,92 @@ class TestRobot(unittest.TestCase):
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
-    def test_process_arg_gt_zero(self, mock_subprocess_run, mock_robot_run):
-        """Verify that setting the process option to a number > 1 runs pabot"""
-        mock_subprocess_run.return_value = mock.Mock(returncode=0)
-        task = create_task(Robot, {"suites": "tests", "processes": "2"})
+    def test_pabot_arg_with_process_eq_one(self, mock_subprocess_run, mock_robot_run):
+        """Verify that pabot-specific arguments are ignored if processes==1"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "tests",
+                "process": 1,
+                "ordering": "robot/order.txt",
+                "testlevelsplit": "true",
+            },
+        )
         task()
-        expected_cmd = [
-            sys.executable,
-            "-m",
-            "pabot.pabot",
-            "--pabotlib",
-            "--processes",
-            "2",
-            "--pythonpath",
-            task.project_config.repo_root,
-            "--variable",
-            "org:test",
-            "--outputdir",
-            ".",
+        mock_subprocess_run.assert_not_called()
+        outputdir = str(Path(".").resolve())
+        mock_robot_run.assert_called_once_with(
             "tests",
-        ]
-        mock_robot_run.assert_not_called()
-        mock_subprocess_run.assert_called_once_with(expected_cmd)
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
-    def test_process_arg_eq_zero(self, mock_subprocess_run, mock_robot_run):
+    def test_process_arg_eq_one(self, mock_subprocess_run, mock_robot_run):
         """Verify that setting the process option to 1 runs robot rather than pabot"""
         mock_robot_run.return_value = 0
-        task = create_task(Robot, {"suites": "tests", "process": 0})
+        task = create_task(Robot, {"suites": "tests", "process": 1})
         task()
         mock_subprocess_run.assert_not_called()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
-            "tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_suites(self, mock_robot_run):
         """Verify that passing a list of suites is handled properly"""
         mock_robot_run.return_value = 0
-        task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
+        task = create_task(Robot, {"suites": "tests,more_tests", "process": 1})
         task()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
-            "tests", "more_tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            "more_tests",
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        )
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_tagstatexclude(self, mock_robot_run):
+        """Verify tagstatexclude is treated as a list"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": {
+                    "tagstatexclude": "this,that",
+                },
+            },
+        )
+        assert type(task.options["options"]["tagstatexclude"]) == list
+        task()
+        outputdir = str(Path(".").resolve())
+        mock_robot_run.assert_called_once_with(
+            "test",
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["this", "that", "cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     def test_default_listeners(self):
@@ -154,7 +210,7 @@ class TestRobot(unittest.TestCase):
             {
                 "suites": "test",  # required, or the task will raise an exception
                 "verbose": "False",
-                "debug": "False",
+                "robot_debug": "False",
             },
         )
         assert len(task.options["options"]["listener"]) == 0
@@ -165,15 +221,15 @@ class TestRobot(unittest.TestCase):
             Robot,
             {
                 "suites": "test",  # required, or the task will raise an exception
-                "debug": "True",
+                "robot_debug": "True",
             },
         )
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            DebugListener, listener_classes, "DebugListener was not in task options"
-        )
+        assert (
+            DebugListener in listener_classes
+        ), "DebugListener was not in task options"
 
     def test_verbose_option(self):
         """Verify that setting verbose to True attaches the appropriate listener"""
@@ -187,9 +243,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            KeywordLogger, listener_classes, "KeywordLogger was not in task options"
-        )
+        assert (
+            KeywordLogger in listener_classes
+        ), "KeywordLogger was not in task options"
 
     def test_user_defined_listeners_option(self):
         """Verify that our listeners don't replace user-defined listeners"""
@@ -197,7 +253,7 @@ class TestRobot(unittest.TestCase):
             Robot,
             {
                 "suites": "test",  # required, or the task will raise an exception
-                "debug": "True",
+                "robot_debug": "True",
                 "verbose": "True",
                 "options": {"listener": ["FakeListener.py"]},
             },
@@ -205,9 +261,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn("FakeListener.py", task.options["options"]["listener"])
-        self.assertIn(DebugListener, listener_classes)
-        self.assertIn(KeywordLogger, listener_classes)
+        assert "FakeListener.py" in task.options["options"]["listener"]
+        assert DebugListener in listener_classes
+        assert KeywordLogger in listener_classes
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -241,8 +297,8 @@ class TestRobot(unittest.TestCase):
         )
 
         mock_robot_run.return_value = 0
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
         task()
         project_config.get_namespace.assert_has_calls(
             [mock.call("test1"), mock.call("test2")]
@@ -250,9 +306,11 @@ class TestRobot(unittest.TestCase):
         mock_add_path.assert_has_calls(
             [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
         )
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
-        self.assertEquals(".", task.return_values["robot_outputdir"])
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
+        assert (
+            Path(".").resolve() == Path(task.return_values["robot_outputdir"]).resolve()
+        )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -275,10 +333,10 @@ class TestRobot(unittest.TestCase):
             task = create_task(
                 Robot, {"suites": "tests"}, project_config=project_config
             )
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
             task()
             mock_add_path.assert_called_once_with(d)
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_sources_not_found(self, mock_robot_run):
@@ -309,10 +367,12 @@ def test_outputdir_return_value(mock_run, tmpdir):
     )
     mock_run.return_value = 0
     task()
-    assert test_dir == task.return_values["robot_outputdir"]
+    assert (Path.cwd() / test_dir).resolve() == Path(
+        task.return_values["robot_outputdir"]
+    ).resolve()
 
 
-class TestRobotTestDoc(unittest.TestCase):
+class TestRobotTestDoc:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.testdoc")
     def test_run_task(self, testdoc):
         task = create_task(RobotTestDoc, {"path": ".", "output": "out"})
@@ -320,15 +380,17 @@ class TestRobotTestDoc(unittest.TestCase):
         testdoc.assert_called_once_with(".", "out")
 
 
-class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRobotLibDoc(MockLoggerMixin):
+    maxDiff = None
+
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
         self.datadir = os.path.dirname(__file__)
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_directory_not_exist(self):
@@ -409,12 +471,122 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         assert "created {}".format(output) in self.task_log["info"]
         assert os.path.exists(output)
 
+    def test_csv(self):
+        path = ",".join(
+            (
+                os.path.join(self.datadir, "TestLibrary.py"),
+                os.path.join(self.datadir, "TestResource.robot"),
+                os.path.join(self.datadir, "TestPageObjects.py"),
+            )
+        )
+        output = Path(self.tmpdir) / "keywords.csv"
+        if output.exists():
+            os.remove(output)
+        task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
+        task()
+        assert os.path.exists(output)
+        with open(output, "r", newline="") as csvfile:
+            reader = csv.reader(csvfile)
+            actual_output = [row for row in reader]
 
-class TestRobotLibDocKeywordFile(unittest.TestCase):
-    def setUp(self):
+        # not only does this verify that the expected keywords are in
+        # the output, but that the base class keywords are *not*
+        datadir = os.path.join("cumulusci", "tasks", "robotframework", "tests", "")
+        expected_output = [
+            ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
+            [
+                "Keyword One",
+                f"{datadir}TestPageObjects.py",
+                "13",
+                "Listing",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword One",
+                f"{datadir}TestPageObjects.py",
+                "24",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Three",
+                f"{datadir}TestPageObjects.py",
+                "30",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Two",
+                f"{datadir}TestPageObjects.py",
+                "16",
+                "Listing",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Two",
+                f"{datadir}TestPageObjects.py",
+                "27",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Library Keyword One",
+                f"{datadir}TestLibrary.py",
+                "13",
+                "",
+                "",
+                "Keyword documentation with *bold* and _italics_",
+            ],
+            [
+                "Library Keyword Two",
+                f"{datadir}TestLibrary.py",
+                "17",
+                "",
+                "",
+                "",
+            ],
+            [
+                "Resource keyword one",
+                f"{datadir}TestResource.robot",
+                "2",
+                "",
+                "",
+                "",
+            ],
+            [
+                "Resource keyword two",
+                f"{datadir}TestResource.robot",
+                "6",
+                "",
+                "",
+                "",
+            ],
+        ]
+
+        assert actual_output == expected_output
+
+    @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
+    def test_preview_option(self, mock_view_file):
+        """Verify that the 'preview' option results in calling the view_file method"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(
+            RobotLibDoc, {"path": path, "output": output, "preview": True}
+        )
+        task()
+        mock_view_file.assert_called_once_with(output)
+
+
+class TestRobotLibDocKeywordFile:
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_existing_file(self):
@@ -437,11 +609,40 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         assert len(kwfile.keywords) == 1
         assert kwfile.keywords[("Detail", "Contact")] == "the documentation..."
 
+    def test_to_tuples(self):
+        """Test that to_tuples returns relative paths when possible
 
-class TestRobotLibDocOutput(unittest.TestCase):
+        The code attempts to convert absolute paths to relative paths,
+        but if it can't then the path remains unchainged. This test generates
+        results with one file that is relative to cwd and one that is not.
+        """
+
+        here = os.path.dirname(__file__)
+        path = Path(here) / "TestLibrary.py"
+        libdoc = LibraryDocBuilder().build(str(path))
+
+        # we'll set the first to a non-relative directory and leave
+        # the other one relative to here (assuming that `here` is
+        # relative to cwd)
+        absolute_path = str(Path("/bogus/whatever.py"))
+        libdoc.keywords[0].source = absolute_path
+
+        # The returned result is a set, so the order is indeterminate. That's
+        # why the following line sorts it.
+        kwfile = KeywordFile("Whatever")
+        kwfile.add_keywords(libdoc)
+        rows = sorted(kwfile.to_tuples())
+
+        # verify the absolute path remains absolute
+        assert rows[0][1] == absolute_path
+        # verify that the path to a file under cwd is relative
+        assert rows[1][1] == str(path.relative_to(os.getcwd()))
+
+
+class TestRobotLibDocOutput:
     """Tests for the generated robot keyword documentation"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [
@@ -457,7 +658,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
         docroot = ET.parse(output).getroot()
         self.html_body = docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_title(self):
@@ -471,7 +672,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
     def test_formatted_documentation(self):
         """Verify that markup in the documentation is rendered as html"""
         doc_element = self.html_body.find(
-            ".//tr[@id='TestLibrary.py.Library Keyword One']//td[@class='kwdoc']"
+            ".//tr[@id='TestLibrary.py.Library-Keyword-One']//td[@class='kwdoc']"
         )
         doc_html = str(ET.tostring(doc_element, method="html").strip())
         # we could just do an assert on the full markup of the
@@ -506,10 +707,10 @@ class TestRobotLibDocOutput(unittest.TestCase):
         ]
 
 
-class TestLibdocPageObjects(unittest.TestCase):
+class TestLibdocPageObjects:
     """Tests for generating docs for page objects"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [os.path.join(self.datadir, "TestPageObjects.py")]
@@ -523,7 +724,7 @@ class TestLibdocPageObjects(unittest.TestCase):
         self.docroot = ET.parse(self.output).getroot()
         self.html_body = self.docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_file_title(self):
@@ -555,10 +756,109 @@ class TestLibdocPageObjects(unittest.TestCase):
         description = section.find("div[@class='description']")
         expected = '<div class="description" title="Description"><p>Description of SomethingDetailPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
-        assert actual == expected
+        assert shrinkws(actual) == shrinkws(expected)
 
         section = self.html_body.find(".//div[@pageobject='Listing-Something__c']")
         description = section.find("div[@class='description']")
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
-        assert actual == expected
+        assert shrinkws(actual) == shrinkws(expected)
+
+
+class TestRobotPerformanceKeywords:
+    def setup(self):
+        self.datadir = os.path.dirname(__file__)
+
+    @contextmanager
+    def _run_robot_and_parse_xml(
+        self, test_pattern, suite_path="tests/salesforce/performance.robot"
+    ):
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+        with temporary_dir() as d, mock.patch(
+            "cumulusci.robotframework.Salesforce.Salesforce._init_locators"
+        ), responses.RequestsMock():
+            project_config.repo_info["root"] = d
+            suite = Path(self.datadir) / "../../../robotframework/" / suite_path
+            task = create_task(
+                Robot,
+                {
+                    "test": test_pattern,
+                    "suites": str(suite),
+                    "options": {"outputdir": d, "skiponfailure": "noncritical"},
+                },
+                project_config=project_config,
+            )
+            task()
+            logger_func = mock.Mock()
+            log_perf_summary_from_xml(Path(d) / "output.xml", logger_func)
+            yield logger_func.mock_calls
+
+    def parse_metric(self, metric):
+        name, value = metric.split(": ")
+        value = value.strip("s ")  # strip seconds unit
+        try:
+            value = float(value)
+        except ValueError:
+            raise Exception(f"Cannot convert to float {value}")
+        return name.strip(), value
+
+    def extract_times(self, pattern, call):
+        first_arg = call[1][0]
+        if pattern in first_arg:
+            metrics = first_arg.split("-")[-1].split(",")
+            return dict(self.parse_metric(metric) for metric in metrics)
+
+    def test_parser_FOR_and_IF(self):
+        # verify that metrics nested inside a FOR or IF are accounted for
+        pattern = "Test FOR and IF statements"
+        suite_path = Path(self.datadir) / "performance.robot"
+        with self._run_robot_and_parse_xml(
+            pattern, suite_path=suite_path
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            perf_data = list(filter(None, elapsed_times))[0]
+            assert perf_data["plugh"] == 4.0
+            assert perf_data["xyzzy"] == 2.0
+
+    def test_elapsed_time_xml(self):
+        pattern = "Elapsed Time: "
+
+        with self._run_robot_and_parse_xml("Test Perf*") as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            elapsed_times = [next(iter(x.values())) for x in elapsed_times if x]
+            elapsed_times.sort()
+
+            assert elapsed_times[1:] == [53, 11655.9, 18000.0]
+            assert float(elapsed_times[0]) < 3
+
+    def test_metrics(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
+
+    def test_empty_test(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
+
+    def test_explicit_failures(self):
+        pattern = "Elapsed Time: "
+        suite_path = Path(self.datadir) / "failing_tests.robot"
+        with self._run_robot_and_parse_xml(
+            "Test *", suite_path=suite_path
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times)) == [
+                {"Elapsed Time": 11655.9, "Donuts": 42.3}
+            ]
+
+
+def shrinkws(s):
+    return re.sub(r"\s+", " ", s).replace("> <", "><")

@@ -1,15 +1,16 @@
-import pytest  # noqa: F401
-from unittest import mock
-from cumulusci.tasks.salesforce.tests.util import create_task
-
-import shutil
-import pathlib
-import os
 import base64
 import json
-from cumulusci.tasks.salesforce.users.photos import UploadProfilePhoto, join_errors
-from cumulusci.core.exceptions import CumulusCIException  # noqa: F401
+import os
+import pathlib
+import shutil
+from unittest import mock
+
+import pytest  # noqa: F401
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+from cumulusci.core.exceptions import CumulusCIException  # noqa: F401
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.salesforce.users.photos import UploadProfilePhoto, join_errors
 from cumulusci.utils import temporary_dir
 
 
@@ -25,7 +26,7 @@ def test_join_errors():
         ],
     )
 
-    assert "Error message 1.; Error message 2.; Error message 3." == join_errors(e)
+    assert join_errors(e) == "Error message 1.; Error message 2.; Error message 3."
 
 
 class TestUploadProfilePhoto:

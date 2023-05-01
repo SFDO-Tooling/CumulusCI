@@ -1,0 +1,25 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Organization.yaml
+    - *id001
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+FirstName%2CLastName+FROM+User+LIMIT+1
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"User\",\n      \"url\" : \"/services/data/vxx.0/sobjects/User/0057e00000RtpbzAAB\"\
+                  \n    },\n    \"FirstName\" : \"Automated\",\n    \"LastName\" : \"Process\"\
+                  \n  } ]\n}"

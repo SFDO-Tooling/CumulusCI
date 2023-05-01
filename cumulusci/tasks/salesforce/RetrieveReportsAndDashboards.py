@@ -1,9 +1,7 @@
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.salesforce_api.metadata import ApiListMetadata
-from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
+from cumulusci.salesforce_api.metadata import ApiListMetadata, ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.utils import package_xml_from_dict
-
 
 retrieve_reportsanddashboards_options = BaseRetrieveMetadata.task_options.copy()
 retrieve_reportsanddashboards_options.update(

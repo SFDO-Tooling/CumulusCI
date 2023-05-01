@@ -1,5 +1,5 @@
 body {
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Open Sans", sans-serif;
 }
 .container {
     margin: 2em;
@@ -24,7 +24,8 @@ body {
 .file-header h2 {
     padding-bottom: 4px;
     margin-bottom: 4px;
-    border-bottom: 1px solid #127a9a
+    border-bottom: 1px solid #127a9a;
+    color: firebrick;
 }
 .right {
     margin-left: auto;
@@ -63,7 +64,7 @@ pre {
 
 .description {
     margin-top: 0em;
-    margin-bottom: .5em;
+    margin-bottom: 0.5em;
     padding-left: 0em;
     padding-top: 0em;
     padding-bottom: 0em;
@@ -79,7 +80,7 @@ pre {
 }
 .kwtable th {
     font-weight: normal;
-    background: #109AD7;
+    background: #109ad7;
     color: #f0f0f0;
     padding: 4px;
     border: 1px solid gray;
@@ -123,7 +124,7 @@ pre {
     font-weight: bold;
 }
 .pageobject-header .labels {
-    font-size: .75em;
+    font-size: 0.75em;
     font-weight: normal;
     color: gray;
 }

@@ -1,0 +1,1261 @@
+request:
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Opportunity/describe
+    body: null
+    headers:
+        Request-Headers:
+            - Elided
+response:
+    status:
+        code: 200
+        message: OK
+    headers:
+        Content-Type:
+            - application/json;charset=UTF-8
+        Others: Elided
+    body:
+        string: "{\n  \"actionOverrides\" : [ ],\n  \"activateable\" : false,\n  \"\
+            associateEntityType\" : null,\n  \"associateParentEntity\" : null,\n  \"childRelationships\"\
+            \ : [ {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"AIInsightValue\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"SobjectLookupValueId\"\
+            ,\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  },\
+            \ {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"AIRecordInsight\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"TargetId\",\n \
+            \   \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n \
+            \   \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  }, {\n\
+            \    \"cascadeDelete\" : true,\n    \"childSObject\" : \"AccountPartner\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"OpportunityId\"\
+            ,\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : \"AccountPartners\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"\
+            ActivityHistory\",\n    \"deprecatedAndHidden\" : false,\n    \"field\" :\
+            \ \"WhatId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"ActivityHistories\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"\
+            AttachedContentDocument\",\n    \"deprecatedAndHidden\" : false,\n    \"field\"\
+            \ : \"LinkedEntityId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"AttachedContentDocuments\",\n    \"\
+            restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"\
+            childSObject\" : \"Attachment\",\n    \"deprecatedAndHidden\" : false,\n \
+            \   \"field\" : \"ParentId\",\n    \"junctionIdListNames\" : [ ],\n    \"\
+            junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"Attachments\",\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"CollaborationGroupRecord\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"RecordId\",\n    \"junctionIdListNames\" : [\
+            \ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"RecordAssociatedGroups\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"CombinedAttachment\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ParentId\",\n    \"junctionIdListNames\" : [\
+            \ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"CombinedAttachments\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"ContactRequest\",\n    \"deprecatedAndHidden\" :\
+            \ false,\n    \"field\" : \"WhatId\",\n    \"junctionIdListNames\" : [ ],\n\
+            \    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"ContactRequests\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"ContentDistribution\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"RelatedRecordId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"ContentDocumentLink\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"LinkedEntityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            ContentDocumentLinks\",\n    \"restrictedDelete\" : false\n  }, {\n    \"\
+            cascadeDelete\" : false,\n    \"childSObject\" : \"ContentVersion\",\n   \
+            \ \"deprecatedAndHidden\" : false,\n    \"field\" : \"FirstPublishLocationId\"\
+            ,\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  },\
+            \ {\n    \"cascadeDelete\" : false,\n    \"childSObject\" : \"EmailMessage\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"RelatedToId\",\n\
+            \    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : \"Emails\",\n    \"restrictedDelete\" : false\n\
+            \  }, {\n    \"cascadeDelete\" : false,\n    \"childSObject\" : \"EmailMessageChangeEvent\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"RelatedToId\",\n\
+            \    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  },\
+            \ {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"EntitySubscription\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"ParentId\",\n \
+            \   \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n \
+            \   \"relationshipName\" : \"FeedSubscriptionsForEntity\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"\
+            Event\",\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"WhatId\"\
+            ,\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : \"Events\",\n    \"restrictedDelete\" : false\n\
+            \  }, {\n    \"cascadeDelete\" : false,\n    \"childSObject\" : \"EventChangeEvent\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"WhatId\",\n   \
+            \ \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n   \
+            \ \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  }, {\n\
+            \    \"cascadeDelete\" : false,\n    \"childSObject\" : \"EventRelationChangeEvent\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"RelationId\",\n\
+            \    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  },\
+            \ {\n    \"cascadeDelete\" : false,\n    \"childSObject\" : \"FeedComment\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"ParentId\",\n \
+            \   \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n \
+            \   \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n  }, {\n\
+            \    \"cascadeDelete\" : true,\n    \"childSObject\" : \"FeedItem\",\n   \
+            \ \"deprecatedAndHidden\" : false,\n    \"field\" : \"ParentId\",\n    \"\
+            junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\"\
+            \ : false,\n    \"childSObject\" : \"FlowExecutionErrorEvent\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ContextRecordId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"FlowRecordRelation\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"RelatedRecordId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"Lead\",\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"field\" : \"ConvertedOpportunityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"LeadChangeEvent\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ConvertedOpportunityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"NetworkActivityAudit\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ParentEntityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            ParentEntities\",\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\"\
+            \ : false,\n    \"childSObject\" : \"NetworkFeedResponseMetric\",\n    \"\
+            deprecatedAndHidden\" : false,\n    \"field\" : \"ParentRecordId\",\n    \"\
+            junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\"\
+            \ : true,\n    \"childSObject\" : \"Note\",\n    \"deprecatedAndHidden\" :\
+            \ false,\n    \"field\" : \"ParentId\",\n    \"junctionIdListNames\" : [ ],\n\
+            \    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"Notes\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"NoteAndAttachment\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ParentId\",\n    \"junctionIdListNames\" : [\
+            \ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"NotesAndAttachments\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"OpenActivity\",\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"field\" : \"WhatId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"OpenActivities\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"\
+            OpportunityCompetitor\",\n    \"deprecatedAndHidden\" : false,\n    \"field\"\
+            \ : \"OpportunityId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"OpportunityCompetitors\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"\
+            OpportunityContactRole\",\n    \"deprecatedAndHidden\" : false,\n    \"field\"\
+            \ : \"OpportunityId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"OpportunityContactRoles\",\n    \"\
+            restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n    \"\
+            childSObject\" : \"OpportunityContactRoleChangeEvent\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"OpportunityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"OpportunityFeed\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ParentId\",\n    \"junctionIdListNames\" : [\
+            \ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"Feeds\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"OpportunityFieldHistory\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"OpportunityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            Histories\",\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\"\
+            \ : true,\n    \"childSObject\" : \"OpportunityHistory\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"OpportunityId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            OpportunityHistories\",\n    \"restrictedDelete\" : false\n  }, {\n    \"\
+            cascadeDelete\" : true,\n    \"childSObject\" : \"OpportunityLineItem\",\n\
+            \    \"deprecatedAndHidden\" : false,\n    \"field\" : \"OpportunityId\",\n\
+            \    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : \"OpportunityLineItems\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"\
+            OpportunityPartner\",\n    \"deprecatedAndHidden\" : false,\n    \"field\"\
+            \ : \"OpportunityId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"OpportunityPartnersFrom\",\n    \"\
+            restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n    \"\
+            childSObject\" : \"OpportunityShare\",\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"field\" : \"OpportunityId\",\n    \"junctionIdListNames\" : [ ],\n\
+            \    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"Shares\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"OutgoingEmail\",\n    \"deprecatedAndHidden\" :\
+            \ false,\n    \"field\" : \"RelatedToId\",\n    \"junctionIdListNames\" :\
+            \ [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"Partner\",\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"field\" : \"OpportunityId\",\n    \"junctionIdListNames\" : [ ],\n\
+            \    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"Partners\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n\
+            \    \"childSObject\" : \"ProcessInstance\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"TargetObjectId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            ProcessInstances\",\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\"\
+            \ : false,\n    \"childSObject\" : \"ProcessInstanceHistory\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"TargetObjectId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            ProcessSteps\",\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\"\
+            \ : true,\n    \"childSObject\" : \"RecordAction\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"RecordId\",\n    \"junctionIdListNames\" : [\
+            \ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"RecordActions\"\
+            ,\n    \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : false,\n\
+            \    \"childSObject\" : \"RecordActionHistory\",\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"field\" : \"ParentRecordId\",\n    \"junctionIdListNames\"\
+            \ : [ ],\n    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : \"\
+            RecordActionHistories\",\n    \"restrictedDelete\" : false\n  }, {\n    \"\
+            cascadeDelete\" : true,\n    \"childSObject\" : \"ServiceAppointment\",\n\
+            \    \"deprecatedAndHidden\" : false,\n    \"field\" : \"ParentRecordId\"\
+            ,\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n\
+            \    \"relationshipName\" : \"ServiceAppointments\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : false,\n    \"childSObject\" :\
+            \ \"ServiceAppointmentChangeEvent\",\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"field\" : \"ParentRecordId\",\n    \"junctionIdListNames\" : [ ],\n\
+            \    \"junctionReferenceTo\" : [ ],\n    \"relationshipName\" : null,\n  \
+            \  \"restrictedDelete\" : false\n  }, {\n    \"cascadeDelete\" : true,\n \
+            \   \"childSObject\" : \"Task\",\n    \"deprecatedAndHidden\" : false,\n \
+            \   \"field\" : \"WhatId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : \"Tasks\",\n    \"restrictedDelete\"\
+            \ : false\n  }, {\n    \"cascadeDelete\" : false,\n    \"childSObject\" :\
+            \ \"TaskChangeEvent\",\n    \"deprecatedAndHidden\" : false,\n    \"field\"\
+            \ : \"WhatId\",\n    \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\"\
+            \ : [ ],\n    \"relationshipName\" : null,\n    \"restrictedDelete\" : false\n\
+            \  }, {\n    \"cascadeDelete\" : true,\n    \"childSObject\" : \"TopicAssignment\"\
+            ,\n    \"deprecatedAndHidden\" : false,\n    \"field\" : \"EntityId\",\n \
+            \   \"junctionIdListNames\" : [ ],\n    \"junctionReferenceTo\" : [ ],\n \
+            \   \"relationshipName\" : \"TopicAssignments\",\n    \"restrictedDelete\"\
+            \ : false\n  } ],\n  \"compactLayoutable\" : true,\n  \"createable\" : true,\n\
+            \  \"custom\" : false,\n  \"customSetting\" : false,\n  \"deepCloneable\"\
+            \ : true,\n  \"defaultImplementation\" : null,\n  \"deletable\" : true,\n\
+            \  \"deprecatedAndHidden\" : false,\n  \"extendedBy\" : null,\n  \"extendsInterfaces\"\
+            \ : null,\n  \"feedEnabled\" : true,\n  \"fields\" : [ {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : true,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Opportunity ID\",\n    \"length\" : 18,\n   \
+            \ \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"Id\",\n   \
+            \ \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : false,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"tns:ID\",\n    \"sortable\" : true,\n    \"type\" : \"id\",\n    \"\
+            unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : false,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : false,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Deleted\"\
+            ,\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\" : null,\n \
+            \   \"name\" : \"IsDeleted\",\n    \"nameField\" : false,\n    \"namePointing\"\
+            \ : false,\n    \"nillable\" : false,\n    \"permissionable\" : false,\n \
+            \   \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" : false,\n  \
+            \  \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:boolean\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"boolean\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Account ID\",\n    \"length\" : 18,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"AccountId\",\n    \"\
+            nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\" : true,\n\
+            \    \"permissionable\" : true,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ \"Account\" ],\n\
+            \    \"relationshipName\" : \"Account\",\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : true,\n    \"soapType\"\
+            \ : \"tns:ID\",\n    \"sortable\" : true,\n    \"type\" : \"reference\",\n\
+            \    \"unique\" : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : false,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : true,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : false,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Private\"\
+            ,\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\" : null,\n \
+            \   \"name\" : \"IsPrivate\",\n    \"nameField\" : false,\n    \"namePointing\"\
+            \ : false,\n    \"nillable\" : false,\n    \"permissionable\" : true,\n  \
+            \  \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" : false,\n   \
+            \ \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:boolean\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"boolean\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 360,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : true,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Name\",\n    \"length\" : 120,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"Name\",\n    \"nameField\"\
+            \ : true,\n    \"namePointing\" : false,\n    \"nillable\" : false,\n    \"\
+            permissionable\" : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"string\",\n    \"unique\" : false,\n    \"updateable\" :\
+            \ true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : false,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 96000,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : \"plaintextarea\"\
+            ,\n    \"filterable\" : false,\n    \"filteredLookupInfo\" : null,\n    \"\
+            formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n    \"\
+            highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"idLookup\"\
+            \ : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Description\"\
+            ,\n    \"length\" : 32000,\n    \"mask\" : null,\n    \"maskType\" : null,\n\
+            \    \"name\" : \"Description\",\n    \"nameField\" : false,\n    \"namePointing\"\
+            \ : false,\n    \"nillable\" : true,\n    \"permissionable\" : true,\n   \
+            \ \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" : false,\n    \"\
+            precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:string\",\n    \"sortable\" : false,\n\
+            \    \"type\" : \"textarea\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 765,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Stage\",\n    \"length\" : 255,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"StageName\",\n    \"\
+            nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\" : false,\n\
+            \    \"permissionable\" : false,\n    \"picklistValues\" : [ {\n      \"active\"\
+            \ : true,\n      \"defaultValue\" : false,\n      \"label\" : \"Prospecting\"\
+            ,\n      \"validFor\" : null,\n      \"value\" : \"Prospecting\"\n    }, {\n\
+            \      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Qualification\",\n      \"validFor\" : null,\n      \"value\" : \"Qualification\"\
+            \n    }, {\n      \"active\" : true,\n      \"defaultValue\" : false,\n  \
+            \    \"label\" : \"Needs Analysis\",\n      \"validFor\" : null,\n      \"\
+            value\" : \"Needs Analysis\"\n    }, {\n      \"active\" : true,\n      \"\
+            defaultValue\" : false,\n      \"label\" : \"Value Proposition\",\n      \"\
+            validFor\" : null,\n      \"value\" : \"Value Proposition\"\n    }, {\n  \
+            \    \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Id. Decision Makers\",\n      \"validFor\" : null,\n      \"value\"\
+            \ : \"Id. Decision Makers\"\n    }, {\n      \"active\" : true,\n      \"\
+            defaultValue\" : false,\n      \"label\" : \"Perception Analysis\",\n    \
+            \  \"validFor\" : null,\n      \"value\" : \"Perception Analysis\"\n    },\
+            \ {\n      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Proposal/Price Quote\",\n      \"validFor\" : null,\n      \"value\"\
+            \ : \"Proposal/Price Quote\"\n    }, {\n      \"active\" : true,\n      \"\
+            defaultValue\" : false,\n      \"label\" : \"Negotiation/Review\",\n     \
+            \ \"validFor\" : null,\n      \"value\" : \"Negotiation/Review\"\n    }, {\n\
+            \      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Closed Won\",\n      \"validFor\" : null,\n      \"value\" : \"Closed\
+            \ Won\"\n    }, {\n      \"active\" : true,\n      \"defaultValue\" : false,\n\
+            \      \"label\" : \"Closed Lost\",\n      \"validFor\" : null,\n      \"\
+            value\" : \"Closed Lost\"\n    } ],\n    \"polymorphicForeignKey\" : false,\n\
+            \    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"picklist\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : false,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Amount\",\n    \"length\" : 0,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"Amount\",\n    \"nameField\"\
+            \ : false,\n    \"namePointing\" : false,\n    \"nillable\" : true,\n    \"\
+            permissionable\" : true,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 18,\n    \"queryByDistance\" : false,\n  \
+            \  \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 2,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:double\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"currency\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : false,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Probability (%)\",\n    \"length\" : 0,\n   \
+            \ \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"Probability\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : true,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 3,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"xsd:double\",\n    \"sortable\" : true,\n    \"type\" : \"percent\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : false,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Expected\
+            \ Amount\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\" :\
+            \ null,\n    \"name\" : \"ExpectedRevenue\",\n    \"nameField\" : false,\n\
+            \    \"namePointing\" : false,\n    \"nillable\" : true,\n    \"permissionable\"\
+            \ : true,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 18,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 2,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:double\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"currency\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : false,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Quantity\",\n    \"length\" : 0,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"TotalOpportunityQuantity\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : true,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 18,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 2,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"xsd:double\",\n    \"sortable\" : true,\n    \"type\" : \"double\",\n\
+            \    \"unique\" : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : true,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : false,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Close\
+            \ Date\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\" : null,\n\
+            \    \"name\" : \"CloseDate\",\n    \"nameField\" : false,\n    \"namePointing\"\
+            \ : false,\n    \"nillable\" : false,\n    \"permissionable\" : false,\n \
+            \   \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" : false,\n  \
+            \  \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:date\",\n    \"sortable\" : true,\n \
+            \   \"type\" : \"date\",\n    \"unique\" : false,\n    \"updateable\" : true,\n\
+            \    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\" : true,\n\
+            \    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n    \"byteLength\"\
+            \ : 765,\n    \"calculated\" : false,\n    \"calculatedFormula\" : null,\n\
+            \    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\"\
+            \ : null,\n    \"controllerName\" : null,\n    \"createable\" : true,\n  \
+            \  \"custom\" : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\"\
+            \ : null,\n    \"defaultedOnCreate\" : false,\n    \"dependentPicklist\" :\
+            \ false,\n    \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"\
+            displayLocationInDecimal\" : false,\n    \"encrypted\" : false,\n    \"externalId\"\
+            \ : false,\n    \"extraTypeInfo\" : null,\n    \"filterable\" : true,\n  \
+            \  \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\" :\
+            \ false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n  \
+            \  \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Opportunity Type\",\n    \"length\" : 255,\n\
+            \    \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"Type\",\n\
+            \    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : true,\n    \"picklistValues\" : [ {\n\
+            \      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Existing Customer - Upgrade\",\n      \"validFor\" : null,\n      \"\
+            value\" : \"Existing Customer - Upgrade\"\n    }, {\n      \"active\" : true,\n\
+            \      \"defaultValue\" : false,\n      \"label\" : \"Existing Customer -\
+            \ Replacement\",\n      \"validFor\" : null,\n      \"value\" : \"Existing\
+            \ Customer - Replacement\"\n    }, {\n      \"active\" : true,\n      \"defaultValue\"\
+            \ : false,\n      \"label\" : \"Existing Customer - Downgrade\",\n      \"\
+            validFor\" : null,\n      \"value\" : \"Existing Customer - Downgrade\"\n\
+            \    }, {\n      \"active\" : true,\n      \"defaultValue\" : false,\n   \
+            \   \"label\" : \"New Customer\",\n      \"validFor\" : null,\n      \"value\"\
+            \ : \"New Customer\"\n    } ],\n    \"polymorphicForeignKey\" : false,\n \
+            \   \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"picklist\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 765,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Next Step\",\n    \"length\" : 255,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"NextStep\",\n    \"\
+            nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\" : true,\n\
+            \    \"permissionable\" : true,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"string\",\n    \"unique\" : false,\n    \"updateable\" :\
+            \ true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 765,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Lead Source\",\n    \"length\" : 255,\n    \"\
+            mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"LeadSource\",\n\
+            \    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : true,\n    \"picklistValues\" : [ {\n\
+            \      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Web\",\n      \"validFor\" : null,\n      \"value\" : \"Web\"\n    },\
+            \ {\n      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Phone Inquiry\",\n      \"validFor\" : null,\n      \"value\" : \"Phone\
+            \ Inquiry\"\n    }, {\n      \"active\" : true,\n      \"defaultValue\" :\
+            \ false,\n      \"label\" : \"Partner Referral\",\n      \"validFor\" : null,\n\
+            \      \"value\" : \"Partner Referral\"\n    }, {\n      \"active\" : true,\n\
+            \      \"defaultValue\" : false,\n      \"label\" : \"Purchased List\",\n\
+            \      \"validFor\" : null,\n      \"value\" : \"Purchased List\"\n    },\
+            \ {\n      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Other\",\n      \"validFor\" : null,\n      \"value\" : \"Other\"\n\
+            \    } ],\n    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n\
+            \    \"queryByDistance\" : false,\n    \"referenceTargetField\" : null,\n\
+            \    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\"\
+            \ : null,\n    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" :\
+            \ false,\n    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"\
+            soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n    \"type\" : \"\
+            picklist\",\n    \"unique\" : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : false,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : false,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Closed\"\
+            ,\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\" : null,\n \
+            \   \"name\" : \"IsClosed\",\n    \"nameField\" : false,\n    \"namePointing\"\
+            \ : false,\n    \"nillable\" : false,\n    \"permissionable\" : false,\n \
+            \   \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" : false,\n  \
+            \  \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:boolean\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"boolean\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : false,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : false,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Won\",\n    \"length\" : 0,\n    \"mask\" : null,\n\
+            \    \"maskType\" : null,\n    \"name\" : \"IsWon\",\n    \"nameField\" :\
+            \ false,\n    \"namePointing\" : false,\n    \"nillable\" : false,\n    \"\
+            permissionable\" : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:boolean\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"boolean\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 120,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Forecast Category\",\n    \"length\" : 40,\n\
+            \    \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"ForecastCategory\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : false,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ {\n\
+            \      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Omitted\",\n      \"validFor\" : null,\n      \"value\" : \"Omitted\"\
+            \n    }, {\n      \"active\" : true,\n      \"defaultValue\" : false,\n  \
+            \    \"label\" : \"Pipeline\",\n      \"validFor\" : null,\n      \"value\"\
+            \ : \"Pipeline\"\n    }, {\n      \"active\" : true,\n      \"defaultValue\"\
+            \ : false,\n      \"label\" : \"Best Case\",\n      \"validFor\" : null,\n\
+            \      \"value\" : \"BestCase\"\n    }, {\n      \"active\" : true,\n    \
+            \  \"defaultValue\" : false,\n      \"label\" : \"Most Likely\",\n      \"\
+            validFor\" : null,\n      \"value\" : \"MostLikely\"\n    }, {\n      \"active\"\
+            \ : true,\n      \"defaultValue\" : false,\n      \"label\" : \"Commit\",\n\
+            \      \"validFor\" : null,\n      \"value\" : \"Forecast\"\n    }, {\n  \
+            \    \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Closed\",\n      \"validFor\" : null,\n      \"value\" : \"Closed\"\n\
+            \    } ],\n    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n\
+            \    \"queryByDistance\" : false,\n    \"referenceTargetField\" : null,\n\
+            \    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\"\
+            \ : null,\n    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" :\
+            \ true,\n    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"\
+            soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n    \"type\" : \"\
+            picklist\",\n    \"unique\" : false,\n    \"updateable\" : false,\n    \"\
+            writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\" : true,\n\
+            \    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n    \"byteLength\"\
+            \ : 765,\n    \"calculated\" : false,\n    \"calculatedFormula\" : null,\n\
+            \    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\"\
+            \ : null,\n    \"controllerName\" : null,\n    \"createable\" : true,\n  \
+            \  \"custom\" : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\"\
+            \ : null,\n    \"defaultedOnCreate\" : true,\n    \"dependentPicklist\" :\
+            \ false,\n    \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"\
+            displayLocationInDecimal\" : false,\n    \"encrypted\" : false,\n    \"externalId\"\
+            \ : false,\n    \"extraTypeInfo\" : null,\n    \"filterable\" : true,\n  \
+            \  \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\" :\
+            \ false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n  \
+            \  \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Forecast Category\",\n    \"length\" : 255,\n\
+            \    \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"ForecastCategoryName\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ {\n\
+            \      \"active\" : true,\n      \"defaultValue\" : false,\n      \"label\"\
+            \ : \"Omitted\",\n      \"validFor\" : null,\n      \"value\" : \"Omitted\"\
+            \n    }, {\n      \"active\" : true,\n      \"defaultValue\" : false,\n  \
+            \    \"label\" : \"Pipeline\",\n      \"validFor\" : null,\n      \"value\"\
+            \ : \"Pipeline\"\n    }, {\n      \"active\" : true,\n      \"defaultValue\"\
+            \ : false,\n      \"label\" : \"Best Case\",\n      \"validFor\" : null,\n\
+            \      \"value\" : \"Best Case\"\n    }, {\n      \"active\" : true,\n   \
+            \   \"defaultValue\" : false,\n      \"label\" : \"Commit\",\n      \"validFor\"\
+            \ : null,\n      \"value\" : \"Commit\"\n    }, {\n      \"active\" : true,\n\
+            \      \"defaultValue\" : false,\n      \"label\" : \"Closed\",\n      \"\
+            validFor\" : null,\n      \"value\" : \"Closed\"\n    } ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : true,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:string\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"picklist\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : true,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Campaign ID\",\n    \"length\" : 18,\n    \"\
+            mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"CampaignId\",\n\
+            \    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : true,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ \"Campaign\" ],\n    \"relationshipName\" : \"Campaign\",\n    \"relationshipOrder\"\
+            \ : null,\n    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" :\
+            \ false,\n    \"scale\" : 0,\n    \"searchPrefilterable\" : true,\n    \"\
+            soapType\" : \"tns:ID\",\n    \"sortable\" : true,\n    \"type\" : \"reference\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : false,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : false,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Has\
+            \ Line Item\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"HasOpportunityLineItem\",\n    \"nameField\" :\
+            \ false,\n    \"namePointing\" : false,\n    \"nillable\" : false,\n    \"\
+            permissionable\" : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:boolean\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"boolean\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : true,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Price Book ID\",\n    \"length\" : 18,\n    \"\
+            mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"Pricebook2Id\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ \"Pricebook2\" ],\n    \"relationshipName\" : \"Pricebook2\",\n    \"relationshipOrder\"\
+            \ : null,\n    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" :\
+            \ false,\n    \"scale\" : 0,\n    \"searchPrefilterable\" : true,\n    \"\
+            soapType\" : \"tns:ID\",\n    \"sortable\" : true,\n    \"type\" : \"reference\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 18,\n    \"\
+            calculated\" : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\"\
+            \ : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n\
+            \    \"controllerName\" : null,\n    \"createable\" : true,\n    \"custom\"\
+            \ : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n\
+            \    \"defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n \
+            \   \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\"\
+            \ : false,\n    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"\
+            extraTypeInfo\" : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\"\
+            \ : null,\n    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\"\
+            \ : true,\n    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n\
+            \    \"idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\"\
+            \ : \"Owner ID\",\n    \"length\" : 18,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"OwnerId\",\n    \"nameField\" : false,\n    \"\
+            namePointing\" : false,\n    \"nillable\" : false,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ \"User\" ],\n    \"\
+            relationshipName\" : \"Owner\",\n    \"relationshipOrder\" : null,\n    \"\
+            restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n    \"scale\"\
+            \ : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\" : \"tns:ID\"\
+            ,\n    \"sortable\" : true,\n    \"type\" : \"reference\",\n    \"unique\"\
+            \ : false,\n    \"updateable\" : true,\n    \"writeRequiresMasterRead\" :\
+            \ false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\" :\
+            \ false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Created\
+            \ Date\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\" : null,\n\
+            \    \"name\" : \"CreatedDate\",\n    \"nameField\" : false,\n    \"namePointing\"\
+            \ : false,\n    \"nillable\" : false,\n    \"permissionable\" : false,\n \
+            \   \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" : false,\n  \
+            \  \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"referenceTargetField\"\
+            \ : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\" : null,\n\
+            \    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n  \
+            \  \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:dateTime\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"datetime\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Created By ID\",\n    \"length\" : 18,\n    \"\
+            mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"CreatedById\",\n\
+            \    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : false,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ \"User\" ],\n    \"relationshipName\" : \"CreatedBy\",\n    \"relationshipOrder\"\
+            \ : null,\n    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" :\
+            \ false,\n    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"\
+            soapType\" : \"tns:ID\",\n    \"sortable\" : true,\n    \"type\" : \"reference\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Last\
+            \ Modified Date\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"LastModifiedDate\",\n    \"nameField\" : false,\n\
+            \    \"namePointing\" : false,\n    \"nillable\" : false,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:dateTime\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"datetime\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Last Modified By ID\",\n    \"length\" : 18,\n\
+            \    \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"LastModifiedById\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : false,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ \"User\" ],\n    \"relationshipName\" : \"LastModifiedBy\",\n    \"relationshipOrder\"\
+            \ : null,\n    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" :\
+            \ false,\n    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"\
+            soapType\" : \"tns:ID\",\n    \"sortable\" : true,\n    \"type\" : \"reference\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"System\
+            \ Modstamp\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"SystemModstamp\",\n    \"nameField\" : false,\n\
+            \    \"namePointing\" : false,\n    \"nillable\" : false,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:dateTime\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"datetime\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Last Activity\",\n    \"length\" : 0,\n    \"\
+            mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"LastActivityDate\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"xsd:date\",\n    \"sortable\" : true,\n    \"type\" : \"date\",\n  \
+            \  \"unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : false,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Last\
+            \ Stage Change Date\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"\
+            maskType\" : null,\n    \"name\" : \"LastStageChangeDate\",\n    \"nameField\"\
+            \ : false,\n    \"namePointing\" : false,\n    \"nillable\" : true,\n    \"\
+            permissionable\" : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:dateTime\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"datetime\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : \"Fiscal\",\n    \"controllerName\" : null,\n\
+            \    \"createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\"\
+            \ : null,\n    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\"\
+            \ : false,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 8,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Fiscal\
+            \ Quarter\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"FiscalQuarter\",\n    \"nameField\" : false,\n\
+            \    \"namePointing\" : false,\n    \"nillable\" : true,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:int\",\n    \"sortable\" : true,\n  \
+            \  \"type\" : \"int\",\n    \"unique\" : false,\n    \"updateable\" : false,\n\
+            \    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\" : true,\n\
+            \    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n    \"byteLength\"\
+            \ : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\" : null,\n \
+            \   \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\"\
+            \ : \"Fiscal\",\n    \"controllerName\" : null,\n    \"createable\" : false,\n\
+            \    \"custom\" : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\"\
+            \ : null,\n    \"defaultedOnCreate\" : false,\n    \"dependentPicklist\" :\
+            \ false,\n    \"deprecatedAndHidden\" : false,\n    \"digits\" : 8,\n    \"\
+            displayLocationInDecimal\" : false,\n    \"encrypted\" : false,\n    \"externalId\"\
+            \ : false,\n    \"extraTypeInfo\" : null,\n    \"filterable\" : true,\n  \
+            \  \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\" :\
+            \ false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n  \
+            \  \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Fiscal Year\",\n    \"length\" : 0,\n    \"mask\"\
+            \ : null,\n    \"maskType\" : null,\n    \"name\" : \"FiscalYear\",\n    \"\
+            nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\" : true,\n\
+            \    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\"\
+            \ : false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n   \
+            \ \"referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:int\",\n    \"sortable\" : true,\n  \
+            \  \"type\" : \"int\",\n    \"unique\" : false,\n    \"updateable\" : false,\n\
+            \    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\" : true,\n\
+            \    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n    \"byteLength\"\
+            \ : 6,\n    \"calculated\" : false,\n    \"calculatedFormula\" : null,\n \
+            \   \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\"\
+            \ : null,\n    \"controllerName\" : null,\n    \"createable\" : false,\n \
+            \   \"custom\" : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\"\
+            \ : null,\n    \"defaultedOnCreate\" : false,\n    \"dependentPicklist\" :\
+            \ false,\n    \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"\
+            displayLocationInDecimal\" : false,\n    \"encrypted\" : false,\n    \"externalId\"\
+            \ : false,\n    \"extraTypeInfo\" : null,\n    \"filterable\" : true,\n  \
+            \  \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\" :\
+            \ false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n  \
+            \  \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Fiscal Period\",\n    \"length\" : 6,\n    \"\
+            mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"Fiscal\",\n   \
+            \ \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"xsd:string\",\n    \"sortable\" : true,\n    \"type\" : \"string\",\n\
+            \    \"unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 18,\n    \"\
+            calculated\" : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\"\
+            \ : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n\
+            \    \"controllerName\" : null,\n    \"createable\" : true,\n    \"custom\"\
+            \ : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n\
+            \    \"defaultedOnCreate\" : false,\n    \"dependentPicklist\" : false,\n\
+            \    \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\"\
+            \ : false,\n    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"\
+            extraTypeInfo\" : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\"\
+            \ : null,\n    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\"\
+            \ : true,\n    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n\
+            \    \"idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\"\
+            \ : \"Contact ID\",\n    \"length\" : 18,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"ContactId\",\n    \"nameField\" : false,\n   \
+            \ \"namePointing\" : false,\n    \"nillable\" : true,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ \"Contact\" ],\n \
+            \   \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n    \"\
+            restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n    \"scale\"\
+            \ : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\" : \"tns:ID\"\
+            ,\n    \"sortable\" : true,\n    \"type\" : \"reference\",\n    \"unique\"\
+            \ : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\" :\
+            \ false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\" :\
+            \ false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : false,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : false,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Last\
+            \ Viewed Date\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"LastViewedDate\",\n    \"nameField\" : false,\n\
+            \    \"namePointing\" : false,\n    \"nillable\" : true,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:dateTime\",\n    \"sortable\" : true,\n\
+            \    \"type\" : \"datetime\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : true,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : null,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : false,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : true,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : false,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Last Referenced Date\",\n    \"length\" : 0,\n\
+            \    \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"LastReferencedDate\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"xsd:dateTime\",\n    \"sortable\" : true,\n    \"type\" : \"datetime\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : false,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 0,\n    \"calculated\"\
+            \ : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\" : false,\n\
+            \    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n    \"\
+            controllerName\" : null,\n    \"createable\" : false,\n    \"custom\" : false,\n\
+            \    \"defaultValue\" : false,\n    \"defaultValueFormula\" : null,\n    \"\
+            defaultedOnCreate\" : true,\n    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\"\
+            \ : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n\
+            \    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\"\
+            \ : null,\n    \"filterable\" : false,\n    \"filteredLookupInfo\" : null,\n\
+            \    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\" : true,\n\
+            \    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n    \"\
+            idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\" : \"Has\
+            \ Open Activity\",\n    \"length\" : 0,\n    \"mask\" : null,\n    \"maskType\"\
+            \ : null,\n    \"name\" : \"HasOpenActivity\",\n    \"nameField\" : false,\n\
+            \    \"namePointing\" : false,\n    \"nillable\" : false,\n    \"permissionable\"\
+            \ : false,\n    \"picklistValues\" : [ ],\n    \"polymorphicForeignKey\" :\
+            \ false,\n    \"precision\" : 0,\n    \"queryByDistance\" : false,\n    \"\
+            referenceTargetField\" : null,\n    \"referenceTo\" : [ ],\n    \"relationshipName\"\
+            \ : null,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : false,\n    \"soapType\" : \"xsd:boolean\",\n    \"sortable\" : false,\n\
+            \    \"type\" : \"boolean\",\n    \"unique\" : false,\n    \"updateable\"\
+            \ : false,\n    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\"\
+            \ : false,\n    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n\
+            \    \"byteLength\" : 0,\n    \"calculated\" : false,\n    \"calculatedFormula\"\
+            \ : null,\n    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n\
+            \    \"compoundFieldName\" : null,\n    \"controllerName\" : null,\n    \"\
+            createable\" : false,\n    \"custom\" : false,\n    \"defaultValue\" : false,\n\
+            \    \"defaultValueFormula\" : null,\n    \"defaultedOnCreate\" : true,\n\
+            \    \"dependentPicklist\" : false,\n    \"deprecatedAndHidden\" : false,\n\
+            \    \"digits\" : 0,\n    \"displayLocationInDecimal\" : false,\n    \"encrypted\"\
+            \ : false,\n    \"externalId\" : false,\n    \"extraTypeInfo\" : null,\n \
+            \   \"filterable\" : false,\n    \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\"\
+            \ : false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n\
+            \    \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Has Overdue Task\",\n    \"length\" : 0,\n  \
+            \  \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"HasOverdueTask\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : false,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ ],\n    \"relationshipName\" : null,\n    \"relationshipOrder\" : null,\n\
+            \    \"restrictedDelete\" : false,\n    \"restrictedPicklist\" : false,\n\
+            \    \"scale\" : 0,\n    \"searchPrefilterable\" : false,\n    \"soapType\"\
+            \ : \"xsd:boolean\",\n    \"sortable\" : false,\n    \"type\" : \"boolean\"\
+            ,\n    \"unique\" : false,\n    \"updateable\" : false,\n    \"writeRequiresMasterRead\"\
+            \ : false\n  }, {\n    \"aggregatable\" : true,\n    \"aiPredictionField\"\
+            \ : false,\n    \"autoNumber\" : false,\n    \"byteLength\" : 18,\n    \"\
+            calculated\" : false,\n    \"calculatedFormula\" : null,\n    \"cascadeDelete\"\
+            \ : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\" : null,\n\
+            \    \"controllerName\" : null,\n    \"createable\" : false,\n    \"custom\"\
+            \ : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\" : null,\n\
+            \    \"defaultedOnCreate\" : false,\n    \"dependentPicklist\" : false,\n\
+            \    \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"displayLocationInDecimal\"\
+            \ : false,\n    \"encrypted\" : false,\n    \"externalId\" : false,\n    \"\
+            extraTypeInfo\" : null,\n    \"filterable\" : true,\n    \"filteredLookupInfo\"\
+            \ : null,\n    \"formulaTreatNullNumberAsZero\" : false,\n    \"groupable\"\
+            \ : true,\n    \"highScaleNumber\" : false,\n    \"htmlFormatted\" : false,\n\
+            \    \"idLookup\" : false,\n    \"inlineHelpText\" : null,\n    \"label\"\
+            \ : \"Opportunity History ID\",\n    \"length\" : 18,\n    \"mask\" : null,\n\
+            \    \"maskType\" : null,\n    \"name\" : \"LastAmountChangedHistoryId\",\n\
+            \    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ \"OpportunityHistory\" ],\n    \"relationshipName\" : \"LastAmountChangedHistory\"\
+            ,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : true,\n    \"soapType\" : \"tns:ID\",\n    \"sortable\" : true,\n    \"\
+            type\" : \"reference\",\n    \"unique\" : false,\n    \"updateable\" : false,\n\
+            \    \"writeRequiresMasterRead\" : false\n  }, {\n    \"aggregatable\" : true,\n\
+            \    \"aiPredictionField\" : false,\n    \"autoNumber\" : false,\n    \"byteLength\"\
+            \ : 18,\n    \"calculated\" : false,\n    \"calculatedFormula\" : null,\n\
+            \    \"cascadeDelete\" : false,\n    \"caseSensitive\" : false,\n    \"compoundFieldName\"\
+            \ : null,\n    \"controllerName\" : null,\n    \"createable\" : false,\n \
+            \   \"custom\" : false,\n    \"defaultValue\" : null,\n    \"defaultValueFormula\"\
+            \ : null,\n    \"defaultedOnCreate\" : false,\n    \"dependentPicklist\" :\
+            \ false,\n    \"deprecatedAndHidden\" : false,\n    \"digits\" : 0,\n    \"\
+            displayLocationInDecimal\" : false,\n    \"encrypted\" : false,\n    \"externalId\"\
+            \ : false,\n    \"extraTypeInfo\" : null,\n    \"filterable\" : true,\n  \
+            \  \"filteredLookupInfo\" : null,\n    \"formulaTreatNullNumberAsZero\" :\
+            \ false,\n    \"groupable\" : true,\n    \"highScaleNumber\" : false,\n  \
+            \  \"htmlFormatted\" : false,\n    \"idLookup\" : false,\n    \"inlineHelpText\"\
+            \ : null,\n    \"label\" : \"Opportunity History ID\",\n    \"length\" : 18,\n\
+            \    \"mask\" : null,\n    \"maskType\" : null,\n    \"name\" : \"LastCloseDateChangedHistoryId\"\
+            ,\n    \"nameField\" : false,\n    \"namePointing\" : false,\n    \"nillable\"\
+            \ : true,\n    \"permissionable\" : false,\n    \"picklistValues\" : [ ],\n\
+            \    \"polymorphicForeignKey\" : false,\n    \"precision\" : 0,\n    \"queryByDistance\"\
+            \ : false,\n    \"referenceTargetField\" : null,\n    \"referenceTo\" : [\
+            \ \"OpportunityHistory\" ],\n    \"relationshipName\" : \"LastCloseDateChangedHistory\"\
+            ,\n    \"relationshipOrder\" : null,\n    \"restrictedDelete\" : false,\n\
+            \    \"restrictedPicklist\" : false,\n    \"scale\" : 0,\n    \"searchPrefilterable\"\
+            \ : true,\n    \"soapType\" : \"tns:ID\",\n    \"sortable\" : true,\n    \"\
+            type\" : \"reference\",\n    \"unique\" : false,\n    \"updateable\" : false,\n\
+            \    \"writeRequiresMasterRead\" : false\n  } ],\n  \"hasSubtypes\" : false,\n\
+            \  \"implementedBy\" : null,\n  \"implementsInterfaces\" : null,\n  \"isInterface\"\
+            \ : false,\n  \"isSubtype\" : false,\n  \"keyPrefix\" : \"006\",\n  \"label\"\
+            \ : \"Opportunity\",\n  \"labelPlural\" : \"Opportunities\",\n  \"layoutable\"\
+            \ : true,\n  \"listviewable\" : null,\n  \"lookupLayoutable\" : null,\n  \"\
+            mergeable\" : false,\n  \"mruEnabled\" : true,\n  \"name\" : \"Opportunity\"\
+            ,\n  \"namedLayoutInfos\" : [ ],\n  \"networkScopeFieldName\" : null,\n  \"\
+            queryable\" : true,\n  \"recordTypeInfos\" : [ {\n    \"active\" : true,\n\
+            \    \"available\" : true,\n    \"defaultRecordTypeMapping\" : true,\n   \
+            \ \"developerName\" : \"Master\",\n    \"master\" : true,\n    \"name\" :\
+            \ \"Master\",\n    \"recordTypeId\" : \"012000000000000AAA\",\n    \"urls\"\
+            \ : {\n      \"layout\" : \"/services/data/vxx.0/sobjects/Opportunity/describe/layouts/012000000000000AAA\"\
+            \n    }\n  } ],\n  \"replicateable\" : true,\n  \"retrieveable\" : true,\n\
+            \  \"searchLayoutable\" : true,\n  \"searchable\" : true,\n  \"sobjectDescribeOption\"\
+            \ : \"FULL\",\n  \"supportedScopes\" : [ {\n    \"label\" : \"All opportunities\"\
+            ,\n    \"name\" : \"everything\"\n  }, {\n    \"label\" : \"My opportunities\"\
+            ,\n    \"name\" : \"mine\"\n  }, {\n    \"label\" : \"Filter by scope\",\n\
+            \    \"name\" : \"scopingRule\"\n  }, {\n    \"label\" : \"My team's opportunities\"\
+            ,\n    \"name\" : \"team\"\n  } ],\n  \"triggerable\" : true,\n  \"undeletable\"\
+            \ : true,\n  \"updateable\" : true,\n  \"urls\" : {\n    \"compactLayouts\"\
+            \ : \"/services/data/vxx.0/sobjects/Opportunity/describe/compactLayouts\"\
+            ,\n    \"rowTemplate\" : \"/services/data/vxx.0/sobjects/Opportunity/{ID}\"\
+            ,\n    \"approvalLayouts\" : \"/services/data/vxx.0/sobjects/Opportunity/describe/approvalLayouts\"\
+            ,\n    \"uiDetailTemplate\" : \"https://orgname.my.salesforce.com/{ID}\",\n\
+            \    \"uiEditTemplate\" : \"https://orgname.my.salesforce.com/{ID}/e\",\n\
+            \    \"listviews\" : \"/services/data/vxx.0/sobjects/Opportunity/listviews\"\
+            ,\n    \"describe\" : \"/services/data/vxx.0/sobjects/Opportunity/describe\"\
+            ,\n    \"uiNewRecord\" : \"https://orgname.my.salesforce.com/006/e\",\n  \
+            \  \"quickActions\" : \"/services/data/vxx.0/sobjects/Opportunity/quickActions\"\
+            ,\n    \"layouts\" : \"/services/data/vxx.0/sobjects/Opportunity/describe/layouts\"\
+            ,\n    \"sobject\" : \"/services/data/vxx.0/sobjects/Opportunity\"\n  }\n}"

@@ -1,13 +1,16 @@
-from unittest import mock
 import json
 import os
 import pathlib
+from unittest import mock
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.salesforce.sourcetracking import ListChanges
-from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
-from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
-from cumulusci.tasks.salesforce.sourcetracking import _write_manifest
+from cumulusci.tasks.salesforce.sourcetracking import (
+    KNOWN_BAD_MD_TYPES,
+    ListChanges,
+    RetrieveChanges,
+    SnapshotChanges,
+    _write_manifest,
+)
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
@@ -229,7 +232,22 @@ class TestSnapshotChanges:
 def test_write_manifest__folder():
     with temporary_dir() as path:
         _write_manifest(
-            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "50.0"
+            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "52.0"
         )
         package_xml = pathlib.Path(path, "package.xml").read_text()
         assert "<name>Report</name>" in package_xml
+
+
+def test_write_manifest__bad_md_types():
+    benign_md_type = [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}]
+    bad_md_types = [
+        {"MemberType": type_name, "MemberName": "Banana"}
+        for type_name in KNOWN_BAD_MD_TYPES
+    ]
+    with temporary_dir() as path:
+        changes = benign_md_type + bad_md_types
+        _write_manifest(changes, path, "52.0")
+        package_xml = pathlib.Path(path, "package.xml").read_text()
+        assert "<name>Report</name>" in package_xml
+        for name in bad_md_types:
+            assert f"<name>{name}</name>" not in package_xml

@@ -30,9 +30,9 @@ Switch to lightning
 Get urls for switching
     ${org info}=  Get org info
     set suite variable  ${switcher lex url}
-    ...  ${org info['instance_url']}ltng/switcher?destination=lex
+    ...  ${org info['instance_url']}/ltng/switcher?destination=lex
     set suite variable  ${switcher classic url}
-    ...  ${org info['instance_url']}ltng/switcher?destination=classic
+    ...  ${org info['instance_url']}/ltng/switcher?destination=classic
 
 *** Test Cases ***
 Auto-switch to lightning

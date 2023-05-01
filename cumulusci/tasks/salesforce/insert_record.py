@@ -1,6 +1,6 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_list_of_pairs_dict_arg, process_bool_arg
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.utils import process_bool_arg, process_list_of_pairs_dict_arg
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class InsertRecord(BaseSalesforceApiTask):
