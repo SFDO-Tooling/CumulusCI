@@ -9,7 +9,7 @@ import re
 import threading
 import time
 from contextlib import nullcontext
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from pydantic.error_wrappers import ValidationError
 
@@ -28,13 +28,12 @@ from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
 from cumulusci.utils.metaprogramming import classproperty
+from cumulusci.utils.options import CCIOptions
 
 CURRENT_TASK = threading.local()
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 CAPTURE_TASK_OUTPUT = os.environ.get("CAPTURE_TASK_OUTPUT")
-
-CCIOptions = "cumulusci.utils.options.CCIOptions"
 
 
 @contextlib.contextmanager
@@ -56,7 +55,7 @@ class BaseTask:
     """
 
     task_docs: str = ""
-    Options: Type[CCIOptions] = None
+    Options: Optional[Type[CCIOptions]] = None
     salesforce_task: bool = False  # Does this task require a salesforce org?
     name: Optional[str]
     stepnum: Optional[StepVersion]
@@ -116,12 +115,14 @@ class BaseTask:
             self.logger = logging.getLogger(__name__)
 
     @classproperty
-    def task_options(cls):
+    def task_options(cls):  # type: ignore  -- doesn't like the signature override below
         "Convert Options dict into old fashioned task_options syntax"
         if cls.Options:
             return cls.Options.as_task_options()
         else:
             return {}
+
+    task_options: Union[classproperty, Dict]
 
     def _init_options(self, kwargs):
         """Initializes self.options"""

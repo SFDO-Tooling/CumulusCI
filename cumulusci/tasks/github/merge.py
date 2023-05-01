@@ -18,7 +18,7 @@ class MergeBranch(BaseGithubTask):
 
     If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
     """
-    task_options = {  # type: ignore  -- should use `class Options instead`
+    task_options = {  # TODO: should use `class Options instead`
         "commit": {
             "description": "The commit to merge into feature branches.  Defaults to the current head commit."
         },
