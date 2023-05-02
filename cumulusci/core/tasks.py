@@ -145,7 +145,11 @@ class BaseTask:
 
         if self.Options:
             try:
-                self.parsed_options = self.Options(**self.options)
+                specials = ["debug_before", "debug_after", "no_prompt"]
+                options_without_specials = {
+                    opt: val for opt, val in self.options.items() if opt not in specials
+                }
+                self.parsed_options = self.Options(**options_without_specials)
             except ValidationError as e:
                 try:
                     errors = [

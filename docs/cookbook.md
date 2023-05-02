@@ -99,25 +99,6 @@ project_default_settings:
         apex: initializeProjectDefaults();
 ```
 
-## Custom Task Options
-
-Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.options.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
-Each option can define its own type via either a `standard library type <https://pydantic-docs.helpmanual.io/usage/types/>`_ or by utilizing a custom type from `cumulusci.utils.options <https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/utils/options.py>`\_. Current custom types include (but are not limited to): `PathOption`, `MappingOption`, and `ListOfStringsOption`.
-Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`\_ function is useful for further customizing options. This can be imported from `cumulusci.utils.options` and used when defining individual options.
-It has the same features as the pydantic function.
-
-Below is an example task that takes two options: (1) A defaulted string (myString), and (2) A required file path ::
-
-```python
-from cumulusci.util.options import PathOption, Field
-class CustomTask(BaseTask):
-    class Options(CCIOptions):
-        myString: str = Field('Hello', description='A string to be used by the task')
-        myPath: PathOption = Field(..., description='A filepath to be used by the task')
-```
-
-Once the options are defined, they can be accessed via the `parsed_options` property of the task.
-
 ## Converting from `task_options` to new-style Options
 
 If you have custom tasks that you'd like to convert to using the new options API, then you will want to do the following:
