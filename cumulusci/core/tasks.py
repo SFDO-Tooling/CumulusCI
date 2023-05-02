@@ -162,7 +162,7 @@ class BaseTask:
                 raise TaskOptionsError(message) from e
             except (TaskOptionsError, TypeError) as e:
                 raise TaskOptionsError(
-                    f"Task Options Error: Error in '{option}' option: '{e}'"
+                    f"Task Options Error: Error in '{self.options}' option: '{e}'"
                 )
 
     def _validate_options(self):
