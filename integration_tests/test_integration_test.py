@@ -1,10 +1,10 @@
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 
-from cumulusci.tasks.salesforce import SOQLQuery
 from cumulusci.tasks.preflight.packages import GetInstalledPackages
+from cumulusci.tasks.salesforce import SOQLQuery
 
 
 class TestFoo:

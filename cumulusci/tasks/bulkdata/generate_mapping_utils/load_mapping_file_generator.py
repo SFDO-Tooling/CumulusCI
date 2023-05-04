@@ -29,13 +29,13 @@ from .mapping_generator_post_processes import add_after_statements
 def generate_load_mapping_file(
     mapping_steps: T.Sequence[MappingStep],
     intertable_dependencies: OrderedSetType[SObjDependency],
-    load_declarations: T.List[SObjectRuleDeclaration] = None,
+    load_declarations: T.Sequence[SObjectRuleDeclaration] = (),
 ) -> T.Dict[str, dict]:
     """Generate a mapping file in optimal order with forward references etc.
 
     Input is a set of a tables, dependencies between them and load declarations"""
 
-    load_declarations = load_declarations or []
+    load_declarations = list(load_declarations) or []
     declared_dependencies = collect_user_specified_dependencies(load_declarations)
     table_names = OrderedSet(mapping.sf_object for mapping in mapping_steps)
     depmap = DependencyMap(

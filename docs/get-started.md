@@ -37,6 +37,10 @@ After `pipx` installs, install CumulusCI:
 $ pipx install cumulusci
 ```
 
+```{note}
+Upgrading Homebrew's Python version can result in a `bad interpreter` error. To resolve this, run `pipx reinstall cumulusci`.
+```
+
 When finished, [verify your installation](verify-your-installation).
 
 ### On Linux
@@ -90,15 +94,35 @@ computer. **We cannot recommend it enough!**
 Open your preferred terminal application (such as
 [cmd.exe](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd)
 on Windows). If your terminal is already open, close it and reopen it.
-Enter this command:
+Enter the following commands:
 
 ```console
 $ python -m pip install --user pipx
+$ python -m pipx ensurepath
 ```
 
-![image](images/pipx.png)
+Close your current command prompt and open a new one to verify that `pipx` was successfully installed:
 
-To permanently modify the default environment variables:
+```console
+pipx --version
+```
+
+Look for a version number after entering this command, such as:
+`0.12.3.1`.
+
+If you encounter an error, such as
+`'pipx' is not recognized as an internal or external command, operable program or batch file.`,
+you can try [updating your environment variables manually](#update-environment-variables-manually).
+
+Finally, install CumulusCI with this command:
+
+```console
+pipx install cumulusci
+```
+
+When finished, [verify your installation](verify-your-installation).
+
+#### Update Environment Variables Manually
 
 1.  Click Start and search for `edit environment variables`, or open
     System properties and click `Advanced system settings`.
@@ -116,27 +140,6 @@ Be precise when entering these paths. Add them at the very end of the
 Variable Value already in place. Separate each path by a semicolon (;)
 with no space between path names.
 ```
-
-Open a new command prompt and verify that `pipx` is available:
-
-```console
-pipx --version
-```
-
-Look for a version number after entering this command, such as:
-`0.12.3.1`.
-
-If you get an error instead, such as
-`'pipx' is not recognized as an internal or external command, operable program or batch file.`,
-confirm that your environment variables have been updated.
-
-Finally, install CumulusCI with this command:
-
-```console
-pipx install cumulusci
-```
-
-When finished, [verify your installation](verify-your-installation).
 
 (verify-your-installation)=
 

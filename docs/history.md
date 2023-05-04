@@ -2,9 +2,71 @@
 
 <!-- latest-start -->
 
-## v3.72.1.dev1 (2023-02-08)
+## v3.75.1 (2023-04-14)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Issues Fixed 🩴
+
+-   Ensure that top-level 'tasks' directory is read for custom tasks by [@prescod](https://github.com/prescod) in [#3582](https://github.com/SFDO-Tooling/CumulusCI/pull/3582)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.0...v3.75.1
+
+<!-- latest-stop -->
+
+## v3.75.0 (2023-04-13)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix bug that prevented "api" declaration in `extract_declaration` from being respected during `capture_sample_dataset`. by [@prescod](https://github.com/prescod) in [#3568](https://github.com/SFDO-Tooling/CumulusCI/pull/3568)
+-   Update windows install steps by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3571](https://github.com/SFDO-Tooling/CumulusCI/pull/3571)
+-   CCI projects can now run tasks from their "sources" even when they are custom tasks coded in Python. By [@prescod](https://github.com/prescod) in [#3345](https://github.com/SFDO-Tooling/CumulusCI/pull/3345)
+-   The `capture_sample_data` task now looks for a `datasetname.load.yml` file to influence how it generates its .mapping file for subquent loads. By [@prescod](https://github.com/prescod) in [#3569](https://github.com/SFDO-Tooling/CumulusCI/pull/3569)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.74.0...v3.75.0
+
+## v3.74.0 (2023-03-06)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Allow use of static release notes on GitHub by [@davidmreed](https://github.com/davidmreed) in [#3550](https://github.com/SFDO-Tooling/CumulusCI/pull/3550)
+-   `cci service update` by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3481](https://github.com/SFDO-Tooling/CumulusCI/pull/3481)
+-   Add TimelineObjectDefinition metadata type by [@jstvz](https://github.com/jstvz) in [#3551](https://github.com/SFDO-Tooling/CumulusCI/pull/3551)
+
+### Issues Fixed 🩴
+
+-   Fix an issue with `capture_sample_data` and record type capturing. by [@prescod](https://github.com/prescod) in [#3552](https://github.com/SFDO-Tooling/CumulusCI/pull/3552)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.73.0...v3.74.0
+
+## v3.73.0 (2023-02-16)
+
+No changes (other than dependency updates) since v3.72.1.dev2 . Please see the changes below.
+
+## v3.72.1.dev2 (2023-02-10)
+
+## What's Changed
+
+### Changes 🎉
+
+-   Include `modelVersion` in MCPM Payload by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3523](https://github.com/SFDO-Tooling/CumulusCI/pull/3523)
+-   Fix MCPM deploy again by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3526](https://github.com/SFDO-Tooling/CumulusCI/pull/3526)
+-   Mask invalid oauth token by [@jstvz](https://github.com/jstvz) in [#3529](https://github.com/SFDO-Tooling/CumulusCI/pull/3529)
+-   Include nearly everything in the wheel by [@jstvz](https://github.com/jstvz) in [#3531](https://github.com/SFDO-Tooling/CumulusCI/pull/3531)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev2
+
+## v3.72.1.dev1 (2023-02-08)
 
 ## What's Changed
 
@@ -15,11 +77,7 @@
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev1
 
-<!-- latest-stop -->
-
 ## v3.72.1.dev0 (2023-02-08)
-
-<!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
 
@@ -31,8 +89,6 @@
 
 ## v3.72.1 (2023-02-07)
 
-<!-- Release notes generated using configuration in .github/release.yml at main -->
-
 ## What's Changed
 
 ### Issues Fixed 🩴
@@ -40,8 +96,6 @@
 -   Fixed an issue preventing installation of CumulusCI's sdist in [#3520](https://github.com/SFDO-Tooling/CumulusCI/pull/3520)
 
 ## v3.72.0 (2023-02-03)
-
-<!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
 

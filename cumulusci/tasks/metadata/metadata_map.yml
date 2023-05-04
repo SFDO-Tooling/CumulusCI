@@ -767,6 +767,10 @@ testSuites:
     - type: ApexTestSuite
       class: MetadataFilenameParser
       extension: testSuite
+timelineObjectDefinitions:
+    - type: TimelineObjectDefinition
+      class: MetadataFilenameParser
+      extension: timelineObjectDefinition
 timeSheetTemplates:
     - type: TimeSheetTemplate
       class: MetadataFilenameParser
