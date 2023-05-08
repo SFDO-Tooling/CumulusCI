@@ -30,11 +30,8 @@ def _calculate_dependencies_for_declarations(
     dependencies = {}
     for decl in decls:
         assert isinstance(decl.sf_object, str)
-        new_dependencies = (
-            _collect_dependencies_for_sobject(
-                decl.sf_object, decl.fields, schema, only_required_fields=False
-            )
-            or {}
+        new_dependencies = _collect_dependencies_for_sobject(
+            decl.sf_object, decl.fields, schema, only_required_fields=False
         )
         dependencies.update(new_dependencies)
     return dependencies
@@ -46,7 +43,7 @@ def _collect_dependencies_for_sobject(
     schema: Schema,
     only_required_fields: bool,
     logger: Logger = DEFAULT_LOGGER,
-) -> T.Optional[T.Dict[str, T.List[SObjDependency]]]:
+) -> T.Dict[str, T.List[SObjDependency]]:
     """Ensure that required lookups are fulfilled for a single SObject
 
     Do this by adding its referent tables (in full) to the extract.
@@ -115,14 +112,11 @@ def extend_declarations_to_include_referenced_tables(
                     target_table, required_fields, schema[target_table].fields
                 )
 
-                new_dependencies = (
-                    _collect_dependencies_for_sobject(
-                        target_table,
-                        decls[target_table].fields,
-                        schema,
-                        only_required_fields=True,
-                    )
-                    or {}
+                new_dependencies = _collect_dependencies_for_sobject(
+                    target_table,
+                    decls[target_table].fields,
+                    schema,
+                    only_required_fields=True,
                 )
                 dependencies.update(new_dependencies)
                 to_process.append(target_table)
