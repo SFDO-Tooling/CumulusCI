@@ -2,6 +2,8 @@ import json
 import os
 import pathlib
 import re
+import sys
+import types
 from configparser import ConfigParser
 from contextlib import contextmanager
 from io import StringIO
@@ -13,6 +15,7 @@ from github3 import GitHub
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
+from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.versions import PackageVersionNumber
 from cumulusci.utils.version_strings import LooseVersion
 
@@ -46,6 +49,12 @@ from cumulusci.utils.yaml.cumulusci_yml import (
     cci_safe_load,
 )
 
+sys.modules.setdefault(
+    "tasks", types.ModuleType("tasks", "Synthetic package for all repo tasks")
+)
+import tasks
+
+tasks.__path__ = []
 if TYPE_CHECKING:
     from cumulusci.core.config.universal_config import UniversalConfig
     from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
@@ -523,6 +532,10 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             config = json.load(f)
         return config
 
+    @property
+    def allow_remote_code(self) -> bool:
+        return self.source.allow_remote_code
+
     def get_tag_for_version(self, prefix: str, version: str) -> str:
         """Given a prefix and version, returns the appropriate tag name to use."""
         try:
@@ -641,7 +654,29 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             project_config.source = source
             self.included_sources[spec] = project_config
 
+            # If I can't load remote code, make sure that my
+            # included repos can't either.
+            if not self.allow_remote_code:
+                spec.allow_remote_code = False
+            else:
+                project_config._add_tasks_directory_to_python_path()
+
         return project_config
+
+    def _add_tasks_directory_to_python_path(self):
+        # https://stackoverflow.com/a/2700924/113477
+        if not self.allow_remote_code:
+            return False
+
+        directory = str(Path(self.repo_root) / "tasks")
+        if directory not in tasks.__path__:
+            self.logger.debug(f"Adding {directory} to tasks.__path__")
+            tasks.__path__.append(directory)
+        if get_debug_mode():
+            spec = getattr(self.source, "spec", ".")
+            self.logger.debug(
+                f"After importing {spec}:  tasks.__path__ {tasks.__path__}"
+            )
 
     def construct_subproject_config(self, **kwargs) -> "BaseProjectConfig":
         """Construct another project config for an external source"""

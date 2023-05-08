@@ -138,8 +138,9 @@ exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract"]
 [tool.pytest.ini_options]
 testpaths = "cumulusci"
 addopts = "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
-markers = [
+markers = [ # note that some are also defined in code. Search for addinivalue_line
     "metadeploy: mark a test that interacts with the MetaDeploy REST API",
+    "use_real_env: use real environment variables to get access to e.g. environment-defined services for integration tests",
 ]
 filterwarnings = [
     "error:ClassMovedWarning",
@@ -259,6 +260,7 @@ include = [
     'cumulusci/utils/iterators.py',
     'cumulusci/utils/parallel/task_worker_queues/parallel_worker.py',
     'cumulusci/utils/salesforce/count_sobjects.py',
+    'cumulusci/tests/util.py',
     'cumulusci/utils/waiting.py',
     'cumulusci/utils/xml/robot_xml.py',
     'cumulusci/utils/xml/salesforce_encoding.py',

@@ -8,6 +8,7 @@ import tracemalloc
 from contextlib import contextmanager, nullcontext
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 import responses
@@ -260,26 +261,35 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
 
 @contextmanager
-def mock_env(home, cumulusci_key="0123456789ABCDEF"):
+def mock_env(
+    home,
+    cumulusci_key: Optional[str] = None,
+):
+    cumulusci_key = cumulusci_key if cumulusci_key else "0123456789ABCDEF"
     real_homedir = str(Path.home())
-    patches = {
+    new_environment = {
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
         "CUMULUSCI_SYSTEM_CERTS": "True",
+        "PATH": os.environ["PATH"],
     }
+    new_environment.update(os.environ)
+    if pythonpath := os.environ.get("PYTHONPATH"):
+        new_environment["PYTHONPATH"] = pythonpath
+
+    # among other things, this will hide CUMULUSCI_KEY, GITHUB_APP_ID
+    # and CUMULUSCI_SERVICE_github
+    #
+    # Everything else is left as-is to leave stuff like PATH, PYTHONPATH
+    # and at least one more that seems to cause Windows to fail.
+    for key in tuple(new_environment.keys()):
+        if "CUMULUSCI_" in key or "GITHUB_" in key:
+            del key
 
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
-        os.environ, patches
+        os.environ, new_environment, clear=True
     ):
-        # don't use the real CUMULUSCI_KEY for tests
-        if "CUMULUSCI_KEY" in os.environ:
-            del os.environ["CUMULUSCI_KEY"]
-        if cumulusci_key is not None:
-            # do use a fake one, if it was supplied
-            os.environ["REAL_CUMULUSCI_KEY"] = os.environ.get("CUMULUSCI_KEY", "")
-            os.environ["CUMULUSCI_KEY"] = cumulusci_key
-
         yield
 
 

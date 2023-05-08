@@ -1,6 +1,8 @@
 import typing as T
 from itertools import chain
 
+from snowfakery.cci_mapping_files.declaration_parser import SObjectRuleDeclaration
+
 from cumulusci.salesforce_api.org_schema import Schema
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 from cumulusci.utils.collections import OrderedSet
@@ -23,6 +25,7 @@ def create_load_mapping_file_from_extract_declarations(
     decls: T.Sequence[ExtractDeclaration],
     schema: Schema,
     opt_in_only: T.Sequence[str] = (),
+    loading_rules: T.Sequence[SObjectRuleDeclaration] = (),
 ) -> T.Dict[str, dict]:
     """Create a mapping file from Extract declarations"""
     simplified_decls = flatten_declarations(decls, schema, opt_in_only)  # FIXME
@@ -39,7 +42,9 @@ def create_load_mapping_file_from_extract_declarations(
 
     mapping_steps = [_mapping_step(decl) for decl in simplified_decls_w_lookups]
 
-    mappings = generate_load_mapping_file(mapping_steps, intertable_dependencies, [])
+    mappings = generate_load_mapping_file(
+        mapping_steps, intertable_dependencies, loading_rules
+    )
     return mappings
 
 
