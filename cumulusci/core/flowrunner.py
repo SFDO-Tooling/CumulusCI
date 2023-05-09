@@ -73,8 +73,11 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
-from cumulusci.core.utils import import_global
+from cumulusci.core.exceptions import (
+    FlowConfigError,
+    FlowInfiniteLoopError,
+    TaskImportError,
+)
 from cumulusci.utils.version_strings import LooseVersion
 
 if TYPE_CHECKING:
@@ -263,9 +266,12 @@ class TaskRunner:
         # Resolve ^^task_name.return_value style option syntax
         task_config = self.step.task_config.copy()
         task_config["options"] = task_config.get("options", {}).copy()
+        assert self.flow
         self.flow.resolve_return_value_options(task_config["options"])
 
         task_config["options"].update(options)
+
+        assert self.step.task_class
 
         task = self.step.task_class(
             self.step.project_config,
@@ -647,9 +653,9 @@ class FlowCoordinator:
 
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
-                task_class = import_global(task_config_dict["class_path"])
-            except (ImportError, AttributeError):
-                raise FlowConfigError(f"Task named {name} has bad classpath")
+                task_class = task_config.get_class()
+            except (ImportError, AttributeError, TaskImportError) as e:
+                raise FlowConfigError(f"Task named {name} has bad classpath, {e}")
 
             visited_steps.append(
                 StepSpec(
@@ -859,7 +865,9 @@ class CachedTaskRunner:
             return self.cache.results[cache_key].return_values
 
         task_config = self.cache.project_config.tasks[self.task_name]
-        task_class = import_global(task_config["class_path"])
+        task_class = TaskConfig(
+            {**task_config, "project_config": self.cache.project_config}
+        ).get_class()
         step = StepSpec(
             step_num=StepVersion("1"),
             task_name=self.task_name,

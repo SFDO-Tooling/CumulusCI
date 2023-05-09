@@ -1,5 +1,4 @@
 import base64
-import enum
 import io
 import json
 import pathlib
@@ -18,6 +17,7 @@ from cumulusci.core.dependencies.dependencies import (
 )
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     DependencyLookupError,
@@ -39,7 +39,7 @@ from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
 
 
-class PackageTypeEnum(str, enum.Enum):
+class PackageTypeEnum(StrEnum):
     managed = "Managed"
     unlocked = "Unlocked"
 

@@ -1,5 +1,4 @@
 import contextlib
-import enum
 import io
 import json
 import logging
@@ -13,6 +12,7 @@ from zipfile import ZipFile
 
 import sarge
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.utils import temporary_dir
 
@@ -100,7 +100,7 @@ def get_default_devhub_username():
     return username
 
 
-class SourceFormat(str, enum.Enum):
+class SourceFormat(StrEnum):
     SFDX = "SFDX"
     MDAPI = "MDAPI"
 

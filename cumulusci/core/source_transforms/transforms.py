@@ -1,5 +1,4 @@
 import abc
-import enum
 import functools
 import io
 import os
@@ -12,6 +11,7 @@ from zipfile import ZipFile
 from pydantic import BaseModel, root_validator
 
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata.package import RemoveSourceComponents
 from cumulusci.utils import (
@@ -315,7 +315,7 @@ class FindReplaceEnvSpec(FindReplaceBaseSpec):
             )
 
 
-class FindReplaceIdAPI(str, enum.Enum):
+class FindReplaceIdAPI(StrEnum):
     REST = "rest"
     TOOLING = "tooling"
 

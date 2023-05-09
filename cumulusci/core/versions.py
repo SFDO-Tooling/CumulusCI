@@ -1,8 +1,9 @@
-import enum
 import re
 from typing import Optional, Union
 
 from pydantic import BaseModel
+
+from cumulusci.core.enums import StrEnum
 
 VERSION_RE = re.compile(
     r"^(?P<MajorVersion>\d+)"
@@ -13,14 +14,14 @@ VERSION_RE = re.compile(
 )
 
 
-class VersionTypeEnum(str, enum.Enum):
+class VersionTypeEnum(StrEnum):
     major = "major"
     minor = "minor"
     patch = "patch"
     build = "build"
 
 
-class PackageType(str, enum.Enum):
+class PackageType(StrEnum):
     FIRST_GEN = "1GP"
     SECOND_GEN = "2GP"
 

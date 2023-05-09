@@ -1,10 +1,10 @@
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 
-from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata import GenerateMapping
 
 
 class TestGenerateMapping:

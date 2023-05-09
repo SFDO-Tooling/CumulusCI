@@ -24,6 +24,9 @@ class CreateRelease(BaseGithubTask):
             "required": False,
         },
         "message": {"description": "The message to attach to the created git tag"},
+        "release_content": {
+            "description": "The content to include as the release body. Note: github_release_notes will overwrite this content, if used."
+        },
         "dependencies": {
             "description": "List of dependencies to record in the tag message."
         },
@@ -107,9 +110,14 @@ class CreateRelease(BaseGithubTask):
         prerelease = tag_name.startswith(self.project_config.project__git__prefix_beta)
 
         # Create the Github Release
-        release = repo.create_release(
-            tag_name=tag_name, name=version, prerelease=prerelease
-        )
+        release_parameters = {
+            "tag_name": tag_name,
+            "name": version,
+            "prerelease": prerelease,
+        }
+        if "release_content" in self.options:
+            release_parameters["body"] = self.options["release_content"]
+        release = repo.create_release(**release_parameters)
         self.return_values = {
             "tag_name": tag_name,
             "name": version,
