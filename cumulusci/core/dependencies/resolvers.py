@@ -1,6 +1,5 @@
 import abc
 import itertools
-from enum import Enum
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 from github3.exceptions import NotFoundError
@@ -26,6 +25,7 @@ from cumulusci.core.dependencies.github import (
     get_remote_project_config,
     get_repo,
 )
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.github import (
     find_latest_release,
@@ -41,7 +41,7 @@ from cumulusci.utils.git import (
 )
 
 
-class DependencyResolutionStrategy(str, Enum):
+class DependencyResolutionStrategy(StrEnum):
     """Enum that defines a strategy for resolving a dynamic dependency into a static dependency."""
 
     STATIC_TAG_REFERENCE = "tag"
