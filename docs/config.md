@@ -239,7 +239,7 @@ complex_options:
                         name: Bob Cat Jr
 ```
 
-use-variables-for-task-options)=
+(use-variables-for-task-options)=
 
 ### Use Variables for Task Options
 
