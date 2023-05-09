@@ -3,7 +3,6 @@ import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from datetime import date, datetime
-from distutils.version import StrictVersion
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -326,7 +325,8 @@ class OrgConfig(BaseConfig):
         To check if a required package is present, call `has_minimum_package_version()` with either the
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
 
-        Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
+        Beta version of a package are represented as "1.2.3b5", where 5 is the build number.
+        """
         if self._installed_packages is None:
             isp_result = self.salesforce_client.restful(
                 "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
