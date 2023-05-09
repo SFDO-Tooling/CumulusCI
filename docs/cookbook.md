@@ -99,10 +99,11 @@ project_default_settings:
         apex: initializeProjectDefaults();
 ```
 
-## Flow Recipes
+## Converting from `task_options` to new-style Options
 
-## Robot Recipes
+If you have custom tasks that you'd like to convert to using the new options API, then you will want to do the following:
 
-## Metadata ETL Recipes
-
-## Python Recipes
+1. Create a nested `Options` class within the task class.
+2. For each of the options you have defined in the `task_options` dict you will create a corresponding option property in the `Options` class.
+3. Delete the `task_options` dictionary.
+4. Review the `_init_options()` and `_validate_options()` methods on the task class -- if they exist -- to see whether they are still relevant and correct.

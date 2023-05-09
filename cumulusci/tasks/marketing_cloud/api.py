@@ -7,7 +7,7 @@ from .base import BaseMarketingCloudTask
 
 
 class CreateSubscriberAttribute(BaseMarketingCloudTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "attribute_name": {
             "description": "The name of the Subscriber Attribute to deploy via the Marketing Cloud API.",
             "required": True,
@@ -37,7 +37,7 @@ class CreateSubscriberAttribute(BaseMarketingCloudTask):
 
 
 class CreateUser(BaseMarketingCloudTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "parent_bu_mid": {
             "description": "Specify the MID for Parent BU.",
             "required": True,
@@ -126,7 +126,7 @@ class CreateUser(BaseMarketingCloudTask):
 
 
 class UpdateUserRole(BaseMarketingCloudTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "account_mid": {
             "description": "Specify the Account MID.",
             "required": True,

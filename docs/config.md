@@ -115,17 +115,43 @@ tasks specific to your project when running `cci task list`.
 
 Congratulations! You created a new custom task in CumulusCI.
 
-If you've built a custom task in Python, you can make it available to
-the project by adding the task to a `tasks` subdirectory in the repo
-and under the `tasks` section of the
-`cumulusci.yml` file. (Let's assume that your task's class is named
-`MyNewTaskClassName` and exists in the file `tasks/task_file.py`.)
+### Custom Tasks in Python
+
+You can use Python to implement entirely new functionality. You do so by
+putting it in the "tasks" subdiretory of your project. For example, you
+might write a file called `tasks/write_file_custom_task.py`.
+
+```python
+from pathlib import Path
+
+from cumulusci.core.tasks import BaseTask, CCIOptions
+from cumulusci.utils.options import Field
+
+
+class WriteFileCustomTask(BaseTask):
+    class Options(CCIOptions):
+        mypath: Path = Field(..., description="A filepath to be used by the task")
+        mystring: str = Field("Hello", description="A string to be used by the task")
+
+    parsed_options: Options
+
+    def _run_task(self):
+        file = self.parsed_options.mypath
+        data = self.parsed_options.mystring
+        file.write_text(data)
+        self.logger.info(f"Wrote {data} to {file}")
+```
+
+You can make it available to
+the project by adding it under the `tasks` section of the
+`cumulusci.yml` file. If one does not exist, you can
+create one.
 
 ```yaml
 tasks:
     my_new_task:
         description: Description of the task
-        class_path: tasks.task_file.MyNewTaskClassName
+        class_path: tasks.write_file_custom_task.WriteFileCustomTask
         group: My Project
 ```
 
@@ -133,6 +159,81 @@ This task will be accessible directly to this project. It will also
 be accessible to any other project that adds this as a source
 (see [Tasks and Flows from a Different Project](tasks-and-flows-from-a-different-project)) with
 `allow_remote_code: True`.
+
+#### Options for Custom Tasks
+
+Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.options.CCIOptions`. These options are validated via the use of [Pydantic models](https://pydantic-docs.helpmanual.io/usage/models/) which are generated dynamically for each `Options` class.
+Each option can define its own type via either a [standard library type](https://pydantic-docs.helpmanual.io/usage/types/) or by utilizing a custom type from [`cumulusci.utils.options`](https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/utils/options.py).
+Additionally the [`Field()`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`) function is useful for further customizing options. This can be imported from `cumulusci.utils.options` and used when defining individual options.
+It has the same features as the pydantic function.
+
+The task above (`WriteFileCustomTask`) takes two options: (1) A defaulted string (myString),
+and (2) A required file path.
+
+Once the options are defined, they can be accessed via the `parsed_options` property of the task.
+
+Some of the most commonly used types are:
+
+-   `pathlib.Path`: simply uses the type itself for validation by passing the value to Path(v);
+-   `FilePath`: like Path, but the path must exist and be a file
+-   `DirectoryPath`: like Path, but the path must exist and be a directory
+-   `MappingOption`: Parses pairs of values from a string in format "a:b,c:d"
+-   `ListOfStringsOption`: Parses a list of comma-separated strings from an argument in the format "abc,def,ghi"
+-   `JSON`: Parse a JSON string into a structure, including a deeply nested structure
+
+Others can be found in the [pydantic docs](https://pydantic-docs.helpmanual.io/usage/types).
+
+If you are comfortable with Python types, you can do very sophisticated parsing.
+For example:
+
+```python
+from typing import Optional
+
+from pydantic import Json
+
+from cumulusci.core.tasks import BaseTask, CCIOptions
+from cumulusci.utils.options import Field
+
+
+class Person(CCIOptions):
+    name: str
+    children: Optional[dict[str, "Person"]]
+
+
+People = dict[str, Person]
+
+
+class ComplexOptionsCustomTask(BaseTask):
+    class Options(CCIOptions):
+        lineage: Json[People] | People = Field(..., description="Foo")
+
+    parsed_options: Options
+
+    def _run_task(self):
+        self.logger.info(f"Got {self.parsed_options.lineage}")
+```
+
+Which can parse this commmand line:
+
+```sh
+$ cci task run complex_options --lineage '{"Bob": {"name": "Bob Cat Sr", "children": {"Bob": {"name": "Bob Cat Jr"}}}}'
+    Got {'Bob': Person(name='Bob Cat Sr', children={'Bob': Person(name='Bob Cat Jr', children=None)})}
+```
+
+Or this YAML:
+
+```yaml
+complex_options:
+    description: Description of the task
+    class_path: tasks.complex_options_custom_task.ComplexOptionsCustomTask
+    options:
+        lineage:
+            Bob:
+                name: Bob Cat Sr
+                children:
+                    Bob:
+                        name: Bob Cat Jr
+```
 
 (use-variables-for-task-options)=
 
