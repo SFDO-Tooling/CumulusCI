@@ -5,8 +5,7 @@ from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class CloneTag(BaseGithubTask):
-
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "src_tag": {
             "description": "The source tag to clone.  Ex: beta/1.0-Beta_2",
             "required": True,
