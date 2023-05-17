@@ -1,8 +1,11 @@
 import json
+import time
 import uuid
 import zipfile
 from collections import defaultdict
+from enum import Enum
 from pathlib import Path
+from typing import Dict, List, Optional
 
 import requests
 
@@ -14,7 +17,7 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
 
-MCPM_ENDPOINT = "https://spf.{}.marketingcloudapps.com/api"
+MCPM_BASE_ENDPOINT = "https://spf.{}.marketingcloudapps.com/api"
 
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
 
@@ -25,15 +28,24 @@ PAYLOAD_NAMESPACE_VALUES = {
     "timestamp": True,
 }
 
-IN_PROGRESS_STATUS = "IN_PROGRESS"
+IN_PROGRESS_STATUSES = ("NOT_STARTED", "IN_PROGRESS")
 FINISHED_STATUSES = ("DONE",)
 ERROR_STATUSES = ("FATAL_ERROR", "ERROR")
+
 
 UNKNOWN_STATUS_MESSAGE = "Received unknown deploy status: {}"
 
 
-class MarketingCloudDeployTask(BaseMarketingCloudTask):
+class PollAction(Enum):
+    validating = "VALIDATING"
+    deploying = "DEPLOYING"
 
+
+class MarketingCloudDeployTask(BaseMarketingCloudTask):
+    # This task executes multiple polling loops.
+    # This enables the task to determine which endpoints should be polled.
+    current_action: Optional[PollAction] = None
+    validation_not_found_count = 0
     task_options = {
         "package_zip_file": {
             "description": "Path to the package zipfile that will be deployed.",
@@ -72,60 +84,29 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 zf.extractall(temp_dir)
                 payload = self._construct_payload(Path(temp_dir), self.custom_inputs)
 
+        endpoint_option = self.options.get("endpoint")
+        self.endpoint = endpoint_option or MCPM_BASE_ENDPOINT.format(
+            self.get_mc_stack_key()
+        )
+
         self.headers = {
             "Authorization": f"Bearer {self.mc_config.access_token}",
             "SFMC-TSSD": self.mc_config.tssd,
         }
-        custom_endpoint = self.options.get("endpoint")
-        self.endpoint = (
-            custom_endpoint
-            if custom_endpoint
-            else MCPM_ENDPOINT.format(self.get_mc_stack_key())
+
+        self._validate_package(payload)
+        self._reset_poll()
+        payload = self._update_payload_entities_with_actions(
+            [
+                "automations",
+                "assets",
+                "categories",
+                "dataExtensions",
+                "queryActivities",
+            ],
+            payload,
         )
-
-        self.logger.info(f"Deploying package to: {self.endpoint}/deployments")
-        response = requests.post(
-            f"{self.endpoint}/deployments",
-            json=payload,
-            headers=self.headers,
-        )
-        response_data = safe_json_from_response(response)
-
-        self.job_id = response_data["id"]
-        self.logger.info(f"Started deploy job with Id: {self.job_id}")
-        self._poll()
-
-    def _poll_action(self):
-        """
-        Poll something and process the response.
-        Set `self.poll_complete = True` to break polling loop.
-        """
-        response = requests.get(
-            f"{self.endpoint}/deployments/{self.job_id}", headers=self.headers
-        )
-        response_data = safe_json_from_response(response)
-        deploy_status = response_data["status"]
-        self.logger.info(f"Deployment status is: {deploy_status}")
-
-        if deploy_status != IN_PROGRESS_STATUS:
-            self._process_completed_deploy(response_data)
-
-    def _process_completed_deploy(self, response_data: dict):
-        deploy_status = response_data["status"]
-        assert (
-            deploy_status != IN_PROGRESS_STATUS
-        ), "Deploy should be in a completed state before processing."
-
-        if deploy_status in FINISHED_STATUSES:
-            self.poll_complete = True
-            self._validate_response(response_data)
-        elif deploy_status in ERROR_STATUSES:
-            self.poll_complete = True
-            self._report_error(response_data)
-        else:
-            self.logger.error(UNKNOWN_STATUS_MESSAGE.format(deploy_status))
-            self.poll_complete = True
-            self._report_error(response_data)
+        self._deploy_package(payload)
 
     def _construct_payload(self, dir_path, custom_inputs=None):
         dir_path = Path(dir_path)
@@ -187,9 +168,129 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         return payload
 
-    def _validate_response(self, deploy_info: dict):
+    def _validate_package(self, payload: Dict) -> Dict:
+        """Sends the payload to MC for validation.
+        Returns a dict of allowable actions for the target MC instance."""
+        self.current_action = PollAction.validating
+        self.logger.info(f"Validating package at: {self.endpoint}/validate")
+        response = requests.post(
+            f"{self.endpoint}/validate",
+            json=payload,
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        response_data = safe_json_from_response(response)
+        self.validate_id = response_data["id"]
+        self.logger.info(f"Started package validation with Id: {self.validate_id}")
+        self._poll()
+
+    def _update_payload_entities_with_actions(
+        self, entities: List[str], payload: Dict
+    ) -> Dict:
+        """Include available entity action returned from the validation
+        endpoint into the payload used for package deployment."""
+
+        for entity in entities:
+            for entity_id in payload["entities"][entity]:
+                action = self.action_for_entity(entity, entity_id)
+                payload["entities"][entity][entity_id]["action"] = action
+
+        if self.debug_mode:
+            self.logger.debug(f"Payload updated with actions:\n{json.dumps(payload)}")
+
+        return payload
+
+    def action_for_entity(self, entity: str, entity_id: str) -> Optional[Dict]:
+        """Fetch the corresponding action for the given entity with the specified Id"""
+        try:
+            for action_info in self.validation_response["entities"][entity][entity_id][
+                "actions"
+            ].values():
+                if action_info["available"]:
+                    return action_info
+        except KeyError:
+            # if no actions are defined for this entity just move on
+            pass
+
+    def _deploy_package(self, payload: Dict) -> Dict:
+        self.current_action = PollAction.deploying
+        self.logger.info(f"Deploying package to: {self.endpoint}/deployments")
+        response = requests.post(
+            f"{self.endpoint}/deployments",
+            json=payload,
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        response_data = safe_json_from_response(response)
+        self.deploy_id = response_data["id"]
+        self.logger.info(f"Started package deploy with Id: {self.validate_id}")
+        self._poll()
+
+    def _poll_action(self) -> None:
+        """
+        Poll based on the current action being taken.
+        """
+        if self.current_action == PollAction.validating:
+            self._poll_validating()
+        elif self.current_action == PollAction.deploying:
+            self._poll_deploying()
+        else:
+            raise Exception(
+                f"PollAction {self.current_action} does not have a polling handler defined."
+            )
+
+    def _poll_validating(self) -> None:
+        response = requests.get(
+            f"{self.endpoint}/validate/{self.validate_id}", headers=self.headers
+        )
+        response_data = safe_json_from_response(response)
+        validation_status = response_data["status"]
+        self.logger.info(f"Validation status is: {validation_status}")
+        if validation_status == "NOT_FOUND":
+            self.validation_not_found_count += 1
+            if self.validation_not_found_count > 10:
+                raise Exception(
+                    f"Unable to find status on validation: {self.validate_id}"
+                )
+            else:
+                time.sleep(self.validation_not_found_count)
+
+        elif validation_status not in IN_PROGRESS_STATUSES:
+            self.poll_complete = True
+            if self.debug_mode:  # pragma: nocover
+                self.logger.debug(f"Validation Response:\n{json.dumps(response_data)}")
+            self.validation_response = response_data
+
+    def _poll_deploying(self) -> None:
+        response = requests.get(
+            f"{self.endpoint}/deployments/{self.deploy_id}", headers=self.headers
+        )
+        response_data = safe_json_from_response(response)
+        deploy_status = response_data["status"]
+        self.logger.info(f"Deployment status is: {deploy_status}")
+
+        if deploy_status not in IN_PROGRESS_STATUSES:
+            self._process_completed_deploy(response_data)
+
+    def _process_completed_deploy(self, response_data: Dict):
+        deploy_status = response_data["status"]
+        assert (
+            deploy_status != IN_PROGRESS_STATUSES
+        ), "Deploy should be in a completed state before processing."
+
+        self.poll_complete = True
+        if deploy_status in FINISHED_STATUSES:
+            self._validate_response(response_data)
+        elif deploy_status in ERROR_STATUSES:
+            self._report_error(response_data)
+        else:
+            self.logger.error(UNKNOWN_STATUS_MESSAGE.format(deploy_status))
+            self._report_error(response_data)
+
+    def _validate_response(self, deploy_info: Dict) -> None:
         """Checks for any errors present in the response to the deploy request.
-        Displays errors if present, else informs use that the deployment was successful."""
+        Displays errors if present, else informs use that the deployment was successful.
+        """
         has_error = False
         for entity, info in deploy_info["entities"].items():
             if not info:
@@ -205,12 +306,12 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         if has_error:
             raise DeploymentException("Marketing Cloud reported deployment failures.")
 
-        self.logger.info("Deployment completed successfully.")
+        self.logger.info(f"Deployment ({self.deploy_id}) completed successfully.")
 
-    def _report_error(self, response_data: dict):
+    def _report_error(self, response_data: Dict) -> None:
         deploy_status = response_data["status"]
         self.logger.error(
-            f"Received status of: {deploy_status}. Received the following data from Marketing Cloud:\n{response_data}^"
+            f"Received status of: {deploy_status}. Received the following data from Marketing Cloud:\n{json.dumps(response_data)}"
         )
         raise DeploymentException(
             f"Marketing Cloud deploy finished with status of: {deploy_status}"
