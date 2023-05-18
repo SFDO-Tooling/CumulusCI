@@ -96,6 +96,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         self._validate_package(payload)
         self._reset_poll()
+        # TODO: make this automatically iterate over all entities
         payload = self._update_payload_entities_with_actions(
             [
                 "automations",
@@ -246,6 +247,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         response_data = safe_json_from_response(response)
         validation_status = response_data["status"]
         self.logger.info(f"Validation status is: {validation_status}")
+        # TODO: Harden this approach
         if validation_status == "NOT_FOUND":
             self.validation_not_found_count += 1
             if self.validation_not_found_count > 10:
