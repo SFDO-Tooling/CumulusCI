@@ -5,7 +5,7 @@ import zipfile
 from collections import defaultdict
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import requests
 
@@ -100,15 +100,8 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         self._validate_package(payload)
         self._reset_poll()
-        # TODO: make this automatically iterate over all entities
+
         payload = self._update_payload_entities_with_actions(
-            [
-                "automations",
-                "assets",
-                "categories",
-                "dataExtensions",
-                "queryActivities",
-            ],
             payload,
         )
         self._deploy_package(payload)
@@ -193,16 +186,14 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         self.logger.info(f"Started package validation with Id: {self.validate_id}")
         self._poll()
 
-    def _update_payload_entities_with_actions(
-        self, entities: List[str], payload: Dict
-    ) -> Dict:
+    def _update_payload_entities_with_actions(self, payload: Dict) -> Dict:
         """Include available entity action returned from the validation
         endpoint into the payload used for package deployment."""
 
-        for entity in entities:
-            for entity_id in payload["entities"][entity]:
-                action = self.action_for_entity(entity, entity_id)
-                payload["entities"][entity][entity_id]["action"] = action
+        for entity_type in payload["entities"]:
+            for entity_id in payload["entities"][entity_type]:
+                action = self.action_for_entity(entity_type, entity_id)
+                payload["entities"][entity_type][entity_id]["action"] = action
 
         if self.debug_mode:
             self.logger.debug(f"Payload updated with actions:\n{json.dumps(payload)}")
