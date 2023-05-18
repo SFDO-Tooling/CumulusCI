@@ -19,6 +19,8 @@ from .base import BaseMarketingCloudTask
 
 MCPM_BASE_ENDPOINT = "https://spf.{}.marketingcloudapps.com/api"
 
+MCPM_JOB_ID_HEADER = "x-mcpm-job-id"
+
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
 
 PAYLOAD_NAMESPACE_VALUES = {
@@ -46,6 +48,8 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
     # This enables the task to determine which endpoints should be polled.
     current_action: Optional[PollAction] = None
     validation_not_found_count = 0
+    job_name: Optional[str]
+
     task_options = {
         "package_zip_file": {
             "description": "Path to the package zipfile that will be deployed.",
@@ -116,7 +120,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         payload = defaultdict(lambda: defaultdict(dict))
         payload["namespace"] = PAYLOAD_NAMESPACE_VALUES
         payload["config"] = PAYLOAD_CONFIG_VALUES
-        payload["name"] = self.options.get("name", str(uuid.uuid4()))
+        payload["name"] = self.job_name = self.options.get("name", str(uuid.uuid4()))  # type: ignore
 
         try:
             with open(dir_path / "info.json", "r") as f:
@@ -174,10 +178,14 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         Returns a dict of allowable actions for the target MC instance."""
         self.current_action = PollAction.validating
         self.logger.info(f"Validating package at: {self.endpoint}/validate")
+        assert self.job_name
         response = requests.post(
             f"{self.endpoint}/validate",
             json=payload,
-            headers=self.headers,
+            headers={
+                MCPM_JOB_ID_HEADER: self.job_name,
+                **self.headers,
+            },
         )
         response.raise_for_status()
         response_data = safe_json_from_response(response)
@@ -241,8 +249,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             )
 
     def _poll_validating(self) -> None:
+        assert self.job_name
         response = requests.get(
-            f"{self.endpoint}/validate/{self.validate_id}", headers=self.headers
+            f"{self.endpoint}/validate/{self.validate_id}",
+            headers={MCPM_JOB_ID_HEADER: self.job_name, **self.headers},
         )
         response_data = safe_json_from_response(response)
         validation_status = response_data["status"]
