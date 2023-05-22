@@ -347,7 +347,7 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
 
 
 class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
-    inject_username: bool = True
+    inject_username: bool
 
     def get_replace_string(self, context: TaskContext) -> str:
         if not self.inject_username:  # pragma: no cover
@@ -356,10 +356,10 @@ class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
             )
             return self.find
         return context.org_config.username
-    
+
 
 class FindReplaceOrgUrlSpec(FindReplaceBaseSpec):
-    inject_org_url: bool = True
+    inject_org_url: bool
 
     def get_replace_string(self, context: TaskContext) -> str:
         if not self.inject_org_url:  # pragma: no cover
