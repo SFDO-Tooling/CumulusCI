@@ -78,6 +78,9 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         )
 
     def _run_task(self):
+        # Marketing Cloud validation _requires_ a 2-second static polling interval
+        self.poll_interval_s = 2
+
         pkg_zip_file = Path(self.options["package_zip_file"])
         if not pkg_zip_file.is_file():
             self.logger.error(f"Package zip file not valid: {pkg_zip_file.name}")
@@ -274,6 +277,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         if deploy_status not in IN_PROGRESS_STATUSES:
             self._process_completed_deploy(response_data)
+
+    def _poll_update_interval(self):
+        # Marketing Cloud validation _requires_ a 2-second static polling interval.
+        # Override the base class to remove backoff.
+        pass
 
     def _process_completed_deploy(self, response_data: Dict):
         deploy_status = response_data["status"]
