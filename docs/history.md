@@ -2,6 +2,21 @@
 
 <!-- latest-start -->
 
+## v3.76.0 (2023-05-25)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added opt-in Pydantic-based task option parsing. by [@prescod](https://github.com/prescod) in [#1618](https://github.com/SFDO-Tooling/CumulusCI/pull/1618)
+-   Add deploy transform to inject org URLs by [@davidmreed](https://github.com/davidmreed) in [#3596](https://github.com/SFDO-Tooling/CumulusCI/pull/3596)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.1...v3.76.0
+
+<!-- latest-stop -->
+
 ## v3.75.1 (2023-04-14)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +28,6 @@
 -   Ensure that top-level 'tasks' directory is read for custom tasks by [@prescod](https://github.com/prescod) in [#3582](https://github.com/SFDO-Tooling/CumulusCI/pull/3582)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.0...v3.75.1
-
-<!-- latest-stop -->
 
 ## v3.75.0 (2023-04-13)
 
