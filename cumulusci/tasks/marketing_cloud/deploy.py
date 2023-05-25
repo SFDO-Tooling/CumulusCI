@@ -1,5 +1,4 @@
 import json
-import time
 import uuid
 import zipfile
 from collections import defaultdict
@@ -91,6 +90,9 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 zf.extractall(temp_dir)
                 payload = self._construct_payload(Path(temp_dir), self.custom_inputs)
 
+        # These initialization steps are not done in _init_options()
+        # because they use MC authorization. We don't want to freeze
+        # the responses.
         endpoint_option = self.options.get("endpoint")
         self.endpoint = endpoint_option or MCPM_BASE_ENDPOINT.format(
             self.get_mc_stack_key()
@@ -194,9 +196,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         endpoint into the payload used for package deployment."""
 
         for entity_type in payload["entities"]:
-            for entity_id in payload["entities"][entity_type]:
+            this_entity_type = payload["entities"][entity_type]
+            for entity_id in this_entity_type:
+                this_entity = payload["entities"][entity_type][entity_id]
                 action = self.action_for_entity(entity_type, entity_id)
-                payload["entities"][entity_type][entity_id]["action"] = action
+                this_entity["action"] = action
 
         if self.debug_mode:
             self.logger.debug(f"Payload updated with actions:\n{json.dumps(payload)}")
@@ -251,21 +255,33 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         response_data = safe_json_from_response(response)
         validation_status = response_data["status"]
         self.logger.info(f"Validation status is: {validation_status}")
-        # TODO: Harden this approach
+
+        # Handle eccentricities of Marketing Cloud validation polling.
+        # We may get back a NOT_FOUND result if our request is routed
+        # to the wrong pod by MC. This should be fixed, but hasn't been
+        # deployed to all MC stacks yet.
+
+        # Observed behavior is that response switches between NOT_FOUND
+        # and IN_PROGRESS. We'll track these responses and fail the job
+        # only if we consistently receive NOT_FOUND.
+
+        # TODO: add a timeout.
         if validation_status == "NOT_FOUND":
             self.validation_not_found_count += 1
             if self.validation_not_found_count > 10:
-                raise Exception(
+                raise DeploymentException(
                     f"Unable to find status on validation: {self.validate_id}"
                 )
-            else:
-                time.sleep(self.validation_not_found_count)
-
-        elif validation_status not in IN_PROGRESS_STATUSES:
-            self.poll_complete = True
-            if self.debug_mode:  # pragma: nocover
-                self.logger.debug(f"Validation Response:\n{json.dumps(response_data)}")
-            self.validation_response = response_data
+        else:
+            # Reset if we get back a result other than NOT_FOUND
+            self.validation_not_found_count = 0
+            if validation_status not in IN_PROGRESS_STATUSES:
+                self.poll_complete = True
+                if self.debug_mode:  # pragma: nocover
+                    self.logger.debug(
+                        f"Validation Response:\n{json.dumps(response_data)}"
+                    )
+                self.validation_response = response_data
 
     def _poll_deploying(self) -> None:
         response = requests.get(
