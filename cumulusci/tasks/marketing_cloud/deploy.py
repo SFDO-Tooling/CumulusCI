@@ -169,7 +169,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         return payload
 
-    def _validate_package(self, payload: Dict) -> Dict:
+    def _validate_package(self, payload: Dict) -> None:
         """Sends the payload to MC for validation.
         Returns a dict of allowable actions for the target MC instance."""
         self.current_action = PollAction.validating
@@ -215,7 +215,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             # if no actions are defined for this entity just move on
             pass
 
-    def _deploy_package(self, payload: Dict) -> Dict:
+    def _deploy_package(self, payload: Dict) -> None:
         self.current_action = PollAction.deploying
         self.logger.info(f"Deploying package to: {self.endpoint}/deployments")
         response = requests.post(
