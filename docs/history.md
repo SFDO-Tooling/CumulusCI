@@ -7,8 +7,7 @@
 
 ## What's Changed
 ### Changes 🎉
-* Update task docs for SetOrgWideDefaults by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3591](https://github.com/SFDO-Tooling/CumulusCI/pull/3591)
-* Pydantic-based task option parsing. by [@prescod](https://github.com/prescod) in [#1618](https://github.com/SFDO-Tooling/CumulusCI/pull/1618)
+* Added opt-in Pydantic-based task option parsing. by [@prescod](https://github.com/prescod) in [#1618](https://github.com/SFDO-Tooling/CumulusCI/pull/1618)
 * Add deploy transform to inject org URLs by [@davidmreed](https://github.com/davidmreed) in [#3596](https://github.com/SFDO-Tooling/CumulusCI/pull/3596)
 
 
