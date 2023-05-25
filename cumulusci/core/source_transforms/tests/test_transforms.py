@@ -522,9 +522,7 @@ def test_find_replace_current_user(task_context):
     options = FindReplaceTransformOptions.parse_obj(
         {
             "patterns": [
-                {
-                    "find": "%%%CURRENT_USER%%%",
-                },
+                {"find": "%%%CURRENT_USER%%%", "inject_username": True},
             ]
         }
     )
@@ -544,6 +542,40 @@ def test_find_replace_current_user(task_context):
         ZipFileSpec(
             {
                 Path("classes") / "Foo.cls": f"System.debug('{expected_username}');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        )
+        == builder.zf
+    )
+
+
+def test_find_replace_org_url(task_context):
+    options = FindReplaceTransformOptions.parse_obj(
+        {
+            "patterns": [
+                {
+                    "find": "{url}",
+                    "inject_org_url": True,
+                },
+            ]
+        }
+    )
+    builder = MetadataPackageZipBuilder.from_zipfile(
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('{url}');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        ).as_zipfile(),
+        context=task_context,
+        transforms=[FindReplaceTransform(options)],
+    )
+
+    instance_url = task_context.org_config.instance_url
+    assert (
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": f"System.debug('{instance_url}');",
                 Path("Bar.cls"): "System.debug('blah');",
             }
         )

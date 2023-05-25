@@ -347,7 +347,7 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
 
 
 class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
-    inject_username: bool = True
+    inject_username: bool
 
     def get_replace_string(self, context: TaskContext) -> str:
         if not self.inject_username:  # pragma: no cover
@@ -358,6 +358,18 @@ class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
         return context.org_config.username
 
 
+class FindReplaceOrgUrlSpec(FindReplaceBaseSpec):
+    inject_org_url: bool
+
+    def get_replace_string(self, context: TaskContext) -> str:
+        if not self.inject_org_url:  # pragma: no cover
+            self.logger.warning(
+                "The inject_org_url value for the find_replace transform is set to False. Skipping transform."
+            )
+            return self.find
+        return context.org_config.instance_url
+
+
 class FindReplaceTransformOptions(BaseModel):
     patterns: T.List[
         T.Union[
@@ -365,6 +377,7 @@ class FindReplaceTransformOptions(BaseModel):
             FindReplaceEnvSpec,
             FindReplaceIdSpec,
             FindReplaceCurrentUserSpec,
+            FindReplaceOrgUrlSpec,
         ]
     ]
 
