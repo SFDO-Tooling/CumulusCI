@@ -473,7 +473,6 @@ class ApiDeploy(BaseMetadataApiCall):
                 message.append(f"from namespace {namespace}: ")
             if stacktrace:
                 message.append(stacktrace)
-            # messages.append("".join(message))
                 
             parsed_results.append(
                 {
