@@ -42,6 +42,10 @@ class BaseTaskFlowConfig(BaseConfig):
             # task does not exist
             error_msg = f"Task not found: {name}"
             suggestion = self.get_suggested_name(name, self.tasks)
+            if self.source and self.source.location:
+                suggestion += "\n"
+                suggestion += "Source of the problem:"
+                suggestion += str(self.source.location)
             raise TaskNotFoundError(error_msg + suggestion)
         elif not config:
             # task exists but there is no config at all

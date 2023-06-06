@@ -3,6 +3,7 @@ from pathlib import Path
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.datasets import Dataset
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.salesforce_api.filterable_objects import OPT_IN_ONLY
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
@@ -19,7 +20,15 @@ class CaptureSampleData(BaseSalesforceApiTask):
             )
         },
         "extraction_definition": {
-            "description": "A file describing what to be extracted."
+            "description": "A file describing what to be extracted. "
+            "Defaults to `datasets/{datasetname}/{datasetname}.extract.yml` if it exists."
+        },
+        "loading_rules": {
+            "description": (
+                "Path to .load.yml file containing rules to use when loading the mapping. "
+                "Defaults to`datasets/{datasetname}/{datasetname}.load.yml` if it exists. "
+                "Multiple files can be comma separated."
+            )
         },
     }
 
@@ -35,6 +44,12 @@ class CaptureSampleData(BaseSalesforceApiTask):
             extraction_definition = Path(extraction_definition)
             if not extraction_definition.exists():
                 raise TaskOptionsError(f"Cannot find {extraction_definition}")
+
+        if loading_rules := self.options.get("loading_rules"):
+            loading_rules = Path(loading_rules)
+            if not loading_rules.exists():
+                raise TaskOptionsError(f"Cannot find {loading_rules}")
+
         with get_org_schema(
             self.sf,
             self.org_config,
@@ -53,16 +68,10 @@ class CaptureSampleData(BaseSalesforceApiTask):
             else:
                 verb = "Updated"
             opt_in_only = [f["name"] for f in self.tooling.describe()["sobjects"]]  # type: ignore
-            opt_in_only += [
-                "FeedItem",
-                "Translation",
-                "WebLinkLocalization",
-                "RecordTypeLocalization",
-                "RecordType",
-                "BrandTemplate",
-            ]
+            opt_in_only += OPT_IN_ONLY
+
             self.return_values = dataset.extract(
-                {}, self.logger, extraction_definition, opt_in_only
+                {}, self.logger, extraction_definition, opt_in_only, loading_rules
             )
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
             return self.return_values

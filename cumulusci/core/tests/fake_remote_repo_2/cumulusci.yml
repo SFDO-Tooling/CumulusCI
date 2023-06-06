@@ -1,0 +1,11 @@
+project:
+    name: CumulusCI-Test-Local-Fake-2
+
+tasks:
+    example_task:
+        description: An example project-level task that does nothing
+        class_path: tasks.example_3.ExampleTask3
+
+    bad_classpath:
+        description: Task with a bad class_path
+        class_path: tasks.module.does.not.exist

@@ -1,12 +1,13 @@
 import logging
 import time
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
 
 def retry(
-    func,
-    should_retry=lambda e: True,
+    func: Callable,
+    should_retry: Callable[[Exception], bool] = lambda e: True,
     retries: int = 5,
     retry_interval: int = 5,
     retry_interval_add: int = 30,
@@ -27,7 +28,7 @@ def retry(
             logger.warning(f"Retrying ({retries} attempts remaining)")
 
 
-def poll(action):
+def poll(action: Callable):
     """poll for a result in a loop"""
     count = 0
     interval = 1
