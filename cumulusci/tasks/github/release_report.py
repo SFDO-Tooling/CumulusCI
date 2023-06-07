@@ -6,7 +6,7 @@ from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class ReleaseReport(BaseGithubTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "date_start": {
             "description": "Filter out releases created before this date (YYYY-MM-DD)"
         },

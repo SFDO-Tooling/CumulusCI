@@ -54,7 +54,7 @@ class RobotLint(BaseTask):
 
     """
 
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "configure": {
             "description": "List of rule configuration values, in the form of rule:args.",
             "default": None,
