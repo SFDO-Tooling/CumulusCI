@@ -18,7 +18,7 @@ class MergeBranch(BaseGithubTask):
 
     If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
     """
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "commit": {
             "description": "The commit to merge into feature branches.  Defaults to the current head commit."
         },
@@ -112,7 +112,6 @@ class MergeBranch(BaseGithubTask):
         main_descendents = []
         release_branches = []
         for branch in repo_branches:
-
             # check for adding future release branches
             if update_future_releases and self._is_future_release_branch(
                 branch.name, next_release

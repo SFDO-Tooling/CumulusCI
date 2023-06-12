@@ -4,7 +4,7 @@ from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTa
 class SOQLQuery(BaseSalesforceApiTask):
     name = "SOQLQuery"
 
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "object": {"required": True, "description": "The object to query"},
         "query": {
             "required": True,
