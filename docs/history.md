@@ -2,6 +2,19 @@
 
 <!-- latest-start -->
 
+## v3.77.0 (2023-07-07)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Changes 🎉
+* Add preflight check for PSL assignments by [@davidmreed](https://github.com/davidmreed) in [#3616](https://github.com/SFDO-Tooling/CumulusCI/pull/3616)
+
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0.dev0...v3.77.0
+
+
+<!-- latest-stop -->
+
 ## v3.76.0.dev0 (2023-05-25)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +26,6 @@
 -   Use Marketing Cloud's validate endpoint to update deployment packages by [@davidmreed](https://github.com/davidmreed) and [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3598](https://github.com/SFDO-Tooling/CumulusCI/pull/3598)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0...v3.76.0.dev0
-
-<!-- latest-stop -->
 
 ## v3.76.0 (2023-05-25)
 
