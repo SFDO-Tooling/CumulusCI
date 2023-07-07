@@ -311,8 +311,12 @@ tasks:
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
         group: Salesforce Preflight Checks
     get_assigned_permission_sets:
-        description: Retrieves a list of the names of any permission sets assigned to the running user.
+        description: Retrieves a list of the developer names of any permission sets assigned to the running user.
         class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
+        group: Salesforce Preflight Checks
+    get_assigned_permission_set_licenses:
+        description: Retrieves a list of the developer names of any Permission Set Licenses assigned to the running user.
+        class_path: cumulusci.tasks.preflight.licenses.GetPermissionLicenseSetAssignments
         group: Salesforce Preflight Checks
     get_available_permission_sets:
         description: Retrieves a list of the currently available Permission Sets
