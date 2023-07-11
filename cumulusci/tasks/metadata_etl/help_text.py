@@ -50,7 +50,7 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
             )
         if not all(["api_name" in entry for entry in self.options["fields"]]):
             raise TaskOptionsError(
-                "This option is auto-populated based on the 'fields' option. It represents a list of API names of entities to affect. This option is not intended to be directly provided by the user."
+                "The 'api_name' key is required on all entry values."
             )
         if not all(["help_text" in entry for entry in self.options["fields"]]):
             raise TaskOptionsError(
