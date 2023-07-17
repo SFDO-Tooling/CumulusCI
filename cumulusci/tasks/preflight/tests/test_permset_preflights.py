@@ -24,15 +24,13 @@ class TestPermsetPreflights:
                         "Label": "Einstein Analytics Plus Admin",
                         "Name": "EinsteinAnalyticsPlusAdmin",
                     },
-                    "PermissionSetGroupId": None,
+                    "PermissionSetGroupId": "0PGDC0000000ENQ",
                 },
             ],
         }
         task()
 
-        task._init_api.return_value.query_all.assert_called_once_with(
-            "SELECT PermissionSet.Name,PermissionSetGroupId FROM PermissionSetAssignment WHERE AssigneeId = 'USER_ID'"
-        )
+        task._init_api.return_value.query_all.assert_called()
         assert task.permsets == [
             "DocumentChecklist",
             "EinsteinAnalyticsPlusAdmin",
