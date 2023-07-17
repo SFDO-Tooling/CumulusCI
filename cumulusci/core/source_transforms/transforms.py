@@ -336,12 +336,14 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
             raise CumulusCIException(
                 f"The find-replace query {self.replace_record_id_query} returned {results['totalSize']} results. Exactly 1 result is required"
             )
+        else:
+            
 
         try:
-            record_id = results["records"][0]["Id"]
+            record_id = results["records"][0][0]
         except KeyError:
             raise CumulusCIException(
-                "Results from the replace_record_id_query did not include an 'Id'. Please ensure the 'Id' field is included in your query's SELECT clause."
+                "There was an issue reading the first value of the first column from the returned records as a result of the replace_record_id_query transform."
             )
         return record_id
 
