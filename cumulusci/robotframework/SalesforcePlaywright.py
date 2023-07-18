@@ -78,7 +78,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
 
         wait = self.builtin.convert_to_boolean(wait)
         default_size = self.builtin.get_variable_value(
-            "${DEFAULT BROWSER SIZE}", "1280x1024"
+            "${DEFAULT BROWSER SIZE}", "1920x1080"
         )
         size = size or default_size
 
@@ -109,7 +109,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         context_id = self.browser.new_context(
             viewport={"width": width, "height": height}, recordVideo=record_video
         )
-        self.browser.set_browser_timeout("15 seconds")
+        self.browser.set_browser_timeout("90 seconds")
         page_details = self.browser.new_page(login_url)
 
         if wait:
