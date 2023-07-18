@@ -36,3 +36,4 @@ For example:
 
 * Ed Rivas (jerivas)
 * Gustavo Tandeciarz (dcinzona)
+* Kai Amundsen (yippie)

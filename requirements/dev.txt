@@ -277,7 +277,7 @@ selenium==3.141.0
     # via
     #   cumulusci (pyproject.toml)
     #   robotframework-seleniumlibrary
-simple-salesforce==1.11.4
+simple-salesforce==1.12.3
     # via
     #   cumulusci (pyproject.toml)
     #   salesforce-bulk
