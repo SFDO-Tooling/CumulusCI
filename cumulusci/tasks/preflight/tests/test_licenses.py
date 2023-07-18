@@ -4,6 +4,7 @@ from cumulusci.tasks.preflight.licenses import (
     GetAvailableLicenses,
     GetAvailablePermissionSetLicenses,
     GetAvailablePermissionSets,
+    GetPermissionLicenseSetAssignments,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
 
@@ -43,6 +44,37 @@ class TestLicensePreflights:
             "SELECT PermissionSetLicenseKey FROM PermissionSetLicense"
         )
         assert task.return_values == ["TEST1", "TEST2"]
+
+    def test_assigned_permsetlicense_preflight(self):
+        task = create_task(GetPermissionLicenseSetAssignments, {})
+        task._init_api = Mock()
+        task._init_api.return_value.query_all.return_value = {
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {
+                    "PermissionSetLicense": {
+                        "MasterLabel": "Document Checklist",
+                        "DeveloperName": "DocumentChecklist",
+                    },
+                },
+                {
+                    "PermissionSetLicense": {
+                        "MasterLabel": "Einstein Analytics Plus Admin",
+                        "DeveloperName": "EinsteinAnalyticsPlusAdmin",
+                    },
+                },
+            ],
+        }
+        task()
+
+        task._init_api.return_value.query_all.assert_called_once_with(
+            "SELECT PermissionSetLicense.DeveloperName FROM PermissionSetLicenseAssign WHERE AssigneeId = 'USER_ID'"
+        )
+        assert task.return_values == [
+            "DocumentChecklist",
+            "EinsteinAnalyticsPlusAdmin",
+        ]
 
     def test_permsets_preflight(self):
         task = create_task(GetAvailablePermissionSets, {})
