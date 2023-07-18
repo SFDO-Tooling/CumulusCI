@@ -49,9 +49,12 @@ class MergeBranch(BaseGithubTask):
             self.options[
                 "source_branch"
             ] = self.project_config.project__git__default_branch
-        self.options["skip_future_releases"] = process_bool_arg(
-            self.options.get("skip_future_releases") or True
-        )
+        if "skip_future_releases" not in self.options:
+            self.options["skip_future_releases"] = True
+        else:
+            self.options["skip_future_releases"] = process_bool_arg(
+                self.options.get("skip_future_releases")
+            )
         self.options["update_future_releases"] = process_bool_arg(
             self.options.get("update_future_releases") or False
         )
