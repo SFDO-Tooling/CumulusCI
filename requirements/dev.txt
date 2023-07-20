@@ -184,7 +184,7 @@ pydantic==1.10.5
     #   snowfakery
 pyflakes==2.3.1
     # via flake8
-pygments==2.14.0
+pygments==2.15.0
     # via
     #   furo
     #   rich
