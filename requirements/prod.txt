@@ -8,7 +8,7 @@ appdirs==1.4.4
     # via fs
 authlib==1.2.0
     # via simple-salesforce
-certifi==2022.12.7
+certifi==2023.7.22
     # via
     #   requests
     #   snowfakery
