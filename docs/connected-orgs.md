@@ -11,6 +11,8 @@ automated build. See
 [continuous integration](continuous-integration) for more information.
 ```
 
+[Connect Persisent Orgs - Video Tutorial](https://youtu.be/xWcEciA_Dqw) (By community member [@Julian88Tex](https://github.com/Julian88Tex))
+
 ## The `org connect` Command
 
 To connect to a persistent org:
