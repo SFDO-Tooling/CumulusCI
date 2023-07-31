@@ -9,7 +9,7 @@ class OAuth2ServiceConfig(ServiceConfig, ABC):
     for establishing a connection."""
 
     @abstractclassmethod
-    def connect(self) -> Dict:  # type: ignore
+    def connect(cls) -> Dict:
         """This method is called when the service is first connected
         via `cci service connect`. This method should perform the necessary
         OAuth flow and return a dict of values that the service would like
