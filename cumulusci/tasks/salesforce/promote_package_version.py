@@ -9,6 +9,7 @@ from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.create_package_version import PackageVersionNumber
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils.salesforce.soql import format_subscriber_package_version_where_clause
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):
@@ -306,23 +307,12 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 "SubscriberPackageId",
             ],
             "SubscriberPackageVersion",
-            where_clause=self._get_spv_where_clause(spv_id),
+            where_clause=format_subscriber_package_version_where_clause(
+                spv_id,
+                self.options.get("install_key")
+            )
             raise_error=True,
         )
-
-    def _get_spv_where_clause(self, spv_id: str) -> str:
-        """Get the where clause for a SubscriberPackageVersion query
-
-        Does not include the WHERE.
-        Includes the installation key if provided.
-        """
-        where_clause = f"Id='{spv_id}'"
-
-        if self.options.get("install_key"):
-            install_key = self.options["install_key"]
-            where_clause += f" AND InstallationKey ='{install_key}'"
-
-        return where_clause
 
     def _query_one_tooling(
         self,

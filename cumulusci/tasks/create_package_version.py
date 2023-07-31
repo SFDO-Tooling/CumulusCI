@@ -37,6 +37,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
+from cumulusci.utils.salesforce.soql import format_subscriber_package_version_where_clause
 
 
 class PackageTypeEnum(StrEnum):
@@ -249,7 +250,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         ).format()
 
         # get the new version's dependencies from SubscriberPackageVersion
-        where_clause = self._get_spv_where_clause(package2_version['SubscriberPackageVersionId'])
+        where_clause = format_subscriber_package_version_where_clause(
+            package2_version['SubscriberPackageVersionId'],
+            self.options.get("install_key")
+        )
         res = self.tooling.query(
             "SELECT Dependencies FROM SubscriberPackageVersion "
             f"WHERE {where_clause}"
@@ -266,20 +270,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         self.logger.info(f"  Version Number: {self.return_values['version_number']}")
         self.logger.info(f"  Dependencies: {self.return_values['dependencies']}")
-
-    def _get_spv_where_clause(self, spv_id: str) -> str:
-        """Get the where clause for a SubscriberPackageVersion query
-
-        Does not include the WHERE.
-        Includes the installation key if provided.
-        """
-        where_clause = f"Id='{spv_id}'"
-
-        if "install_key" in self.options:
-            install_key = self.options["install_key"]
-            where_clause += f" AND InstallationKey ='{install_key}'"
-
-        return where_clause
 
     def _get_or_create_package(self, package_config: PackageConfig):
         """Find or create the Package2
