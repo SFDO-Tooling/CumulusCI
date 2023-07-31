@@ -318,7 +318,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         """
         where_clause = f"Id='{spv_id}'"
 
-        if "install_key" in self.options:
+        if self.options.get("install_key"):
             install_key = self.options["install_key"]
             where_clause += f" AND InstallationKey ='{install_key}'"
 
