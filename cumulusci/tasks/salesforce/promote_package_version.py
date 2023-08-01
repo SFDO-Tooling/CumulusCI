@@ -310,7 +310,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             where_clause=format_subscriber_package_version_where_clause(
                 spv_id,
                 self.options.get("install_key")
-            )
+            ),
             raise_error=True,
         )
 
