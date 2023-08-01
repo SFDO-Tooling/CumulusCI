@@ -177,6 +177,27 @@ class TestPromotePackageVersion(GithubApiTestMixin):
                 org_config,
             )
 
+    def test_run_task__install_key(
+        self, project_config, devhub_config, org_config
+    ):
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            PromotePackageVersion(
+                project_config,
+                TaskConfig(
+                    {
+                        "options": {
+                            "version_id": "04t000000000000",
+                            "auto_promote": False,                    
+                            "install_key": "hunter2",
+                        }
+                    }
+                ),
+                org_config,
+            )
+
     @responses.activate
     def test_run_task(self, task, devhub_config):
         # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
