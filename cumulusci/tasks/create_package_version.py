@@ -444,8 +444,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "VersionInfo": version_info,
             "CalculateCodeCoverage": not skip_validation,
         }
-        if "install_key" in self.options:
-            install_key = self.options["install_key"]
+
+        install_key = self.options.get("install_key")
+        if install_key and install_key != "None":
             request["InstallKey"] = install_key
             self.return_values["install_key"] = install_key
 

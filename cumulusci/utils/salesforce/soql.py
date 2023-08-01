@@ -8,7 +8,7 @@ def format_subscriber_package_version_where_clause(spv_id: str, install_key: Opt
     """
     where_clause = f"Id='{spv_id}'"
 
-    if install_key:
+    if install_key and install_key != "None":
         where_clause += f" AND InstallationKey ='{install_key}'"
 
     return where_clause
