@@ -8,8 +8,6 @@ author: "@jstvz"
 
 ## Context and Problem Statement
 
-## Context
-
 Salesforce has announced the deprecation of SFDX (v7) and is now focusing on the newer SF CLI (v2). They've said that SF CLI (v2) is smart enough to understand all SFDX commands, as well as new SF commands. However, our web applications and other integrations depend on SFDX. SFDX is end-of-life, so we need to cut over and make some improvements by using the new, better features.
 
 ## Decision
@@ -20,8 +18,7 @@ Salesforce has announced the deprecation of SFDX (v7) and is now focusing on the
 
     - Good: Gives users still using SFDX more time to switch.
     - Good: Gives us time to fully understand the new SF CLI.
-    - Bad: It would make our code more complex and might confuse users.
-    - Bad: It divides our attention between old and new versions.
+    - Bad: The variable presence of the `sf` CLI can lead to inconsistencies in available commands for users. This will increase code complexity and may cause different behavior depending on the CLI used.
 
 2. **Stop supporting SFDX right away:**
 
@@ -42,15 +39,15 @@ Here's how we plan to make this change:
 
 -   **Maintain Backwards Compatibility:** Our priority is to ensure that all existing processes continue to function as expected. We will not modify the existing SFDX commands in our project until SF CLI announces the version in which these commands will be deprecated.
 
--   **Delegate maintaining backwards compatibility to the SF CLI:** We will continue using existing commands as written and rely on SF CLI to interpret these commands. We think this will make the change easier and less disruptive.
+-   **Delegate maintaining backwards compatibility to the SF CLI:** We'll leave the existing commands, which invoke the `sfdx` alias from `@salesforce/cli` package, as is and rely on SF CLI to interpret these commands. We think this will make the change easier and less disruptive.
 
 -   **Warn users that are on SFDX (v7) that they need to upgrade:** We'll check the installed version of the CLI and warn users that future versions of CumulusCI will drop support.
 
 -   **Update our integration tests to include `stable-rc`:** We'll revisit PR #3558 to make sure all tasks that use the CLI are tested in our workflow, and that we're testing the weekly release candidate channel (`stable-rc`).
 
--   **Update the Falcon web applications to depend on SF as soon as practical:** We know we need to switch to SF CLI, and we want our Falcon web apps to benefit from its latest updates and features as soon as possible. We'll also install all necessary JIT plugins in the apps, so we don't have to install them over and over during builds.
+-   **Update the Falcon web applications to depend on SF as soon as practical:** We know we need to switch to SF CLI, and we want our Falcon web apps to benefit from its latest updates and features as soon as possible. We'll also install all necessary JIT plugins in the apps, so we don't have to install them over and over during builds. The timing of this switch will primarily depend on the team's bandwidth for testing the dependency switch and ensuring the `sf` CLI and JIT plugins are available.
 
--   **Update the SFDX Heroku buildpack to depend on SF as soon as practical:** Like the Falcon web applications, we want our [Heroku buildpack](https://github.com/SalesforceFoundation/simple-salesforce-dx-buildpack)to stay up-to-date with the latest SF CLI to get its performance and feature enhancements. Like the Falcon web applications, this includes installing all necessary JIT plugins for the buildpack.
+-   **Update the SFDX Heroku buildpack to depend on SF as soon as practical:** Like the Falcon web applications, we want our [Heroku buildpack](https://github.com/SalesforceFoundation/simple-salesforce-dx-buildpack) to stay up-to-date with the latest SF CLI to get its performance and feature enhancements. Like the Falcon web applications, this includes installing all necessary JIT plugins for the buildpack. The timing of this update will also be dependent on the team's capacity to carry out the necessary updates and testing.
 
 ## Consequences
 
