@@ -9,7 +9,7 @@ class TestSoql:
 
     @pytest.mark.vcr()
     def test_format_subscriber_package_version_where_clause_simple(self):
-        where_clause = format_subscriber_package_version_where_clause(self.spv_id)
+        where_clause = format_subscriber_package_version_where_clause(self.spv_id, None)
         assert f"Id='{self.spv_id}'" in where_clause
         assert f" AND InstallationKey =" not in where_clause
 
