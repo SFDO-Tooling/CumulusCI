@@ -180,23 +180,25 @@ class TestPromotePackageVersion(GithubApiTestMixin):
     def test_run_task__install_key(
         self, project_config, devhub_config, org_config
     ):
+        install_key = "hunter2"
+        task = PromotePackageVersion(
+            project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "version_id": "04t000000000000",
+                        "auto_promote": False,                    
+                        "install_key": "hunter2",
+                    }
+                }
+            ),
+            org_config,
+        )
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
-            PromotePackageVersion(
-                project_config,
-                TaskConfig(
-                    {
-                        "options": {
-                            "version_id": "04t000000000000",
-                            "auto_promote": False,                    
-                            "install_key": "hunter2",
-                        }
-                    }
-                ),
-                org_config,
-            )
+            task._init_task()
 
     @responses.activate
     def test_run_task(self, task, devhub_config):
