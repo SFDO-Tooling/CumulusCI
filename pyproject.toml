@@ -74,6 +74,8 @@ test = [
     "testfixtures",
     "tox",
     "typeguard",
+    # Note: vcrpy pins urllib3<2 on python <3.10
+    # See https://github.com/kevin1024/vcrpy#688
     "vcrpy"
 ]
 

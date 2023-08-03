@@ -104,7 +104,7 @@ update-deps:
 
 dev-install:
 	python -m pip install --upgrade pip pip-tools setuptools
-	pip-sync requirements/*.txt
+	pip-sync requirements/dev.txt
 	python -m pip install -e .
 
 schema:
