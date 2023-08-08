@@ -340,7 +340,7 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
 
         try:
             # Extract the first column name using regular expression
-            column_name = re.search(r"select\s+(\w+)", self.replace_record_id_query, re.IGNORECASE)
+            column_name = re.search(r"\s*select\s+(\w+)", self.replace_record_id_query, re.IGNORECASE)
             if column_name:
                 column_name = column_name.group(1)
             else:
