@@ -230,6 +230,12 @@ flows:
                     query: "select Id,Email,Name from Contact where LastName='Bluth'"
                     result_file: tmp/contacts_after_2.csv
 
+    recursive_when_flow:
+        steps:
+            1:
+                flow: dev_org
+                when: "false"
+
 orgs:
     scratch:
         prerelease:

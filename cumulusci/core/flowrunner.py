@@ -570,6 +570,7 @@ class FlowCoordinator:
         parent_options: Optional[dict] = None,
         parent_ui_options: Optional[dict] = None,
         from_flow: Optional[str] = None,
+        cascaded_when_clauses: Optional[List[str]] = None,
     ) -> List[StepSpec]:
         """
         for each step (as defined in the flow YAML), _visit_step is called with only
@@ -651,6 +652,18 @@ class FlowCoordinator:
             if name in self.runtime_options:
                 task_config_dict["options"].update(self.runtime_options[name])
 
+            # merge when clauses
+            when_clauses = []
+            if "when" in step_config:
+                when_clauses.append(when_clauses)
+            if cascaded_when_clauses:
+                when_clauses.extend(cascaded_when_clauses)
+            if len(when_clauses) > 1 or "when" not in step_config:
+                self.logger.info(f"When clauses: {when_clauses}")
+                step_config["when"] = " and ".join(
+                    [f"({clause})" for clause in when_clauses]
+                )
+
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
                 task_class = task_config.get_class()
@@ -679,6 +692,10 @@ class FlowCoordinator:
                 path = name
             step_options = step_config.get("options", {})
             step_ui_options = step_config.get("ui_options", {})
+            when_clause = step_config.get("when")
+            if when_clause:
+                cascaded_when_clauses = cascaded_when_clauses or []
+                cascaded_when_clauses.append(when_clause)
             flow_config = project_config.get_flow(name)
             for sub_number, sub_stepconf in flow_config.steps.items():
                 # append the flow number to the child number, since its a LooseVersion.
@@ -694,6 +711,7 @@ class FlowCoordinator:
                     parent_options=step_options,
                     parent_ui_options=step_ui_options,
                     from_flow=path,
+                    cascaded_when_clauses=cascaded_when_clauses,
                 )
         return visited_steps
 
