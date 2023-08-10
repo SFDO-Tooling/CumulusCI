@@ -10,13 +10,13 @@
 
 ### Changes 🎉
 
--   Created queried PermissionSetGroups to obtain a list of assigned permission sets by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3623](https://github.com/SFDO-Tooling/CumulusCI/pull/3623)
--   Added the create_pull_request_on_conflict option to automerge tasks by [@davidmreed](https://github.com/davidmreed) in [#3632](https://github.com/SFDO-Tooling/CumulusCI/pull/3632)
+-   Updated Permission Set preflights to handle Permission Set Groups by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3623](https://github.com/SFDO-Tooling/CumulusCI/pull/3623)
+-   Added the `create_pull_request_on_conflict` option to automerge tasks by [@BenjaminFrench](https://github.com/ BenjaminFrench) in [#3632](https://github.com/SFDO-Tooling/CumulusCI/pull/3632)
 
 ### Issues Fixed 🩴
 
--   Created the skip_future_releases option by [@jstvz](https://github.com/jstvz) in [#3624](https://github.com/SFDO-Tooling/CumulusCI/pull/3624)
--   Created the don't pass fullName for Unlocked packages by [@jstvz](https://github.com/jstvz) in [#3636](https://github.com/SFDO-Tooling/CumulusCI/pull/3636)
+-   Fixed issues with uploading some Unlocked Packages by [@jstvz](https://github.com/jstvz) in [#3636](https://github.com/SFDO-Tooling/CumulusCI/pull/3636)
+-   Corrected behavior of the `skip_future_releases` option by [@jstvz](https://github.com/jstvz) in [#3624](https://github.com/SFDO-Tooling/CumulusCI/pull/3624)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.77.0...v3.78.0
 
