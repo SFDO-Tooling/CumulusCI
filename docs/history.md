@@ -2,6 +2,26 @@
 
 <!-- latest-start -->
 
+## v3.78.0 (2023-08-10)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Updated Permission Set preflights to handle Permission Set Groups by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3623](https://github.com/SFDO-Tooling/CumulusCI/pull/3623)
+-   Added the `create_pull_request_on_conflict` option to automerge tasks by [@BenjaminFrench](https://github.com/ BenjaminFrench) in [#3632](https://github.com/SFDO-Tooling/CumulusCI/pull/3632)
+
+### Issues Fixed 🩴
+
+-   Fixed issues with uploading some Unlocked Packages by [@jstvz](https://github.com/jstvz) in [#3636](https://github.com/SFDO-Tooling/CumulusCI/pull/3636)
+-   Corrected behavior of the `skip_future_releases` option by [@jstvz](https://github.com/jstvz) in [#3624](https://github.com/SFDO-Tooling/CumulusCI/pull/3624)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.77.0...v3.78.0
+
+<!-- latest-stop -->
+
 ## v3.77.0 (2023-07-07)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -14,8 +34,6 @@
 -   Use Marketing Cloud's validate endpoint to update deployment packages by [@davidmreed](https://github.com/davidmreed) and [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3598](https://github.com/SFDO-Tooling/CumulusCI/pull/3598)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0...v3.77.0
-
-<!-- latest-stop -->
 
 ## v3.76.0.dev0 (2023-05-25)
 
