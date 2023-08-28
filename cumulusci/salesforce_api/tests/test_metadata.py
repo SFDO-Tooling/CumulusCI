@@ -44,6 +44,7 @@ from cumulusci.salesforce_api.tests.metadata_test_strings import (
 )
 from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
+from cumulusci.utils import temporary_dir, touch
 
 class DummyPackageZipBuilder(BasePackageZipBuilder):
     def _populate_zip(self):
@@ -774,6 +775,45 @@ class TestApiDeploy(TestBaseTestMetadataApi):
         with pytest.raises(MetadataApiError) as e:
             api._process_response(response)
         assert response.text == str(e.value)
+
+    def test_process_response_validate_test_output(self):
+        json_file = '.\\test_results.json'
+        xml_file = '.\\test_results.xml'
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = Response()
+        response.status_code = 200
+        response.raw = io.BytesIO(
+            deploy_result_failure.format(
+                details="""<runTestResult>
+  <failures>
+    <namespace>test</namespace>
+    <stackTrace>stack</stackTrace>
+  </failures>
+</runTestResult>
+"""
+            ).encode()
+        )
+
+        with temporary_dir():
+            with pytest.raises(ApexTestException):
+                api._process_response(response)
+
+                if touch(json_file):
+                    expected = '"Outcome": "Fail"'
+
+                    assert expected in json_file
+                
+                else:
+                    assert False
+
+                if touch(xml_file):
+                    expected = '<failure type="failed" >'
+
+                    assert expected in xml_file
+                
+                else:
+                    assert False
 
     def test_get_action(self):
         task = self._create_task()

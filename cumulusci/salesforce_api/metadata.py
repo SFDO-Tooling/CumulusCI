@@ -434,7 +434,7 @@ class ApiDeploy(BaseMetadataApiCall):
         # Create Array for Test Results
         parsed_results = []
         
-        # Parse out test success to add to log
+        # Parse out test results to add to log
         successElements = file.getElementsByTagName("successes")
         failElements = file.getElementsByTagName("failures")
 
