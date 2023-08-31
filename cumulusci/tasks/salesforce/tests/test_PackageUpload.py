@@ -22,6 +22,8 @@ class TestPackageUpload:
                 "password": "pw",
                 "post_install_url": "http://www.salesforce.org",
                 "release_notes_url": "https://github.com",
+                "major_version":"2",
+                "minor_version":"11"
             },
         )
 
@@ -29,8 +31,21 @@ class TestPackageUpload:
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
-                        # Query for package by namespace
-                        {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
+                        # Query for latest major and minor version                    
+                        {
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 0,
+                                    "PatchVersion": 1,
+                                    "ReleaseState":"Released" 
+                                    
+                                }
+                            ],
+                        },
+                         # Query for package by namespace
+                        {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},                    
                         # Query for upload status
                         {
                             "totalSize": 1,
@@ -53,7 +68,8 @@ class TestPackageUpload:
                                     "BuildNumber": 1,
                                 }
                             ],
-                        },
+                        }
+                        
                     ]
                 )
             )
@@ -75,6 +91,192 @@ class TestPackageUpload:
         task._set_package_id()
         assert expected_package_id == task.package_id
 
+    test_positive_options=[
+        (
+        {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            "minor_version":"2"
+        },
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            "minor_version":"2"
+        }
+        ),
+        (
+        {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"2",
+            "minor_version":"1"
+        },
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"2",
+            "minor_version":"1"
+        }
+        ),
+         (
+        {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            
+            "minor_version":"2"
+        },
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            "minor_version":"2"
+        }
+        ),
+         (
+        {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            
+        },
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            "minor_version":"2"
+        }
+        ),
+         (
+        {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"2",
+          
+        },
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"2",
+            "minor_version":"0"
+        }
+        ),
+         (
+        {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            
+        },
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            "minor_version":"2"
+        }
+        )
+    ]
+    @pytest.mark.parametrize("actual_options,expected_options", test_positive_options)
+    def test_positive_validate_versions(self,actual_options,expected_options):
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(return_value={
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 1,
+                                    "PatchVersion": 0, 
+                                    "ReleaseState":"Released"                                
+                                })
+        task._validate_versions()
+        assert task.options["name"] == expected_options["name"]
+        assert task.options["production"] == expected_options["production"]
+        assert task.options["password"] == expected_options["password"]
+        assert task.options["post_install_url"] == expected_options["post_install_url"]
+        assert task.options["release_notes_url"] == expected_options["release_notes_url"]
+        assert task.options["major_version"] == expected_options["major_version"]
+        assert task.options["minor_version"] == expected_options["minor_version"]
+
+    test_negative_options=[
+        { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"0",
+            "minor_version":"2"
+        },
+         { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version":"1",
+            "minor_version":"0"
+        },
+         { "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",   
+            "minor_version":"1"
+        }
+        ]    
+
+    @pytest.mark.parametrize("actual_options", test_negative_options)
+    def test_negative_validate_versions(self,actual_options):
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(return_value={
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 1,
+                                    "PatchVersion": 0, 
+                                    "ReleaseState":"Released"                                 
+                                })
+        with pytest.raises(SalesforceException):
+            task._validate_versions()  
+
     def test_set_package_info(self):
         expected_package_id = "12345"
         options = {
@@ -84,15 +286,20 @@ class TestPackageUpload:
             "password": "secret",
             "post_install_url": "post.install.url",
             "release_notes_url": "release.notes.url",
+            "major_version":"2",
+            "minor_version":"2"
         }
 
         task = create_task(PackageUpload, options)
         task._get_one_record = mock.Mock(return_value={"Id": expected_package_id})
 
+        
         with pytest.raises(AttributeError):
             task.package_info
+            
 
         task._set_package_info()
+        
 
         assert options["name"] == task.package_info["VersionName"]
         assert options["production"] == task.package_info["IsReleaseVersion"]
@@ -238,6 +445,19 @@ class TestPackageUpload:
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
+                        # Query for latest major and minor version
+                        {
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 0,
+                                    "PatchVersion": 1,
+                                    "ReleaseState":"Released" 
+                                    
+                                }
+                            ],
+                        },
                         # Query for package by namespace
                         {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
                         # Query for upload status

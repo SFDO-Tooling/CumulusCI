@@ -640,7 +640,7 @@ tasks:
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
             name: Release
-            production: True
+            production: True                     
         group: Release Operations
     upload_user_profile_photo:
         group: Salesforce Users
