@@ -69,7 +69,8 @@ class ReleaseReport(BaseGithubTask):
                 "time_push_sandbox": None,
                 "time_push_production": None,
             }
-            for line in release.body.splitlines():
+            release_body = release.body or ""
+            for line in release_body.splitlines():
                 m = regex_compiled_prefix.match(line)
                 if m:
                     if not m.group("remaining"):
