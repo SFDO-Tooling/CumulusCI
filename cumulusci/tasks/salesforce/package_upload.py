@@ -33,11 +33,11 @@ class PackageUpload(BaseSalesforceApiTask):
             "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
         "major_version": {
-            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'.",
+            "description": "The value of the major version to which you want to deploy the package.Defaults to latest major version.",
             "required": False
         },
         "minor_version": {
-            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'.",
+            "description": "The value of the minor version to which you want to deploy the package.Defaults to next available minor version for the major version. ",
             "required": False
         },
     }

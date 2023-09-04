@@ -91,135 +91,59 @@ class TestPackageUpload:
         task._set_package_id()
         assert expected_package_id == task.package_id
 
+    test_validate_version_base_options={
+
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+    }
+    
+    #this is function is used to generate test cases for test_validate_versions
+    def generate_valid_version_options(major_version,minor_version,asserted_major_version,asserted_minor_version,is_negative=False):
+        test_validate_version_base_options={
+
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+        }
+        test_case_actual={
+            **test_validate_version_base_options,    
+        }
+        if major_version!=None:
+            test_case_actual["major_version"]=str(major_version)
+        if minor_version!=None:
+            test_case_actual["minor_version"]=str(minor_version)
+
+        test_case_expected={
+            **test_validate_version_base_options,
+            "major_version":str(asserted_major_version),
+            "minor_version":str(asserted_minor_version)   
+        }    
+        print(test_case_actual,test_case_expected)
+        if is_negative:
+            return test_case_actual
+        return (test_case_actual,test_case_expected)
+
+    #Generating Positive Test Cases for test_validate_versions
     test_positive_options=[
-        (
-        {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            "minor_version":"2"
-        },
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            "minor_version":"2"
-        }
-        ),
-        (
-        {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"2",
-            "minor_version":"1"
-        },
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"2",
-            "minor_version":"1"
-        }
-        ),
-         (
-        {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            
-            "minor_version":"2"
-        },
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            "minor_version":"2"
-        }
-        ),
-         (
-        {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            
-        },
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            "minor_version":"2"
-        }
-        ),
-         (
-        {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"2",
-          
-        },
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"2",
-            "minor_version":"0"
-        }
-        ),
-         (
-        {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            
-        },
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            "minor_version":"2"
-        }
-        )
+        generate_valid_version_options(1,2,1,2),
+        generate_valid_version_options(2,1,2,1),
+        generate_valid_version_options(None,2,1,2),
+        generate_valid_version_options(1,None,1,2),
+        generate_valid_version_options(2,None,2,0),
+        generate_valid_version_options(None,None,1,2)
     ]
+    
+    #Postive Tests for tests_validate_versions
     @pytest.mark.parametrize("actual_options,expected_options", test_positive_options)
     def test_positive_validate_versions(self,actual_options,expected_options):
+        
         task = create_task(PackageUpload, actual_options)
         task._get_one_record = mock.Mock(return_value={
                                     "MajorVersion": 1,
@@ -228,6 +152,7 @@ class TestPackageUpload:
                                     "ReleaseState":"Released"                                
                                 })
         task._validate_versions()
+        
         assert task.options["name"] == expected_options["name"]
         assert task.options["production"] == expected_options["production"]
         assert task.options["password"] == expected_options["password"]
@@ -236,37 +161,18 @@ class TestPackageUpload:
         assert task.options["major_version"] == expected_options["major_version"]
         assert task.options["minor_version"] == expected_options["minor_version"]
 
+    #Generating Negative Test Cases for test_validate_versions
     test_negative_options=[
-        { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"0",
-            "minor_version":"2"
-        },
-         { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version":"1",
-            "minor_version":"0"
-        },
-         { "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",   
-            "minor_version":"1"
-        }
-        ]    
+        generate_valid_version_options(0,2,None,None,True),
+        generate_valid_version_options(1,0,None,None,True),
+        generate_valid_version_options(None,1,None,None,True)
 
+    ]
+  
+    #Negative Tests for tests_validate_versions
     @pytest.mark.parametrize("actual_options", test_negative_options)
     def test_negative_validate_versions(self,actual_options):
+        
         task = create_task(PackageUpload, actual_options)
         task._get_one_record = mock.Mock(return_value={
                                     "MajorVersion": 1,
@@ -308,6 +214,8 @@ class TestPackageUpload:
         assert options["password"] == task.package_info["Password"]
         assert options["post_install_url"] == task.package_info["PostInstallUrl"]
         assert options["release_notes_url"] == task.package_info["ReleaseNotesUrl"]
+        assert options["major_version"] == task.package_info["MajorVersion"]
+        assert options["minor_version"] == task.package_info["MinorVersion"]
 
     @mock.patch("cumulusci.tasks.salesforce.package_upload.datetime")
     def test_make_package_upload_request(self, datetime):
