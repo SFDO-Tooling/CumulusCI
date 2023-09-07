@@ -3,15 +3,16 @@
 <!-- latest-start -->
 
 ## v3.79.0 (2023-09-07)
+
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
-### Changes 🎉
-* Add workarounds to support Vlocity local comp in CI by [@jstvz](https://github.com/jstvz) in [#3642](https://github.com/SFDO-Tooling/CumulusCI/pull/3642)
 
+### Changes 🎉
+
+-   Added workarounds to support Vlocity local compilation in CI by [@jstvz](https://github.com/jstvz) in [#3642](https://github.com/SFDO-Tooling/CumulusCI/pull/3642)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.78.0...v3.79.0
-
 
 <!-- latest-stop -->
 
