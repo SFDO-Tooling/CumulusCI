@@ -13,6 +13,7 @@ class RestDeploy:
     def __init__(
         self, task, package_zip, purge_on_delete, check_only, test_level, run_tests
     ):
+        # Initialize instance variables and configuration options
         self.api_version = task.project_config.project__package__api_version
         self.task = task
         assert package_zip, "Package zip should not be None"
@@ -32,6 +33,7 @@ class RestDeploy:
             "Content-Type": f"multipart/form-data; boundary={self._boundary}",
         }
 
+        # Prepare deployment options as JSON payload
         deploy_options = {
             "deployOptions": {
                 "allowMissingFiles": False,
@@ -48,6 +50,7 @@ class RestDeploy:
         }
         json_payload = json.dumps(deploy_options)
 
+        # Construct the multipart/form-data request body
         body = (
             f"--{self._boundary}\r\n"
             f'Content-Disposition: form-data; name="json"\r\n'
@@ -72,6 +75,7 @@ class RestDeploy:
                 f"Deployment request failed with status code {response.status_code}"
             )
 
+    # Set the purge_on_delete attribute based on org type
     def _set_purge_on_delete(self, purge_on_delete):
         if not purge_on_delete or purge_on_delete == "false":
             self.purge_on_delete = "false"
@@ -84,6 +88,7 @@ class RestDeploy:
         if org_type != "Developer Edition" and not is_sandbox:
             self.purge_on_delete = "false"
 
+    # Monitor the deployment status and log progress
     def _monitor_deploy_status(self, deploy_request_id):
         url = f"{self.task.org_config.instance_url}/services/data/v{self.api_version}/metadata/deployRequest/{deploy_request_id}?includeDetails=true"
         headers = {"Authorization": f"Bearer {self.task.org_config.access_token}"}
@@ -118,35 +123,24 @@ class RestDeploy:
 
             time.sleep(5)
 
+    # Reformat the package zip file to include parent directory
     def _reformat_zip(self, package_zip):
-        # Convert the base64-encoded string to bytes
         zip_bytes = base64.b64decode(package_zip)
-
-        # Create an in-memory bytes stream from the decoded bytes
         zip_stream = io.BytesIO(zip_bytes)
-
-        # Create a new in-memory bytes stream for the reorganized ZIP archive
         new_zip_stream = io.BytesIO()
 
-        # Open the original ZIP file
         with zipfile.ZipFile(zip_stream, "r") as zip_ref:
-            # Create a new ZIP file containing the reorganized contents
             with zipfile.ZipFile(new_zip_stream, "w") as new_zip_ref:
                 for item in zip_ref.infolist():
-                    # Organize the file paths to include the "metadata" directory
+                    # Choice of name for parent directory is irrelevant to functioning
                     new_item_name = os.path.join("metadata", item.filename)
-
-                    # Read the content of the original file
                     file_content = zip_ref.read(item.filename)
-
-                    # Write the content to the new ZIP file with the new path
                     new_zip_ref.writestr(new_item_name, file_content)
 
-        # Get the bytes content of the new in-memory ZIP stream
         new_zip_bytes = new_zip_stream.getvalue()
-
         return new_zip_bytes
 
+    # Construct an error message from deployment failure details
     def _construct_error_message(self, failure):
         error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][9:]}: {failure['problem']}"
 

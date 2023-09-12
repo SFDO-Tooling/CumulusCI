@@ -57,7 +57,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             "description": "Apply source transforms before deploying. See the CumulusCI documentation for details on how to specify transforms."
         },
         "rest_deploy": {
-            "description": "If True, use the REST API call - https://host/services/data/vXX.0/metadata/deployRequest to deploy the metadata"
+            "description": "If True, deploy metadata with Apex Testing using REST API"
         },
     }
 
@@ -103,6 +103,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     f"The validation error was {str(e)}"
                 )
 
+        # Set class variable to true if rest_deploy is set to True
         self.rest_deploy = process_bool_arg(self.options.get("rest_deploy", False))
 
     def _get_api(self, path=None):
@@ -116,6 +117,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             self.logger.warning("Deployment package is empty; skipping deployment.")
             return
 
+        # If rest_deploy param is set, update api_class to be RestDeploy
         if self.rest_deploy:
             self.api_class = RestDeploy
 

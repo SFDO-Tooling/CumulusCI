@@ -5,14 +5,17 @@ from cumulusci.salesforce_api.rest_deploy import RestDeploy
 
 
 class TestRestDeploy(unittest.TestCase):
+    # Setup method executed before each test method
     def setUp(self):
         self.mock_logger = Mock()
         self.mock_task = MagicMock()
         self.mock_task.logger = self.mock_logger
         self.mock_task.org_config.instance_url = "https://example.com"
         self.mock_task.org_config.access_token = "dummy_token"
+        # Header for empty zip file
         self.mock_zip = "UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=="
 
+    # Test case for a successful deployment and deploy status
     @patch("requests.post")
     @patch("requests.get")
     def test_deployment_success(self, mock_get, mock_post):
@@ -33,6 +36,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
+        # Assertions to verify log messages and method calls
         mock_post.assert_called_once()
         self.assertEqual(
             self.mock_logger.info.call_args_list[0],
@@ -46,6 +50,7 @@ class TestRestDeploy(unittest.TestCase):
         self.assertEqual(self.mock_logger.error.call_count, 0)
         self.assertEqual(self.mock_logger.debug.call_count, 0)
 
+    # Test case for a deployment failure
     @patch("requests.post")
     def test_deployment_failure(self, mock_post):
 
@@ -58,6 +63,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
+        # Assertions to verify log messages and method calls
         mock_post.assert_called_once()
         self.assertEqual(
             self.mock_logger.error.call_args_list[0],
@@ -67,6 +73,7 @@ class TestRestDeploy(unittest.TestCase):
         self.assertEqual(self.mock_logger.error.call_count, 1)
         self.assertEqual(self.mock_logger.debug.call_count, 0)
 
+    # Test for deployment success but deploy status failure
     @patch("requests.post")
     @patch("requests.get")
     def test_deployStatus_failure(self, mock_get, mock_post):
@@ -109,6 +116,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
+        # Assertions to verify log messages and method calls
         mock_post.assert_called_once()
         self.assertEqual(
             self.mock_logger.info.call_args_list[0],
@@ -130,6 +138,7 @@ class TestRestDeploy(unittest.TestCase):
         self.assertEqual(self.mock_logger.error.call_count, 2)
         self.assertEqual(self.mock_logger.debug.call_count, 0)
 
+    # Test case for a deployment with a pending status
     @patch("requests.post")
     @patch("requests.get")
     def test_pending_call(self, mock_get, mock_post):
@@ -151,6 +160,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
+        # Assertions to verify log messages and method calls
         mock_post.assert_called_once()
         self.assertEqual(
             self.mock_logger.info.call_args_list[0],
