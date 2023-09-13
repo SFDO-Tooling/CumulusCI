@@ -66,7 +66,7 @@ class UpdateData(BaseSalesforceApiTask):
         self.sobject = self.options["object"]
 
         def identifier(f):
-            return isinstance(f, str) and f.isidentifier()
+            return isinstance(f, str) and re.match("^[a-zA-Z0-9_\\.]+$", f)
 
         if not identifier(self.sobject):
             raise TaskOptionsError(

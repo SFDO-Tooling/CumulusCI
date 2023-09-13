@@ -1,0 +1,7 @@
+# cci task run update_data --recipe datasets/update_spanning.recipe.yml
+#                          --object Contact --fields Account.Name --org qa
+
+# doesn't use randomized data because we want to use VCR.
+- object: Contact
+  fields:
+      FirstName: ${{input.Account.Name}}

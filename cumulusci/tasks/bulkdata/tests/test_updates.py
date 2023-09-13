@@ -196,6 +196,59 @@ class TestUpdates:
         assert "XML-RPC" in str(e.value), e.value
 
     @bulkapi_responses.activate
+    def test_simple_spanning_fields(self, create_task):
+        bulkapi_responses.add_query_operation(
+            sobject="Contact",
+            fields=["Id", "Account.Name"],
+            query="SELECT Id,Account.Name FROM Contact",
+            api=DataApi.SMART,
+            results=[
+                ["OID000BLAH", "Benihoff Household"],
+                ["OID000BLAH2", "Hairish Household"],
+            ],
+        )
+        loader = mock.Mock()
+        bulkapi_responses.add_dml_operation(
+            sobject="Contact",
+            operation=DataOperationType.UPDATE,
+            fields=["FirstName"],
+            api_options={},
+            api=DataApi.SMART,
+            volume=2,
+            results=[
+                DataOperationResult("OID000BLAH", success=True, error=""),
+                DataOperationResult("OID000BLAH2", success=True, error=""),
+            ],
+            loader_callback=loader,
+        )
+
+        task = create_task(
+            UpdateData,
+            {
+                "object": "Contact",
+                "recipe": "datasets/update_spanning.recipe.yml",
+                "fields": ["Account.Name"],
+            },
+        )
+
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
+        task()
+        assert loader.mock_calls == [
+            call(
+                {
+                    "FirstName": "Benihoff Household",
+                    "Id": "OID000BLAH",
+                }
+            ),
+            call(
+                {
+                    "FirstName": "Hairish Household",
+                    "Id": "OID000BLAH2",
+                }
+            ),
+        ], loader.mock_calls
+
+    @bulkapi_responses.activate
     def test_simple_task(self, create_task):
 
         bulkapi_responses.add_query_operation(

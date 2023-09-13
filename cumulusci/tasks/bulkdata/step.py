@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Dict, List, NamedTuple, Optional
 
+import pydash
 import requests
 
 from cumulusci.core.enums import StrEnum
@@ -277,7 +278,10 @@ class RestApiQueryOperation(BaseQueryOperation):
 
     def get_results(self):
         def convert(rec):
-            return [str(rec[f]) if rec[f] is not None else "" for f in self.fields]
+            return [
+                str(pydash.get(rec, f)) if rec[f] is not None else ""
+                for f in self.fields
+            ]
 
         while True:
             yield from (convert(rec) for rec in self.response["records"])

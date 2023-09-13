@@ -37,3 +37,4 @@ For example:
 * Ed Rivas (jerivas)
 * Gustavo Tandeciarz (dcinzona)
 * Ben French (BenjaminFrench)
+* Jonny Power (JonnyPower) on behalf of Traction Rec
