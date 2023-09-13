@@ -32,6 +32,14 @@ class PackageUpload(BaseSalesforceApiTask):
         "resolution_strategy": {
             "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
+        "major_version": {
+            "description": "The value of the major version to which you want to deploy the package.Defaults to latest major version.",
+            "required": False,
+        },
+        "minor_version": {
+            "description": "The value of the minor version to which you want to deploy the package.Defaults to next available minor version for the major version. ",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -46,7 +54,10 @@ class PackageUpload(BaseSalesforceApiTask):
             self.options["namespace"] = self.project_config.project__package__namespace
 
     def _run_task(self):
+
+        self._validate_versions()
         self._set_package_id()
+
         self._set_package_info()
 
         self._make_package_upload_request()
@@ -59,6 +70,35 @@ class PackageUpload(BaseSalesforceApiTask):
             self._set_dependencies()
             self._log_package_upload_success()
 
+    def _validate_versions(self):
+
+        version = self._get_one_record(
+            (
+                "SELECT MajorVersion,"
+                "MinorVersion,"
+                "PatchVersion,ReleaseState FROM MetadataPackageVersion Order by MajorVersion Desc,MinorVersion Desc, PatchVersion Desc LIMIT 1"
+            ),
+            "Version not found",
+        )
+        if "major_version" in self.options:
+            if int(self.options["major_version"]) < version["MajorVersion"]:
+                raise SalesforceException("Major Version not valid.")
+        else:
+            self.options["major_version"] = str(version["MajorVersion"])
+
+        if self.options["major_version"] == str(version["MajorVersion"]):
+            if "minor_version" in self.options:
+                if int(self.options["minor_version"]) <= version["MinorVersion"]:
+                    raise SalesforceException("Minor Version not valid.")
+            else:
+                if version["ReleaseState"] == "Beta":
+                    self.options["minor_version"] = str(version["MinorVersion"])
+                else:
+                    self.options["minor_version"] = str(version["MinorVersion"] + 1)
+        else:
+            if "minor_version" not in self.options:
+                self.options["minor_version"] = "0"
+
     def _set_package_info(self):
         if not self.package_id:
             self._set_package_id()
@@ -69,6 +109,8 @@ class PackageUpload(BaseSalesforceApiTask):
             "VersionName": self.options["name"],
             "IsReleaseVersion": production,
             "MetadataPackageId": self.package_id,
+            "MajorVersion": self.options["major_version"],
+            "MinorVersion": self.options["minor_version"],
         }
 
         if "description" in self.options:
@@ -208,6 +250,7 @@ class PackageUpload(BaseSalesforceApiTask):
             f"Version {self.version_id} not found",
         )
         version_parts = [str(version["MajorVersion"]), str(version["MinorVersion"])]
+
         if version["PatchVersion"]:
             version_parts.append(str(version["PatchVersion"]))
 
