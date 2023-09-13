@@ -13,6 +13,7 @@ from cumulusci.core.source_transforms.transforms import (
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
+from cumulusci.salesforce_api.rest_deploy import RestDeploy
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
@@ -54,6 +55,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
         "transforms": {
             "description": "Apply source transforms before deploying. See the CumulusCI documentation for details on how to specify transforms."
+        },
+        "rest_deploy": {
+            "description": "If True, deploy metadata with Apex Testing using REST API"
         },
     }
 
@@ -99,6 +103,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     f"The validation error was {str(e)}"
                 )
 
+        # Set class variable to true if rest_deploy is set to True
+        self.rest_deploy = process_bool_arg(self.options.get("rest_deploy", False))
+
     def _get_api(self, path=None):
         if not path:
             path = self.options.get("path")
@@ -109,6 +116,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
         else:
             self.logger.warning("Deployment package is empty; skipping deployment.")
             return
+
+        # If rest_deploy param is set, update api_class to be RestDeploy
+        if self.rest_deploy:
+            self.api_class = RestDeploy
 
         return self.api_class(
             self,
