@@ -44,7 +44,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         self.assertEqual(
             self.mock_logger.info.call_args_list[1],
-            call("Deployment completed with status: Succeeded"),
+            call("Deployment Succeeded"),
         )
         self.assertEqual(self.mock_logger.info.call_count, 2)
         self.assertEqual(self.mock_logger.error.call_count, 0)
@@ -124,7 +124,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         self.assertEqual(
             self.mock_logger.info.call_args_list[1],
-            call("Deployment completed with status: Failed"),
+            call("Deployment Failed"),
         )
         self.assertEqual(self.mock_logger.info.call_count, 2)
         self.assertEqual(
@@ -168,7 +168,7 @@ class TestRestDeploy(unittest.TestCase):
         )
         self.assertEqual(
             self.mock_logger.info.call_args_list[1],
-            call("Deployment completed with status: Succeeded"),
+            call("Deployment Succeeded"),
         )
         self.assertEqual(self.mock_logger.info.call_count, 2)
         self.assertEqual(self.mock_logger.error.call_count, 0)
