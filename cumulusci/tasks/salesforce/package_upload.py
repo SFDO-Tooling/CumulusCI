@@ -90,7 +90,9 @@ class PackageUpload(BaseSalesforceApiTask):
         else:
             self.options["major_version"] = str(version["MajorVersion"])
 
-        """This if is executed only when major version is equal to latest major version. Updates the minor version in options if not passed and validates if passed """
+        """This if is executed only when major version is equal to latest major version. Updates the minor version in options if not passed and validates if passed
+        Updates minor version when not passed in remaining cases.
+        """
         if self.options["major_version"] == str(version["MajorVersion"]):
             if "minor_version" in self.options:
                 if int(self.options["minor_version"]) <= version["MinorVersion"]:
@@ -99,8 +101,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 if version["ReleaseState"] == "Beta":
                     self.options["minor_version"] = str(version["MinorVersion"])
                 else:      
-                    self.options["minor_version"] = str(version["MinorVersion"] + 1)
-        """Updates minor version when not passed in remaining cases."""            
+                    self.options["minor_version"] = str(version["MinorVersion"] + 1)         
         else:
             if "minor_version" not in self.options:
                 self.options["minor_version"] = "0"
