@@ -31,7 +31,7 @@ class TestPackageUpload:
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
-                        # Query for latest major and minor version used via validate version function 
+                        # Query for latest major and minor version used via validate version function
                         {
                             "totalSize": 1,
                             "records": [
@@ -97,15 +97,15 @@ class TestPackageUpload:
         "post_install_url": "post.install.url",
         "release_notes_url": "release.notes.url",
     }
-
     """This is function is used to generate test cases for test_validate_versions(positive as well as negative)
-        Arguments:
-            major_version:acutal major version which is to be passed none if not passed.
-            minor_version:acutal minor version which is to be passed none if not passed.
-            asserted_major_version:major version which is expected in options dict after running of validate version function.
-            asserted_minor_version:minor version which is expected in options dict after running of validate version function.
-            is_negative:This boolean is used to decide whether the function returns a postive or negative test case. defaults to true is not passed.
+    Arguments:
+        major_version:acutal major version which is to be passed none if not passed.
+        minor_version:acutal minor version which is to be passed none if not passed
+        asserted_major_version:major version which is expected in options dict after running of validate version function.
+        asserted_minor_version:minor version which is expected in options dict after running of validate version function.
+        is_negative:This boolean is used to decide whether the function returns a postive or negative test case. defaults to true is not passed.
     """
+
     def generate_valid_version_options(
         major_version,
         minor_version,
@@ -150,6 +150,7 @@ class TestPackageUpload:
     ]
 
     """Runs Postive Tests for tests_validate_versions"""
+
     @pytest.mark.parametrize("actual_options,expected_options", test_positive_options)
     def test_positive_validate_versions(self, actual_options, expected_options):
 
@@ -182,6 +183,7 @@ class TestPackageUpload:
     ]
 
     """Generating Negative Tests for tests_validate_versions"""
+
     @pytest.mark.parametrize("actual_options", test_negative_options)
     def test_negative_validate_versions(self, actual_options):
 
