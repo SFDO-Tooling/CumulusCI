@@ -70,8 +70,10 @@ class PackageUpload(BaseSalesforceApiTask):
             self._set_dependencies()
             self._log_package_upload_success()
 
+    """This functions validates the major version and minor version if passed and sets them in the options dictionary if not passed."""
     def _validate_versions(self):
 
+        """Fetching the latest major,minor and patch version from Database"""
         version = self._get_one_record(
             (
                 "SELECT MajorVersion,"
@@ -80,12 +82,15 @@ class PackageUpload(BaseSalesforceApiTask):
             ),
             "Version not found",
         )
+
+        """This if-else condition updates the major version to latest major version in options if not passed via command line and validates it if passed. """
         if "major_version" in self.options:
             if int(self.options["major_version"]) < version["MajorVersion"]:
                 raise SalesforceException("Major Version not valid.")
         else:
             self.options["major_version"] = str(version["MajorVersion"])
 
+        """This if is executed only when major version is equal to latest major version. Updates the minor version in options if not passed and validates if passed """
         if self.options["major_version"] == str(version["MajorVersion"]):
             if "minor_version" in self.options:
                 if int(self.options["minor_version"]) <= version["MinorVersion"]:
@@ -93,8 +98,9 @@ class PackageUpload(BaseSalesforceApiTask):
             else:
                 if version["ReleaseState"] == "Beta":
                     self.options["minor_version"] = str(version["MinorVersion"])
-                else:
+                else:      
                     self.options["minor_version"] = str(version["MinorVersion"] + 1)
+        """Updates minor version when not passed in remaining cases."""            
         else:
             if "minor_version" not in self.options:
                 self.options["minor_version"] = "0"
