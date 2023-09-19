@@ -430,12 +430,6 @@
                 "noancestors": {
                     "title": "Noancestors",
                     "type": "boolean"
-                },
-                "release": {
-                    "title": "Release",
-                    "default": "previous",
-                    "enum": ["previous", "preview"],
-                    "type": "string"
                 }
             },
             "additionalProperties": false
