@@ -150,7 +150,7 @@ class ScratchOrg(CCIDictModel):
     namespaced: str = None
     setup_flow: str = None
     noancestors: bool = None
-    release: Literal["previous", "preview"] = "previous"
+    # release: Literal["previous", "preview"] = "previous"
 
 
 class Orgs(CCIDictModel):
