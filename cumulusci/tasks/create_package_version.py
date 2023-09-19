@@ -212,7 +212,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = None
         with convert_sfdx_source(
             self.project_config.default_package_path,
-            self.package_config.package_name,
+            None
+            if self.package_config.package_type == PackageTypeEnum.unlocked
+            else self.package_config.package_name,
             self.logger,
         ) as path:
             package_zip_builder = MetadataPackageZipBuilder(
