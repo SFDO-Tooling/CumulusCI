@@ -440,11 +440,6 @@ def create_task_options_doc(task_options):
         if usage_str:
             doc.append(f"\n``{usage_str}``")
 
-        if option.get("required"):
-            doc.append("\t *Required*")
-        else:
-            doc.append("\t *Optional*")
-
         description = option.get("description")
         if description:
             doc.append(f"\n\t {description}")
@@ -452,6 +447,10 @@ def create_task_options_doc(task_options):
         default = option.get("default")
         if default:
             doc.append(f"\n\t Default: {default}")
+        elif option.get("required"):
+            doc.append("\n *Required*")
+        else:
+            doc.append("\n *Optional*")
 
         option_type = option.get("option_type")
         if option_type:

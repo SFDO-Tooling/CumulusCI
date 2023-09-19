@@ -370,7 +370,9 @@ class TestScratchOrgConfig:
         sfdx = mock.Mock(return_value=sfdx_response)
 
         config = ScratchOrgConfig({}, "test")
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 access_token = config.get_access_token(alias="dadvisor")
                 sfdx.assert_called_once_with(
@@ -392,7 +394,9 @@ class TestScratchOrgConfig:
 
         config = ScratchOrgConfig({}, "test")
 
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with pytest.raises(
                 SfdxOrgException,
                 match="Couldn't find a username for the specified user",
@@ -410,7 +414,9 @@ class TestScratchOrgConfig:
 
         config = ScratchOrgConfig({}, "test")
 
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with pytest.raises(
                 SfdxOrgException,
                 match="More than one user matched the search critiera.",
@@ -426,7 +432,9 @@ class TestScratchOrgConfig:
         sfdx = mock.Mock(return_value=sfdx_response)
 
         config = ScratchOrgConfig({}, "test")
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 exception = (
                     "Unable to find access token for whatever@example.com\nblah blah..."
@@ -463,7 +471,9 @@ class TestScratchOrgConfig:
             "instance_url": "test_instance",
             "access_token": "token",
         }
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             assert config.user_id == "test"
 
     def test_username_from_sfdx_info(self, Command):
@@ -736,14 +746,14 @@ class TestScratchOrgConfig:
         )
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
-        assert config._choose_devhub() == "fake@fake.devhub"
+        assert config._choose_devhub_username() == "fake@fake.devhub"
 
     def test_choose_devhub__service_not_configured(self, Command):
         mock_keychain = mock.Mock()
         mock_keychain.get_service.side_effect = ServiceNotConfigured
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
-        assert config._choose_devhub() is None
+        assert config._choose_devhub_username() is None
 
 
 class TestScratchOrgConfigPytest:

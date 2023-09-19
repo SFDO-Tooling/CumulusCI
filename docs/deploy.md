@@ -119,6 +119,56 @@ options:
                     replace: bar
 ```
 
+#### Find-and-Replace Id Injection
+
+Some metadata components contain ID references. CumulusCI offers a way to insert the ID of an existing record from the target org directly into such components during a deployment. Specify a SOQL query with the `replace_record_id_query` option as follows:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - find: special_string
+                    replace_record_id_query: SELECT Id from Account WHERE name='Specific Account'
+                    api: rest
+```
+
+Available values for `api` include `rest` and `tooling`.
+
+#### Find-and-Replace Current Username Injection
+
+CumulusCI can replace a given token with the username of the current running user in the target Salesforce org.
+All that is needed is to specify a value for `find` and set `inject_username: True`:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - find: special_string
+                    inject_username: True
+```
+
+#### Find-and-Replace Org URL Injection
+
+CumulusCI can replace a given token with the org URL of the target Salesforce org.
+All that is needed is to specify a value for `find` and set `inject_org_url: True`:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - find: special_string
+                    inject_org_url: True
+```
+
 ### Stripping Components with a `package.xml` Manifest
 
 This transformation allows you to deploy a subset of a metadata directory based on a `package.xml` manifest by removing unwanted components. It will compare components available in the source folder with a provided `package.xml` file and delete/modify component files which are not found.

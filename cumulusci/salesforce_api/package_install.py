@@ -1,6 +1,5 @@
 import functools
 import logging
-from enum import Enum
 from typing import Optional, cast
 
 from simple_salesforce.api import SFType
@@ -9,6 +8,7 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import PackageInstallError, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
@@ -21,7 +21,7 @@ from cumulusci.utils.yaml.model_parser import CCIModel
 logger = logging.getLogger(__name__)
 
 
-class SecurityType(str, Enum):
+class SecurityType(StrEnum):
     """Enum used to specify the component permissioning mode for a package install.
 
     The values specified by the Tooling API are confusing, and PUSH is not documented.
@@ -33,7 +33,7 @@ class SecurityType(str, Enum):
     PUSH = "PUSH"  # No profiles
 
 
-class NameConflictResolution(str, Enum):
+class NameConflictResolution(StrEnum):
     """Enum used to specify how name conflicts will be resolved when installing an Unlocked Package."""
 
     BLOCK = "Block"
@@ -41,13 +41,13 @@ class NameConflictResolution(str, Enum):
 
 
 # Unlocked Packages only. Default appears to be all but is not documented.
-class ApexCompileType(str, Enum):
+class ApexCompileType(StrEnum):
     ALL = "all"
     PACKAGE = "package"
 
 
 # Unlocked Packages only. Default is mixed.
-class UpgradeType(str, Enum):
+class UpgradeType(StrEnum):
     DELETE_ONLY = "delete-only"
     DEPRECATE_ONLY = "deprecate-only"
     MIXED = "mixed"

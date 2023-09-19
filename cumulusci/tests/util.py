@@ -8,6 +8,7 @@ import tracemalloc
 from contextlib import contextmanager, nullcontext
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 import responses
@@ -253,33 +254,43 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         task.sf = salesforce_client
 
     with mock.patch(
-        "cumulusci.core.config.OrgConfig.is_person_accounts_enabled",
+        "cumulusci.core.config.org_config.OrgConfig.is_person_accounts_enabled",
         lambda: is_person_accounts_enabled,
     ), mock.patch.object(task, "_init_task", _init_task):
         yield
 
 
+# copy over most of the environment because Windows needs something
+# non-obvious and it is quite laborius to figure out what it is.
+
+# but we want to hide the CUMULUSCI_ and GITHUB_ related stuff from tests.
+ENV_CLONE = {
+    key: value
+    for key, value in os.environ.items()
+    if "CUMULUSCI_" not in key and "GITHUB_" not in key
+}
+
+ENV_CLONE["CUMULUSCI_SYSTEM_CERTS"] = "True"
+
+
 @contextmanager
-def mock_env(home, cumulusci_key="0123456789ABCDEF"):
+def mock_env(
+    home,
+    cumulusci_key: Optional[str] = None,
+):
+    cumulusci_key = cumulusci_key if cumulusci_key else "0123456789ABCDEF"
     real_homedir = str(Path.home())
-    patches = {
+    new_environment = {
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
-        "CUMULUSCI_SYSTEM_CERTS": "True",
+        "CUMULUSCI_KEY": cumulusci_key,
+        **ENV_CLONE,
     }
 
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
-        os.environ, patches
+        os.environ, new_environment, clear=True
     ):
-        # don't use the real CUMULUSCI_KEY for tests
-        if "CUMULUSCI_KEY" in os.environ:
-            del os.environ["CUMULUSCI_KEY"]
-        if cumulusci_key is not None:
-            # do use a fake one, if it was supplied
-            os.environ["REAL_CUMULUSCI_KEY"] = os.environ.get("CUMULUSCI_KEY", "")
-            os.environ["CUMULUSCI_KEY"] = cumulusci_key
-
         yield
 
 

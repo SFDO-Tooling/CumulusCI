@@ -337,6 +337,7 @@ def org_info(runtime, org_name, print_json):
             "scratch",
             "scratch_org_type",
             "set_password",
+            "serialization_format",  # only during the transition
             "sfdx_alias",
             "username",
         }

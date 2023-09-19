@@ -75,7 +75,7 @@ class TestUpsert:
         # load the data and double-check that it loaded as expected
         with mock.patch.object(task.logger, "info"):
             task()
-            assert "UPSERT" in str(task.logger.info.mock_calls)
+            assert "upsert" in str(task.logger.info.mock_calls)
 
         # check that the right steps were executed
         result = task.return_values
@@ -232,7 +232,9 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == DataApi.REST, relevant_debug_statement
+            assert relevant_debug_statement == format(
+                DataApi.REST
+            ), relevant_debug_statement
 
     def _mock_bulk(self, domain):
         responses.add(
@@ -419,7 +421,9 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == DataApi.BULK, relevant_debug_statement
+            assert relevant_debug_statement in format(
+                DataApi.BULK
+            ), relevant_debug_statement
 
     def _test_two_upserts_and_check_results__complex(
         self, api, create_task, cumulusci_test_repo_root, sf

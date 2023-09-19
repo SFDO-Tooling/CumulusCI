@@ -11,6 +11,7 @@ from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDi
 from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
@@ -75,7 +76,7 @@ class MappingLookup(CCIDictModel):
 SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
 
 
-class BulkMode(Enum):
+class BulkMode(StrEnum):
     serial = Serial = "Serial"
     parallel = Parallel = "Parallel"
 
@@ -547,9 +548,16 @@ class MappingStep(CCIDictModel):
             by_alias=by_alias, exclude_defaults=exclude_defaults, **kwargs
         )
         if fields := out.get("fields"):
+            # Convert dicts of {"Name": "Name", "Role": "Role"}
+            # (an old-fashioned syntax)
+            # into a more modern ["Name", "Role"] -type format.
             keys = list(fields.keys())
             if keys == list(fields.values()):
                 out["fields"] = keys
+
+        # flatten enum to string
+        if isinstance(out.get("api"), DataApi):
+            out["api"] = out["api"].value
         return out
 
 

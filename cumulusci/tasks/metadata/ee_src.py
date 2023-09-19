@@ -1,4 +1,6 @@
 import os
+
+# TODO: Replace this with shutils
 from distutils.dir_util import copy_tree, remove_tree
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -7,7 +9,7 @@ from cumulusci.utils import remove_xml_element_directory
 
 
 class CreateUnmanagedEESrc(BaseTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "path": {
             "description": "The path containing metadata to process for managed deployment",
             "required": True,
@@ -61,7 +63,7 @@ class CreateUnmanagedEESrc(BaseTask):
 
 
 class RevertUnmanagedEESrc(BaseTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "path": {
             "description": "The path containing metadata to process for managed deployment",
             "required": True,

@@ -1,3 +1,5 @@
+# pyright: strict
+
 import typing as T
 
 from cumulusci.salesforce_api.org_schema import Schema
@@ -17,11 +19,13 @@ def _mapping_decl_for_extract_decl(
 ):
     """Make a CCI extract mapping step from a SimplifiedExtractDeclarationWithLookups"""
     lookups = {lookup: {"table": table} for lookup, table in decl.lookups.items()}
-    mapping_dict = {
+    mapping_dict: dict[str, T.Any] = {
         "sf_object": decl.sf_object,
     }
     if decl.where:
         mapping_dict["soql_filter"] = decl.where
+    if decl.api:
+        mapping_dict["api"] = decl.api.value
     mapping_dict["fields"] = decl.fields
     if lookups:
         mapping_dict["lookups"] = lookups
@@ -30,12 +34,12 @@ def _mapping_decl_for_extract_decl(
 
 
 def create_extract_mapping_file_from_declarations(
-    decls: T.List[ExtractDeclaration], schema: Schema
+    decls: T.List[ExtractDeclaration], schema: Schema, opt_in_only: T.Sequence[str]
 ):
     """Create a mapping file sufficient for driving an extract process
     from an extract declarations file."""
     assert decls is not None
-    simplified_decls = flatten_declarations(decls, schema)
+    simplified_decls = flatten_declarations(decls, schema, opt_in_only)
     simplified_decls = classify_and_filter_lookups(simplified_decls, schema)
     mappings = [_mapping_decl_for_extract_decl(decl) for decl in simplified_decls]
     return dict(pair for pair in mappings if pair)

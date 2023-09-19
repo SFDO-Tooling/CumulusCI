@@ -28,9 +28,10 @@ class TestGenerateLoadMappingFromDeclarations:
             filters=[],
             include_counts=True,
         ) as schema:
-            mf = create_extract_mapping_file_from_declarations(declarations, schema)
+            mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
             assert mf == {
                 "Extract Account": {
+                    "api": "smart",
                     "sf_object": "Account",
                     "fields": ["Name", "Description"],
                     "soql_filter": "Name != 'Sample Account for " "Entitlements'",
@@ -55,15 +56,17 @@ class TestGenerateLoadMappingFromDeclarations:
             filters=[],
             include_counts=True,
         ) as schema:
-            mf = create_extract_mapping_file_from_declarations(declarations, schema)
+            mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
             print(mf)
             assert mf == {
                 "Extract Account": {
+                    "api": "smart",
                     "sf_object": "Account",
                     "soql_filter": "Name != 'Sample Account for Entitlements'",
                     "fields": ["Name", "Description"],
                 },
                 "Extract Contact": {
+                    "api": "smart",
                     "sf_object": "Contact",
                     "fields": ["LastName"],
                     "lookups": {"AccountId": {"table": "Account"}},

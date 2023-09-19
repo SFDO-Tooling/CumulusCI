@@ -32,12 +32,45 @@ env:
     SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
 
 jobs:
+    test_artifacts:
+        name: "Test Package Artifacts"
+        runs-on: sfdc-ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v4
+              with:
+                  python-version: 3.8
+                  cache: pip
+                  cache-dependency-path: "requirements/*.txt"
+            - name: Install build tools
+              run: pip install hatch
+            - name: Test source tarball and binary wheel
+              run: |
+                  hatch build
+            - name: Test install of wheel
+              run: |
+                  pip install dist/cumulusci*.whl
+                  pip show cumulusci
+                  pip uninstall -y cumulusci
+            - name: Test install of sdist
+              run: |
+                  pip install dist/cumulusci*.tar.gz
+                  pip show cumulusci
+                  pip uninstall -y cumulusci
+            - name: Store artifacts
+              if: failure()
+              uses: actions/upload-artifact@v3
+              with:
+                  name: packages
+                  path: dist
+
     test_release:
         name: "Test Release Flows"
         runs-on: sfdc-ubuntu-latest
         concurrency: release
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - name: Set up Python 3.8
               uses: actions/setup-python@v4
               with:
