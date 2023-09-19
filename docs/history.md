@@ -2,6 +2,76 @@
 
 <!-- latest-start -->
 
+## v3.79.0 (2023-09-07)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added workarounds to support Vlocity local compilation in CI by [@jstvz](https://github.com/jstvz) in [#3642](https://github.com/SFDO-Tooling/CumulusCI/pull/3642)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.78.0...v3.79.0
+
+<!-- latest-stop -->
+
+## v3.78.0 (2023-08-10)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Updated Permission Set preflights to handle Permission Set Groups by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3623](https://github.com/SFDO-Tooling/CumulusCI/pull/3623)
+-   Added the `create_pull_request_on_conflict` option to automerge tasks by [@BenjaminFrench](https://github.com/ BenjaminFrench) in [#3632](https://github.com/SFDO-Tooling/CumulusCI/pull/3632)
+
+### Issues Fixed 🩴
+
+-   Fixed issues with uploading some Unlocked Packages by [@jstvz](https://github.com/jstvz) in [#3636](https://github.com/SFDO-Tooling/CumulusCI/pull/3636)
+-   Corrected behavior of the `skip_future_releases` option by [@jstvz](https://github.com/jstvz) in [#3624](https://github.com/SFDO-Tooling/CumulusCI/pull/3624)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.77.0...v3.78.0
+
+## v3.77.0 (2023-07-07)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Add preflight check for PSL assignments by [@davidmreed](https://github.com/davidmreed) in [#3616](https://github.com/SFDO-Tooling/CumulusCI/pull/3616)
+-   Use Marketing Cloud's validate endpoint to update deployment packages by [@davidmreed](https://github.com/davidmreed) and [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3598](https://github.com/SFDO-Tooling/CumulusCI/pull/3598)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0...v3.77.0
+
+## v3.76.0.dev0 (2023-05-25)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Use Marketing Cloud's validate endpoint to update deployment packages by [@davidmreed](https://github.com/davidmreed) and [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3598](https://github.com/SFDO-Tooling/CumulusCI/pull/3598)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0...v3.76.0.dev0
+
+## v3.76.0 (2023-05-25)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added opt-in Pydantic-based task option parsing. by [@prescod](https://github.com/prescod) in [#1618](https://github.com/SFDO-Tooling/CumulusCI/pull/1618)
+-   Add deploy transform to inject org URLs by [@davidmreed](https://github.com/davidmreed) in [#3596](https://github.com/SFDO-Tooling/CumulusCI/pull/3596)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.1...v3.76.0
+
 ## v3.75.1 (2023-04-14)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +83,6 @@
 -   Ensure that top-level 'tasks' directory is read for custom tasks by [@prescod](https://github.com/prescod) in [#3582](https://github.com/SFDO-Tooling/CumulusCI/pull/3582)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.0...v3.75.1
-
-<!-- latest-stop -->
 
 ## v3.75.0 (2023-04-13)
 
