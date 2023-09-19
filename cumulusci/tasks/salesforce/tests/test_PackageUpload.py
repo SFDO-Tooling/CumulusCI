@@ -108,7 +108,7 @@ class TestPackageUpload:
         asserted_major_version: str,
         asserted_minor_version: str,
         is_negative: bool = False,
-    ) -> tuple[dict, dict] or dict:
+    ):
 
         """This is function is used to generate test cases for test_validate_versions(positive as well as negative)
         Arguments:
