@@ -34,6 +34,9 @@ class MergeBranch(BaseGithubTask):
         "update_future_releases": {
             "description": "If true, then include release branches that are not the lowest release number even if they are not child branches. Defaults to False."
         },
+        "create_pull_request_on_conflict": {
+            "description": "If true, then create a pull request when a merge conflict arises. Defaults to True."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -49,12 +52,21 @@ class MergeBranch(BaseGithubTask):
             self.options[
                 "source_branch"
             ] = self.project_config.project__git__default_branch
-        self.options["skip_future_releases"] = process_bool_arg(
-            self.options.get("skip_future_releases") or True
-        )
+        if "skip_future_releases" not in self.options:
+            self.options["skip_future_releases"] = True
+        else:
+            self.options["skip_future_releases"] = process_bool_arg(
+                self.options.get("skip_future_releases")
+            )
         self.options["update_future_releases"] = process_bool_arg(
             self.options.get("update_future_releases") or False
         )
+        if "create_pull_request_on_conflict" not in self.options:
+            self.options["create_pull_request_on_conflict"] = True
+        else:
+            self.options["create_pull_request_on_conflict"] = process_bool_arg(
+                self.options.get("create_pull_request_on_conflict")
+            )
 
     def _init_task(self):
         super()._init_task()
@@ -242,29 +254,38 @@ class MergeBranch(BaseGithubTask):
             if e.code != http.client.CONFLICT:
                 raise
 
-            if branch_name in self._get_existing_prs(
-                self.options["source_branch"], self.options["branch_prefix"]
-            ):
+            if self.options["create_pull_request_on_conflict"]:
+                self._create_conflict_pull_request(branch_name, source)
+            else:
                 self.logger.info(
-                    f"Merge conflict on branch {branch_name}: merge PR already exists"
+                    f"Merge conflict on branch {branch_name}: skipping pull request creation"
                 )
-                return
 
-            try:
-                pull = self.repo.create_pull(
-                    title=f"Merge {source} into {branch_name}",
-                    base=branch_name,
-                    head=source,
-                    body="This pull request was automatically generated because "
-                    "an automated merge hit a merge conflict",
-                )
-                self.logger.info(
-                    f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
-                )
-            except github3.exceptions.UnprocessableEntity as e:
-                self.logger.error(
-                    f"Error creating merge conflict pull request to merge {source} into {branch_name}:\n{e.response.text}"
-                )
+    def _create_conflict_pull_request(self, branch_name, source):
+        """Attempt to create a pull request from source into branch_name if merge operation encounters a conflict"""
+        if branch_name in self._get_existing_prs(
+            self.options["source_branch"], self.options["branch_prefix"]
+        ):
+            self.logger.info(
+                f"Merge conflict on branch {branch_name}: merge PR already exists"
+            )
+            return
+
+        try:
+            pull = self.repo.create_pull(
+                title=f"Merge {source} into {branch_name}",
+                base=branch_name,
+                head=source,
+                body="This pull request was automatically generated because "
+                "an automated merge hit a merge conflict",
+            )
+            self.logger.info(
+                f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
+            )
+        except github3.exceptions.UnprocessableEntity as e:
+            self.logger.error(
+                f"Error creating merge conflict pull request to merge {source} into {branch_name}:\n{e.response.text}"
+            )
 
     def _is_source_branch_direct_descendent(self, branch_name):
         """Returns True if branch is a direct descendent of the source branch"""
