@@ -571,7 +571,6 @@ def org_scratch(
     runtime, config_name, org_name, default, devhub, days, no_password, release
 ):
     runtime.check_org_overwrite(org_name)
-
     release_options = ["previous", "preview"]
     if release and release not in release_options:
         raise click.UsageError("Release options value is not valid.")

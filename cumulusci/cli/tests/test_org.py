@@ -1281,7 +1281,6 @@ class TestOrgCommands:
         runtime.project_config.lookup = MockLookup(
             orgs__scratch={"dev": {"orgName": "Dev"}}
         )
-
         run_click_command(
             org.org_scratch,
             runtime=runtime,

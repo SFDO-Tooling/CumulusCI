@@ -78,6 +78,7 @@ class BaseProjectKeychain(BaseConfig):
         org_config = ScratchOrgConfig(
             scratch_config, org_name, keychain=self, global_org=False
         )
+
         org_config.save()
 
     def set_org(self, org_config, global_org=False, save=True):
