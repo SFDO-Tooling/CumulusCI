@@ -1291,11 +1291,12 @@ class TestOrgCommands:
             devhub="hub",
             days=7,
             no_password=True,
+            release="previous",
         )
 
         runtime.check_org_overwrite.assert_called_once()
         runtime.keychain.create_scratch_org.assert_called_with(
-            "test", "dev", 7, set_password=False
+            "test", "dev", 7, set_password=False, release="previous"
         )
 
     def test_org_scratch_no_configs(self):
@@ -1312,6 +1313,7 @@ class TestOrgCommands:
                 devhub="hub",
                 days=7,
                 no_password=True,
+                release="previous",
             )
 
     def test_org_scratch_config_not_found(self):
@@ -1328,6 +1330,7 @@ class TestOrgCommands:
                 devhub="hub",
                 days=7,
                 no_password=True,
+                release="previous",
             )
 
     def test_org_scratch_delete(self):
