@@ -140,6 +140,12 @@ class TaskOptionsError(CumulusCIUsageError):
     pass
 
 
+class TaskImportError(CumulusCIException):
+    """Raise when a task's class can't be loaded"""
+
+    pass
+
+
 class NamespaceNotFoundError(CumulusCIUsageError):
     """Raise when namespace is not found in project includes"""
 

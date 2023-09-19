@@ -1,23 +1,37 @@
 {
-    "name": "cci-deploy",
     "namespace": {
         "category": "",
         "prepend": "",
         "append": "",
         "timestamp": true
     },
-    "config": { "preserveCategories": true },
-    "references": { "assets/0": [] },
-    "input": [{ "key": "companyName" }],
+    "config": {
+        "preserveCategories": true
+    },
+    "name": "cci-deploy",
+    "modelVersion": "4",
+    "references": {
+        "assets/0": []
+    },
+    "input": [
+        {
+            "key": "companyName"
+        }
+    ],
     "entities": {
         "assets": {
             "0": {
                 "issues": [],
                 "data": {
-                    "assetType": { "id": 209, "name": "textonlyemail" },
+                    "assetType": {
+                        "id": 209,
+                        "name": "textonlyemail"
+                    },
                     "data": {
                         "email": {
-                            "options": { "characterEncoding": "utf-8" },
+                            "options": {
+                                "characterEncoding": "utf-8"
+                            },
                             "attributes": [
                                 {
                                     "displayName": "__AdditionalEmailAttribute1",
@@ -46,7 +60,11 @@
                             "meta": {},
                             "availableViews": [],
                             "data": {
-                                "email": { "options": { "generateFrom": "" } }
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
                             },
                             "modelVersion": 2
                         },
@@ -54,21 +72,33 @@
                             "content": "code",
                             "availableViews": [],
                             "data": {
-                                "email": { "options": { "generateFrom": "" } }
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
                             },
                             "modelVersion": 2
                         },
                         "subscriptioncenter": {
                             "availableViews": [],
                             "data": {
-                                "email": { "options": { "generateFrom": "" } }
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
                             },
                             "modelVersion": 2
                         },
                         "forwardText": {
                             "availableViews": [],
                             "data": {
-                                "email": { "options": { "generateFrom": "" } }
+                                "email": {
+                                    "options": {
+                                        "generateFrom": ""
+                                    }
+                                }
                             },
                             "modelVersion": 2
                         }

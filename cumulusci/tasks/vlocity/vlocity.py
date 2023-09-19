@@ -1,11 +1,14 @@
+import os
 import re
 import sys
 from abc import ABC
+from pathlib import Path
 from typing import Final
 
 import sarge
 
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
+from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
 from cumulusci.tasks.metadata_etl.remote_site_settings import (
@@ -23,6 +26,9 @@ VF_RSS_NAME = "OmniStudioVisualforce"
 VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
 LWC_RSS_NAME = "OmniStudioLightning"
 OMNI_NAMESPACE = "omnistudio"
+VBT_SF_ALIAS = "cci-vbt-target"
+SF_TOKEN_ENV = "SFDX_ACCESS_TOKEN"
+VBT_TOKEN_ENV = "OMNIOUT_TOKEN"
 
 
 class VlocityBaseTask(Command, BaseSalesforceTask):
@@ -80,15 +86,40 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
 
         command: str = f"{self.command_keyword} -job {job_file}"
 
-        if isinstance(self.org_config, ScratchOrgConfig):
-            command = f"{command} -sfdx.username '{username}'"
-        else:
-            access_token: str = f"-sf.accessToken '{self.org_config.access_token}'"
-            instance_url: str = f"-sf.instanceUrl '{self.org_config.instance_url}'"
-            command = f"{command} {access_token} {instance_url}"
+        if not isinstance(self.org_config, ScratchOrgConfig):
+            username = self._add_token_to_sfdx(
+                self.org_config.access_token, self.org_config.instance_url
+            )
+        command = f"{command} -sfdx.username '{username}'"
 
         self.options["command"] = command
         return super()._get_command()
+
+    def _add_token_to_sfdx(self, access_token: str, instance_url: str) -> str:
+        """
+        HACK: VBT's documentation suggests that passing sf.accessToken/sf.instanceUrl
+        is compatible with local compilation, but our experience (as of VBT v1.17)
+        says otherwise. This function is our workaround: by adding the access token
+        and temporarily setting it as the default we allow VBT to deploy the
+        locally compiled components via SFDX or salesforce-alm.
+        """
+        # TODO: Use the sf v2 form of this command instead (when we migrate)
+        token_store_cmd = [
+            "sfdx",
+            "force:auth:accesstoken:store",
+            "--no-prompt",
+            "--alias",
+            f"{VBT_SF_ALIAS}",
+            "--instance-url",
+            f"{instance_url}",
+        ]
+        try:
+            p = sarge.Command(token_store_cmd, env={SF_TOKEN_ENV: access_token})
+            p.run(async_=True)
+            p.wait()
+        except Exception as exc:
+            raise SfdxOrgException("token store failed") from exc
+        return VBT_SF_ALIAS
 
 
 class VlocityRetrieveTask(VlocitySimpleJobTask):
@@ -101,6 +132,63 @@ class VlocityDeployTask(VlocitySimpleJobTask):
     """Runs a `vlocity packDeploy` command with a given user and job file"""
 
     command_keyword: Final[str] = "packDeploy"
+
+    task_options: dict = {
+        "job_file": {
+            "description": "Filepath to the jobfile",
+            "required": True,
+        },
+        "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
+        "npm_auth_key_env": {
+            "description": (
+                "Environment variable storing an auth token for the "
+                "Vlocity NPM Repository (npmAuthKey). If defined, appended "
+                "to the job file."
+            ),
+            "default": VBT_TOKEN_ENV,
+        },
+    }
+
+    def _get_command(self) -> str:
+        npm_env_var: str = self.options.get("npm_auth_key_env", VBT_TOKEN_ENV)
+        job_file: str = self.options.get("job_file")
+
+        self.add_npm_auth_to_jobfile(job_file, npm_env_var)
+
+        return super()._get_command()
+
+    def add_npm_auth_to_jobfile(self, job_file: str, npm_env_var: str) -> bool:
+        """
+        HACK: VBT local compilation requires use of an auth token for a private
+        NPM repository, defined as the npmAuthKey option. Unfortunately, this
+        option can't be defined in an environment variable, nor can it be passed
+        via the CLI. Instead, the option is _only_ read from the job file, so the
+        secret must be committed to source control for CI/CD. Our workaround is to
+        check for the presence of npm_env_var in the environment, and appending it
+        to the job file if it is.
+
+        Retuns:
+        - False: No environment variable found or conflict exists in job file
+        - True: Auth token written to job file
+        """
+        found_msg = f"VBT NPM environment variable named '{npm_env_var}' found."
+        if npm_key := os.environ.get(npm_env_var):
+            self.logger.info(found_msg)
+        else:
+            self.logger.debug(f"No {found_msg}")
+            return False
+
+        job_file_path: Path = Path(job_file)
+        job_file_txt = job_file_path.read_text()
+
+        # Warn about duplicate keys to avoid showing the user a nasty JS traceback
+        if "npmAuthKey" in job_file_txt:
+            self.logger.warning("npmAuthKey present in job file, skipping...")
+            return False
+
+        self.logger.info(f"Appending to {job_file}")
+        job_file_path.write_text(f"{job_file_txt}\nnpmAuthKey: {npm_key}")
+        return True
 
 
 class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):

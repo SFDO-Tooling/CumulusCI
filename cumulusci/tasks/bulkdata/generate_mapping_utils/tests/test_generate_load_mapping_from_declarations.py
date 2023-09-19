@@ -44,6 +44,45 @@ class TestGenerateLoadMappingFromDeclarations:
                 }
             }
 
+    def test_generate_mapping_from_both_kinds_of_declarations(self, org_config):
+        declarations = [
+            ExtractDeclaration(sf_object="Account", fields=["Name", "Description"]),
+            ExtractDeclaration(sf_object="Contact", fields=["FirstName", "LastName"]),
+        ]
+        object_counts = {"Account": 10, "Contact": 1, "Case": 5}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Case"),
+        )
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            filters=[],
+            include_counts=True,
+        ) as schema:
+            loading_rules = [
+                SObjectRuleDeclaration(sf_object="Account", load_after="Contact")
+            ]
+            mf = create_load_mapping_file_from_extract_declarations(
+                declarations, schema, (), loading_rules
+            )
+            assert tuple(mf.items()) == tuple(
+                {
+                    "Insert Contact": {
+                        "sf_object": "Contact",
+                        "table": "Contact",
+                        "fields": ["FirstName", "LastName"],
+                    },
+                    "Insert Account": {
+                        "sf_object": "Account",
+                        "table": "Account",
+                        "fields": ["Name", "Description"],
+                    },
+                }.items()
+            )
+
     def test_generate_load_mapping_from_declarations__lookups(self, org_config):
         declarations = [
             ExtractDeclaration(sf_object="Account", fields=["Name", "Description"]),
@@ -162,7 +201,7 @@ class TestGenerateLoadMappingFromDeclarations:
             },
         }, mf
 
-    def test_generate_load_mapping__with_userts(self, org_config):
+    def test_generate_load_mapping__with_upserts(self, org_config):
 
         mapping_steps = [
             MappingStep(sf_object="Account"),
@@ -184,7 +223,7 @@ class TestGenerateLoadMappingFromDeclarations:
         mf = generate_load_mapping_file(
             mapping_steps,
             intertable_dependencies=set(),
-            load_declarations=None,
+            load_declarations=(),
         )
         assert mf == {
             "Insert Account": {

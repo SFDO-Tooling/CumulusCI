@@ -1,5 +1,4 @@
 import base64
-import enum
 import io
 import json
 import pathlib
@@ -18,6 +17,7 @@ from cumulusci.core.dependencies.dependencies import (
 )
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     DependencyLookupError,
@@ -39,7 +39,7 @@ from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
 
 
-class PackageTypeEnum(str, enum.Enum):
+class PackageTypeEnum(StrEnum):
     managed = "Managed"
     unlocked = "Unlocked"
 
@@ -211,7 +211,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = None
         with convert_sfdx_source(
             self.project_config.default_package_path,
-            self.package_config.package_name,
+            None
+            if self.package_config.package_type == PackageTypeEnum.unlocked
+            else self.package_config.package_name,
             self.logger,
         ) as path:
             package_zip_builder = MetadataPackageZipBuilder(

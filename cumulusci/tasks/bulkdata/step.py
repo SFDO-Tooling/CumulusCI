@@ -6,11 +6,11 @@ import tempfile
 import time
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from enum import Enum
 from typing import Any, Dict, List, NamedTuple, Optional
 
 import requests
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
@@ -23,7 +23,7 @@ MAX_REST_BATCH_SIZE = 200
 csv.field_size_limit(2**27)  # 128 MB
 
 
-class DataOperationType(Enum):
+class DataOperationType(StrEnum):
     """Enum defining the API data operation requested."""
 
     INSERT = "insert"
@@ -36,7 +36,7 @@ class DataOperationType(Enum):
     SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
-class DataApi(str, Enum):
+class DataApi(StrEnum):
     """Enum defining requested Salesforce data API for an operation."""
 
     BULK = "bulk"
@@ -44,7 +44,7 @@ class DataApi(str, Enum):
     SMART = "smart"
 
 
-class DataOperationStatus(str, Enum):
+class DataOperationStatus(StrEnum):
     """Enum defining outcome values for a data operation."""
 
     SUCCESS = "Success"

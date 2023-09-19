@@ -18,7 +18,7 @@ from cumulusci.utils.git import split_repo_url
 
 
 class PublishSubtree(BaseGithubTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "repo_url": {"description": "The url to the public repo", "required": True},
         "branch": {
             "description": "The branch to update in the target repo",

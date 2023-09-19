@@ -1,0 +1,7 @@
+project:
+    name: Untrusted-Repo-Child
+
+tasks:
+    example_task:
+        description: A task that should be inaccessible to parent tasks
+        class_path: tasks.untrusted_child.ExampleTask
