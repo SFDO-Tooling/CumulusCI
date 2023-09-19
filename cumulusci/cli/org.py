@@ -563,7 +563,7 @@ def org_remove(runtime, org_name, global_org):
     "--no-password", is_flag=True, help="If set, don't set a password for the org"
 )
 @click.option(
-    "--release", help="If provided specify the release when creating a scratch org"
+    "--release", help="If provided, specify either previous or preview when creating a scratch org"
 )
 @pass_runtime(require_keychain=True)
 def org_scratch(

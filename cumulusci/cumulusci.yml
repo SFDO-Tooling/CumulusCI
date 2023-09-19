@@ -641,7 +641,6 @@ tasks:
         options:
             name: Release
             production: True
-            namespace: foodPackage
         group: Release Operations
     upload_user_profile_photo:
         group: Salesforce Users

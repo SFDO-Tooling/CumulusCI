@@ -1291,12 +1291,12 @@ class TestOrgCommands:
             devhub="hub",
             days=7,
             no_password=True,
-            release="previous",
+            release=None,
         )
 
         runtime.check_org_overwrite.assert_called_once()
         runtime.keychain.create_scratch_org.assert_called_with(
-            "test", "dev", 7, set_password=False, release="previous"
+            "test", "dev", 7, set_password=False, release=None
         )
 
     def test_org_scratch_no_configs(self):

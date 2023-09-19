@@ -127,7 +127,6 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
     def _build_org_create_args(self) -> List[str]:
         args = ["-f", self.config_file, "-w", "120"]
-
         devhub_username: Optional[str] = self._choose_devhub_username()
         if devhub_username:
             args += ["--targetdevhubusername", devhub_username]
