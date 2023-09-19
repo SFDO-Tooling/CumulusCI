@@ -2,7 +2,11 @@ from datetime import datetime
 
 from cumulusci.cli.ui import CliTable
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
-from cumulusci.core.exceptions import ApexTestException, SalesforceException
+from cumulusci.core.exceptions import (
+    ApexTestException,
+    SalesforceException,
+    TaskOptionsError,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -33,11 +37,11 @@ class PackageUpload(BaseSalesforceApiTask):
             "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
         "major_version": {
-            "description": "The value of the major version to which you want to deploy the package.Defaults to latest major version.",
+            "description": "The desired major version number for the uploaded package. Defaults to latest major version.",
             "required": False,
         },
         "minor_version": {
-            "description": "The value of the minor version to which you want to deploy the package.Defaults to next available minor version for the major version. ",
+            "description": "The desired minor version number for the uploaded package. Defaults to next available minor version for the current major version.",
             "required": False,
         },
     }
@@ -70,34 +74,45 @@ class PackageUpload(BaseSalesforceApiTask):
             self._set_dependencies()
             self._log_package_upload_success()
 
-    """This functions validates the major version and minor version if passed and sets them in the options dictionary if not passed."""
-
     def _validate_versions(self):
+        """This functions validates the major version and minor version if passed and sets them in the options dictionary if not passed."""
 
-        """Fetching the latest major,minor and patch version from Database"""
+        # Fetching the latest major,minor and patch version from Database
         version = self._get_one_record(
             (
-                "SELECT MajorVersion,"
-                "MinorVersion,"
-                "PatchVersion,ReleaseState FROM MetadataPackageVersion Order by MajorVersion Desc,MinorVersion Desc, PatchVersion Desc LIMIT 1"
+                """
+                SELECT MajorVersion,
+                MinorVersion,
+                PatchVersion,
+                ReleaseState
+                FROM MetadataPackageVersion
+                ORDER BY
+                MajorVersion DESC,
+                MinorVersion DESC,
+                PatchVersion DESC
+                LIMIT 1
+                """
             ),
             "Version not found",
         )
 
-        """This if-else condition updates the major version to latest major version in options if not passed via command line and validates it if passed. """
+        # This if-else condition updates the major version to latest major version in options if not passed via command line and validates it if passed.
         if "major_version" in self.options:
-            if int(self.options["major_version"]) < version["MajorVersion"]:
-                raise SalesforceException("Major Version not valid.")
+            try:
+                if int(self.options["major_version"]) < version["MajorVersion"]:
+                    raise TaskOptionsError("Major Version not valid.")
+            except ValueError:
+                raise TaskOptionsError("Major Version not valid.")
+
         else:
             self.options["major_version"] = str(version["MajorVersion"])
 
-        """This if is executed only when major version is equal to latest major version. Updates the minor version in options if not passed and validates if passed
-        Updates minor version when not passed in remaining cases.
-        """
+        # This if is executed only when major version is equal to latest major version. Updates the minor version in options if not passed and validates if passed
+        # Updates minor version when not passed in remaining cases.
         if self.options["major_version"] == str(version["MajorVersion"]):
             if "minor_version" in self.options:
                 if int(self.options["minor_version"]) <= version["MinorVersion"]:
-                    raise SalesforceException("Minor Version not valid.")
+                    raise TaskOptionsError("Minor Version not valid.")
             else:
                 if version["ReleaseState"] == "Beta":
                     self.options["minor_version"] = str(version["MinorVersion"])

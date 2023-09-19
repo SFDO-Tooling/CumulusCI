@@ -6,7 +6,11 @@ import pytest
 from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.universal_config import UniversalConfig
-from cumulusci.core.exceptions import ApexTestException, SalesforceException
+from cumulusci.core.exceptions import (
+    ApexTestException,
+    SalesforceException,
+    TaskOptionsError,
+)
 from cumulusci.tasks.salesforce import PackageUpload
 
 from .util import create_task
@@ -97,22 +101,23 @@ class TestPackageUpload:
         "post_install_url": "post.install.url",
         "release_notes_url": "release.notes.url",
     }
-    """This is function is used to generate test cases for test_validate_versions(positive as well as negative)
-    Arguments:
-        major_version:acutal major version which is to be passed none if not passed.
-        minor_version:acutal minor version which is to be passed none if not passed
-        asserted_major_version:major version which is expected in options dict after running of validate version function.
-        asserted_minor_version:minor version which is expected in options dict after running of validate version function.
-        is_negative:This boolean is used to decide whether the function returns a postive or negative test case. defaults to true is not passed.
-    """
 
     def generate_valid_version_options(
-        major_version,
-        minor_version,
-        asserted_major_version,
-        asserted_minor_version,
-        is_negative=False,
-    ):
+        major_version: str,
+        minor_version: str,
+        asserted_major_version: str,
+        asserted_minor_version: str,
+        is_negative: bool = False,
+    ) -> tuple[dict, dict] or dict:
+
+        """This is function is used to generate test cases for test_validate_versions(positive as well as negative)
+        Arguments:
+            major_version:acutal major version which is to be passed none if not passed.
+            minor_version:acutal minor version which is to be passed none if not passed
+            asserted_major_version:major version which is expected in options dict after running of validate version function.
+            asserted_minor_version:minor version which is expected in options dict after running of validate version function.
+            is_negative:This boolean is used to decide whether the function returns a postive or negative test case. defaults to true is not passed.
+        """
         test_validate_version_base_options = {
             "name": "Test Release",
             "production": False,
@@ -125,35 +130,33 @@ class TestPackageUpload:
             **test_validate_version_base_options,
         }
         if major_version is not None:
-            test_case_actual["major_version"] = str(major_version)
+            test_case_actual["major_version"] = major_version
         if minor_version is not None:
-            test_case_actual["minor_version"] = str(minor_version)
+            test_case_actual["minor_version"] = minor_version
 
         test_case_expected = {
             **test_validate_version_base_options,
             "major_version": str(asserted_major_version),
             "minor_version": str(asserted_minor_version),
         }
-        print(test_case_actual, test_case_expected)
+
         if is_negative:
             return test_case_actual
-        return (test_case_actual, test_case_expected)
+        return test_case_actual, test_case_expected
 
-    """Generating Positive Test Cases for test_validate_versions"""
+    # Generating Positive Test Cases for test_validate_versions
     test_positive_options = [
-        generate_valid_version_options(1, 2, 1, 2),
-        generate_valid_version_options(2, 1, 2, 1),
-        generate_valid_version_options(None, 2, 1, 2),
-        generate_valid_version_options(1, None, 1, 2),
-        generate_valid_version_options(2, None, 2, 0),
-        generate_valid_version_options(None, None, 1, 2),
+        generate_valid_version_options("1", "2", "1", "2"),
+        generate_valid_version_options("2", "1", "2", "1"),
+        generate_valid_version_options(None, "2", "1", "2"),
+        generate_valid_version_options("1", None, "1", "2"),
+        generate_valid_version_options("2", None, "2", "0"),
+        generate_valid_version_options(None, None, "1", "2"),
     ]
-
-    """Runs Postive Tests for tests_validate_versions"""
 
     @pytest.mark.parametrize("actual_options,expected_options", test_positive_options)
     def test_positive_validate_versions(self, actual_options, expected_options):
-
+        """Runs Postive Tests for tests_validate_versions"""
         task = create_task(PackageUpload, actual_options)
         task._get_one_record = mock.Mock(
             return_value={
@@ -175,18 +178,58 @@ class TestPackageUpload:
         assert task.options["major_version"] == expected_options["major_version"]
         assert task.options["minor_version"] == expected_options["minor_version"]
 
-    """Generating Negative Test Cases for test_validate_versions"""
-    test_negative_options = [
-        generate_valid_version_options(0, 2, None, None, True),
-        generate_valid_version_options(1, 0, None, None, True),
-        generate_valid_version_options(None, 1, None, None, True),
-    ]
+    def test_positive_validate_versions_for_beta(self):
+        actual_options = {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version": "1",
+        }
+        expected_options = {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+            "major_version": "1",
+            "minor_version": "1",
+        }
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Beta",
+            }
+        )
+        task._validate_versions()
 
-    """Generating Negative Tests for tests_validate_versions"""
+        assert task.options["name"] == expected_options["name"]
+        assert task.options["production"] == expected_options["production"]
+        assert task.options["password"] == expected_options["password"]
+        assert task.options["post_install_url"] == expected_options["post_install_url"]
+        assert (
+            task.options["release_notes_url"] == expected_options["release_notes_url"]
+        )
+        assert task.options["major_version"] == expected_options["major_version"]
+        assert task.options["minor_version"] == expected_options["minor_version"]
+
+    # Generating Negative Test Cases for test_validate_versions
+    test_negative_options = [
+        generate_valid_version_options("0", "2", None, None, True),
+        generate_valid_version_options("1", "0", None, None, True),
+        generate_valid_version_options(None, "1", None, None, True),
+        generate_valid_version_options("ab", 0, None, None, True),
+    ]
 
     @pytest.mark.parametrize("actual_options", test_negative_options)
     def test_negative_validate_versions(self, actual_options):
-
+        """Running Negative Tests for tests_validate_versions"""
         task = create_task(PackageUpload, actual_options)
         task._get_one_record = mock.Mock(
             return_value={
@@ -196,7 +239,7 @@ class TestPackageUpload:
                 "ReleaseState": "Released",
             }
         )
-        with pytest.raises(SalesforceException):
+        with pytest.raises(TaskOptionsError):
             task._validate_versions()
 
     def test_set_package_info(self):
