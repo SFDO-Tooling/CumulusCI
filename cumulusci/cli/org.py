@@ -546,6 +546,7 @@ def org_remove(runtime, org_name, global_org):
     name="scratch", help="Connects a Salesforce DX Scratch Org to the keychain"
 )
 @click.argument("config_name")
+@click.argument("release")
 @orgname_option_or_argument(required=True)
 @click.option(
     "--default",
@@ -562,9 +563,18 @@ def org_remove(runtime, org_name, global_org):
 @click.option(
     "--no-password", is_flag=True, help="If set, don't set a password for the org"
 )
+# @click.option(
+#     "--release",help="If provided specify the release when creating a scratch org"
+# )
 @pass_runtime(require_keychain=True)
-def org_scratch(runtime, config_name, org_name, default, devhub, days, no_password):
+def org_scratch(
+    runtime, config_name, org_name, default, devhub, days, no_password, release
+):
     runtime.check_org_overwrite(org_name)
+    release_options = ["previous", "preview"]
+    if release and release not in release_options:
+        raise click.UsageError("Release options value is not valid.")
+    # Test for Pydanctic validation of release
 
     scratch_configs = runtime.project_config.lookup("orgs__scratch")
     if not scratch_configs:
@@ -579,7 +589,7 @@ def org_scratch(runtime, config_name, org_name, default, devhub, days, no_passwo
         scratch_config["devhub"] = devhub
 
     runtime.keychain.create_scratch_org(
-        org_name, config_name, days, set_password=not (no_password)
+        org_name, config_name, days, set_password=not (no_password), release=release
     )
 
     if default:

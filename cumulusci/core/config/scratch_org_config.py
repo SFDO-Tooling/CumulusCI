@@ -39,6 +39,10 @@ class ScratchOrgConfig(SfdxOrgConfig):
         return self.config.setdefault("days", 1)
 
     @property
+    def release(self) -> str:
+        return self.config.setdefault("release", None)
+
+    @property
     def active(self) -> bool:
         """Check if an org is alive"""
         return self.date_created and not self.expired
@@ -123,6 +127,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
     def _build_org_create_args(self) -> List[str]:
         args = ["-f", self.config_file, "-w", "120"]
+
         devhub_username: Optional[str] = self._choose_devhub_username()
         if devhub_username:
             args += ["--targetdevhubusername", devhub_username]
@@ -132,6 +137,8 @@ class ScratchOrgConfig(SfdxOrgConfig):
             args += ["--noancestors"]
         if self.days:
             args += ["--durationdays", str(self.days)]
+        if self.release:
+            args += [f"release={self.release}"]
         if self.sfdx_alias:
             args += ["-a", self.sfdx_alias]
         with open(self.config_file, "r") as org_def:

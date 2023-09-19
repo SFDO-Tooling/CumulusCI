@@ -54,7 +54,9 @@ class BaseProjectKeychain(BaseConfig):
     #               Orgs                  #
     #######################################
 
-    def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
+    def create_scratch_org(
+        self, org_name, config_name, days=None, set_password=True, release=None
+    ):
         """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = self.project_config.lookup(f"orgs__scratch__{config_name}")
         if scratch_config is None:
@@ -69,6 +71,7 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config["scratch"] = True
         scratch_config.setdefault("namespaced", False)
         scratch_config["config_name"] = config_name
+        scratch_config["release"] = release
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
