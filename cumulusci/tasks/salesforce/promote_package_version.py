@@ -9,7 +9,9 @@ from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.create_package_version import PackageVersionNumber
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils.salesforce.soql import format_subscriber_package_version_where_clause
+from cumulusci.utils.salesforce.soql import (
+    format_subscriber_package_version_where_clause,
+)
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):
@@ -308,8 +310,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             ],
             "SubscriberPackageVersion",
             where_clause=format_subscriber_package_version_where_clause(
-                spv_id,
-                self.options.get("install_key")
+                spv_id, self.options.get("install_key")
             ),
             raise_error=True,
         )
