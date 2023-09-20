@@ -189,7 +189,11 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
-            task()
+            with mock.patch(
+                "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+                return_value=devhub_config,
+            ):
+                task()
 
     @responses.activate
     def test_run_task__install_key(self, task):
