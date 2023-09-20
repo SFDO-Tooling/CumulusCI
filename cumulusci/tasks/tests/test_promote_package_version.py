@@ -189,26 +189,26 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
-            with mock.patch(
-                "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
-                return_value=devhub_config,
-            ):
-                task()
+            task()
 
     @responses.activate
-    def test_run_task__install_key(self, task):
+    def test_run_task__install_key(self, task, devhub_config):
         # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
         task.options["install_key"] = "hunter2"
         self._mock_dependencies(20, 10, 5)
         self._mock_target_package_api_calls(install_key="hunter2")
         with mock.patch(
-            "cumulusci.tasks.salesforce.promote_package_version.get_simple_salesforce_connection",
-        ) as get_connection:
-            task()
-            assert (
-                "hunter2"
-                in get_connection.return_value.query_all.call_args_list[0][0][0]
-            )
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            with mock.patch(
+                "cumulusci.tasks.salesforce.promote_package_version.get_simple_salesforce_connection",
+            ) as get_connection:
+                task()
+                assert (
+                    "hunter2"
+                    in get_connection.return_value.query_all.call_args_list[0][0][0]
+                )
 
     @responses.activate
     def test_run_task__no_dependencies(self, task, devhub_config):
