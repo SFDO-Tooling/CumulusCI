@@ -2,6 +2,20 @@
 
 <!-- latest-start -->
 
+## v3.79.0 (2023-09-07)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added workarounds to support Vlocity local compilation in CI by [@jstvz](https://github.com/jstvz) in [#3642](https://github.com/SFDO-Tooling/CumulusCI/pull/3642)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.78.0...v3.79.0
+
+<!-- latest-stop -->
+
 ## v3.78.0 (2023-08-10)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -19,8 +33,6 @@
 -   Corrected behavior of the `skip_future_releases` option by [@jstvz](https://github.com/jstvz) in [#3624](https://github.com/SFDO-Tooling/CumulusCI/pull/3624)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.77.0...v3.78.0
-
-<!-- latest-stop -->
 
 ## v3.77.0 (2023-07-07)
 
