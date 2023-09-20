@@ -1,7 +1,8 @@
 import pytest
-import vcr
 
-from cumulusci.utils.salesforce.soql import format_subscriber_package_version_where_clause
+from cumulusci.utils.salesforce.soql import (
+    format_subscriber_package_version_where_clause,
+)
 
 
 class TestSoql:
@@ -11,17 +12,19 @@ class TestSoql:
     def test_format_subscriber_package_version_where_clause_simple(self):
         where_clause = format_subscriber_package_version_where_clause(self.spv_id, None)
         assert f"Id='{self.spv_id}'" in where_clause
-        assert f" AND InstallationKey =" not in where_clause
+        assert " AND InstallationKey =" not in where_clause
 
     @pytest.mark.vcr()
     def format_subscriber_package_version_where_clause_install_key_set(self):
         install_key = "hunter2"
-        where_clause = format_subscriber_package_version_where_clause(self.spv_id, install_key)
+        where_clause = format_subscriber_package_version_where_clause(
+            self.spv_id, install_key
+        )
         assert f"Id='{self.spv_id}'" in where_clause
         assert f" AND InstallationKey ='{install_key}'" in where_clause
 
     @pytest.mark.vcr()
     def format_subscriber_package_version_where_clause_install_key_none(self):
-        where_clause = format_subscriber_package_version_where_clause(self.spv_id, "None")
+        where_clause = format_subscriber_package_version_where_clause(self.spv_id, None)
         assert f"Id='{self.spv_id}'" in where_clause
-        assert f" AND InstallationKey =" not in where_clause
+        assert " AND InstallationKey =" not in where_clause
