@@ -23,6 +23,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
     instance: str
     password_failed: bool
     devhub: str
+    release: str
 
     createable: bool = True
 
@@ -37,10 +38,6 @@ class ScratchOrgConfig(SfdxOrgConfig):
     @property
     def days(self) -> int:
         return self.config.setdefault("days", 1)
-
-    @property
-    def release(self) -> str:
-        return self.config.setdefault("release", None)
 
     @property
     def active(self) -> bool:
