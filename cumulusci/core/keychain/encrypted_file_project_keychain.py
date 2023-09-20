@@ -15,6 +15,7 @@ from cumulusci.core.exceptions import (
     KeychainKeyNotFound,
     OrgCannotBeLoaded,
     OrgNotFound,
+    ServiceCannotBeLoaded,
     ServiceNotConfigured,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -229,7 +230,16 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 self._load_org_from_environment(env_var_name, value)
 
     def _load_org_from_environment(self, env_var_name, value):
-        org_config = json.loads(value)
+        if not value:
+            raise OrgCannotBeLoaded(
+                f"Org env var {env_var_name} cannot be loaded because it is empty. Either set {env_var_name} to a json string or unset it from the environment."
+            )
+        try:
+            org_config = json.loads(value)
+        except Exception as e:
+            raise OrgCannotBeLoaded(
+                f"Could not parse {env_var_name} as JSON becase {e}"
+            )
         org_name = env_var_name[len(self.env_org_var_prefix) :].lower()
         if org_config.get("scratch"):
             org_config = scratch_org_factory(
@@ -655,6 +665,16 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _load_service_from_environment(self, env_var_name, value):
         """Given a valid name/value pair, load the
         service from the environment on to the keychain"""
+        if not value:
+            raise ServiceCannotBeLoaded(
+                f"Service env var {env_var_name} cannot be loaded because it is empty. Either set {env_var_name} to a json string or unset it from the environment."
+            )
+        try:
+            service_config = json.loads(value)
+        except Exception as e:
+            raise ServiceCannotBeLoaded(
+                f"Could not parse {env_var_name} as JSON because {e}"
+            )
         service_config = ServiceConfig(json.loads(value))
         service_type, service_name = self._get_env_service_type_and_name(env_var_name)
         self.set_service(service_type, service_name, service_config, save=False)
