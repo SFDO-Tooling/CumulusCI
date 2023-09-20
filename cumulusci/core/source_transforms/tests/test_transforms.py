@@ -376,211 +376,309 @@ def test_bundle_static_resources(task_context):
         assert compare_spec == zf
 
 
-def test_find_replace_static(task_context):
+def create_builder(task_context, zip_content, patterns):
     builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec(
-            {
-                Path("Foo.cls"): "System.debug('blah');",
-            }
-        ).as_zipfile(),
+        ZipFileSpec(zip_content).as_zipfile(),
         context=task_context,
         transforms=[
             FindReplaceTransform(
-                FindReplaceTransformOptions.parse_obj(
-                    {"patterns": [{"find": "bl", "replace": "ye"}]}
-                )
+                FindReplaceTransformOptions.parse_obj({"patterns": patterns})
             )
         ],
     )
 
-    assert (
-        ZipFileSpec(
-            {
-                Path("Foo.cls"): "System.debug('yeah');",
-            }
-        )
-        == builder.zf
-    )
+    return builder
+
+
+def zip_assert(builder, modified_zip_content):
+    assert ZipFileSpec(modified_zip_content) == builder.zf
+
+
+def test_find_replace_static(task_context):
+    zip_content = {
+        Path("Foo.cls"): "System.debug('blah');",
+    }
+    patterns = [{"find": "bl", "replace": "ye"}]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path("Foo.cls"): "System.debug('yeah');",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_static(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): "<root><element1>blah</element1><element2>blah</element2></root>",
+    }
+    patterns = [{"xpath": "/root/element1", "replace": "yeah"}]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): "<root><element1>yeah</element1><element2>blah</element2></root>",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_find_replace_xmlFile(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): "<root><blement1>blah</blement1><element2><element3>blah</element3></element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    patterns = [{"find": "bl", "replace": "ye"}]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): "<root><blement1>yeah</blement1><element2><element3>yeah</element3></element2></root>",
+        Path("Bar.cls"): "System.debug('yeah');",
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 def test_find_replace_environ(task_context):
     with mock.patch.dict(os.environ, {"INSERT_TEXT": "ye"}):
-        builder = MetadataPackageZipBuilder.from_zipfile(
-            ZipFileSpec(
-                {
-                    Path("Foo.cls"): "System.debug('blah');",
-                }
-            ).as_zipfile(),
-            context=task_context,
-            transforms=[
-                FindReplaceTransform(
-                    FindReplaceTransformOptions.parse_obj(
-                        {"patterns": [{"find": "bl", "replace_env": "INSERT_TEXT"}]}
-                    )
-                )
-            ],
-        )
+        zip_content = {
+            Path("Foo.cls"): "System.debug('blah');",
+        }
+        patterns = [{"find": "bl", "replace_env": "INSERT_TEXT"}]
+        builder = create_builder(task_context, zip_content, patterns)
 
-        assert (
-            ZipFileSpec(
-                {
-                    Path("Foo.cls"): "System.debug('yeah');",
-                }
-            )
-            == builder.zf
-        )
+        modified_zip_content = {
+            Path("Foo.cls"): "System.debug('yeah');",
+        }
+        zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_environ(task_context):
+    with mock.patch.dict(os.environ, {"INSERT_TEXT": "yeah"}):
+        zip_content = {
+            Path(
+                "Foo.xml"
+            ): "<root><element1>blah</element1><element2>blah</element2></root>",
+        }
+        patterns = [{"xpath": "/root/element1", "replace_env": "INSERT_TEXT"}]
+        builder = create_builder(task_context, zip_content, patterns)
+
+        modified_zip_content = {
+            Path(
+                "Foo.xml"
+            ): "<root><element1>yeah</element1><element2>blah</element2></root>",
+        }
+        zip_assert(builder, modified_zip_content)
 
 
 def test_find_replace_environ__not_found(task_context):
     assert "INSERT_TEXT" not in os.environ
     with pytest.raises(TaskOptionsError):
-        MetadataPackageZipBuilder.from_zipfile(
-            ZipFileSpec(
-                {
-                    Path("Foo.cls"): "System.debug('blah');",
-                }
-            ).as_zipfile(),
-            context=task_context,
-            transforms=[
-                FindReplaceTransform(
-                    FindReplaceTransformOptions.parse_obj(
-                        {"patterns": [{"find": "bl", "replace_env": "INSERT_TEXT"}]}
-                    )
-                )
-            ],
-        )
+        zip_content = {
+            Path("Foo.cls"): "System.debug('blah');",
+        }
+        patterns = [{"find": "bl", "replace_env": "INSERT_TEXT"}]
+        create_builder(task_context, zip_content, patterns)
+
+
+def test_xpath_replace_environ__not_found(task_context):
+    assert "INSERT_TEXT" not in os.environ
+    with pytest.raises(TaskOptionsError):
+        zip_content = {
+            Path(
+                "Foo.xml"
+            ): "<root><element1>blah</element1><element2>blah</element2></root>",
+        }
+        patterns = [{"xpath": "/root/element1", "replace_env": "INSERT_TEXT"}]
+        create_builder(task_context, zip_content, patterns)
 
 
 def test_find_replace_filtered(task_context):
-    builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('blah');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        ).as_zipfile(),
-        context=task_context,
-        transforms=[
-            FindReplaceTransform(
-                FindReplaceTransformOptions.parse_obj(
-                    {
-                        "patterns": [
-                            {"find": "bl", "replace": "ye", "paths": ["classes"]}
-                        ]
-                    }
-                )
-            )
-        ],
-    )
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('blah');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    patterns = [{"find": "bl", "replace": "ye", "paths": ["classes"]}]
+    builder = create_builder(task_context, zip_content, patterns)
 
-    assert (
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('yeah');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        )
-        == builder.zf
-    )
+    modified_zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('yeah');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_filtered(task_context):
+    zip_content = {
+        Path("classes")
+        / "Foo.xml": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path(
+            "Bar.cls"
+        ): "<root><element3>blah</element3><element4>blah</element4></root>",
+    }
+    patterns = [{"xpath": "/root/element1", "replace": "yeah", "paths": ["classes"]}]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path("classes")
+        / "Foo.xml": "<root><element1>yeah</element1><element2>blah</element2></root>",
+        Path(
+            "Bar.cls"
+        ): "<root><element3>blah</element3><element4>blah</element4></root>",
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 def test_find_replace_multiple(task_context):
-    builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('blah');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        ).as_zipfile(),
-        context=task_context,
-        transforms=[
-            FindReplaceTransform(
-                FindReplaceTransformOptions.parse_obj(
-                    {
-                        "patterns": [
-                            {"find": "bl", "replace": "ye", "paths": ["classes"]},
-                            {"find": "ye", "replace": "ha"},
-                        ]
-                    }
-                )
-            )
-        ],
-    )
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('blah');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    patterns = [
+        {"find": "bl", "replace": "ye", "paths": ["classes"]},
+        {"find": "ye", "replace": "ha"},
+    ]
+    builder = create_builder(task_context, zip_content, patterns)
 
-    assert (
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('haah');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        )
-        == builder.zf
-    )
+    modified_zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('haah');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_multiple(task_context):
+    zip_content = {
+        Path("classes")
+        / "Foo.xml": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path(
+            "Bar.cls"
+        ): "<root><element3>blah</element3><element4>blah</element4></root>",
+    }
+    patterns = [
+        {"xpath": "/root/element1", "replace": "yeah", "paths": ["classes"]},
+        {"xpath": "/root/element1", "replace": "haah", "paths": ["classes"]},
+        {"xpath": "/root/element3", "replace": "yeah", "paths": ["classes"]},
+    ]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path("classes")
+        / "Foo.xml": "<root><element1>haah</element1><element2>blah</element2></root>",
+        Path(
+            "Bar.cls"
+        ): "<root><element3>blah</element3><element4>blah</element4></root>",
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 def test_find_replace_current_user(task_context):
-    options = FindReplaceTransformOptions.parse_obj(
-        {
-            "patterns": [
-                {"find": "%%%CURRENT_USER%%%", "inject_username": True},
-            ]
-        }
-    )
-    builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('%%%CURRENT_USER%%%');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        ).as_zipfile(),
-        context=task_context,
-        transforms=[FindReplaceTransform(options)],
-    )
-
+    patterns = [
+        {"find": "%%%CURRENT_USER%%%", "inject_username": True},
+    ]
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('%%%CURRENT_USER%%%');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    builder = create_builder(task_context, zip_content, patterns)
     expected_username = task_context.org_config.username
-    assert (
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": f"System.debug('{expected_username}');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        )
-        == builder.zf
-    )
+    modified_zip_content = {
+        Path("classes") / "Foo.cls": f"System.debug('{expected_username}');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_current_user(task_context):
+    patterns = [
+        {"xpath": "/root/element1", "inject_username": True},
+    ]
+    zip_content = {
+        Path("classes")
+        / "Foo.cls": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    builder = create_builder(task_context, zip_content, patterns)
+    expected_username = task_context.org_config.username
+    modified_zip_content = {
+        Path("classes")
+        / "Foo.cls": f"<root><element1>{expected_username}</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 def test_find_replace_org_url(task_context):
-    options = FindReplaceTransformOptions.parse_obj(
+    patterns = [
         {
-            "patterns": [
-                {
-                    "find": "{url}",
-                    "inject_org_url": True,
-                },
-            ]
-        }
-    )
-    builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('{url}');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        ).as_zipfile(),
-        context=task_context,
-        transforms=[FindReplaceTransform(options)],
-    )
-
+            "find": "{url}",
+            "inject_org_url": True,
+        },
+    ]
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('{url}');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    builder = create_builder(task_context, zip_content, patterns)
     instance_url = task_context.org_config.instance_url
-    assert (
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": f"System.debug('{instance_url}');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        )
-        == builder.zf
-    )
+    modified_zip_content = {
+        Path("classes") / "Foo.cls": f"System.debug('{instance_url}');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_org_url(task_context):
+    patterns = [
+        {
+            "xpath": "/root/element1",
+            "inject_org_url": True,
+        },
+    ]
+    zip_content = {
+        Path("classes")
+        / "Foo.cls": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    builder = create_builder(task_context, zip_content, patterns)
+    instance_url = task_context.org_config.instance_url
+    modified_zip_content = {
+        Path("classes")
+        / "Foo.cls": f"<root><element1>{instance_url}</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+@pytest.mark.parametrize("api", [FindReplaceIdAPI.REST, FindReplaceIdAPI.TOOLING])
+def test_xpath_replace_id(api):
+    context = mock.Mock()
+    result = {"totalSize": 1, "records": [{"Id": "00D"}]}
+    context.org_config.salesforce_client.query.return_value = result
+    context.org_config.tooling.query.return_value = result
+    patterns = [
+        {
+            "xpath": "/root/element1",
+            "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+            "api": api,
+        },
+    ]
+    zip_content = {
+        Path("classes")
+        / "Foo.cls": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    builder = create_builder(context, zip_content, patterns)
+    modified_zip_content = {
+        Path("classes")
+        / "Foo.cls": "<root><element1>00D</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 @pytest.mark.parametrize("api", [FindReplaceIdAPI.REST, FindReplaceIdAPI.TOOLING])
@@ -589,91 +687,130 @@ def test_find_replace_id(api):
     result = {"totalSize": 1, "records": [{"Id": "00D"}]}
     context.org_config.salesforce_client.query.return_value = result
     context.org_config.tooling.query.return_value = result
-    options = FindReplaceTransformOptions.parse_obj(
+    patterns = [
         {
-            "patterns": [
-                {
-                    "find": "00Y",
-                    "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
-                    "api": api,
-                },
-            ]
-        }
-    )
-    builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('00Y');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        ).as_zipfile(),
-        context=context,
-        transforms=[FindReplaceTransform(options)],
-    )
-
-    assert (
-        ZipFileSpec(
-            {
-                Path("classes") / "Foo.cls": "System.debug('00D');",
-                Path("Bar.cls"): "System.debug('blah');",
-            }
-        )
-        == builder.zf
-    )
+            "find": "00Y",
+            "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+            "api": api,
+        },
+    ]
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('00Y');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    builder = create_builder(context, zip_content, patterns)
+    modified_zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('00D');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 def test_find_replace_id__bad_query_result():
     context = mock.Mock()
     result = {"totalSize": 0}
     context.org_config.salesforce_client.query.return_value = result
-    options = FindReplaceTransformOptions.parse_obj(
+    patterns = [
         {
-            "patterns": [
-                {
-                    "find": "00Y",
-                    "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
-                },
-            ]
-        }
-    )
+            "find": "00Y",
+            "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+        },
+    ]
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('00Y');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
     with pytest.raises(CumulusCIException):
-        MetadataPackageZipBuilder.from_zipfile(
-            ZipFileSpec(
-                {
-                    Path("classes") / "Foo.cls": "System.debug('00Y');",
-                    Path("Bar.cls"): "System.debug('blah');",
-                }
-            ).as_zipfile(),
-            context=context,
-            transforms=[FindReplaceTransform(options)],
-        )
+        create_builder(context, zip_content, patterns)
+
+
+def test_xpath_replace_id__bad_query_result():
+    context = mock.Mock()
+    result = {"totalSize": 0}
+    context.org_config.salesforce_client.query.return_value = result
+    patterns = [
+        {
+            "xpath": "/root/element1",
+            "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+        },
+    ]
+    zip_content = {
+        Path("classes")
+        / "Foo.cls": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    with pytest.raises(CumulusCIException):
+        create_builder(context, zip_content, patterns)
 
 
 def test_find_replace_id__no_id_returned():
     context = mock.Mock()
     result = {"totalSize": 1, "records": [{"name": "foo"}]}
     context.org_config.salesforce_client.query.return_value = result
-    options = FindReplaceTransformOptions.parse_obj(
+    patterns = [
         {
-            "patterns": [
-                {
-                    "find": "00Y",
-                    "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
-                },
-            ]
-        }
-    )
+            "find": "00Y",
+            "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+        },
+    ]
+    zip_content = {
+        Path("classes") / "Foo.cls": "System.debug('00Y');",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
     with pytest.raises(CumulusCIException):
-        MetadataPackageZipBuilder.from_zipfile(
-            ZipFileSpec(
-                {
-                    Path("classes") / "Foo.cls": "System.debug('00Y');",
-                    Path("Bar.cls"): "System.debug('blah');",
-                }
-            ).as_zipfile(),
-            context=context,
-            transforms=[FindReplaceTransform(options)],
-        )
+        create_builder(context, zip_content, patterns)
+
+
+def test_xpath_replace_id__no_id_returned():
+    context = mock.Mock()
+    result = {"totalSize": 1, "records": [{"name": "foo"}]}
+    context.org_config.salesforce_client.query.return_value = result
+    patterns = [
+        {
+            "xpath": "/root/element1",
+            "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+        },
+    ]
+    zip_content = {
+        Path("classes")
+        / "Foo.cls": "<root><element1>blah</element1><element2>blah</element2></root>",
+        Path("Bar.cls"): "System.debug('blah');",
+    }
+    with pytest.raises(CumulusCIException):
+        create_builder(context, zip_content, patterns)
+
+
+def test_find_xpath_both_none(task_context):
+    zip_content = {
+        Path("Foo.cls"): "System.debug('blah');",
+    }
+    patterns = [{"replace": "ye"}]
+    with pytest.raises(ValidationError) as e:
+        create_builder(task_context, zip_content, patterns)
+    assert "Input is not valid. Please pass either find or xpath paramter." in str(e)
+
+
+def test_find_xpath_both_empty(task_context):
+    zip_content = {
+        Path("Foo.cls"): "System.debug('blah');",
+    }
+    patterns = [{"find": "", "xpath": "", "replace": "ye"}]
+    with pytest.raises(ValidationError) as e:
+        create_builder(task_context, zip_content, patterns)
+    assert "Input is not valid. Please pass either find or xpath paramter." in str(e)
+
+
+def test_find_xpath_both(task_context):
+    zip_content = {
+        Path("Foo.cls"): "System.debug('blah');",
+    }
+    patterns = [{"find": "bl", "xpath": "bl", "replace": "ye"}]
+    with pytest.raises(ValidationError) as e:
+        create_builder(task_context, zip_content, patterns)
+    assert (
+        "Input is not valid. Please pass either find or xpath paramter not both."
+        in str(e)
+    )
 
 
 def test_source_transform_parsing():

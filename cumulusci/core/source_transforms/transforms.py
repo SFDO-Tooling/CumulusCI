@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 from zipfile import ZipFile
 
+from lxml import etree as ET
 from pydantic import BaseModel, root_validator
 
 from cumulusci.core.dependencies.utils import TaskContext
@@ -288,8 +289,28 @@ class BundleStaticResourcesTransform(SourceTransform):
 
 
 class FindReplaceBaseSpec(BaseModel, abc.ABC):
-    find: str
+    find: T.Optional[str]
+    xpath: T.Optional[str]
     paths: T.Optional[T.List[Path]] = None
+
+    @root_validator
+    def validate_find_xpath(cls, values):
+        findVal = values.get("find")
+        xpathVal = values.get("xpath")
+        if (findVal == "" or findVal is None) and (xpathVal is None or xpathVal == ""):
+            raise ValueError(
+                "Input is not valid. Please pass either find or xpath paramter."
+            )
+        if (
+            findVal != ""
+            and findVal is not None
+            and xpathVal != ""
+            and xpathVal is not None
+        ):
+            raise ValueError(
+                "Input is not valid. Please pass either find or xpath paramter not both."
+            )
+        return values
 
     @abc.abstractmethod
     def get_replace_string(self, context: TaskContext) -> str:
@@ -394,15 +415,58 @@ class FindReplaceTransform(SourceTransform):
         self.options = options
 
     def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
+        # To handle xpath with namespaces
+        def transform_xpath(expression):
+            parts = expression.split("/")
+            transformed_parts = [
+                '/*[local-name()="' + part + '"]' for part in parts if part
+            ]
+            transformed_expression = "".join(transformed_parts)
+            return transformed_expression
+
         def process_file(filename: str, content: str) -> T.Tuple[str, str]:
             path = Path(filename)
             for spec in self.options.patterns:
                 if not spec.paths or any(
                     parent in path.parents for parent in spec.paths
                 ):
-                    content = content.replace(
-                        spec.find, spec.get_replace_string(context)
-                    )
+                    try:
+                        # See if the content is an xml file
+                        content_bytes = content.encode("utf-8")
+                        root = ET.fromstring(content_bytes)
+
+                        # See if content has an xml declaration
+                        has_xml_declaration = content.strip().startswith("<?xml")
+
+                        # If find, we do not want to modify the tags in xml file, only the content
+                        if spec.find:
+                            stack = [root]
+                            while stack:
+                                element = stack.pop()
+                                if element.text and spec.find in element.text:
+                                    element.text = element.text.replace(
+                                        spec.find, spec.get_replace_string(context)
+                                    )
+                                stack.extend(element)
+                        # Modify the element given by xpath
+                        elif spec.xpath:
+                            transformed_xpath = transform_xpath(spec.xpath)
+                            elements_to_replace = root.xpath(transformed_xpath)
+                            for element in elements_to_replace:
+                                element.text = spec.get_replace_string(context)
+
+                        # Add xml declaration back to file, if it initally had xml declaration
+                        content = ET.tostring(
+                            root, encoding="utf-8", xml_declaration=has_xml_declaration
+                        ).decode("utf-8")
+
+                    except ET.XMLSyntaxError:
+                        if spec.find:
+                            content = content.replace(
+                                spec.find, spec.get_replace_string(context)
+                            )
+                        else:
+                            continue
 
             return (filename, content)
 
