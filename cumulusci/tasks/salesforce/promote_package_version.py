@@ -9,6 +9,9 @@ from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.create_package_version import PackageVersionNumber
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils.salesforce.soql import (
+    format_subscriber_package_version_where_clause,
+)
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):
@@ -38,6 +41,9 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 "Automatically promote any unpromoted versions of dependency 2GP packages that are detected."
             ),
             "required": False,
+        },
+        "install_key": {
+            "description": "Install key for package. Default is no install key."
         },
     }
 
@@ -294,6 +300,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
     def _query_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given SubscriberPackageVersionId"""
+
         return self._query_one_tooling(
             [
                 "Id",
@@ -302,7 +309,9 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 "SubscriberPackageId",
             ],
             "SubscriberPackageVersion",
-            where_clause=f"Id='{spv_id}'",
+            where_clause=format_subscriber_package_version_where_clause(
+                spv_id, self.options.get("install_key")
+            ),
             raise_error=True,
         )
 
