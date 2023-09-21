@@ -56,9 +56,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "transforms": {
             "description": "Apply source transforms before deploying. See the CumulusCI documentation for details on how to specify transforms."
         },
-        "rest_deploy": {
-            "description": "If True, deploy metadata using REST API"
-        },
+        "rest_deploy": {"description": "If True, deploy metadata using REST API"},
     }
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}

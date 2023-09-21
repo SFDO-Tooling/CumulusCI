@@ -5,13 +5,22 @@ import os
 import time
 import uuid
 import zipfile
+from typing import List, Union
 
 import requests
+
+PARENT_DIR_NAME = "metadata"
 
 
 class RestDeploy:
     def __init__(
-        self, task, package_zip, purge_on_delete, check_only, test_level, run_tests
+        self,
+        task,
+        package_zip: str,
+        purge_on_delete: Union[bool, str, None],
+        check_only: bool,
+        test_level: Union[str, None],
+        run_tests: List[str],
     ):
         # Initialize instance variables and configuration options
         self.api_version = task.project_config.project__package__api_version
@@ -22,7 +31,7 @@ class RestDeploy:
         self._set_purge_on_delete(purge_on_delete)
         self.check_only = "true" if check_only else "false"
         self.test_level = test_level
-        self.package_zip = self._reformat_zip(package_zip)
+        self.package_zip = package_zip
         self.run_tests = run_tests or []
 
     def __call__(self):
@@ -60,7 +69,7 @@ class RestDeploy:
             f'Content-Disposition: form-data; name="file"; filename="metadata.zip"\r\n'
             f"Content-Type: application/zip\r\n\r\n"
         ).encode("utf-8")
-        body += self.package_zip
+        body += self._reformat_zip(self.package_zip)
         body += f"\r\n--{self._boundary}--\r\n".encode("utf-8")
 
         response = requests.post(url, headers=headers, data=body)
@@ -98,28 +107,19 @@ class RestDeploy:
             response_json = response.json()
 
             if response_json["deployResult"]["status"] != "InProgress":
-
-                if response_json["deployResult"]["status"] in [
-                    "Succeeded",
-                    "Failed",
-                    "Cancelled",
-                ]:
-                    self.task.logger.info(
-                        f"Deployment {response_json['deployResult']['status']}"
-                    )
-
-                    if response_json["deployResult"]["status"] == "Failed":
-                        for failure in response_json["deployResult"]["details"][
-                            "componentFailures"
-                        ]:
-                            self.task.logger.error(
-                                self._construct_error_message(failure)
-                            )
-                    break
-
-                self.task.logger.debug(
-                    f"Deployment status: {response_json['deployResult']['status']}"
+                self.task.logger.info(
+                    f"Deployment {response_json['deployResult']['status']}"
                 )
+
+                if response_json["deployResult"]["status"] == "Failed":
+                    for failure in response_json["deployResult"]["details"][
+                        "componentFailures"
+                    ]:
+                        self.task.logger.error(self._construct_error_message(failure))
+
+                # If the status is pending, go for another loop
+                if not response_json["deployResult"]["status"] == "Pending":
+                    break
 
             time.sleep(5)
 
@@ -133,7 +133,7 @@ class RestDeploy:
             with zipfile.ZipFile(new_zip_stream, "w") as new_zip_ref:
                 for item in zip_ref.infolist():
                     # Choice of name for parent directory is irrelevant to functioning
-                    new_item_name = os.path.join("metadata", item.filename)
+                    new_item_name = os.path.join(PARENT_DIR_NAME, item.filename)
                     file_content = zip_ref.read(item.filename)
                     new_zip_ref.writestr(new_item_name, file_content)
 
@@ -142,7 +142,7 @@ class RestDeploy:
 
     # Construct an error message from deployment failure details
     def _construct_error_message(self, failure):
-        error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][9:]}: {failure['problem']}"
+        error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][len(PARENT_DIR_NAME)+len('/'):]}: {failure['problem']}"
 
         if failure["lineNumber"] and failure["columnNumber"]:
             error_message += (

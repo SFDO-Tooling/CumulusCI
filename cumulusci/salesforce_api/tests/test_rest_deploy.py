@@ -1,7 +1,23 @@
+import base64
+import io
 import unittest
+import zipfile
 from unittest.mock import MagicMock, Mock, call, patch
 
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
+
+
+def generate_sample_zip_data(parent=""):
+    # Create a sample ZIP with two files
+    zip_data = io.BytesIO()
+    with zipfile.ZipFile(zip_data, "w") as zip_file:
+        zip_file.writestr(
+            f"{parent}objects/mockfile1.obj", "Sample content for mockfile1"
+        )
+        zip_file.writestr(
+            f"{parent}objects/mockfile2.obj", "Sample content for mockfile2"
+        )
+    return base64.b64encode(zip_data.getvalue()).decode("utf-8")
 
 
 class TestRestDeploy(unittest.TestCase):
@@ -12,8 +28,9 @@ class TestRestDeploy(unittest.TestCase):
         self.mock_task.logger = self.mock_logger
         self.mock_task.org_config.instance_url = "https://example.com"
         self.mock_task.org_config.access_token = "dummy_token"
-        # Header for empty zip file
-        self.mock_zip = "UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=="
+        self.mock_task.project_config.project__package__api_version = 58.0
+        # Empty zip file for testing
+        self.mock_zip = generate_sample_zip_data()
 
     # Test case for a successful deployment and deploy status
     @patch("requests.post")
@@ -36,19 +53,27 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
-        # Assertions to verify log messages and method calls
+        # Assertions to verify log messages
+        assert (
+            call("Deployment request successful")
+            in self.mock_logger.info.call_args_list
+        )
+        assert call("Deployment Succeeded") in self.mock_logger.info.call_args_list
+
+        # Assertions to verify API Calls
+        expected_get_calls = [
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+        ]
+
         mock_post.assert_called_once()
-        self.assertEqual(
-            self.mock_logger.info.call_args_list[0],
-            call("Deployment request successful"),
-        )
-        self.assertEqual(
-            self.mock_logger.info.call_args_list[1],
-            call("Deployment Succeeded"),
-        )
-        self.assertEqual(self.mock_logger.info.call_count, 2)
-        self.assertEqual(self.mock_logger.error.call_count, 0)
-        self.assertEqual(self.mock_logger.debug.call_count, 0)
+        mock_get.assert_has_calls(expected_get_calls, any_order=True)
 
     # Test case for a deployment failure
     @patch("requests.post")
@@ -63,15 +88,14 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
-        # Assertions to verify log messages and method calls
-        mock_post.assert_called_once()
-        self.assertEqual(
-            self.mock_logger.error.call_args_list[0],
-            call("Deployment request failed with status code 500"),
+        # Assertions to verify log messages
+        assert (
+            call("Deployment request failed with status code 500")
+            in self.mock_logger.error.call_args_list
         )
-        self.assertEqual(self.mock_logger.info.call_count, 0)
-        self.assertEqual(self.mock_logger.error.call_count, 1)
-        self.assertEqual(self.mock_logger.debug.call_count, 0)
+
+        # Assertions to verify API Calls
+        mock_post.assert_called_once()
 
     # Test for deployment success but deploy status failure
     @patch("requests.post")
@@ -116,27 +140,35 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
-        # Assertions to verify log messages and method calls
+        # Assertions to verify log messages
+        assert (
+            call("Deployment request successful")
+            in self.mock_logger.info.call_args_list
+        )
+        assert call("Deployment Failed") in self.mock_logger.info.call_args_list
+        assert (
+            call("ERROR in file classes/mockfile1.cls: someproblem1 at line 1:1")
+            in self.mock_logger.error.call_args_list
+        )
+        assert (
+            call("ERROR in file objects/mockfile2.obj: someproblem2 at line 2:2")
+            in self.mock_logger.error.call_args_list
+        )
+
+        # Assertions to verify API Calls
+        expected_get_calls = [
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+        ]
+
         mock_post.assert_called_once()
-        self.assertEqual(
-            self.mock_logger.info.call_args_list[0],
-            call("Deployment request successful"),
-        )
-        self.assertEqual(
-            self.mock_logger.info.call_args_list[1],
-            call("Deployment Failed"),
-        )
-        self.assertEqual(self.mock_logger.info.call_count, 2)
-        self.assertEqual(
-            self.mock_logger.error.call_args_list[0],
-            call("ERROR in file classes/mockfile1.cls: someproblem1 at line 1:1"),
-        )
-        self.assertEqual(
-            self.mock_logger.error.call_args_list[1],
-            call("ERROR in file objects/mockfile2.obj: someproblem2 at line 2:2"),
-        )
-        self.assertEqual(self.mock_logger.error.call_count, 2)
-        self.assertEqual(self.mock_logger.debug.call_count, 0)
+        mock_get.assert_has_calls(expected_get_calls, any_order=True)
 
     # Test case for a deployment with a pending status
     @patch("requests.post")
@@ -160,22 +192,66 @@ class TestRestDeploy(unittest.TestCase):
         )
         deployer()
 
-        # Assertions to verify log messages and method calls
+        # Assertions to verify log messages
+        assert (
+            call("Deployment request successful")
+            in self.mock_logger.info.call_args_list
+        )
+        assert call("Deployment Pending") in self.mock_logger.info.call_args_list
+        assert call("Deployment Succeeded") in self.mock_logger.info.call_args_list
+
+        # Assertions to verify API Calls
+        expected_get_calls = [
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+            call(
+                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                headers={"Authorization": "Bearer dummy_token"},
+            ),
+        ]
+
         mock_post.assert_called_once()
-        self.assertEqual(
-            self.mock_logger.info.call_args_list[0],
-            call("Deployment request successful"),
+        mock_get.assert_has_calls(expected_get_calls, any_order=True)
+
+    def test_reformat_zip(self):
+        input_zip = generate_sample_zip_data()
+        expected_zip = generate_sample_zip_data("metadata/")
+
+        deployer = RestDeploy(
+            self.mock_task, self.mock_zip, False, False, "NoTestRun", []
         )
+        actual_output_zip = deployer._reformat_zip(input_zip)
+
         self.assertEqual(
-            self.mock_logger.info.call_args_list[1],
-            call("Deployment Succeeded"),
+            base64.b64encode(actual_output_zip).decode("utf-8"), expected_zip
         )
-        self.assertEqual(self.mock_logger.info.call_count, 2)
-        self.assertEqual(self.mock_logger.error.call_count, 0)
-        self.assertEqual(
-            self.mock_logger.debug.call_args_list[0], call("Deployment status: Pending")
-        )
-        self.assertEqual(self.mock_logger.debug.call_count, 1)
+
+    def test_purge_on_delete(self):
+        test_data = [
+            ("not_sandbox_developer", "Not Developer Edition", False, False, "false"),
+            ("purgeOnDelete_true", "Developer Edition", True, True, "true"),
+            ("purgeOnDelete_none", "Developer Edition", True, None, "true"),
+        ]
+
+        for name, org_type, is_sandbox, purge_on_delete, expected_result in test_data:
+            with self.subTest(name=name):
+                self.mock_task.org_config.org_type = org_type
+                self.mock_task.org_config.is_sandbox = is_sandbox
+                deployer = RestDeploy(
+                    self.mock_task,
+                    self.mock_zip,
+                    purge_on_delete,
+                    False,
+                    "NoTestRun",
+                    [],
+                )
+                self.assertEqual(deployer.purge_on_delete, expected_result)
 
 
 if __name__ == "__main__":
