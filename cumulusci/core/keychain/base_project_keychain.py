@@ -67,11 +67,13 @@ class BaseProjectKeychain(BaseConfig):
         else:
             # Use scratch config days or default of 1 day
             scratch_config.setdefault("days", 1)
+        if release is not None:
+            scratch_config["release"] = release
         scratch_config["set_password"] = bool(set_password)
         scratch_config["scratch"] = True
         scratch_config.setdefault("namespaced", False)
         scratch_config["config_name"] = config_name
-        scratch_config["release"] = release
+
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
