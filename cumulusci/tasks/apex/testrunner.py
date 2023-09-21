@@ -120,7 +120,6 @@ class RunApexTests(BaseSalesforceApiTask):
                 "project__test__name_match from project config. "
                 "Comma-separated list for multiple patterns."
             ),
-            "required": True,
         },
         "test_name_exclude": {
             "description": (
@@ -171,6 +170,9 @@ class RunApexTests(BaseSalesforceApiTask):
             "description": "By default, only failures get detailed output. "
             "Set verbose to True to see all passed test methods."
         },
+        "test_suite_names": {
+            "description": "Accepts a comma-separated list of test suite names. Only runs test classes that are part of the test suites specified."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -179,10 +181,15 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["test_name_match"] = self.options.get(
             "test_name_match", self.project_config.project__test__name_match
         )
-
         self.options["test_name_exclude"] = self.options.get(
             "test_name_exclude", self.project_config.project__test__name_exclude
         )
+
+        self.options["test_suite_names"] = self.options.get(
+            "test_suite_names", self.project_config.project__test__suite__names
+        )
+        if self.options["test_name_match"] is None:
+            self.options["test_name_match"] = ""
 
         if self.options["test_name_exclude"] is None:
             self.options["test_name_exclude"] = ""
@@ -236,6 +243,19 @@ class RunApexTests(BaseSalesforceApiTask):
         self.required_per_class_code_coverage_percent = int(
             self.options.get("required_per_class_code_coverage_percent", 0)
         )
+        # Raises a TaskOptionsError when the user provides both test_suite_names and test_name_match.
+        if (
+            self.options["test_suite_names"] is not None
+            and len(self.options["test_suite_names"]) > 0
+        ) and (
+            self.options["test_name_match"] is not None
+            and self.options["test_name_match"] != "%_TEST%"
+        ):
+            self.logger.info(self.options["test_suite_names"])
+            self.logger.info(self.options["test_name_match"])
+            raise TaskOptionsError(
+                "Both test_suite_names and test_name_match cannot be passed simultaneously"
+            )
 
     # pylint: disable=W0201
     def _init_class(self):
@@ -283,10 +303,78 @@ class RunApexTests(BaseSalesforceApiTask):
         return query
 
     def _get_test_classes(self):
+        # If test_suite_names is provided, execute only tests that are a part of the list of test suites provided.
+        if (
+            self.options["test_suite_names"] is not None
+            and len(self.options["test_suite_names"]) > 0
+        ):
+            test_classes_from_test_suite_names = (
+                self._get_test_classes_from_test_suite_names()
+            )
+            return test_classes_from_test_suite_names
+
         query = self._get_test_class_query()
         # Run the query
         self.logger.info("Running query: {}".format(query))
         result = self.tooling.query_all(query)
+        self.logger.info("Found {} test classes".format(result["totalSize"]))
+        return result
+
+    def _get_comma_separated_string_of_items(self, itemlist):
+        # Accepts a list of strings. A formatted string is returned.
+        # Example: Input: ['TestSuite1', 'TestSuite2']      Output: ''TestSuite1','TestSuite2''
+        item_string = ""
+
+        for index, item in enumerate(itemlist):
+            item_string += f"'{item}'"
+            if index is not len(itemlist) - 1:
+                item_string += ","
+
+        return item_string
+
+    def _get_test_suite_ids_from_test_suite_names_query(self):
+        # Returns a query string which when executed fetches the test suite ids of the list of test suites names.
+        test_suite_names_arg = self.options["test_suite_names"]
+        test_suite_names = self._get_comma_separated_string_of_items(
+            test_suite_names_arg.split(",")
+        )
+        query1 = f"SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ({test_suite_names})"
+        return query1
+
+    def _get_test_classes_from_test_suite_ids_query(self, testSuiteIds):
+        # Returns a query string which when executed fetches Apex test classes for the given list of test suite ids.
+        # Apex test classes passed under test_name_exclude are ignored.
+        testSuiteIds_formatted = self._get_comma_separated_string_of_items(testSuiteIds)
+
+        if len(testSuiteIds_formatted) == 0:
+            testSuiteIds_formatted = "''"
+
+        test_name_exclude_arg = self.options["test_name_exclude"]
+        condition = ""
+
+        # Check if test_name_exclude is provided. Append to query string if the former is specified.
+        if test_name_exclude_arg is not None and len(test_name_exclude_arg) > 0:
+            test_name_exclude = self._get_comma_separated_string_of_items(
+                test_name_exclude_arg.split(",")
+            )
+            condition = f"AND Name NOT IN ({test_name_exclude})"
+
+        query = f"SELECT Id, Name FROM ApexClass WHERE Id IN (SELECT ApexClassId FROM TestSuiteMembership WHERE ApexTestSuiteId IN ({testSuiteIds_formatted})) {condition}"
+        return query
+
+    def _get_test_classes_from_test_suite_names(self):
+        # Returns a list of Apex test classes that belong to the test suite(s) specified. Test classes specified in test_name_exclude are excluded.
+        query1 = self._get_test_suite_ids_from_test_suite_names_query()
+        self.logger.info("Fetching test suite metadata...")
+        result = self.tooling.query_all(query1)
+        testSuiteIds = []
+
+        for record in result["records"]:
+            testSuiteIds.append(str(record["Id"]))
+
+        query2 = self._get_test_classes_from_test_suite_ids_query(testSuiteIds)
+        self.logger.info("Fetching test classes belong to the test suite(s)...")
+        result = self.tooling.query_all(query2)
         self.logger.info("Found {} test classes".format(result["totalSize"]))
         return result
 
