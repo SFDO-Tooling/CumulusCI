@@ -330,6 +330,7 @@ def org_info(runtime, org_name, print_json):
             "instance_url",
             "instance_name",
             "is_sandbox",
+            "namespace",
             "namespaced",
             "org_id",
             "org_type",
