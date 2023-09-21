@@ -37,6 +37,9 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
+from cumulusci.utils.salesforce.soql import (
+    format_subscriber_package_version_where_clause,
+)
 
 
 class PackageTypeEnum(StrEnum):
@@ -251,9 +254,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         ).format()
 
         # get the new version's dependencies from SubscriberPackageVersion
+        where_clause = format_subscriber_package_version_where_clause(
+            package2_version["SubscriberPackageVersionId"],
+            self.options.get("install_key"),
+        )
         res = self.tooling.query(
-            "SELECT Dependencies FROM SubscriberPackageVersion "
-            f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
+            "SELECT Dependencies FROM SubscriberPackageVersion " f"WHERE {where_clause}"
         )
         self.return_values["dependencies"] = self._prepare_cci_dependencies(
             res["records"][0]["Dependencies"]
@@ -338,7 +344,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         version_bytes = io.BytesIO()
         version_info = zipfile.ZipFile(version_bytes, "w", zipfile.ZIP_DEFLATED)
         try:
-
             # Add the package.zip
             package_hash = package_zip_builder.as_hash()
             version_info.writestr("package.zip", package_zip_builder.as_bytes())
@@ -441,8 +446,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "VersionInfo": version_info,
             "CalculateCodeCoverage": not skip_validation,
         }
-        if "install_key" in self.options:
-            request["InstallKey"] = self.options["install_key"]
+
+        install_key = self.options.get("install_key")
+        if install_key:
+            request["InstallKey"] = install_key
+            self.return_values["install_key"] = install_key
 
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "

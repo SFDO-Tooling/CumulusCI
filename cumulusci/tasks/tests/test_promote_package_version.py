@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -62,22 +63,24 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         f"https://devhub.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
     )
 
-    def _mock_target_package_api_calls(self):
+    def _mock_target_package_api_calls(self, install_key: Optional[str] = None):
+        record = {
+            "BuildNumber": 0,
+            "Id": "main_package",
+            "IsReleased": False,
+            "MajorVersion": 1,
+            "MinorVersion": 0,
+            "PatchVersion": 0,
+        }
+        if install_key:
+            record["InstallKey"] = install_key
+
         responses.add(  # query for main package's Package2Version info
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
-                "records": [
-                    {
-                        "BuildNumber": 0,
-                        "Id": "main_package",
-                        "IsReleased": False,
-                        "MajorVersion": 1,
-                        "MinorVersion": 0,
-                        "PatchVersion": 0,
-                    }
-                ],
+                "records": [record],
                 "done": True,
             },
         )
@@ -187,6 +190,25 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             return_value=devhub_config,
         ):
             task()
+
+    @responses.activate
+    def test_run_task__install_key(self, task, devhub_config):
+        # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
+        task.options["install_key"] = "hunter2"
+        self._mock_dependencies(20, 10, 5)
+        self._mock_target_package_api_calls(install_key="hunter2")
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            with mock.patch(
+                "cumulusci.tasks.salesforce.promote_package_version.get_simple_salesforce_connection",
+            ) as get_connection:
+                task()
+                assert (
+                    "hunter2"
+                    in get_connection.return_value.query_all.call_args_list[0][0][0]
+                )
 
     @responses.activate
     def test_run_task__no_dependencies(self, task, devhub_config):
