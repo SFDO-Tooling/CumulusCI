@@ -7,6 +7,7 @@ from unittest import mock
 from zipfile import ZipFile
 
 import pytest
+from lxml import etree as ET
 from pydantic import ValidationError
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
@@ -811,6 +812,111 @@ def test_find_xpath_both(task_context):
         "Input is not valid. Please pass either find or xpath paramter not both."
         in str(e)
     )
+
+
+def test_invalid_xpath(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): "<root><element1>blah</element1><element2>blah</element2></root>",
+    }
+    patterns = [{"xpath": '/root/element1[tezxt()=="blah"]', "replace": "yeah"}]
+    with pytest.raises(ET.XPathError):
+        create_builder(task_context, zip_content, patterns)
+
+
+def test_xpath_replace_with_index(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    patterns = [{"xpath": "/bookstore/book[2]/title", "replace": "New Title"}]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">New Title</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_with_text(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    patterns = [
+        {
+            "xpath": "/bookstore/book/title[text()='Learning XML']",
+            "replace": "Updated Text",
+        }
+    ]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Updated Text</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_with_exp_and_index(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    patterns = [
+        {"xpath": "/bookstore/book[price>40]/author[2]", "replace": "Rich Author"}
+    ]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Rich Author</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_with_exp_and_index2(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    patterns = [
+        {"xpath": "/bookstore/book[price<40]/author[1]", "replace": "Rich Author"}
+    ]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Rich Author</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>Rich Author</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Rich Author</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    zip_assert(builder, modified_zip_content)
+
+
+def test_xpath_replace_with_exp(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    patterns = [{"xpath": "/bookstore/book[price>40]/author", "replace": "Rich Author"}]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>Rich Author</author> <author>Rich Author</author> <author>Rich Author</author> <author>Rich Author</author> <author>Rich Author</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    zip_assert(builder, modified_zip_content)
 
 
 def test_source_transform_parsing():

@@ -2,6 +2,7 @@ import abc
 import functools
 import io
 import os
+import re
 import shutil
 import typing as T
 import zipfile
@@ -415,13 +416,22 @@ class FindReplaceTransform(SourceTransform):
         self.options = options
 
     def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
-        # To handle xpath with namespaces
+        # To handle xpath with namespaces, without
         def transform_xpath(expression):
+            predicate_pattern = re.compile(r"\[.*?\]")
             parts = expression.split("/")
-            transformed_parts = [
-                '/*[local-name()="' + part + '"]' for part in parts if part
-            ]
+            transformed_parts = []
+
+            for part in parts:
+                if part:
+                    predicates = predicate_pattern.findall(part)
+                    tag = predicate_pattern.sub("", part)
+                    transformed_part = '/*[local-name()="' + tag + '"]'
+                    for predicate in predicates:
+                        transformed_part += predicate
+                    transformed_parts.append(transformed_part)
             transformed_expression = "".join(transformed_parts)
+
             return transformed_expression
 
         def process_file(filename: str, content: str) -> T.Tuple[str, str]:
@@ -467,6 +477,10 @@ class FindReplaceTransform(SourceTransform):
                             )
                         else:
                             continue
+                    except ET.XPathError as e:
+                        raise ET.XPathError(
+                            f"An exception of type {type(e).__name__} occurred: {e} \nKindly check the xpath given"
+                        )
 
             return (filename, content)
 
