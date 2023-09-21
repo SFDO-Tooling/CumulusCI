@@ -105,22 +105,18 @@ class RestDeploy:
         while True:
             response = requests.get(url, headers=headers)
             response_json = response.json()
+            self.task.logger.info(
+                f"Deployment {response_json['deployResult']['status']}"
+            )
 
-            if response_json["deployResult"]["status"] != "InProgress":
-                self.task.logger.info(
-                    f"Deployment {response_json['deployResult']['status']}"
-                )
-
+            if response_json["deployResult"]["status"] not in ["InProgress", "Pending"]:
+                # Handle the case when status has Failed
                 if response_json["deployResult"]["status"] == "Failed":
                     for failure in response_json["deployResult"]["details"][
                         "componentFailures"
                     ]:
                         self.task.logger.error(self._construct_error_message(failure))
-
-                # If the status is pending, go for another loop
-                if not response_json["deployResult"]["status"] == "Pending":
-                    break
-
+                return
             time.sleep(5)
 
     # Reformat the package zip file to include parent directory

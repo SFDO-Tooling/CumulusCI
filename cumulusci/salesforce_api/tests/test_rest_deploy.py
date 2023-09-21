@@ -58,6 +58,7 @@ class TestRestDeploy(unittest.TestCase):
             call("Deployment request successful")
             in self.mock_logger.info.call_args_list
         )
+        assert call("Deployment InProgress") in self.mock_logger.info.call_args_list
         assert call("Deployment Succeeded") in self.mock_logger.info.call_args_list
 
         # Assertions to verify API Calls
@@ -145,6 +146,7 @@ class TestRestDeploy(unittest.TestCase):
             call("Deployment request successful")
             in self.mock_logger.info.call_args_list
         )
+        assert call("Deployment InProgress") in self.mock_logger.info.call_args_list
         assert call("Deployment Failed") in self.mock_logger.info.call_args_list
         assert (
             call("ERROR in file classes/mockfile1.cls: someproblem1 at line 1:1")
@@ -197,6 +199,7 @@ class TestRestDeploy(unittest.TestCase):
             call("Deployment request successful")
             in self.mock_logger.info.call_args_list
         )
+        assert call("Deployment InProgress") in self.mock_logger.info.call_args_list
         assert call("Deployment Pending") in self.mock_logger.info.call_args_list
         assert call("Deployment Succeeded") in self.mock_logger.info.call_args_list
 
