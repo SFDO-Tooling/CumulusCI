@@ -36,4 +36,5 @@ For example:
 
 * Ed Rivas (jerivas)
 * Gustavo Tandeciarz (dcinzona)
+* Chandler Anderson (zenibako)
 * Ben French (BenjaminFrench)
