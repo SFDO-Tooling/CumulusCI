@@ -81,6 +81,18 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         def raise_error() -> NoReturn:
             message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
+            try:
+                Output = json.loads(stdout)
+                if (
+                    Output.get("message") == "The requested resource does not exist"
+                    and Output.get("name") == "NOT_FOUND"
+                ):
+                    raise ScratchOrgException(
+                        "Check the API Version or endpoint you are interacting"
+                    )
+            except json.decoder.JSONDecodeError:
+                raise ScratchOrgException(message)
+
             raise ScratchOrgException(message)
 
         result = {}  # for type checker.
@@ -88,6 +100,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             raise_error()
         try:
             result = json.loads(stdout)
+
         except json.decoder.JSONDecodeError:
             raise_error()
 
