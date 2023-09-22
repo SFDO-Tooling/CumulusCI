@@ -366,7 +366,7 @@ class RunApexTests(BaseSalesforceApiTask):
             testSuiteIds.append(str(record["Id"]))
 
         query2 = self._get_test_classes_from_test_suite_ids_query(testSuiteIds)
-        self.logger.info("Fetching test classes belong to the test suite(s)...")
+        self.logger.info("Fetching test classes belonging to the test suite(s)...")
         result = self.tooling.query_all(query2)
         self.logger.info("Found {} test classes".format(result["totalSize"]))
         return result
