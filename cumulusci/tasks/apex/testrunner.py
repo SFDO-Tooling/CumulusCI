@@ -245,8 +245,7 @@ class RunApexTests(BaseSalesforceApiTask):
         )
         # Raises a TaskOptionsError when the user provides both test_suite_names and test_name_match.
         if (
-            self.options["test_suite_names"] is not None
-            and len(self.options["test_suite_names"]) > 0
+            self.options["test_suite_names"]
         ) and (
             self.options["test_name_match"] is not None
             and self.options["test_name_match"] != "%_TEST%"
@@ -303,31 +302,35 @@ class RunApexTests(BaseSalesforceApiTask):
     def _get_test_classes(self):
         # If test_suite_names is provided, execute only tests that are a part of the list of test suites provided.
         if (
-            self.options["test_suite_names"] is not None
-            and len(self.options["test_suite_names"]) > 0
+            self.options["test_suite_names"]
         ):
             test_classes_from_test_suite_names = (
                 self._get_test_classes_from_test_suite_names()
             )
             return test_classes_from_test_suite_names
+        
+        # test_suite_names is not provided. Fetch all the test classes from the org.
+        else:
+            return self._get_all_test_classes()
+        
 
+    def _get_all_test_classes(self):
+        # Fetches all the test classes from the org.
         query = self._get_test_class_query()
-        # Run the query
-        self.logger.info("Running query: {}".format(query))
+        self.logger.info("Fetching all the test classes...")
         result = self.tooling.query_all(query)
         self.logger.info("Found {} test classes".format(result["totalSize"]))
         return result
-
+    
     def _get_comma_separated_string_of_items(self, itemlist):
         # Accepts a list of strings. A formatted string is returned.
         # Example: Input: ['TestSuite1', 'TestSuite2']      Output: ''TestSuite1','TestSuite2''
         return ",".join(
-            [f"'{item}'" for item in item_string]
+            [f"'{item}'" for item in itemlist]
         )
 
-    def _get_test_suite_ids_from_test_suite_names_query(self):
-        # Returns a query string which when executed fetches the test suite ids of the list of test suites names.
-        test_suite_names_arg = self.options["test_suite_names"]
+    def _get_test_suite_ids_from_test_suite_names_query(self, test_suite_names_arg):
+        # Returns a query string which when executed fetches the test suite ids of the list of test suite names.
         test_suite_names = self._get_comma_separated_string_of_items(
             test_suite_names_arg.split(",")
         )
@@ -346,7 +349,7 @@ class RunApexTests(BaseSalesforceApiTask):
         condition = ""
 
         # Check if test_name_exclude is provided. Append to query string if the former is specified.
-        if test_name_exclude_arg is not None and len(test_name_exclude_arg) > 0:
+        if test_name_exclude_arg:
             test_name_exclude = self._get_comma_separated_string_of_items(
                 test_name_exclude_arg.split(",")
             )
@@ -357,7 +360,8 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _get_test_classes_from_test_suite_names(self):
         # Returns a list of Apex test classes that belong to the test suite(s) specified. Test classes specified in test_name_exclude are excluded.
-        query1 = self._get_test_suite_ids_from_test_suite_names_query()
+        test_suite_names_arg = self.options["test_suite_names"]
+        query1 = self._get_test_suite_ids_from_test_suite_names_query(test_suite_names_arg)
         self.logger.info("Fetching test suite metadata...")
         result = self.tooling.query_all(query1)
         testSuiteIds = []
