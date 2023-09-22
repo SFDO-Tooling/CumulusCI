@@ -15,7 +15,8 @@ from .util import create_task
 
 
 class TestDeploy:
-    def test_get_api(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api(self, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -26,6 +27,7 @@ class TestDeploy:
                     "namespace_inject": "ns",
                     "namespace_strip": "ns",
                     "unmanaged": True,
+                    "rest_deply": rest_deploy,
                 },
             )
 
@@ -34,11 +36,18 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
-    def test_get_api__managed(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api__managed(self, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
-                Deploy, {"path": path, "namespace_inject": "ns", "unmanaged": False}
+                Deploy,
+                {
+                    "path": path,
+                    "namespace_inject": "ns",
+                    "unmanaged": False,
+                    "rest_deploy": rest_deploy,
+                },
             )
 
             api = task._get_api()
@@ -46,7 +55,8 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
-    def test_get_api__additional_options(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api__additional_options(self, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -56,6 +66,7 @@ class TestDeploy:
                     "test_level": "RunSpecifiedTests",
                     "specified_tests": "TestA,TestB",
                     "unmanaged": False,
+                    "rest_deploy": rest_deploy,
                 },
             )
 
@@ -63,7 +74,8 @@ class TestDeploy:
             assert api.run_tests == ["TestA", "TestB"]
             assert api.test_level == "RunSpecifiedTests"
 
-    def test_get_api__skip_clean_meta_xml(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api__skip_clean_meta_xml(self, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -72,6 +84,7 @@ class TestDeploy:
                     "path": path,
                     "clean_meta_xml": False,
                     "unmanaged": True,
+                    "rest_deploy": rest_deploy,
                 },
             )
 
@@ -80,7 +93,8 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
-    def test_get_api__static_resources(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api__static_resources(self, rest_deploy):
         with temporary_dir() as path:
             with open("package.xml", "w") as f:
                 f.write(
@@ -107,6 +121,7 @@ class TestDeploy:
                         "namespace_inject": "ns",
                         "namespace_strip": "ns",
                         "unmanaged": True,
+                        "rest_deploy": rest_deploy,
                     },
                 )
 
@@ -120,32 +135,37 @@ class TestDeploy:
                 assert "<members>TestBundle</members>" in package_xml
                 zf.close()
 
-    def test_get_api__missing_path(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api__missing_path(self, rest_deploy):
         task = create_task(
             Deploy,
             {
                 "path": "BOGUS",
                 "unmanaged": True,
+                "rest_deploy": rest_deploy,
             },
         )
 
         api = task._get_api()
         assert api is None
 
-    def test_get_api__empty_package_zip(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_get_api__empty_package_zip(self, rest_deploy):
         with temporary_dir() as path:
             task = create_task(
                 Deploy,
                 {
                     "path": path,
                     "unmanaged": True,
+                    "rest_deploy": rest_deploy,
                 },
             )
 
             api = task._get_api()
             assert api is None
 
-    def test_init_options(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_init_options(self, rest_deploy):
         with pytest.raises(TaskOptionsError):
             create_task(
                 Deploy,
@@ -153,6 +173,7 @@ class TestDeploy:
                     "path": "empty",
                     "test_level": "RunSpecifiedTests",
                     "unmanaged": False,
+                    "rest_deploy": rest_deploy,
                 },
             )
 
@@ -169,34 +190,40 @@ class TestDeploy:
                     "test_level": "RunLocalTests",
                     "specified_tests": ["TestA"],
                     "unmanaged": False,
+                    "rest_deploy": rest_deploy,
                 },
             )
 
-    def test_init_options__transforms(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_init_options__transforms(self, rest_deploy):
         d = create_task(
             Deploy,
             {
                 "path": "src",
                 "transforms": ["clean_meta_xml"],
+                "rest_deploy": rest_deploy,
             },
         )
 
         assert len(d.transforms) == 1
         assert isinstance(d.transforms[0], CleanMetaXMLTransform)
 
-    def test_init_options__bad_transforms(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_init_options__bad_transforms(self, rest_deploy):
         with pytest.raises(TaskOptionsError) as e:
             create_task(
                 Deploy,
                 {
                     "path": "src",
                     "transforms": [{}],
+                    "rest_deploy": rest_deploy,
                 },
             )
 
             assert "transform spec is not valid" in str(e)
 
-    def test_freeze_sets_kind(self):
+    @pytest.mark.parametrize("rest_deploy", [True, False])
+    def test_freeze_sets_kind(self, rest_deploy):
         task = create_task(
             Deploy,
             {
@@ -204,6 +231,7 @@ class TestDeploy:
                 "namespace_tokenize": "ns",
                 "namespace_inject": "ns",
                 "namespace_strip": "ns",
+                "rest_deploy": rest_deploy,
             },
         )
         step = StepSpec(
