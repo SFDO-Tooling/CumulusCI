@@ -737,7 +737,8 @@ class TestRunApexTests(MockLoggerMixin):
             }
         )
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        query = task._get_test_suite_ids_from_test_suite_names_query()
+        test_suite_names_arg = 'TestSuite1,TestSuite2'
+        query = task._get_test_suite_ids_from_test_suite_names_query(test_suite_names_arg)
 
         assert (
             "SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ('TestSuite1','TestSuite2')"
@@ -755,8 +756,9 @@ class TestRunApexTests(MockLoggerMixin):
                 }
             }
         )
+        test_suite_names_arg = 'TestSuite1'
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        query = task._get_test_suite_ids_from_test_suite_names_query()
+        query = task._get_test_suite_ids_from_test_suite_names_query(test_suite_names_arg)
 
         assert (
             "SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ('TestSuite1')"
