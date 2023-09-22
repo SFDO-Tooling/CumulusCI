@@ -323,14 +323,9 @@ class RunApexTests(BaseSalesforceApiTask):
     def _get_comma_separated_string_of_items(self, itemlist):
         # Accepts a list of strings. A formatted string is returned.
         # Example: Input: ['TestSuite1', 'TestSuite2']      Output: ''TestSuite1','TestSuite2''
-        item_string = ""
-
-        for index, item in enumerate(itemlist):
-            item_string += f"'{item}'"
-            if index is not len(itemlist) - 1:
-                item_string += ","
-
-        return item_string
+        return ",".join(
+            [f"'{item}'" for item in item_string]
+        )
 
     def _get_test_suite_ids_from_test_suite_names_query(self):
         # Returns a query string which when executed fetches the test suite ids of the list of test suites names.
