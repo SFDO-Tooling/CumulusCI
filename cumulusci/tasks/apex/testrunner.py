@@ -251,8 +251,6 @@ class RunApexTests(BaseSalesforceApiTask):
             self.options["test_name_match"] is not None
             and self.options["test_name_match"] != "%_TEST%"
         ):
-            self.logger.info(self.options["test_suite_names"])
-            self.logger.info(self.options["test_name_match"])
             raise TaskOptionsError(
                 "Both test_suite_names and test_name_match cannot be passed simultaneously"
             )
