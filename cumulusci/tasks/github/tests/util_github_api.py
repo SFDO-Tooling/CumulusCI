@@ -530,7 +530,7 @@ class GithubApiTestMixin:
             "assets": [],
             "assets_url": "",
             "author": self._get_expected_user("author"),
-            "body": "",
+            "body": None,
             "created_at": now,
             "draft": False,
             "html_url": "",

@@ -295,6 +295,28 @@ def test_service_connect_validator_failure():
         run_cli_command("service", "connect", "test", "test-alias", runtime=runtime)
 
 
+def test_service_connect_without_whitespaces():
+    attr_value = "          Sample attr value         "
+    attr_value_without_whitespaces = "Sample attr value"
+    runtime = BaseCumulusCI(
+        config={"services": {"test": {"attributes": {"attr": {"required": False}}}}}
+    )
+
+    result = run_cli_command(
+        "service",
+        "connect",
+        "test",
+        "test-alias",
+        "--attr",
+        attr_value,
+        runtime=runtime,
+    )
+
+    result = runtime.keychain.get_service("test", "test-alias")
+    assert attr_value != result.attr
+    assert attr_value_without_whitespaces == result.attr
+
+
 def test_service_update__success():
     # Create a new color-picker service type
     runtime = CliRuntime(
@@ -332,6 +354,37 @@ def test_service_update__success():
     )
     assert chosen_color in result.output
     assert original_color not in result.output
+
+
+def test_service_update_without_whitespaces():
+    # Create a new color-picker service type
+    runtime = CliRuntime(
+        config={
+            "services": {"color-picker": {"attributes": {"color": {"required": False}}}}
+        }
+    )
+    # Setup an existing service of type color-picker
+    original_color = "Turquoise"
+    runtime.keychain.set_service(
+        "color-picker",
+        "foo",
+        ServiceConfig({"color": original_color}),
+    )
+    # Update the existing service
+    chosen_color = "           Maroon       "
+    chosen_color_without_whitespaces = "Maroon"
+    result = run_cli_command(
+        "service",
+        "update",
+        "color-picker",
+        "foo",
+        input=f"{chosen_color}\n",
+        runtime=runtime,
+    )
+    # ensure info was written without whitespaces
+    result = runtime.keychain.get_service("color-picker", "foo")
+    assert chosen_color != result.color
+    assert chosen_color_without_whitespaces == result.color
 
 
 def test_service_update_headless__success():
