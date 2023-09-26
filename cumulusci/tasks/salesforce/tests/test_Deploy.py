@@ -223,7 +223,7 @@ class TestDeploy:
             assert "transform spec is not valid" in str(e)
 	
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_init_options__output_default(self):
+    def test_init_options__output_default(self, rest_deploy):
         d = create_task(
             Deploy,
             {
@@ -236,7 +236,7 @@ class TestDeploy:
         assert d.options["json_output"] == "test_results.json"
 
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_init_options__JUNIT_output(self):
+    def test_init_options__JUNIT_output(self, rest_deploy):
         d = create_task(
             Deploy,
             {
@@ -249,7 +249,7 @@ class TestDeploy:
         assert d.options["junit_output"] == "TEST.xml"
 
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_init_options__JSON_output(self):
+    def test_init_options__JSON_output(self, rest_deploy):
         d = create_task(
             Deploy,
             {
