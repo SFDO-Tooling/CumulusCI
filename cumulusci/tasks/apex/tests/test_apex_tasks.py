@@ -152,7 +152,7 @@ class TestRunApexTests(MockLoggerMixin):
 
         return_value = {"done": True, "records": []}
 
-        for (method_name, outcome, message) in zip(methodnames, outcomes, messages):
+        for method_name, outcome, message in zip(methodnames, outcomes, messages):
             this_result = deepcopy(record_base)
             this_result["Message"] = message
             this_result["Outcome"] = outcome
@@ -726,6 +726,101 @@ class TestRunApexTests(MockLoggerMixin):
             task = RunApexTests(self.project_config, task_config, self.org_config)
             task._init_options(task_config.config["options"])
 
+    def test_get_test_suite_ids_from_test_suite_names_query__multiple_test_suites(self):
+        # Test to ensure that query to fetch test suite ids from test suite names is formed properly when multiple test suites are specified.
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "test_suite_names": "TestSuite1,TestSuite2",
+                    "test_name_match": "%_TEST%",
+                }
+            }
+        )
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        test_suite_names_arg = "TestSuite1,TestSuite2"
+        query = task._get_test_suite_ids_from_test_suite_names_query(
+            test_suite_names_arg
+        )
+
+        assert (
+            "SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ('TestSuite1','TestSuite2')"
+            == query
+        )
+
+    def test_get_test_suite_ids_from_test_suite_names_query__single_test_suite(self):
+        # Test to ensure that query to fetch test suite ids from test suite names is formed properly when a single test suite is specified.
+
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "test_suite_names": "TestSuite1",
+                    "test_name_match": "%_TEST%",
+                }
+            }
+        )
+        test_suite_names_arg = "TestSuite1"
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        query = task._get_test_suite_ids_from_test_suite_names_query(
+            test_suite_names_arg
+        )
+
+        assert (
+            "SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ('TestSuite1')"
+            == query
+        )
+
+    def test_get_test_classes_from_test_suite_ids_query__no_test_name_exclude(self):
+        # Test to ensure that query to fetch test classes from test suite ids is formed properly when no test_name_exclude is specified.
+        task_config = TaskConfig()
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        test_suite_ids = ["id1", "id2"]
+        query = task._get_test_classes_from_test_suite_ids_query(test_suite_ids)
+        assert (
+            "SELECT Id, Name FROM ApexClass WHERE Id IN (SELECT ApexClassId FROM TestSuiteMembership WHERE ApexTestSuiteId IN ('id1','id2')) "
+            == query
+        )
+
+    def test_get_test_classes_from_test_suite_ids_query__with_test_name_exclude(self):
+        # Test to ensure that query to fetch test classes from test suite ids is formed properly when test_name_exclude is specified.
+        task_config = TaskConfig({"options": {"test_name_exclude": "Test1,Test2"}})
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        test_suite_ids = ["id1", "id2"]
+        query = task._get_test_classes_from_test_suite_ids_query(test_suite_ids)
+        assert (
+            "SELECT Id, Name FROM ApexClass WHERE Id IN (SELECT ApexClassId FROM TestSuiteMembership WHERE ApexTestSuiteId IN ('id1','id2')) AND Name NOT IN ('Test1','Test2')"
+            == query
+        )
+
+    def test_get_comma_separated_string_of_items__multiple_items(self):
+        # Test to ensure that a comma separated string of items is properly formed when a list of strings with multiple strings is passed.
+        task_config = TaskConfig()
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        itemlist = ["TestSuite1", "TestSuite2"]
+        item_string = task._get_comma_separated_string_of_items(itemlist)
+        assert item_string == "'TestSuite1','TestSuite2'"
+
+    def test_get_comma_separated_string_of_items__single_item(self):
+        # Test to ensure that a comma separated string of items is properly formed when a list of strings with a single string is passed.
+        task_config = TaskConfig()
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        itemlist = ["TestSuite1"]
+        item_string = task._get_comma_separated_string_of_items(itemlist)
+        assert item_string == "'TestSuite1'"
+
+    def test_init_options__test_suite_names_and_test_name_match_provided(self):
+        # Test to ensure that a TaskOptionsError is raised when both test_suite_names and test_name_match are provided.
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "test_name_match": "sample",
+                    "test_suite_names": "suite1,suite2",
+                }
+            }
+        )
+        with pytest.raises(TaskOptionsError):
+            task = RunApexTests(self.project_config, task_config, self.org_config)
+            task._init_options(task_config.config["options"])
+
     def test_get_namespace_filter__managed(self):
         task_config = TaskConfig({"options": {"managed": True, "namespace": "testns"}})
         task = RunApexTests(self.project_config, task_config, self.org_config)
@@ -1266,7 +1361,6 @@ class TestRunBatchApex(MockLoggerMixin):
 
     @responses.activate
     def test_job_not_found(self):
-
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         response["records"] = []
@@ -1301,7 +1395,6 @@ class TestApexIntegrationTests:
             self._test_run_tests__integration_test(create_task, caplog)
 
     def _test_run_tests__integration_test(self, create_task, caplog):
-
         caplog.set_level(logging.INFO)
         with pytest.raises(exc.ApexTestException) as e:
             task = create_task(
