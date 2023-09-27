@@ -152,7 +152,7 @@ class TestRunApexTests(MockLoggerMixin):
 
         return_value = {"done": True, "records": []}
 
-        for (method_name, outcome, message) in zip(methodnames, outcomes, messages):
+        for method_name, outcome, message in zip(methodnames, outcomes, messages):
             this_result = deepcopy(record_base)
             this_result["Message"] = message
             this_result["Outcome"] = outcome
@@ -737,8 +737,10 @@ class TestRunApexTests(MockLoggerMixin):
             }
         )
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        test_suite_names_arg = 'TestSuite1,TestSuite2'
-        query = task._get_test_suite_ids_from_test_suite_names_query(test_suite_names_arg)
+        test_suite_names_arg = "TestSuite1,TestSuite2"
+        query = task._get_test_suite_ids_from_test_suite_names_query(
+            test_suite_names_arg
+        )
 
         assert (
             "SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ('TestSuite1','TestSuite2')"
@@ -756,9 +758,11 @@ class TestRunApexTests(MockLoggerMixin):
                 }
             }
         )
-        test_suite_names_arg = 'TestSuite1'
+        test_suite_names_arg = "TestSuite1"
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        query = task._get_test_suite_ids_from_test_suite_names_query(test_suite_names_arg)
+        query = task._get_test_suite_ids_from_test_suite_names_query(
+            test_suite_names_arg
+        )
 
         assert (
             "SELECT Id, TestSuiteName FROM ApexTestSuite WHERE TestSuiteName IN ('TestSuite1')"
@@ -1357,7 +1361,6 @@ class TestRunBatchApex(MockLoggerMixin):
 
     @responses.activate
     def test_job_not_found(self):
-
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         response["records"] = []
@@ -1392,7 +1395,6 @@ class TestApexIntegrationTests:
             self._test_run_tests__integration_test(create_task, caplog)
 
     def _test_run_tests__integration_test(self, create_task, caplog):
-
         caplog.set_level(logging.INFO)
         with pytest.raises(exc.ApexTestException) as e:
             task = create_task(
