@@ -625,7 +625,7 @@ class TestScratchOrgConfig:
                 f.write("{}")
             with pytest.raises(
                 SfdxOrgException,
-                match="Check the API Version or endpoint you are interacting",
+                match="The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub.",
             ):
                 config.create_org()
 
