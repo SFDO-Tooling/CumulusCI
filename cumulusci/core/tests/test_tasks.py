@@ -105,6 +105,22 @@ class TestBaseTaskCallable:
         task = BaseTask(self.project_config, self.task_config, self.org_config)
         assert task.options["test_option"] == "baz"
 
+    # For variable substitution in nested structures
+    def test_init_options__project_config_substitution_nested(self):
+        self.project_config.config["foo"] = {"bar": "baz", "fighters": "pretender"}
+        self.project_config.config["vulf"] = {"peck": "DeanTown"}
+        self.task_config.config["options"] = {
+            "test_option": "$project_config.foo__bar",
+            "songs": [
+                {"foo_fighters": "$project_config.foo__fighters"},
+                {"vulfpeck": "$project_config.vulf__peck"},
+            ],
+        }
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        assert task.options["test_option"] == "baz"
+        assert task.options["songs"][0]["foo_fighters"] == "pretender"
+        assert task.options["songs"][1]["vulfpeck"] == "DeanTown"
+
     def test_init_options__not_shared(self):
         self.project_config.config["foo"] = {"bar": "baz"}
         self.task_config.config["options"] = {}
