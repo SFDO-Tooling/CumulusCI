@@ -81,6 +81,18 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         def raise_error() -> NoReturn:
             message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
+            try:
+                output = json.loads(stdout)
+                if (
+                    output.get("message") == "The requested resource does not exist"
+                    and output.get("name") == "NOT_FOUND"
+                ):
+                    raise ScratchOrgException(
+                        "The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub."
+                    )
+            except json.decoder.JSONDecodeError:
+                raise ScratchOrgException(message)
+
             raise ScratchOrgException(message)
 
         result = {}  # for type checker.
@@ -88,6 +100,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             raise_error()
         try:
             result = json.loads(stdout)
+
         except json.decoder.JSONDecodeError:
             raise_error()
 
