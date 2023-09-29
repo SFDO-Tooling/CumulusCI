@@ -2,6 +2,37 @@
 
 <!-- latest-start -->
 
+## v3.80.0 (2023-09-29)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Changes 🎉
+* Deploy Major and Minor Version option in upload_production task by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
+* Add better error handling for empty or invalid org and service env vars by [@prescod](https://github.com/prescod) in [#3365](https://github.com/SFDO-Tooling/CumulusCI/pull/3365)
+* Query with install_key in promote_package_version (via @zenibako) by [@davidmreed](https://github.com/davidmreed) in [#3654](https://github.com/SFDO-Tooling/CumulusCI/pull/3654)
+* Modified service to trim whitespaces by [@aditya-balachander](https://github.com/aditya-balachander) in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
+* Added Namespace in org info by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3662](https://github.com/SFDO-Tooling/CumulusCI/pull/3662)
+* Extended 'Deploy' task to support REST API deployment by [@aditya-balachander](https://github.com/aditya-balachander) in [#3650](https://github.com/SFDO-Tooling/CumulusCI/pull/3650)
+* W-12214520: Adding ApexTestSuite support in run_tests by [@mjawadtp](https://github.com/mjawadtp) in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
+* Implemented variable substitution for nested structures in cumulusci.yml by [@aditya-balachander](https://github.com/aditya-balachander) in [#3665](https://github.com/SFDO-Tooling/CumulusCI/pull/3665)
+* Add exception handling for minor release version comparison when uploading packages by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3656](https://github.com/SFDO-Tooling/CumulusCI/pull/3656)
+* Added xpath 'find_and_replace' functionality to transforms by [@aditya-balachander](https://github.com/aditya-balachander) in [#3655](https://github.com/SFDO-Tooling/CumulusCI/pull/3655)
+* Improve message description handling for scratch org cli `not_found` error by [@lakshmi2506](https://github.com/lakshmi2506) in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
+* Added deactivate_flows_task by [@lakshmi2506](https://github.com/lakshmi2506) in [#3664](https://github.com/SFDO-Tooling/CumulusCI/pull/3664)
+### Issues Fixed 🩴
+* Add guard for empty body to github_release_report by [@jstvz](https://github.com/jstvz) in [#3645](https://github.com/SFDO-Tooling/CumulusCI/pull/3645)
+
+## New Contributors
+* @jain-naman-sf made their first contribution in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
+* @aditya-balachander made their first contribution in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
+* @mjawadtp made their first contribution in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
+* @lakshmi2506 made their first contribution in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.79.0...v3.80.0
+
+
+<!-- latest-stop -->
+
 ## v3.79.0 (2023-09-07)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +44,6 @@
 -   Added workarounds to support Vlocity local compilation in CI by [@jstvz](https://github.com/jstvz) in [#3642](https://github.com/SFDO-Tooling/CumulusCI/pull/3642)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.78.0...v3.79.0
-
-<!-- latest-stop -->
 
 ## v3.78.0 (2023-08-10)
 
