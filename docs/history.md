@@ -3,33 +3,38 @@
 <!-- latest-start -->
 
 ## v3.80.0 (2023-09-29)
+
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
+
 ### Changes 🎉
-* Deploy Major and Minor Version option in upload_production task by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
-* Add better error handling for empty or invalid org and service env vars by [@prescod](https://github.com/prescod) in [#3365](https://github.com/SFDO-Tooling/CumulusCI/pull/3365)
-* Query with install_key in promote_package_version (via @zenibako) by [@davidmreed](https://github.com/davidmreed) in [#3654](https://github.com/SFDO-Tooling/CumulusCI/pull/3654)
-* Modify service to trim whitespaces by [@aditya-balachander](https://github.com/aditya-balachander) in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
-* Add Namespace in org info by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3662](https://github.com/SFDO-Tooling/CumulusCI/pull/3662)
-* Extend 'Deploy' task to support REST API deployment by [@aditya-balachander](https://github.com/aditya-balachander) in [#3650](https://github.com/SFDO-Tooling/CumulusCI/pull/3650)
-* Add ApexTestSuite support in run_tests by [@mjawadtp](https://github.com/mjawadtp) in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
-* Implement variable substitution for nested structures in cumulusci.yml by [@aditya-balachander](https://github.com/aditya-balachander) in [#3665](https://github.com/SFDO-Tooling/CumulusCI/pull/3665)
-* Add exception handling for minor release version comparison when uploading packages by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3656](https://github.com/SFDO-Tooling/CumulusCI/pull/3656)
-* Add xpath 'find_and_replace' functionality to transforms by [@aditya-balachander](https://github.com/aditya-balachander) in [#3655](https://github.com/SFDO-Tooling/CumulusCI/pull/3655)
-* Improve message description handling for scratch org cli `not_found` error by [@lakshmi2506](https://github.com/lakshmi2506) in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
-* Add deactivate_flows_task by [@lakshmi2506](https://github.com/lakshmi2506) in [#3664](https://github.com/SFDO-Tooling/CumulusCI/pull/3664)
+
+-   Deploy Major and Minor Version option in upload_production task by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
+-   Add better error handling for empty or invalid org and service env vars by [@prescod](https://github.com/prescod) in [#3365](https://github.com/SFDO-Tooling/CumulusCI/pull/3365)
+-   Query with install_key in promote_package_version (via @zenibako) by [@davidmreed](https://github.com/davidmreed) in [#3654](https://github.com/SFDO-Tooling/CumulusCI/pull/3654)
+-   Modify service to trim whitespaces by [@aditya-balachander](https://github.com/aditya-balachander) in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
+-   Add Namespace in org info by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3662](https://github.com/SFDO-Tooling/CumulusCI/pull/3662)
+-   Extend 'Deploy' task to support REST API deployment by [@aditya-balachander](https://github.com/aditya-balachander) in [#3650](https://github.com/SFDO-Tooling/CumulusCI/pull/3650)
+-   Add ApexTestSuite support in run_tests by [@mjawadtp](https://github.com/mjawadtp) in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
+-   Implement variable substitution for nested structures in cumulusci.yml by [@aditya-balachander](https://github.com/aditya-balachander) in [#3665](https://github.com/SFDO-Tooling/CumulusCI/pull/3665)
+-   Add exception handling for minor release version comparison when uploading packages by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3656](https://github.com/SFDO-Tooling/CumulusCI/pull/3656)
+-   Add xpath 'find_and_replace' functionality to transforms by [@aditya-balachander](https://github.com/aditya-balachander) in [#3655](https://github.com/SFDO-Tooling/CumulusCI/pull/3655)
+-   Improve message description handling for scratch org cli `not_found` error by [@lakshmi2506](https://github.com/lakshmi2506) in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
+-   Add deactivate_flows_task by [@lakshmi2506](https://github.com/lakshmi2506) in [#3664](https://github.com/SFDO-Tooling/CumulusCI/pull/3664)
+
 ### Issues Fixed 🩴
-* Add guard for empty body to github_release_report by [@jstvz](https://github.com/jstvz) in [#3645](https://github.com/SFDO-Tooling/CumulusCI/pull/3645)
+
+-   Add guard for empty body to github_release_report by [@jstvz](https://github.com/jstvz) in [#3645](https://github.com/SFDO-Tooling/CumulusCI/pull/3645)
 
 ## New Contributors
-* @jain-naman-sf made their first contribution in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
-* @aditya-balachander made their first contribution in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
-* @mjawadtp made their first contribution in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
-* @lakshmi2506 made their first contribution in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
+
+-   @jain-naman-sf made their first contribution in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
+-   @aditya-balachander made their first contribution in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
+-   @mjawadtp made their first contribution in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
+-   @lakshmi2506 made their first contribution in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.79.0...v3.80.0
-
 
 <!-- latest-stop -->
 
@@ -4247,7 +4252,6 @@ the original set of flows was designed.
     > -   **dependencies** Runs the pre-package deployment dependency
     >     tasks **update_dependencies** and **deploy_pre** This flow is
     >     called by almost all the main flows.
-    >
     > -   **config\_**\* flows provide a place to customize the package
     >     configuration for different environments. These flows are
     >     called by the main flows after the package metadata is
