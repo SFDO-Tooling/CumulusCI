@@ -696,8 +696,6 @@ class ApiListMetadataTypes(BaseMetadataApiCall):
             else task.project_config.project__package__api_version
         )
         self.api_version = self.as_of_version
-        
-        
 
     def _build_envelope_start(self):
        
