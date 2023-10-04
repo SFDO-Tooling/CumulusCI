@@ -1,7 +1,7 @@
 import pathlib
 from typing import List, Optional
-from zipfile import ZipFile
 
+from defusedxml.minidom import parseString
 from pydantic import ValidationError
 
 from cumulusci.core.dependencies.utils import TaskContext
@@ -149,17 +149,36 @@ class Deploy(BaseSalesforceMetadataApiTask):
             "namespaced_org": self._is_namespaced_org(namespace),
         }
         package_zip = None
+        xml_map = {}
         with convert_sfdx_source(path, None, self.logger) as src_path:
+            ##############
             package_xml = open(f"{src_path}/package.xml", "r")
+            source_xml_tree = metadata_tree.parse(f"{src_path}/package.xml")
+
+            for type in source_xml_tree.types:
+                members = []
+                try:
+                    for member in type.members:
+                        members.append(member.text)
+                except AttributeError:  # Exception if there are no members for a type
+                    pass
+                xml_map[type["name"].text] = members
+
             api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
-                self, package_xml.read(), "58.0"
+                self, package_xml.read(), source_xml_tree.version.text
             )
-            root = metadata_tree.fromstring(
+            resp_xml = parseString(
                 api_retrieve_unpackaged_object._get_response().content
             )
-            print(root)
-            # package_xml_retrieved=open(package_xml_retrieved_path,"r")
-            # print(package_xml_retrieved.read())
+            messages = resp_xml.getElementsByTagName("messages")
+            for i in range(len(messages)):
+                message_list = messages[
+                    i
+                ].firstChild.nextSibling.firstChild.nodeValue.split("'")
+                if message_list[3] in xml_map[message_list[1]]:
+                    xml_map[message_list[1]].remove(message_list[3])
+            print(xml_map)
+            #############
             context = TaskContext(self.org_config, self.project_config, self.logger)
             package_zip = MetadataPackageZipBuilder(
                 path=src_path,
