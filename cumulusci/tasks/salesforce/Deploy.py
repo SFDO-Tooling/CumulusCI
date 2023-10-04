@@ -1,5 +1,6 @@
 import pathlib
 from typing import List, Optional
+from zipfile import ZipFile
 
 from pydantic import ValidationError
 
@@ -11,15 +12,17 @@ from cumulusci.core.source_transforms.transforms import (
     SourceTransformList,
 )
 from cumulusci.core.utils import process_bool_arg, process_list_arg
-from cumulusci.salesforce_api.metadata import ApiDeploy
+from cumulusci.salesforce_api.metadata import ApiDeploy, ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
+from cumulusci.utils.xml import metadata_tree
 
 
 class Deploy(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
+    api_retrieve_unpackaged = ApiRetrieveUnpackaged
     task_options = {
         "path": {
             "description": "The path to the metadata source to be deployed",
@@ -37,6 +40,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "check_only": {
             "description": "If True, performs a test deployment (validation) of components without saving the components in the target org"
         },
+        "collision_check": {"description": "."},
         "test_level": {
             "description": "Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests."
         },
@@ -146,6 +150,16 @@ class Deploy(BaseSalesforceMetadataApiTask):
         }
         package_zip = None
         with convert_sfdx_source(path, None, self.logger) as src_path:
+            package_xml = open(f"{src_path}/package.xml", "r")
+            api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
+                self, package_xml.read(), "58.0"
+            )
+            root = metadata_tree.fromstring(
+                api_retrieve_unpackaged_object._get_response().content
+            )
+            print(root)
+            # package_xml_retrieved=open(package_xml_retrieved_path,"r")
+            # print(package_xml_retrieved.read())
             context = TaskContext(self.org_config, self.project_config, self.logger)
             package_zip = MetadataPackageZipBuilder(
                 path=src_path,
