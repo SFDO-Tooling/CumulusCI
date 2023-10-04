@@ -678,3 +678,42 @@ class ApiNewProfile(BaseMetadataApiCall):
             )
         # Unknown response
         raise MetadataApiError(f"Unexpected response: {response.text}", response)
+
+
+class ApiListMetadataTypes(BaseMetadataApiCall):
+    check_interval = 1
+    soap_envelope_start = soap_envelopes.METADATA_TYPES
+    soap_action_start = "describemetadatatypes"
+
+    def __init__(
+        self, task, as_of_version=None
+    ):
+        super(ApiListMetadataTypes, self).__init__(task)
+        self.metadata_types = []
+        self.as_of_version = (
+            as_of_version
+            if as_of_version
+            else task.project_config.project__package__api_version
+        )
+        self.api_version = self.as_of_version
+        
+        
+
+    def _build_envelope_start(self):
+       
+        return self.soap_envelope_start.format(
+            as_of_version=self.as_of_version,
+        )
+
+    def _process_response(self, response):
+        self.metadata_types=[]
+        temp=parseString(response).getElementsByTagName("metadataObjects")
+ 
+        for metadataobject in temp:    
+            self.metadata_types.append(self._get_element_value(metadataobject, "xmlName"))
+            child_elements = metadataobject.getElementsByTagName("childXmlNames")
+            child_xml_names = [element.firstChild.nodeValue for element in child_elements]
+            self.metadata_types+=child_xml_names
+
+        return self.metadata_types
+

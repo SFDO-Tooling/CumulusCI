@@ -30,6 +30,7 @@ ORIGINS = {
     "PublishCommunity": "cumulusci.tasks.salesforce.PublishCommunity",
     "RetrievePackaged": "cumulusci.tasks.salesforce.RetrievePackaged",
     "RetrieveReportsAndDashboards": "cumulusci.tasks.salesforce.RetrieveReportsAndDashboards",
+    "RetrieveMetadataTypes": "cumulusci.tasks.salesforce.RetrieveMetadataTypes",
     "RetrieveUnpackaged": "cumulusci.tasks.salesforce.RetrieveUnpackaged",
     "SOQLQuery": "cumulusci.tasks.salesforce.SOQLQuery",
     "SetTDTMHandlerStatus": "cumulusci.tasks.salesforce.trigger_handlers",

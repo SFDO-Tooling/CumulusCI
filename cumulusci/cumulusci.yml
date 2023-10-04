@@ -8,6 +8,10 @@ tasks:
         options:
             status: True
 
+    metadata_types:
+        class_path: cumulusci.tasks.metadata_type_list.MetadataTypeList
+        
+
     deactivate_flow:
         group: Metadata Transformations
         description: deactivates Flows identified by a given list of Developer Names
@@ -477,12 +481,18 @@ tasks:
         options:
             path: packaged
         group: Salesforce Metadata
+
+    retrieve_metadatatypes:
+        class_path: cumulusci.tasks.salesforce.RetrieveMetadataTypes
+        group: Salesforce Metadatatypes
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
             path: src
         group: Salesforce Metadata
+
+    
     retrieve_unpackaged:
         description: Retrieve the contents of a package.xml file.
         class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
