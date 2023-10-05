@@ -482,7 +482,7 @@ tasks:
         class_path: cumulusci.tasks.salesforce.RetrieveMetadataTypes
         description: Retrieves the metadata types supported by the org based on the api version
         group: Salesforce Metadatatypes
-        
+
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
@@ -490,7 +490,6 @@ tasks:
             path: src
         group: Salesforce Metadata
 
-    
     retrieve_unpackaged:
         description: Retrieve the contents of a package.xml file.
         class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
@@ -689,6 +688,7 @@ tasks:
             mapping: "datasets/mapping.yml"
             sql_path: "datasets/sample.sql"
         group: "Data Operations"
+
     load_dataset:
         description: Load a SQL dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.load.LoadData
