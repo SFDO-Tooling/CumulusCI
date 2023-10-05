@@ -162,16 +162,17 @@ CREATE_PROFILE = """<?xml version="1.0" encoding="utf-8"?>
   </soapenv:Body>
 </soapenv:Envelope>"""
 
+
 METADATA_TYPES = """<?xml version="1.0" encoding="utf-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://soap.sforce.com/2006/04/metadata">
-	<soapenv:Header>
-	<tns:SessionHeader>
-		<tns:sessionId>###SESSION_ID###</tns:sessionId>
-	</tns:SessionHeader>
-	</soapenv:Header>
-	<soapenv:Body>
-		<tns:describeMetadata>
-			<asOfVersion>{api_version}</asOfVersion>
-		</tns:describeMetadata>
-	</soapenv:Body>
+  <soapenv:Header>
+    <tns:SessionHeader>
+      <tns:sessionId>###SESSION_ID###</tns:sessionId>
+    </tns:SessionHeader>
+  </soapenv:Header>
+  <soapenv:Body>
+    <tns:describeMetadata>
+      <asOfVersion>{api_version}</asOfVersion>
+    </tns:describeMetadata>
+  </soapenv:Body>
 </soapenv:Envelope>"""

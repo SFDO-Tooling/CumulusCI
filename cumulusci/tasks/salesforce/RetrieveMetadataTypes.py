@@ -1,3 +1,5 @@
+import time
+
 from cumulusci.salesforce_api.metadata import ApiListMetadataTypes
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 
@@ -24,6 +26,6 @@ class RetrieveMetadataTypes(BaseRetrieveMetadata):
         api_object = self._get_api()
 
         while api_object.status == "Pending":
-            api_object()
+            time.sleep(1)
 
         self.logger.info("Metadata Types supported by org:\n" + str(api_object()))
