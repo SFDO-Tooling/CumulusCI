@@ -858,7 +858,7 @@ class TestApiListMetadataTypes(TestBaseTestMetadataApi):
     def _response_call_success_result(self, response_result):
         return list_metadata_types_result
 
-    def _expected_call_success_result(self, response_result):
+    def _expected_call_success_result(self, response_result=None):
         metadata_types = ["Workflow", "WorkflowFieldUpdate"]
         return metadata_types
 
@@ -876,6 +876,10 @@ class TestApiListMetadataTypes(TestBaseTestMetadataApi):
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
             api.soap_envelope_start = "{api_version}"
+        self._mock_call_mdapi(api, list_metadata_types_result)
+
+        metadata_types = api()
+        assert metadata_types == self._expected_call_success_result()
 
 
 class TestApiRetrieveUnpackaged(TestBaseTestMetadataApi):

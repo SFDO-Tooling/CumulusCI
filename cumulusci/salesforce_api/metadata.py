@@ -685,20 +685,19 @@ class ApiListMetadataTypes(BaseMetadataApiCall):
     soap_envelope_start = soap_envelopes.METADATA_TYPES
     soap_action_start = "describemetadatatypes"
 
-    def __init__(self, task, as_of_version=None):
+    def __init__(self, task, api_version=None):
         super(ApiListMetadataTypes, self).__init__(task)
         self.metadata_types = []
-        self.as_of_version = (
-            as_of_version
-            if as_of_version
+        self.api_version = (
+            api_version
+            if api_version
             else task.project_config.project__package__api_version
         )
-        self.api_version = self.as_of_version
 
     def _build_envelope_start(self):
 
         return self.soap_envelope_start.format(
-            as_of_version=self.as_of_version,
+            api_version=self.api_version,
         )
 
     def _process_response(self, response):
