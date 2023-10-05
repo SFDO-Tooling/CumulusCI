@@ -40,7 +40,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "check_only": {
             "description": "If True, performs a test deployment (validation) of components without saving the components in the target org"
         },
-        "collision_check": {"description": "."},
+        "collision_check": {
+            "description": "If True, performs a collision check with metadata already present in the target org"
+        },
         "test_level": {
             "description": "Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests."
         },
@@ -108,7 +110,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
             path = self.options.get("path")
 
         package_zip = self._get_package_zip(path)
-        if package_zip is not None:
+        if isinstance(package_zip, dict):
+            self.logger.warning(f"Below Components are getting overridden{package_zip}")
+            return
+        elif package_zip is not None:
             self.logger.info("Payload size: {} bytes".format(len(package_zip)))
         else:
             self.logger.warning("Deployment package is empty; skipping deployment.")
@@ -133,6 +138,39 @@ class Deploy(BaseSalesforceMetadataApiTask):
             return process_bool_arg(self.options.get("namespaced_org", False))
         return bool(ns) and ns == self.org_config.namespace
 
+    def _collision_check(self, src_path):
+        xml_map = {}
+        is_collision = False
+        package_xml = open(f"{src_path}/package.xml", "r")
+        source_xml_tree = metadata_tree.parse(f"{src_path}/package.xml")
+
+        for type in source_xml_tree.types:
+            members = []
+            try:
+                for member in type.members:
+                    members.append(member.text)
+            except AttributeError:  # Exception if there are no members for a type
+                pass
+            xml_map[type["name"].text] = members
+
+        api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
+            self, package_xml.read(), source_xml_tree.version.text
+        )
+        resp_xml = parseString(api_retrieve_unpackaged_object._get_response().content)
+        messages = resp_xml.getElementsByTagName("messages")
+        for i in range(len(messages)):
+            message_list = messages[
+                i
+            ].firstChild.nextSibling.firstChild.nodeValue.split("'")
+            if message_list[3] in xml_map[message_list[1]]:
+                xml_map[message_list[1]].remove(message_list[3])
+
+        for type, api_names in xml_map.items():
+            if len(api_names) != 0:
+                is_collision = True
+                break
+        return is_collision, xml_map
+
     def _get_package_zip(self, path) -> Optional[str]:
         assert path, f"Path should be specified for {self.__class__.name}"
         if not pathlib.Path(path).exists():
@@ -149,48 +187,28 @@ class Deploy(BaseSalesforceMetadataApiTask):
             "namespaced_org": self._is_namespaced_org(namespace),
         }
         package_zip = None
-        xml_map = {}
+
         with convert_sfdx_source(path, None, self.logger) as src_path:
             ##############
-            package_xml = open(f"{src_path}/package.xml", "r")
-            source_xml_tree = metadata_tree.parse(f"{src_path}/package.xml")
-
-            for type in source_xml_tree.types:
-                members = []
-                try:
-                    for member in type.members:
-                        members.append(member.text)
-                except AttributeError:  # Exception if there are no members for a type
-                    pass
-                xml_map[type["name"].text] = members
-
-            api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
-                self, package_xml.read(), source_xml_tree.version.text
-            )
-            resp_xml = parseString(
-                api_retrieve_unpackaged_object._get_response().content
-            )
-            messages = resp_xml.getElementsByTagName("messages")
-            for i in range(len(messages)):
-                message_list = messages[
-                    i
-                ].firstChild.nextSibling.firstChild.nodeValue.split("'")
-                if message_list[3] in xml_map[message_list[1]]:
-                    xml_map[message_list[1]].remove(message_list[3])
-            print(xml_map)
+            is_collision = False
+            if "collision_check" in options:
+                is_collision, xml_map = self._collision_check(src_path)
             #############
-            context = TaskContext(self.org_config, self.project_config, self.logger)
-            package_zip = MetadataPackageZipBuilder(
-                path=src_path,
-                context=context,
-                options=options,
-                transforms=self.transforms,
-            )
+            if not is_collision:
+                context = TaskContext(self.org_config, self.project_config, self.logger)
+                package_zip = MetadataPackageZipBuilder(
+                    path=src_path,
+                    context=context,
+                    options=options,
+                    transforms=self.transforms,
+                )
 
-        # If the package is empty, do nothing.
-        if not package_zip.zf.namelist():
-            return
-        return package_zip.as_base64()
+                # If the package is empty, do nothing.
+                if not package_zip.zf.namelist():
+                    return
+                return package_zip.as_base64()
+            else:
+                return xml_map
 
     def freeze(self, step):
         steps = super().freeze(step)
