@@ -685,9 +685,7 @@ class ApiListMetadataTypes(BaseMetadataApiCall):
     soap_envelope_start = soap_envelopes.METADATA_TYPES
     soap_action_start = "describemetadatatypes"
 
-    def __init__(
-        self, task, as_of_version=None
-    ):
+    def __init__(self, task, as_of_version=None):
         super(ApiListMetadataTypes, self).__init__(task)
         self.metadata_types = []
         self.as_of_version = (
@@ -698,20 +696,26 @@ class ApiListMetadataTypes(BaseMetadataApiCall):
         self.api_version = self.as_of_version
 
     def _build_envelope_start(self):
-       
+
         return self.soap_envelope_start.format(
             as_of_version=self.as_of_version,
         )
 
     def _process_response(self, response):
-        self.metadata_types=[]
-        temp=parseString(response).getElementsByTagName("metadataObjects")
- 
-        for metadataobject in temp:    
-            self.metadata_types.append(self._get_element_value(metadataobject, "xmlName"))
+        self.metadata_types = []
+        response = response.content.decode("utf-8")
+        metaobjects = parseString(response).getElementsByTagName("metadataObjects")
+
+        for metadataobject in metaobjects:
+            self.metadata_types.append(
+                self._get_element_value(metadataobject, "xmlName")
+            )
             child_elements = metadataobject.getElementsByTagName("childXmlNames")
-            child_xml_names = [element.firstChild.nodeValue for element in child_elements]
-            self.metadata_types+=child_xml_names
-
+            child_xml_names = [
+                element.firstChild.nodeValue for element in child_elements
+            ]
+            self.metadata_types += child_xml_names
+        self.metadata_types.sort()
+        self.status = "Done"
+        self.task.logger.info(self.status)
         return self.metadata_types
-

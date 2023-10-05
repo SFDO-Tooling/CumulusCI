@@ -7,6 +7,7 @@ docs/api/
 docs/_build/
 github_release_notes.html
 tmp
+cci_venv/
 
 # Distribution / packaging
 *.egg
