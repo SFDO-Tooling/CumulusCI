@@ -391,34 +391,34 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
 
-                # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
-                # Note that we handle orgPreferences below by converting to settings,
-                # in build_settings_package()
-                for key in (
-                    "country",
-                    "edition",
-                    "language",
-                    "features",
-                    "snapshot",
-                    "release",
-                    "sourceOrg",
-                ):
-                    if key in scratch_org_def:
-                        package_descriptor[key] = scratch_org_def[key]
+            # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
+            # Note that we handle orgPreferences below by converting to settings,
+            # in build_settings_package()
+            for key in (
+                "country",
+                "edition",
+                "language",
+                "features",
+                "snapshot",
+                "release",
+                "sourceOrg",
+            ):
+                if key in scratch_org_def:
+                    package_descriptor[key] = scratch_org_def[key]
 
-                # Add settings
-                if "settings" in scratch_org_def or "objectSettings" in scratch_org_def:
-                    with build_settings_package(
-                        scratch_org_def.get("settings"),
-                        scratch_org_def.get("objectSettings"),
-                        self.api_version,
-                    ) as path:
-                        settings_zip_builder = MetadataPackageZipBuilder(
-                            path=path, context=self.context
-                        )
-                        version_info.writestr(
-                            "settings.zip", settings_zip_builder.as_bytes()
-                        )
+            # Add settings
+            if "settings" in scratch_org_def or "objectSettings" in scratch_org_def:
+                with build_settings_package(
+                    scratch_org_def.get("settings"),
+                    scratch_org_def.get("objectSettings"),
+                    self.api_version,
+                ) as path:
+                    settings_zip_builder = MetadataPackageZipBuilder(
+                        path=path, context=self.context
+                    )
+                    version_info.writestr(
+                        "settings.zip", settings_zip_builder.as_bytes()
+                    )
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
