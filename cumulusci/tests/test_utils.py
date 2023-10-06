@@ -655,3 +655,15 @@ Options\n------------------------------------------\n\n
 
         assert utils.get_git_config("user.email") is None
         p.run.assert_called_once()
+
+    def test_process_none_arg__none(self):
+        none_value = utils.process_none_arg(None)
+        assert none_value is None
+
+    def test_process_none_arg__none_str(self):
+        none_value = utils.process_none_arg("None")
+        assert none_value is None
+
+    def test_process_none_arg__not_none_str(self):
+        some_value = utils.process_none_arg("Value")
+        assert some_value == "Value"

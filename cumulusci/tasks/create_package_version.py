@@ -27,7 +27,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, process_none_arg
 from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
@@ -168,7 +168,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
-            version_base=self.options.get("version_base"),
+            version_base=process_none_arg(self.options.get("version_base")),
             version_type=self.options.get("version_type") or VersionTypeEnum("build"),
         )
         self.options["skip_validation"] = process_bool_arg(
@@ -226,7 +226,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 context=self.context,
             )
 
-        ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
+        ancestor_id = self._resolve_ancestor_id(
+            process_none_arg(self.options.get("ancestor_id"))
+        )
 
         self.request_id = self._create_version_request(
             self.package_id,
@@ -389,34 +391,34 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
 
-            # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
-            # Note that we handle orgPreferences below by converting to settings,
-            # in build_settings_package()
-            for key in (
-                "country",
-                "edition",
-                "language",
-                "features",
-                "snapshot",
-                "release",
-                "sourceOrg",
-            ):
-                if key in scratch_org_def:
-                    package_descriptor[key] = scratch_org_def[key]
+                # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
+                # Note that we handle orgPreferences below by converting to settings,
+                # in build_settings_package()
+                for key in (
+                    "country",
+                    "edition",
+                    "language",
+                    "features",
+                    "snapshot",
+                    "release",
+                    "sourceOrg",
+                ):
+                    if key in scratch_org_def:
+                        package_descriptor[key] = scratch_org_def[key]
 
-            # Add settings
-            if "settings" in scratch_org_def or "objectSettings" in scratch_org_def:
-                with build_settings_package(
-                    scratch_org_def.get("settings"),
-                    scratch_org_def.get("objectSettings"),
-                    self.api_version,
-                ) as path:
-                    settings_zip_builder = MetadataPackageZipBuilder(
-                        path=path, context=self.context
-                    )
-                    version_info.writestr(
-                        "settings.zip", settings_zip_builder.as_bytes()
-                    )
+                # Add settings
+                if "settings" in scratch_org_def or "objectSettings" in scratch_org_def:
+                    with build_settings_package(
+                        scratch_org_def.get("settings"),
+                        scratch_org_def.get("objectSettings"),
+                        self.api_version,
+                    ) as path:
+                        settings_zip_builder = MetadataPackageZipBuilder(
+                            path=path, context=self.context
+                        )
+                        version_info.writestr(
+                            "settings.zip", settings_zip_builder.as_bytes()
+                        )
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
