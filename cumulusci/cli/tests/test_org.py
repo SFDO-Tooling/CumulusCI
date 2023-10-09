@@ -540,6 +540,7 @@ class TestOrgCommands:
             "default": True,
             "password": None,
             "connected_app": "built-in",
+            "namespace": "test",
         }
         org_config.expires = date.today()
         org_config.latest_api_version = "42.0"
@@ -557,6 +558,7 @@ class TestOrgCommands:
                     ["\x1b[1mconnected_app\x1b[0m", "built-in"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
+                    ["\x1b[1mnamespace\x1b[0m", "test"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
                 ],
             )

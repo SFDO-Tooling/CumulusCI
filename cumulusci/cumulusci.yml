@@ -5,6 +5,15 @@ tasks:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
         class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+        options:
+            status: True
+
+    deactivate_flow:
+        group: Metadata Transformations
+        description: deactivates Flows identified by a given list of Developer Names
+        class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+        options:
+            status: False
     add_page_layout_related_lists:
         group: Metadata Transformations
         description: Adds specified Related List to one or more Page Layouts.
@@ -1327,6 +1336,7 @@ flows:
                 task: promote_package_version
                 options:
                     version_id: ^^create_package_version.subscriber_package_version_id
+                    install_key: ^^create_package_version.install_key
     unmanaged_ee:
         group: Deployment
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
