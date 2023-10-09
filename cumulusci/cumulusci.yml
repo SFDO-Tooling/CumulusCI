@@ -200,6 +200,10 @@ tasks:
         options:
             license: Salesforce
         group: Salesforce Metadata
+    retrieve_profile:
+        description: Retrieve a Profile
+        class_path: cumulusci.tasks.salesforce.retrieve_profile.RetrieveProfile
+        group: Salesforce Metadata
     delete_data:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
         class_path: cumulusci.tasks.bulkdata.DeleteData
