@@ -1,10 +1,9 @@
-import time
 
 from cumulusci.salesforce_api.metadata import ApiListMetadataTypes
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 
 
-class RetrieveMetadataTypes(BaseRetrieveMetadata):
+class DescribeMetadataTypes(BaseRetrieveMetadata):
     api_class = ApiListMetadataTypes
     task_options = {
         "api_version": {
@@ -13,7 +12,7 @@ class RetrieveMetadataTypes(BaseRetrieveMetadata):
     }
 
     def _init_options(self, kwargs):
-        super(RetrieveMetadataTypes, self)._init_options(kwargs)
+        super(DescribeMetadataTypes, self)._init_options(kwargs)
         if "api_version" not in self.options:
             self.options[
                 "api_version"
@@ -24,8 +23,5 @@ class RetrieveMetadataTypes(BaseRetrieveMetadata):
 
     def _run_task(self):
         api_object = self._get_api()
-
-        while api_object.status == "Pending":
-            time.sleep(1)
-
-        self.logger.info("Metadata Types supported by org:\n" + str(api_object()))
+        metadata_list=api_object()
+        self.logger.info("Metadata Types supported by org:\n" + str(metadata_list))

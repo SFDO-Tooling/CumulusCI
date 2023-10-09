@@ -682,7 +682,7 @@ class ApiNewProfile(BaseMetadataApiCall):
 
 class ApiListMetadataTypes(BaseMetadataApiCall):
     check_interval = 1
-    soap_envelope_start = soap_envelopes.METADATA_TYPES
+    soap_envelope_start = soap_envelopes.DESCRIBE_METADATA
     soap_action_start = "describemetadatatypes"
 
     def __init__(self, task, api_version=None):
@@ -702,8 +702,7 @@ class ApiListMetadataTypes(BaseMetadataApiCall):
 
     def _process_response(self, response):
         self.metadata_types = []
-        response = response.content.decode("utf-8")
-        metaobjects = parseString(response).getElementsByTagName("metadataObjects")
+        metaobjects = parseString(response.content).getElementsByTagName("metadataObjects")
 
         for metadataobject in metaobjects:
             self.metadata_types.append(
