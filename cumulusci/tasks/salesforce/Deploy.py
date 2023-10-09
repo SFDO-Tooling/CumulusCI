@@ -93,6 +93,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
             self.options.get("namespace_inject")
             or self.project_config.project__package__namespace
         )
+        if "collision_check" not in self.options:
+            self.options["collision_check"] = False
 
         if "transforms" in self.options:
             try:
@@ -158,6 +160,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
         resp_xml = parseString(api_retrieve_unpackaged_object._get_response().content)
         messages = resp_xml.getElementsByTagName("messages")
+        print(messages)
         for i in range(len(messages)):
             message_list = messages[
                 i
