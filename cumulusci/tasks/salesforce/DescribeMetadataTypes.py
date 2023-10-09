@@ -1,4 +1,3 @@
-
 from cumulusci.salesforce_api.metadata import ApiListMetadataTypes
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 
@@ -23,5 +22,5 @@ class DescribeMetadataTypes(BaseRetrieveMetadata):
 
     def _run_task(self):
         api_object = self._get_api()
-        metadata_list=api_object()
+        metadata_list = api_object()
         self.logger.info("Metadata Types supported by org:\n" + str(metadata_list))

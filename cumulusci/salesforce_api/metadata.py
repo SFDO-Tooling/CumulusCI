@@ -702,7 +702,9 @@ class ApiListMetadataTypes(BaseMetadataApiCall):
 
     def _process_response(self, response):
         self.metadata_types = []
-        metaobjects = parseString(response.content).getElementsByTagName("metadataObjects")
+        metaobjects = parseString(response.content).getElementsByTagName(
+            "metadataObjects"
+        )
 
         for metadataobject in metaobjects:
             self.metadata_types.append(
