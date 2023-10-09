@@ -573,7 +573,9 @@ def org_scratch(
     runtime.check_org_overwrite(org_name)
     release_options = ["previous", "preview"]
     if release and release not in release_options:
-        raise click.UsageError("Release options value is not valid.")
+        raise click.UsageError(
+            "Release options value is not valid. Either specify preview or previous."
+        )
 
     scratch_configs = runtime.project_config.lookup("orgs__scratch")
     if not scratch_configs:
