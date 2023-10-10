@@ -188,7 +188,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         print(xml_map)
         return is_collision, xml_map
 
-    def _get_package_zip(self, path) -> Union[str, dict]:
+    def _get_package_zip(self, path) -> Union[str, dict, None]:
         assert path, f"Path should be specified for {self.__class__.name}"
         if not pathlib.Path(path).exists():
             self.logger.warning(f"{path} not found.")
