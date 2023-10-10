@@ -1,5 +1,4 @@
 import json
-from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Union
 
 import salesforce_bulk
@@ -7,6 +6,9 @@ from requests.exceptions import ConnectionError
 from simple_salesforce.exceptions import SalesforceGeneralError
 
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.utils.parallel.queries_in_parallel.run_queries_in_parallel import (
+    RunParallelQueries,
+)
 
 
 class MetadataInfo:
@@ -84,27 +86,6 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
     def _init_task(self):
         self.api_version = "58.0"
         super(RetrieveProfileApi, self)._init_task()
-
-    def _run_queries_in_parallel(self, queries: Dict[str, str]) -> Dict[str, list]:
-        num_threads = 4
-        results_dict = {}
-
-        with ThreadPoolExecutor(max_workers=num_threads) as executor:
-            futures = {
-                query_name: executor.submit(self._run_query, query)
-                for query_name, query in queries.items()
-            }
-
-        for query_name, future in futures.items():
-            try:
-                query_result = future.result()
-                results_dict[query_name] = query_result["records"]
-            except Exception as e:
-                raise Exception(f"Error executing query '{query_name}': {type(e)}: {e}")
-            else:
-                queries.pop(query_name, None)
-
-        return results_dict
 
     def _run_query(self, query):
         try:
@@ -187,7 +168,7 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         queries[CUSTOM_TAB_QUERY_NAME] = customTab_query
 
         # Run all queries
-        result = self._run_queries_in_parallel(queries)
+        result = RunParallelQueries._run_queries_in_parallel(queries, self._run_query)
 
         # Process the results
         permissionable_entities = {}
@@ -223,7 +204,7 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
                     {query_values.id_field: setupEntityAccess_dict[entity_type]},
                 )
 
-        result = self._run_queries_in_parallel(queries)
+        result = RunParallelQueries._run_queries_in_parallel(queries, self._run_query)
 
         extracted_values = {}
         for entity_type, data in SETUP_ENTITY_TYPES.items():

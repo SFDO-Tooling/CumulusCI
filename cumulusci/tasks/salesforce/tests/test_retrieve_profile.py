@@ -1,3 +1,4 @@
+import logging
 import os
 import xml.etree.ElementTree as ET
 import zipfile
@@ -13,16 +14,60 @@ from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 
 
 @pytest.fixture
-def retrieve_profile_task():
+def retrieve_profile_task(tmpdir):
     project_config = MagicMock()
-    task_config = TaskConfig({"options": {"profiles": "Profile1, Profile2"}})
+    task_config = TaskConfig(
+        {"options": {"profiles": ["Profile1", "Profile2"], "target": tmpdir}}
+    )
     org_config = MagicMock()
     task = RetrieveProfile(project_config, task_config, org_config)
+    task.logger = logging.getLogger(__name__)
+    task.logger.setLevel(logging.DEBUG)
     return task
 
 
 def test_init_options(retrieve_profile_task):
-    assert retrieve_profile_task.options["profiles"] == "Profile1, Profile2"
+    retrieve_profile_task._init_options(retrieve_profile_task.task_config.config)
+    assert retrieve_profile_task.profiles == ["Profile1", "Profile2"]
+
+
+def test_init_options_raises_error_with_no_profiles():
+    project_config = MagicMock()
+    task_config = TaskConfig({"options": {"profiles": None}})
+    org_config = MagicMock()
+
+    with pytest.raises(ValueError) as exc_info:
+        RetrieveProfile(project_config, task_config, org_config)
+
+    assert str(exc_info.value) == "At least one profile must be specified."
+
+
+def test_init_options_raises_error_with_invalid_target_directory():
+    project_config = MagicMock()
+    task_config = TaskConfig(
+        {"options": {"profiles": ["Profile1"], "target": "/nonexistent/directory"}}
+    )
+    org_config = MagicMock()
+
+    with pytest.raises(FileNotFoundError) as exc_info:
+        RetrieveProfile(project_config, task_config, org_config)
+
+    expected_message = "The extract directory '/nonexistent/directory' does not exist."
+    assert str(exc_info.value) == expected_message
+
+
+def test_init_options_raises_error_with_non_directory_target(tmp_path):
+    tmpfile = tmp_path / "file.txt"
+    tmpfile.write_text("Something")
+    project_config = MagicMock()
+    task_config = TaskConfig({"options": {"profiles": ["Profile1"], "target": tmpfile}})
+    org_config = MagicMock()
+
+    with pytest.raises(NotADirectoryError) as exc_info:
+        RetrieveProfile(project_config, task_config, org_config)
+
+    expected_message = f"'{tmpfile}' is not a directory."
+    assert str(exc_info.value) == expected_message
 
 
 def create_temp_zip_file():
@@ -30,13 +75,11 @@ def create_temp_zip_file():
 
     with zipfile.ZipFile(temp_zipfile, "w", zipfile.ZIP_DEFLATED) as zipf:
         zipf.writestr("profiles/Profile1.profile", "")
-        zipf.writestr("profiles/Profile2.profile", "")
-        zipf.writestr("profiles/Profile3.profile", "")
 
     return zipfile.ZipFile(temp_zipfile, "r")
 
 
-def test_run_task(retrieve_profile_task, tmpdir):
+def test_run_task(retrieve_profile_task, tmpdir, caplog):
     retrieve_profile_task.extract_dir = tmpdir
     temp_zipfile = create_temp_zip_file()
 
@@ -53,12 +96,19 @@ def test_run_task(retrieve_profile_task, tmpdir):
 
     assert os.path.exists(tmpdir)
     profile1_path = os.path.join(tmpdir, "profiles/Profile1.profile")
-    profile2_path = os.path.join(tmpdir, "profiles/Profile2.profile")
-    profile3_path = os.path.join(tmpdir, "profiles/Profile3.profile")
-
     assert os.path.exists(profile1_path)
-    assert os.path.exists(profile2_path)
-    assert os.path.exists(profile3_path)
+
+    log_messages = [record.message for record in caplog.records]
+    print(log_messages)
+    assert f"Profiles Profile1 unzipped into folder '{tmpdir}'" in log_messages
+    assert (
+        f"Profiles Profile1, Profile2 unzipped into folder '{tmpdir}'"
+        not in log_messages
+    )
+    assert (
+        "The following profiles were not found or could not be retrieved: Profile2"
+        in log_messages
+    )
 
 
 def test_get_api(retrieve_profile_task):

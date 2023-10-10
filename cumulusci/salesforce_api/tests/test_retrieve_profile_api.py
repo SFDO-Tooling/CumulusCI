@@ -1,4 +1,3 @@
-from concurrent.futures import Future, ThreadPoolExecutor
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
@@ -6,6 +5,9 @@ import pytest
 from requests.exceptions import ConnectionError
 
 from cumulusci.salesforce_api.retrieve_profile_api import RetrieveProfileApi
+from cumulusci.utils.parallel.queries_in_parallel.run_queries_in_parallel import (
+    RunParallelQueries,
+)
 
 
 @pytest.fixture
@@ -64,44 +66,6 @@ def test_extract_table_name_from_query_invalid(retrieve_profile_api_instance):
     query = "SELECT Id"
     with pytest.raises(ValueError):
         retrieve_profile_api_instance._extract_table_name_from_query(query)
-
-
-def test_run_queries_in_parallel(retrieve_profile_api_instance):
-    queries = {
-        "query1": "SELECT * FROM Table1",
-        "query2": "SELECT * FROM Table2",
-    }
-
-    expected_results = {
-        "query1": [{"field1": "value1"}, {"field1": "value2"}],
-        "query2": [{"field2": "value3"}, {"field2": "value4"}],
-    }
-
-    mock_future1 = MagicMock()
-    mock_future1.result.return_value = {"records": expected_results["query1"]}
-    mock_future2 = MagicMock()
-    mock_future2.result.return_value = {"records": expected_results["query2"]}
-
-    with patch.object(ThreadPoolExecutor, "submit") as mock_submit:
-        mock_submit.side_effect = [mock_future1, mock_future2]
-
-        results_dict = retrieve_profile_api_instance._run_queries_in_parallel(queries)
-
-    assert results_dict == expected_results
-
-
-def test_run_queries_in_parallel_with_exception(retrieve_profile_api_instance):
-    queries = {
-        "Query1": "SELECT Id FROM Table1",
-    }
-
-    with patch.object(Future, "result", side_effect=Exception("Test exception")):
-        with pytest.raises(Exception) as excinfo:
-            retrieve_profile_api_instance._run_queries_in_parallel(queries)
-        assert (
-            "Error executing query 'Query1': <class 'Exception'>: Test exception"
-            == str(excinfo.value)
-        )
 
 
 def test_build_query_basic(retrieve_profile_api_instance):
@@ -181,7 +145,7 @@ def test_process_setupEntityAccess_results(retrieve_profile_api_instance):
     with patch.object(
         RetrieveProfileApi, "_build_query", return_value="SELECT Id, Name FROM Table"
     ) as mock_build_query, patch.object(
-        RetrieveProfileApi,
+        RunParallelQueries,
         "_run_queries_in_parallel",
         return_value={
             "ApexClass": [
@@ -209,7 +173,8 @@ def test_process_setupEntityAccess_results(retrieve_profile_api_instance):
                 "ApexClass": "SELECT Id, Name FROM Table",
                 "ApexPage": "SELECT Id, Name FROM Table",
                 "CustomPermission": "SELECT Id, Name FROM Table",
-            }
+            },
+            retrieve_profile_api_instance._run_query,
         )
 
     expected_result = {
@@ -226,7 +191,7 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
     with patch.object(
         RetrieveProfileApi, "_build_query"
     ) as mock_build_query, patch.object(
-        RetrieveProfileApi, "_run_queries_in_parallel"
+        RunParallelQueries, "_run_queries_in_parallel"
     ) as mock_run_queries, patch.object(
         RetrieveProfileApi,
         "_process_setupEntityAccess_results",
@@ -262,7 +227,9 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
             "sObject": mock_build_query.return_value,
             "customTab": mock_build_query.return_value,
         }
-        mock_run_queries.assert_called_with(expected_queries)
+        mock_run_queries.assert_called_with(
+            expected_queries, retrieve_profile_api_instance._run_query
+        )
 
         expected_result = {
             "ApexClass": ["TestApexClass"],
