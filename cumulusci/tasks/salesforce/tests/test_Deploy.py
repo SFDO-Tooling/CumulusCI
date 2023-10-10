@@ -37,7 +37,7 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
-    @mock.patch("cumulusci.tasks.salesforce.parseString")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.parseString")
     def test_collision_check_positive(self, parseString):
         parseString().getElementsByTagName = mock.Mock(
             return_value=[
@@ -123,7 +123,7 @@ class TestDeploy:
             assert is_collision is False
             assert xml_map == {"CustomField": [], "CustomObject": []}
 
-    @mock.patch("cumulusci.tasks.salesforce.parseString")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.parseString")
     def test_collision_check_negative(self, parseString):
         parseString().getElementsByTagName = mock.Mock(
             return_value=[
