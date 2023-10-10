@@ -112,9 +112,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
             path = self.options.get("path")
 
         package_zip = self._get_package_zip(path)
+
         if isinstance(package_zip, dict):
             self.logger.warning(f"Below Components are getting overridden{package_zip}")
-            return
+            return None
         elif package_zip is not None:
             self.logger.info("Payload size: {} bytes".format(len(package_zip)))
         else:
@@ -158,13 +159,16 @@ class Deploy(BaseSalesforceMetadataApiTask):
         api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
             self, package_xml.read(), source_xml_tree.version.text
         )
-        resp_xml = parseString(api_retrieve_unpackaged_object._get_response().content)
-        messages = resp_xml.getElementsByTagName("messages")
-        print(messages)
+        messages = parseString(
+            api_retrieve_unpackaged_object._get_response().content
+        ).getElementsByTagName("messages")
+
         for i in range(len(messages)):
+            print(messages[i])
             message_list = messages[
                 i
             ].firstChild.nextSibling.firstChild.nodeValue.split("'")
+
             if message_list[3] in xml_map[message_list[1]]:
                 xml_map[message_list[1]].remove(message_list[3])
 
@@ -172,9 +176,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
             if len(api_names) != 0:
                 is_collision = True
                 break
+        print(xml_map)
         return is_collision, xml_map
 
-    def _get_package_zip(self, path) -> Optional[str]:
+    def _get_package_zip(self, path) -> str | None | dict:
         assert path, f"Path should be specified for {self.__class__.name}"
         if not pathlib.Path(path).exists():
             self.logger.warning(f"{path} not found.")
@@ -194,7 +199,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         with convert_sfdx_source(path, None, self.logger) as src_path:
             ##############
             is_collision = False
-            if "collision_check" in options:
+            if "collision_check" in options and options["collision_check"]:
                 is_collision, xml_map = self._collision_check(src_path)
             #############
             if not is_collision:
