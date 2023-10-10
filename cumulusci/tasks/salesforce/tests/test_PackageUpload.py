@@ -178,26 +178,20 @@ class TestPackageUpload:
         assert task.options["major_version"] == expected_options["major_version"]
         assert task.options["minor_version"] == expected_options["minor_version"]
 
-    def test_positive_validate_versions_for_beta(self):
-        actual_options = {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version": "1",
-        }
-        expected_options = {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version": "1",
-            "minor_version": "1",
-        }
+    test_positive_options_beta = [
+        generate_valid_version_options("1", None, "1", "1"),
+        generate_valid_version_options("1", "1", "1", "1"),
+        generate_valid_version_options(None, "1", "1", "1"),
+        generate_valid_version_options(None, None, "1", "1"),
+    ]
+
+    @pytest.mark.parametrize(
+        "actual_options,expected_options", test_positive_options_beta
+    )
+    def test_positive_validate_versions_for_beta(
+        self, actual_options, expected_options
+    ):
+
         task = create_task(PackageUpload, actual_options)
         task._get_one_record = mock.Mock(
             return_value={
@@ -225,6 +219,7 @@ class TestPackageUpload:
         generate_valid_version_options("1", "0", None, None, True),
         generate_valid_version_options(None, "1", None, None, True),
         generate_valid_version_options("ab", 0, None, None, True),
+        generate_valid_version_options("1", "ab", None, None, True),
     ]
 
     @pytest.mark.parametrize("actual_options", test_negative_options)
@@ -237,6 +232,26 @@ class TestPackageUpload:
                 "MinorVersion": 1,
                 "PatchVersion": 0,
                 "ReleaseState": "Released",
+            }
+        )
+        with pytest.raises(TaskOptionsError):
+            task._validate_versions()
+
+    test_negative_options_beta = [
+        generate_valid_version_options("1", "2", None, None, True),
+        generate_valid_version_options(None, "2", None, None, True),
+    ]
+
+    @pytest.mark.parametrize("actual_options", test_negative_options_beta)
+    def test_negative_validate_versions_beta(self, actual_options):
+        """Running Negative Tests for tests_validate_versions"""
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Beta",
             }
         )
         with pytest.raises(TaskOptionsError):

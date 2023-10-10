@@ -274,7 +274,8 @@ class TestCreatePackageVersion:
                 ],
             },
         )
-        responses.add(  # query dependency org for installed package 1)
+        # query dependency org for installed package 1
+        responses.add(
             "GET",
             f"{self.scratch_base_url}/tooling/query/",
             json={
@@ -290,7 +291,7 @@ class TestCreatePackageVersion:
                     }
                 ],
             },
-        ),
+        )
         responses.add(  # query dependency org for installed package 2)
             "GET",
             f"{self.scratch_base_url}/tooling/query/",
@@ -459,6 +460,7 @@ class TestCreatePackageVersion:
         assert task.return_values["dependencies"] == [
             {"version_id": "04t000000000009AAA"}
         ]
+        assert task.return_values["install_key"] == task.options["install_key"]
         zf.close()
 
     @responses.activate
