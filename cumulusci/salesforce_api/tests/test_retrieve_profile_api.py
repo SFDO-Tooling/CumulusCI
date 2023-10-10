@@ -5,6 +5,7 @@ import pytest
 from requests.exceptions import ConnectionError
 
 from cumulusci.salesforce_api.retrieve_profile_api import RetrieveProfileApi
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.utils.parallel.queries_in_parallel.run_queries_in_parallel import (
     RunParallelQueries,
 )
@@ -24,6 +25,13 @@ def retrieve_profile_api_instance():
     api.sf = sf_mock
     api.bulk = bulk_mock
     return api
+
+
+def test_init_task(retrieve_profile_api_instance):
+    with patch.object(BaseSalesforceApiTask, "_init_task"):
+        retrieve_profile_api_instance._init_task()
+
+    assert retrieve_profile_api_instance.api_version == "58.0"
 
 
 def test_run_query_sf(retrieve_profile_api_instance):
