@@ -516,7 +516,7 @@ class PackageVersionIdDependency(StaticDependency):
 
         spv_result = None
         try:
-            ## {'size': 1, 'totalSize': 1, 'done': True, 'queryLocator': None, 'entityTypeName': 'SubscriberPackageVersion', 'records': [{'attributes': {'type': 'SubscriberPackageVersion', 'url':                                                                                   
+            ## {'size': 1, 'totalSize': 1, 'done': True, 'queryLocator': None, 'entityTypeName': 'SubscriberPackageVersion', 'records': [{'attributes': {'type': 'SubscriberPackageVersion', 'url':
             ##    '/services/data/v59.0/tooling/sobjects/SubscriberPackageVersion/04t000000000000'}, 'Id': '04t000000000000', 'MajorVersion': 0, 'MinorVersion': 2, 'PatchVersion': 0, 'BuildNumber': 1, 'SubscriberPackageId': '0333x0000009bg0AAA', 'IsBeta': False}]}
             spv_result = org.salesforce_client.restful(
                 "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageId, "
@@ -528,8 +528,8 @@ class PackageVersionIdDependency(StaticDependency):
             )
         if not spv_result or not spv_result["records"]:
             if any(
-            self.version_id == v.id
-            for v in itertools.chain(*org.installed_packages.values())
+                self.version_id == v.id
+                for v in itertools.chain(*org.installed_packages.values())
             ):
                 context.logger.info(
                     f"{self} or a newer version is already installed; skipping."
@@ -544,9 +544,7 @@ class PackageVersionIdDependency(StaticDependency):
             if spv["IsBeta"]:
                 version += f"b{spv['BuildNumber']}"
 
-            if org.has_minimum_package_version(
-                spv["SubscriberPackageId"],version
-            ):
+            if org.has_minimum_package_version(spv["SubscriberPackageId"], version):
                 context.logger.info(
                     f"{self} or a newer version is already installed; skipping."
                 )
