@@ -514,17 +514,19 @@ class PackageVersionIdDependency(StaticDependency):
         ## SELECT Id,Name,Description, SubscriberPackageId, MajorVersion,MinorVersion,PatchVersion, BuildNumber FROM SubscriberPackageVersion WHERE Id = self.version_id
         ## https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_subscriberpackageversion.htm
 
+        spv_result = None
         try:
+            ## {'size': 1, 'totalSize': 1, 'done': True, 'queryLocator': None, 'entityTypeName': 'SubscriberPackageVersion', 'records': [{'attributes': {'type': 'SubscriberPackageVersion', 'url':                                                                                   
+            ##    '/services/data/v59.0/tooling/sobjects/SubscriberPackageVersion/04t000000000000'}, 'Id': '04t000000000000', 'MajorVersion': 0, 'MinorVersion': 2, 'PatchVersion': 0, 'BuildNumber': 1, 'SubscriberPackageId': '0333x0000009bg0AAA', 'IsBeta': False}]}
             spv_result = org.salesforce_client.restful(
                 "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageId, "
                 f"IsBeta FROM SubscriberPackageVersion WHERE Id='{self.version_id}'"
             )
         except Exception as err:
-            self.logger.warning(
+            context.logger.warning(
                 f"Ignoring error while trying to check installed package {self.version_id}: {str(err)}"
             )
-        if not spv_result["records"]:
-            # This _shouldn't_ happen, but it is possible in customer orgs.
+        if not spv_result or not spv_result["records"]:
             if any(
             self.version_id == v.id
             for v in itertools.chain(*org.installed_packages.values())
