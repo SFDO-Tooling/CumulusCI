@@ -1,5 +1,5 @@
 import pathlib
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from defusedxml.minidom import parseString
 from pydantic import ValidationError
@@ -188,7 +188,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         print(xml_map)
         return is_collision, xml_map
 
-    def _get_package_zip(self, path) -> Optional[dict] | Optional[str]:
+    def _get_package_zip(self, path) -> Union[str, dict]:
         assert path, f"Path should be specified for {self.__class__.name}"
         if not pathlib.Path(path).exists():
             self.logger.warning(f"{path} not found.")
