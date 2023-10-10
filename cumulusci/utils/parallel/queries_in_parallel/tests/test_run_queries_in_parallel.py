@@ -8,7 +8,7 @@ from cumulusci.utils.parallel.queries_in_parallel.run_queries_in_parallel import
 )
 
 
-def test_run_query(query):
+def run_query(query):
     return {"test": query}
 
 
@@ -31,9 +31,7 @@ def test_run_queries_in_parallel():
     with patch.object(ThreadPoolExecutor, "submit") as mock_submit:
         mock_submit.side_effect = [mock_future1, mock_future2]
 
-        results_dict = RunParallelQueries._run_queries_in_parallel(
-            queries, test_run_query
-        )
+        results_dict = RunParallelQueries._run_queries_in_parallel(queries, run_query)
 
     assert results_dict == expected_results
 
@@ -45,9 +43,7 @@ def test_run_queries_in_parallel_with_exception():
 
     with patch.object(Future, "result", side_effect=Exception("Test exception")):
         with pytest.raises(Exception) as excinfo:
-            RunParallelQueries._run_queries_in_parallel(
-                queries, run_query=test_run_query
-            )
+            RunParallelQueries._run_queries_in_parallel(queries, run_query=run_query)
         assert (
             "Error executing query 'Query1': <class 'Exception'>: Test exception"
             == str(excinfo.value)
