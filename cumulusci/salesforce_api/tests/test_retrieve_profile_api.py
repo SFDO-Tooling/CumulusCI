@@ -34,6 +34,20 @@ def test_init_task(retrieve_profile_api_instance):
     assert retrieve_profile_api_instance.api_version == "58.0"
 
 
+def test_retrieve_existing_profiles(retrieve_profile_api_instance):
+    profiles = ["Profile1", "Profile2"]
+    result = {"records": [{"Name": "Profile1"}]}
+    with patch.object(
+        RetrieveProfileApi, "_build_query", return_value="some_query"
+    ), patch.object(RetrieveProfileApi, "_run_query", return_value=result):
+        existing_profiles = retrieve_profile_api_instance._retrieve_existing_profiles(
+            profiles
+        )
+
+    assert "Profile1" in existing_profiles
+    assert "Profile2" not in existing_profiles
+
+
 def test_run_query_sf(retrieve_profile_api_instance):
     query = "SELECT Id FROM Account"
     result_data = {"records": [{"Id": "001abc"}]}

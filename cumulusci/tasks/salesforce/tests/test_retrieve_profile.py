@@ -17,7 +17,13 @@ from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 def retrieve_profile_task(tmpdir):
     project_config = MagicMock()
     task_config = TaskConfig(
-        {"options": {"profiles": ["Profile1", "Profile2"], "target": tmpdir}}
+        {
+            "options": {
+                "profiles": ["Profile1", "Profile2"],
+                "target": tmpdir,
+                "strict_mode": False,
+            }
+        }
     )
     org_config = MagicMock()
     task = RetrieveProfile(project_config, task_config, org_config)
@@ -26,9 +32,54 @@ def retrieve_profile_task(tmpdir):
     return task
 
 
+def test_check_existing_profiles_with_missing_profiles_and_strict_mode_enabled(tmpdir):
+    project_config = MagicMock()
+    task_config = TaskConfig(
+        {
+            "options": {
+                "profiles": ["Profile1", "Profile2"],
+                "target": tmpdir,
+                "strict_mode": True,
+            }
+        }
+    )
+    org_config = MagicMock()
+    retrieve_profile_task = RetrieveProfile(project_config, task_config, org_config)
+    with patch.object(
+        RetrieveProfileApi, "_retrieve_existing_profiles", return_value=["Profile1"]
+    ):
+        with pytest.raises(
+            RuntimeError, match="Operation failed due to missing profiles"
+        ):
+            retrieve_profile_task._check_existing_profiles(RetrieveProfileApi)
+
+
+def test_check_existing_profiles_with_no_existing_profiles(tmpdir):
+    project_config = MagicMock()
+    task_config = TaskConfig(
+        {
+            "options": {
+                "profiles": ["Profile1", "Profile2"],
+                "target": tmpdir,
+                "strict_mode": False,
+            }
+        }
+    )
+    org_config = MagicMock()
+    retrieve_profile_task = RetrieveProfile(project_config, task_config, org_config)
+    with patch.object(
+        RetrieveProfileApi, "_retrieve_existing_profiles", return_value=[]
+    ):
+        with pytest.raises(
+            RuntimeError, match="None of the profiles given were found."
+        ):
+            retrieve_profile_task._check_existing_profiles(RetrieveProfileApi)
+
+
 def test_init_options(retrieve_profile_task):
     retrieve_profile_task._init_options(retrieve_profile_task.task_config.config)
     assert retrieve_profile_task.profiles == ["Profile1", "Profile2"]
+    assert retrieve_profile_task.strictMode is False
 
 
 def test_init_options_raises_error_with_no_profiles():
@@ -91,6 +142,8 @@ def test_run_task(retrieve_profile_task, tmpdir, caplog):
         RetrieveProfileApi, "_init_task", return_value="something"
     ), patch.object(
         ApiRetrieveUnpackaged, "__call__", return_value=temp_zipfile
+    ), patch.object(
+        RetrieveProfileApi, "_retrieve_existing_profiles", return_value=["Profile1"]
     ):
         retrieve_profile_task._run_task()
 
@@ -106,7 +159,7 @@ def test_run_task(retrieve_profile_task, tmpdir, caplog):
         not in log_messages
     )
     assert (
-        "The following profiles were not found or could not be retrieved: Profile2"
+        "The following profiles were not found or could not be retrieved: 'Profile2'\n"
         in log_messages
     )
 

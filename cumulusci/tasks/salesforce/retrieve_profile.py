@@ -1,6 +1,6 @@
 import os
 
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.retrieve_profile_api import RetrieveProfileApi
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
@@ -21,6 +21,12 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
         "target": {
             "description": "Target folder path. By default, it uses force-app/main/default",
         },
+        "strict_mode": {
+            "description": "When set to False, enables leniency by ignoring missing profiles when provided with a list of profiles."
+            " When set to True, enforces strict validation, causing a failure if any profile is not present in the list."
+            " Default is True",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -39,6 +45,29 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
         if not os.path.isdir(self.extract_dir):
             raise NotADirectoryError(f"'{self.extract_dir}' is not a directory.")
 
+        self.strictMode = process_bool_arg(self.options.get("strict_mode", True))
+
+    def _check_existing_profiles(self, retrieve_profile_api_task):
+        # Check for existing profiles
+        self.existing_profiles = retrieve_profile_api_task._retrieve_existing_profiles(
+            self.profiles
+        )
+        self.missing_profiles = set(self.profiles) - set(self.existing_profiles)
+
+        # Handle for strictMode
+        if self.missing_profiles:
+            self.logger.warning(
+                f"The following profiles were not found or could not be retrieved: '{', '.join(self.missing_profiles)}'\n"
+            )
+            if self.strictMode:
+                raise RuntimeError(
+                    "Operation failed due to missing profiles. Set strictMode to False if you want to ignore missing profiles."
+                )
+
+        # Handle for no existing profiles
+        if not self.existing_profiles:
+            raise RuntimeError("None of the profiles given were found.")
+
     def _run_task(self):
         self.retrieve_profile_api_task = RetrieveProfileApi(
             project_config=self.project_config,
@@ -46,21 +75,21 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
             org_config=self.org_config,
         )
         self.retrieve_profile_api_task._init_task()
+        self._check_existing_profiles(self.retrieve_profile_api_task)
         permissionable_entities = (
             self.retrieve_profile_api_task._retrieve_permissionable_entities(
-                self.profiles
+                self.existing_profiles
             )
         )
         entities_to_be_retrieved = {
             **permissionable_entities,
-            **{"Profile": self.profiles},
+            **{"Profile": self.existing_profiles},
         }
 
         self.package_xml = self._create_package_xml(entities_to_be_retrieved)
         api = self._get_api()
         zip_result = api()
 
-        extracted_profiles = set()
         for file_info in zip_result.infolist():
             if file_info.filename.startswith(
                 "profiles/"
@@ -69,20 +98,15 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
                     os.path.basename(file_info.filename)
                 )
                 zip_result.extract(file_info, self.extract_dir)
-                extracted_profiles.add(extracted_profile_name)
-
-        # Check for missing profiles
-        missing_profiles = set(self.profiles) - extracted_profiles
-        if missing_profiles:
-            self.logger.warning(
-                f"The following profiles were not found or could not be retrieved: {', '.join(missing_profiles)}"
-            )
 
         self.logger.info(
-            f"Profiles {', '.join(extracted_profiles)} unzipped into folder '{self.extract_dir}'"
+            f"Profiles {', '.join(self.existing_profiles)} unzipped into folder '{self.extract_dir}'"
         )
 
     def _get_api(self):
+        # Logs
+        self.logger.info("Retrieving all entities from org:")
+
         return self.api_class(
             self,
             api_version=self.api_version,

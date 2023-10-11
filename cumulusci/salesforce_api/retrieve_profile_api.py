@@ -87,6 +87,16 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         self.api_version = "58.0"
         super(RetrieveProfileApi, self)._init_task()
 
+    def _retrieve_existing_profiles(self, profiles: List[str]):
+        query = self._build_query(["Name"], "Profile", {"Name": profiles})
+        result = self._run_query(query)
+
+        existing_profiles = []
+        for data in result["records"]:
+            existing_profiles.append(data["Name"])
+
+        return existing_profiles
+
     def _run_query(self, query):
         try:
             result = self.sf.query(query)
@@ -145,6 +155,11 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
 
     # Retrieve all the permissionable entitites for a set of profiles
     def _retrieve_permissionable_entities(self, profiles: List[str]):
+
+        # Logs
+        self.logger.info("Querying for all permissionable entities:")
+        self.logger.info("Pending")
+
         queries = {}
 
         # Setup Entity Access query
@@ -181,6 +196,9 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         permissionable_entities.update(
             self._process_customTab_results(result[CUSTOM_TAB_QUERY_NAME])
         )
+
+        # Logs
+        self.logger.info("[Done]\n")
 
         return permissionable_entities
 
