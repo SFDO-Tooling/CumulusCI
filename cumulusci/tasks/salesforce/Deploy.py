@@ -150,6 +150,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
             return process_bool_arg(self.options.get("namespaced_org", False))
         return bool(ns) and ns == self.org_config.namespace
 
+    def _create_api_object(self, package_xml, api_version):
+        api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
+            self, package_xml, api_version
+        )
+        print(type(api_retrieve_unpackaged_object))
+        return api_retrieve_unpackaged_object
+
     def _collision_check(self, src_path):
         xml_map = {}
         is_collision = False
@@ -165,15 +172,16 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 pass
             xml_map[type["name"].text] = members
 
-        api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
-            self, package_xml.read(), source_xml_tree.version.text
+        api_retrieve_unpackaged_response = self._create_api_object(
+            package_xml.read(), source_xml_tree.version.text
         )
+
         messages = parseString(
-            api_retrieve_unpackaged_object._get_response().content
+            api_retrieve_unpackaged_response._get_response().content
         ).getElementsByTagName("messages")
 
         for i in range(len(messages)):
-            print(messages[i])
+            # print(messages[i])
             message_list = messages[
                 i
             ].firstChild.nextSibling.firstChild.nodeValue.split("'")
@@ -185,7 +193,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             if len(api_names) != 0:
                 is_collision = True
                 break
-        print(xml_map)
+
         return is_collision, xml_map
 
     def _get_package_zip(self, path) -> Union[str, dict, None]:
