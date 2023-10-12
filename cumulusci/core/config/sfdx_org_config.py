@@ -25,7 +25,7 @@ class SfdxOrgConfig(OrgConfig):
         username = self.config.get("username")
         assert username is not None, "SfdxOrgConfig must have a username"
 
-        self.logger.info(f"Getting org info from Salesforce CLI for {username}")
+        # self.logger.info(f"Getting org info from Salesforce CLI for {username}")
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
