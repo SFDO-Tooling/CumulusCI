@@ -144,6 +144,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
+        if not self.org_config.config_file:
+            raise TaskOptionsError(
+                "Org doesn't contain a config_file. It's a persistent org like Devhub or Developer Edition org"
+            )
+
         # Allow these fields to be explicitly set to blanks
         # so that unlocked builds can override an otherwise-configured
         # postinstall script
@@ -388,7 +393,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
-
             # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
             # Note that we handle orgPreferences below by converting to settings,
             # in build_settings_package()

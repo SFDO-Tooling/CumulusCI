@@ -127,6 +127,11 @@ def task(get_task):
 
 
 @pytest.fixture
+def get_persistent_org_config(persistent_org_config):
+    return persistent_org_config
+
+
+@pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
         "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
@@ -153,6 +158,18 @@ def mock_get_static_dependencies():
 
 
 class TestPackageConfig:
+    def test_org_config(self, project_config, persistent_org_config):
+        with pytest.raises(
+            TaskOptionsError,
+            match="Org doesn't contain a config_file. It's a persistent org like Devhub or Developer Edition org",
+        ):
+            task = CreatePackageVersion(
+                project_config,
+                TaskConfig(),
+                persistent_org_config,
+            )
+            task.__init__
+
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):
             PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)  # type: ignore
