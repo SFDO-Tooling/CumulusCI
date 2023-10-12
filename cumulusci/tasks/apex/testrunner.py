@@ -262,7 +262,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.retry_details = None
 
     def _get_namespace_filter(self):
-        if self.options.get("managed"):
+        if self.options.get("managed") or self.options.get("namespace"):
             namespace = self.options.get("namespace")
             if not namespace:
                 raise TaskOptionsError(
@@ -291,6 +291,7 @@ class RunApexTests(BaseSalesforceApiTask):
         query = "SELECT Id, Name FROM ApexClass " + "WHERE NamespacePrefix = {}".format(
             namespace
         )
+
         if included_tests:
             query += " AND ({})".format(" OR ".join(included_tests))
         if excluded_tests:
