@@ -130,6 +130,44 @@ def create_temp_zip_file():
     return zipfile.ZipFile(temp_zipfile, "r")
 
 
+def test_save_profile_file(retrieve_profile_task, tmpdir):
+    extract_dir = str(tmpdir)
+    filename = "TestProfile.profile"
+    content = "Profile content"
+    expected_file_path = os.path.join(extract_dir, filename)
+    retrieve_profile_task.save_profile_file(extract_dir, filename, content)
+
+    assert os.path.exists(expected_file_path)
+    with open(expected_file_path, "r", encoding="utf-8") as profile_file:
+        saved_content = profile_file.read()
+    assert saved_content == content
+
+
+def test_add_flow_accesses(retrieve_profile_task):
+    profile_content = "<Profile>\n" "    <some_tag>Hello</some_tag>\n" "</Profile>"
+    flows = ["Flow1", "Flow2"]
+    expected_content = (
+        "<Profile>\n"
+        "    <some_tag>Hello</some_tag>\n"
+        "    <flowAccesses>\n"
+        "        <enabled>true</enabled>\n"
+        "        <flow>Flow1</flow>\n"
+        "    </flowAccesses>\n"
+        "    <flowAccesses>\n"
+        "        <enabled>true</enabled>\n"
+        "        <flow>Flow2</flow>\n"
+        "    </flowAccesses>\n"
+        "</Profile>"
+    )
+    modified_content = retrieve_profile_task.add_flow_accesses(profile_content, flows)
+    assert modified_content == expected_content
+
+    # Content without the </Profile> tag
+    profile_content = "<Profile>\n" "    <some_tag>Hello</some_tag>\n"
+    modified_content = retrieve_profile_task.add_flow_accesses(profile_content, flows)
+    assert modified_content == profile_content
+
+
 def test_run_task(retrieve_profile_task, tmpdir, caplog):
     retrieve_profile_task.extract_dir = tmpdir
     temp_zipfile = create_temp_zip_file()
@@ -137,7 +175,7 @@ def test_run_task(retrieve_profile_task, tmpdir, caplog):
     with patch.object(
         RetrieveProfileApi,
         "_retrieve_permissionable_entities",
-        return_value={"ApexClass": ["TestApexClass"]},
+        return_value=({"ApexClass": ["TestApexClass"]}, {"Profile1": ["Flow1"]}),
     ), patch.object(
         RetrieveProfileApi, "_init_task", return_value="something"
     ), patch.object(
@@ -152,7 +190,6 @@ def test_run_task(retrieve_profile_task, tmpdir, caplog):
     assert os.path.exists(profile1_path)
 
     log_messages = [record.message for record in caplog.records]
-    print(log_messages)
     assert f"Profiles Profile1 unzipped into folder '{tmpdir}'" in log_messages
     assert (
         f"Profiles Profile1, Profile2 unzipped into folder '{tmpdir}'"

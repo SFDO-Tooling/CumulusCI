@@ -68,6 +68,35 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
         if not self.existing_profiles:
             raise RuntimeError("None of the profiles given were found.")
 
+    def add_flow_accesses(self, profile_content, flows):
+        # Find the position of the closing </Profile> tag
+        profile_end_position = profile_content.find("</Profile>")
+
+        if profile_end_position != -1:
+            flow_accesses_xml = "".join(
+                [
+                    f"    <flowAccesses>\n"
+                    f"        <enabled>true</enabled>\n"
+                    f"        <flow>{flow}</flow>\n"
+                    f"    </flowAccesses>\n"
+                    for flow in flows
+                ]
+            )
+            modified_content = (
+                profile_content[:profile_end_position]
+                + flow_accesses_xml
+                + profile_content[profile_end_position:]
+            )
+            return modified_content
+
+        return profile_content
+
+    def save_profile_file(self, extract_dir, filename, content):
+        profile_path = os.path.join(extract_dir, filename)
+        os.makedirs(os.path.dirname(profile_path), exist_ok=True)
+        with open(profile_path, "w", encoding="utf-8") as updated_profile_file:
+            updated_profile_file.write(content)
+
     def _run_task(self):
         self.retrieve_profile_api_task = RetrieveProfileApi(
             project_config=self.project_config,
@@ -76,10 +105,11 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
         )
         self.retrieve_profile_api_task._init_task()
         self._check_existing_profiles(self.retrieve_profile_api_task)
-        permissionable_entities = (
-            self.retrieve_profile_api_task._retrieve_permissionable_entities(
-                self.existing_profiles
-            )
+        (
+            permissionable_entities,
+            profile_flows,
+        ) = self.retrieve_profile_api_task._retrieve_permissionable_entities(
+            self.existing_profiles
         )
         entities_to_be_retrieved = {
             **permissionable_entities,
@@ -94,10 +124,22 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
             if file_info.filename.startswith(
                 "profiles/"
             ) and file_info.filename.endswith(".profile"):
-                extracted_profile_name, _ = os.path.splitext(
-                    os.path.basename(file_info.filename)
-                )
-                zip_result.extract(file_info, self.extract_dir)
+                with zip_result.open(file_info) as profile_file:
+                    profile_content = profile_file.read().decode("utf-8")
+                    profile_name = os.path.splitext(
+                        os.path.basename(file_info.filename)
+                    )[0]
+
+                    if profile_name in profile_flows:
+                        profile_content = self.add_flow_accesses(
+                            profile_content, profile_flows[profile_name]
+                        )
+
+                    self.save_profile_file(
+                        self.extract_dir, file_info.filename, profile_content
+                    )
+
+        # zip_result.extractall('./unpackaged')
 
         self.logger.info(
             f"Profiles {', '.join(self.existing_profiles)} unzipped into folder '{self.extract_dir}'"

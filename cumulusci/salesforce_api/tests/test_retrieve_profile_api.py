@@ -226,6 +226,10 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
         RetrieveProfileApi,
         "_process_customTab_results",
         return_value={"CustomTab": ["TestTab"]},
+    ), patch.object(
+        RetrieveProfileApi,
+        "_match_profile_to_flows",
+        return_value={"Profile1": ["Flow1"]},
     ):
 
         result = retrieve_profile_api_instance._retrieve_permissionable_entities(
@@ -253,13 +257,48 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
             expected_queries, retrieve_profile_api_instance._run_query
         )
 
-        expected_result = {
-            "ApexClass": ["TestApexClass"],
-            "ApexPage": ["TestApexPage"],
-            "CustomObject": ["TestObject"],
-            "CustomTab": ["TestTab"],
-        }
+        expected_result = (
+            {
+                "ApexClass": ["TestApexClass"],
+                "ApexPage": ["TestApexPage"],
+                "CustomObject": ["TestObject"],
+                "CustomTab": ["TestTab"],
+            },
+            {"Profile1": ["Flow1"]},
+        )
+
         assert result == expected_result
+
+
+def test_match_profile_to_flows(retrieve_profile_api_instance):
+    retrieve_profile_api_instance.permissionable_entities = {"Flow": ["Flow1", "Flow2"]}
+    query_result_profile = [
+        {"SetupEntityId": "001abc", "Parent": {"Profile": {"Name": "Profile1"}}},
+        {"SetupEntityId": "001abc", "Parent": {"Profile": {"Name": "Profile2"}}},
+        {"SetupEntityId": "002def", "Parent": {"Profile": {"Name": "Profile1"}}},
+    ]
+
+    query_result_flow = [
+        {"ApiName": "Flow1", "attributes": {"url": "instance_url/001abc"}},
+        {"ApiName": "Flow2", "attributes": {"url": "instance_url/002def"}},
+    ]
+
+    result = {
+        "setupEntityAccess": query_result_profile,
+        "flowDefinitionView": query_result_flow,
+    }
+
+    with patch.object(
+        RunParallelQueries, "_run_queries_in_parallel", return_value=result
+    ):
+        profile_flow = retrieve_profile_api_instance._match_profile_to_flows(
+            ["Profile1", "Profile2"]
+        )
+
+    assert "Flow1" in profile_flow["Profile1"]
+    assert "Flow2" in profile_flow["Profile1"]
+    assert "Flow1" in profile_flow["Profile2"]
+    assert "Flow2" not in profile_flow["Profile2"]
 
 
 if __name__ == "__main__":
