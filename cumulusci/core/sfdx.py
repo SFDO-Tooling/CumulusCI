@@ -40,7 +40,7 @@ def sfdx(
         for arg in args:
             command += " " + shell_quote(arg)
     if username:
-        command += f" --target-org {shell_quote(username)}"
+        command += f" -u {shell_quote(username)}"
     if log_note:
         logger.info(f"{log_note} with command: {command}")
     # Avoid logging access token
@@ -52,7 +52,7 @@ def sfdx(
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
         stderr=sarge.Capture(buffer_size=-1) if capture_output else None,
         shell=True,
-        env={**env, "SF_DISABLE_TELEMETRY": "true"},
+        env={**env, "SFDX_DISABLE_TELEMETRY": "true"},
     )
     p.run()
     if capture_output:

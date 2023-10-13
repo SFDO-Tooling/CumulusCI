@@ -220,7 +220,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             return
 
         p: sarge.Command = sfdx(
-            "org delete scratch -p", self.username, "Deleting scratch org"
+            "force:org:delete -p", self.username, "Deleting scratch org"
         )
         sfdx_output: List[str] = list(p.stdout_text) + list(p.stderr_text)
 

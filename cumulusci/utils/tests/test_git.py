@@ -72,7 +72,6 @@ def test_parse_repo_url(repo_uri, owner, repo_name, host):
     assert parse_repo_url(repo_uri) == (owner, repo_name, host)
     assert split_repo_url(repo_uri) == (owner, repo_name)
 
-
 def test_empty_url():
     with pytest.raises(error, match="Url is none or must have `remote` set as origin"):
         parse_repo_url("")

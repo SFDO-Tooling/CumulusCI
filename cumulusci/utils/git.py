@@ -71,7 +71,6 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
     -------
     Tuple: (str, str, str)
         Returns (owner, name, host)
-
     """
     if not url:
         raise error("Url is none or must have `remote` set as origin")
