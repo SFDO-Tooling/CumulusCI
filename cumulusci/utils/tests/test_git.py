@@ -8,9 +8,7 @@ from cumulusci.utils.git import (
     parse_repo_url,
     split_repo_url,
 )
-
-error = OSError
-
+from os import error
 
 def test_is_release_branch():
     assert is_release_branch("feature/230", "feature/")
