@@ -9,6 +9,8 @@ from cumulusci.utils.git import (
     split_repo_url,
 )
 
+error = OSError
+
 
 def test_is_release_branch():
     assert is_release_branch("feature/230", "feature/")
@@ -69,3 +71,8 @@ def test_construct_release_branch_name():
 def test_parse_repo_url(repo_uri, owner, repo_name, host):
     assert parse_repo_url(repo_uri) == (owner, repo_name, host)
     assert split_repo_url(repo_uri) == (owner, repo_name)
+
+
+def test_empty_url():
+    with pytest.raises(error, match="Url is none or must have `remote` set as origin"):
+        parse_repo_url("")

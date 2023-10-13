@@ -1,5 +1,6 @@
 import pathlib
 import re
+from os import error
 from typing import Any, Optional, Tuple
 
 
@@ -70,7 +71,11 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
     -------
     Tuple: (str, str, str)
         Returns (owner, name, host)
+
     """
+    if not url:
+        raise error("Url is none or must have `remote` set as origin")
+
     url_parts = re.split("/|@|:", url.rstrip("/"))
 
     name = url_parts[-1]
