@@ -164,21 +164,25 @@ def test_process_setupEntityAccess_results(retrieve_profile_api_instance):
         {"SetupEntityType": "CustomPermission", "SetupEntityId": "003ghi"},
     ]
 
+    queries_result = {
+        "ApexClass": [
+            {"Id": "001abc", "Name": "TestApexClass", "NamespacePrefix": "apex"}
+        ],
+        "ApexPage": [{"Id": "002def", "Name": "TestApexPage"}],
+        "CustomPermission": [],
+    }
     with patch.object(
         RetrieveProfileApi, "_build_query", return_value="SELECT Id, Name FROM Table"
     ) as mock_build_query, patch.object(
         RunParallelQueries,
         "_run_queries_in_parallel",
-        return_value={
-            "ApexClass": [
-                {"Id": "001abc", "Name": "TestApexClass", "NamespacePrefix": "apex"}
-            ],
-            "ApexPage": [{"Id": "002def", "Name": "TestApexPage"}],
-            "CustomPermission": [],
-        },
+        return_value=queries_result,
     ) as mock_run_queries:
 
-        result = retrieve_profile_api_instance._process_setupEntityAccess_results(
+        (
+            entities,
+            result,
+        ) = retrieve_profile_api_instance._process_setupEntityAccess_results(
             result_list
         )
         mock_build_query.assert_any_call(
@@ -199,12 +203,13 @@ def test_process_setupEntityAccess_results(retrieve_profile_api_instance):
             retrieve_profile_api_instance._run_query,
         )
 
-    expected_result = {
+    expected_entities = {
         "ApexClass": ["apex__TestApexClass"],
         "ApexPage": ["TestApexPage"],
         "CustomPermission": [],
     }
-    assert result == expected_result
+    assert entities == expected_entities
+    assert result == queries_result
 
 
 def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
@@ -217,7 +222,10 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
     ) as mock_run_queries, patch.object(
         RetrieveProfileApi,
         "_process_setupEntityAccess_results",
-        return_value={"ApexClass": ["TestApexClass"], "ApexPage": ["TestApexPage"]},
+        return_value=(
+            {"ApexClass": ["TestApexClass"], "ApexPage": ["TestApexPage"]},
+            {"FlowDefinition": "something"},
+        ),
     ), patch.object(
         RetrieveProfileApi,
         "_process_sObject_results",
@@ -228,7 +236,7 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
         return_value={"CustomTab": ["TestTab"]},
     ), patch.object(
         RetrieveProfileApi,
-        "_match_profile_to_flows",
+        "_match_profiles_and_flows",
         return_value={"Profile1": ["Flow1"]},
     ):
 
@@ -252,6 +260,7 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
             "setupEntityAccess": mock_build_query.return_value,
             "sObject": mock_build_query.return_value,
             "customTab": mock_build_query.return_value,
+            "profileFlow": mock_build_query.return_value,
         }
         mock_run_queries.assert_called_with(
             expected_queries, retrieve_profile_api_instance._run_query
@@ -270,30 +279,21 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
         assert result == expected_result
 
 
-def test_match_profile_to_flows(retrieve_profile_api_instance):
-    retrieve_profile_api_instance.permissionable_entities = {"Flow": ["Flow1", "Flow2"]}
-    query_result_profile = [
+def test_match_profiles_and_flows(retrieve_profile_api_instance):
+    result_profiles = [
         {"SetupEntityId": "001abc", "Parent": {"Profile": {"Name": "Profile1"}}},
         {"SetupEntityId": "001abc", "Parent": {"Profile": {"Name": "Profile2"}}},
         {"SetupEntityId": "002def", "Parent": {"Profile": {"Name": "Profile1"}}},
     ]
 
-    query_result_flow = [
+    result_flows = [
         {"ApiName": "Flow1", "attributes": {"url": "instance_url/001abc"}},
         {"ApiName": "Flow2", "attributes": {"url": "instance_url/002def"}},
     ]
 
-    result = {
-        "setupEntityAccess": query_result_profile,
-        "flowDefinitionView": query_result_flow,
-    }
-
-    with patch.object(
-        RunParallelQueries, "_run_queries_in_parallel", return_value=result
-    ):
-        profile_flow = retrieve_profile_api_instance._match_profile_to_flows(
-            ["Profile1", "Profile2"]
-        )
+    profile_flow = retrieve_profile_api_instance._match_profiles_and_flows(
+        result_profiles, result_flows
+    )
 
     assert "Flow1" in profile_flow["Profile1"]
     assert "Flow2" in profile_flow["Profile1"]

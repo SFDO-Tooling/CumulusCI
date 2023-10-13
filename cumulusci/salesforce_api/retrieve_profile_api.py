@@ -81,6 +81,8 @@ SOBJECT_QUERY_NAME = "sObject"
 CUSTOM_TAB_TYPE = "CustomTab"
 CUSTOM_TAB_QUERY_NAME = "customTab"
 
+PROFILE_FLOW_QUERY_NAME = "profileFlow"
+
 
 class RetrieveProfileApi(BaseSalesforceApiTask):
     def _init_task(self):
@@ -182,28 +184,39 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         )
         queries[CUSTOM_TAB_QUERY_NAME] = customTab_query
 
+        # Matching Profile Name and Flow query
+        profileFlow_query = self._build_query(
+            ["SetupEntityId", "Parent.Profile.Name"],
+            "SetupEntityAccess",
+            {"Parent.Profile.Name": profiles, "SetupEntityType": "FlowDefinition"},
+        )
+        queries[PROFILE_FLOW_QUERY_NAME] = profileFlow_query
+
         # Run all queries
         result = RunParallelQueries._run_queries_in_parallel(queries, self._run_query)
 
         # Process the results
-        self.permissionable_entities = {}
-        self.permissionable_entities.update(
-            self._process_setupEntityAccess_results(result[SETUP_ENTITY_QUERY_NAME])
+        permissionable_entities = {}
+        entities, result_setupEntityAccess = self._process_setupEntityAccess_results(
+            result[SETUP_ENTITY_QUERY_NAME]
         )
-        self.permissionable_entities.update(
+        permissionable_entities.update(entities)
+        permissionable_entities.update(
             self._process_sObject_results(result[SOBJECT_QUERY_NAME])
         )
-        self.permissionable_entities.update(
+        permissionable_entities.update(
             self._process_customTab_results(result[CUSTOM_TAB_QUERY_NAME])
+        )
+
+        # Process the profile and flows
+        profile_flow = self._match_profiles_and_flows(
+            result[PROFILE_FLOW_QUERY_NAME], result_setupEntityAccess["FlowDefinition"]
         )
 
         # Logs
         self.logger.info("[Done]\n")
 
-        # Retrieve profiles with their flows
-        self.profile_flow = self._match_profile_to_flows(profiles)
-
-        return self.permissionable_entities, self.profile_flow
+        return permissionable_entities, profile_flow
 
     def _process_setupEntityAccess_results(self, result_list: List[dict]):
         setupEntityAccess_dict = {
@@ -244,7 +257,7 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
                             item[data.columns[0]]
                         )
 
-        return extracted_values
+        return extracted_values, result
 
     def _process_sObject_results(self, result_list: List[dict]):
         sObject_list = [data["SobjectType"] for data in result_list]
@@ -254,49 +267,17 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         customTab_list = [data["Name"] for data in result_list]
         return {CUSTOM_TAB_TYPE: customTab_list}
 
-    def _match_profile_to_flows(self, profiles: List[str]):
-        # Logs
-        self.logger.info("Querying for flows:")
-        self.logger.info("Pending")
+    def _match_profiles_and_flows(self, result_profiles, result_flows):
+        profile_mapping = {}
+        for item in result_profiles:
+            setup_entity_id = item["SetupEntityId"]
+            profile_name = item["Parent"]["Profile"]["Name"]
+            profile_mapping.setdefault(setup_entity_id, []).append(profile_name)
 
-        queries = {}
+        result_dict = {}
+        for flow in result_flows:
+            setup_entity_id = flow["attributes"]["url"].split("/")[-1]
+            for profile_name in profile_mapping.get(setup_entity_id, []):
+                result_dict.setdefault(profile_name, []).append(flow["ApiName"])
 
-        # Setup Entity Access query
-        setupEntityAccess_query = self._build_query(
-            ["SetupEntityId", "Parent.Profile.Name"],
-            "SetupEntityAccess",
-            {"Parent.Profile.Name": profiles, "SetupEntityType": "FlowDefinition"},
-        )
-        queries["setupEntityAccess"] = setupEntityAccess_query
-
-        # FlowDefinitionView query
-        flowDefinitionView_query = self._build_query(
-            ["Id", "ApiName"],
-            "FlowDefinitionView",
-            {"ApiName": self.permissionable_entities.get("Flow", None)},
-        )
-        queries["flowDefinitionView"] = flowDefinitionView_query
-
-        # Run all queries
-        result = RunParallelQueries._run_queries_in_parallel(queries, self._run_query)
-
-        # Logs
-        self.logger.info("[Done]\n")
-
-        # Process the results
-        profile_flow = {}
-        for profile in result["setupEntityAccess"]:
-            profile_name = profile["Parent"]["Profile"]["Name"]
-            flow_id = profile["SetupEntityId"]
-            flow_name = next(
-                (
-                    f["ApiName"]
-                    for f in result["flowDefinitionView"]
-                    if f["attributes"]["url"].endswith(flow_id)
-                ),
-                None,
-            )
-            if flow_name is not None:
-                profile_flow.setdefault(profile_name, []).append(flow_name)
-
-        return profile_flow
+        return result_dict
