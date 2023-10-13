@@ -212,19 +212,23 @@ def test_process_setupEntityAccess_results(retrieve_profile_api_instance):
     assert result == queries_result
 
 
-def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
-    profiles = ["Profile1", "Profile2"]
-
+def test_process_all_results(retrieve_profile_api_instance):
+    result_dict = {
+        "setupEntityAccess": "some_result",
+        "sObject": "some_result",
+        "customTab": "some_result",
+        "profileFlow": "some_result",
+    }
     with patch.object(
-        RetrieveProfileApi, "_build_query"
-    ) as mock_build_query, patch.object(
-        RunParallelQueries, "_run_queries_in_parallel"
-    ) as mock_run_queries, patch.object(
         RetrieveProfileApi,
         "_process_setupEntityAccess_results",
         return_value=(
-            {"ApexClass": ["TestApexClass"], "ApexPage": ["TestApexPage"]},
-            {"FlowDefinition": "something"},
+            {
+                "ApexClass": ["TestApexClass"],
+                "ApexPage": ["TestApexPage"],
+                "FlowDefinition": ["TestFlow"],
+            },
+            {"FlowDefinition": ["some_result"]},
         ),
     ), patch.object(
         RetrieveProfileApi,
@@ -239,41 +243,66 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
         "_match_profiles_and_flows",
         return_value={"Profile1": ["Flow1"]},
     ):
+        entities, profile_flow = retrieve_profile_api_instance._process_all_results(
+            result_dict
+        )
+
+    print(entities)
+    assert entities["ApexClass"] == ["TestApexClass"]
+    assert entities["ApexPage"] == ["TestApexPage"]
+    assert entities["FlowDefinition"] == ["TestFlow"]
+    assert entities["CustomObject"] == ["TestObject"]
+    assert entities["CustomTab"] == ["TestTab"]
+    assert profile_flow == {"Profile1": ["Flow1"]}
+
+
+def test_queries_retrieve_permissions(retrieve_profile_api_instance):
+    profiles = ["Profile1", "Profile2"]
+
+    with patch.object(RetrieveProfileApi, "_build_query") as mock_build_query:
+        retrieve_profile_api_instance._queries_retrieve_permissions(profiles)
+
+    mock_build_query.assert_any_call(
+        ["SetupEntityId", "SetupEntityType"],
+        "SetupEntityAccess",
+        {"Parent.Profile.Name": profiles},
+    )
+    mock_build_query.assert_any_call(
+        ["SObjectType"], "ObjectPermissions", {"Parent.Profile.Name": profiles}
+    )
+    mock_build_query.assert_any_call(
+        ["Name"], "PermissionSetTabSetting", {"Parent.Profile.Name": profiles}
+    )
+
+
+def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
+    profiles = ["Profile1", "Profile2"]
+    expected_queries = {"query_name": "query"}
+    expected_result = (
+        {
+            "ApexClass": ["TestApexClass"],
+            "ApexPage": ["TestApexPage"],
+            "CustomObject": ["TestObject"],
+            "CustomTab": ["TestTab"],
+        },
+        {"Profile1": ["Flow1"]},
+    )
+
+    with patch.object(
+        RunParallelQueries, "_run_queries_in_parallel"
+    ) as mock_run_queries, patch.object(
+        RetrieveProfileApi,
+        "_queries_retrieve_permissions",
+        return_value=expected_queries,
+    ), patch.object(
+        RetrieveProfileApi, "_process_all_results", return_value=expected_result
+    ):
 
         result = retrieve_profile_api_instance._retrieve_permissionable_entities(
             profiles
         )
-
-        mock_build_query.assert_any_call(
-            ["SetupEntityId", "SetupEntityType"],
-            "SetupEntityAccess",
-            {"Parent.Profile.Name": profiles},
-        )
-        mock_build_query.assert_any_call(
-            ["SObjectType"], "ObjectPermissions", {"Parent.Profile.Name": profiles}
-        )
-        mock_build_query.assert_any_call(
-            ["Name"], "PermissionSetTabSetting", {"Parent.Profile.Name": profiles}
-        )
-
-        expected_queries = {
-            "setupEntityAccess": mock_build_query.return_value,
-            "sObject": mock_build_query.return_value,
-            "customTab": mock_build_query.return_value,
-            "profileFlow": mock_build_query.return_value,
-        }
         mock_run_queries.assert_called_with(
             expected_queries, retrieve_profile_api_instance._run_query
-        )
-
-        expected_result = (
-            {
-                "ApexClass": ["TestApexClass"],
-                "ApexPage": ["TestApexPage"],
-                "CustomObject": ["TestObject"],
-                "CustomTab": ["TestTab"],
-            },
-            {"Profile1": ["Flow1"]},
         )
 
         assert result == expected_result

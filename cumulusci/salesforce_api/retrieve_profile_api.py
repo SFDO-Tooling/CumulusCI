@@ -155,13 +155,7 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         query = f"SELECT {select_clause} FROM {table_name} {where_clause}".strip()
         return query
 
-    # Retrieve all the permissionable entitites for a set of profiles
-    def _retrieve_permissionable_entities(self, profiles: List[str]):
-
-        # Logs
-        self.logger.info("Querying for all permissionable entities:")
-        self.logger.info("Pending")
-
+    def _queries_retrieve_permissions(self, profiles: List[str]):
         queries = {}
 
         # Setup Entity Access query
@@ -192,10 +186,9 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         )
         queries[PROFILE_FLOW_QUERY_NAME] = profileFlow_query
 
-        # Run all queries
-        result = RunParallelQueries._run_queries_in_parallel(queries, self._run_query)
+        return queries
 
-        # Process the results
+    def _process_all_results(self, result: dict):
         permissionable_entities = {}
         entities, result_setupEntityAccess = self._process_setupEntityAccess_results(
             result[SETUP_ENTITY_QUERY_NAME]
@@ -210,8 +203,25 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
 
         # Process the profile and flows
         profile_flow = self._match_profiles_and_flows(
-            result[PROFILE_FLOW_QUERY_NAME], result_setupEntityAccess["FlowDefinition"]
+            result[PROFILE_FLOW_QUERY_NAME],
+            result_setupEntityAccess.get("FlowDefinition", []),
         )
+
+        return permissionable_entities, profile_flow
+
+    # Retrieve all the permissionable entitites for a set of profiles
+    def _retrieve_permissionable_entities(self, profiles: List[str]):
+        # Logs
+        self.logger.info("Querying for all permissionable entities:")
+        self.logger.info("Pending")
+
+        # Run all queries
+        result = RunParallelQueries._run_queries_in_parallel(
+            self._queries_retrieve_permissions(profiles), self._run_query
+        )
+
+        # Process the results
+        permissionable_entities, profile_flow = self._process_all_results(result)
 
         # Logs
         self.logger.info("[Done]\n")
@@ -267,7 +277,9 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         customTab_list = [data["Name"] for data in result_list]
         return {CUSTOM_TAB_TYPE: customTab_list}
 
-    def _match_profiles_and_flows(self, result_profiles, result_flows):
+    def _match_profiles_and_flows(
+        self, result_profiles: List[dict], result_flows: List[dict]
+    ):
         profile_mapping = {}
         for item in result_profiles:
             setup_entity_id = item["SetupEntityId"]
