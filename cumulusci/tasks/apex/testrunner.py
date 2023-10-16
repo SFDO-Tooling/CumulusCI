@@ -489,7 +489,7 @@ class RunApexTests(BaseSalesforceApiTask):
         for class_name in class_names:
             self.retry_details = {}
             method_names = list(self.results_by_class_name[class_name].keys())
-            print(method_names)
+            #Added to process for the None methodnames
             if None in method_names:
                 class_id = self.classes_by_name[class_name]
                 self.retry_details.setdefault(class_id, []).append(
