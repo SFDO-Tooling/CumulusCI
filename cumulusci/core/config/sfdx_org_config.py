@@ -196,7 +196,7 @@ class SfdxOrgConfig(OrgConfig):
             message = f"Message: {nl.join(stdout_list)}"
             raise SfdxOrgException(message)
 
-    def refresh_oauth_token(self, keychain, print_json):
+    def refresh_oauth_token(self, keychain, print_json=False):
         """Use sfdx force:org:describe to refresh token instead of built in OAuth handling"""
         if hasattr(self, "_sfdx_info"):
             # Cache the sfdx_info for 1 hour to avoid unnecessary calls out to sfdx CLI
