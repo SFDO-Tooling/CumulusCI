@@ -511,6 +511,23 @@ class TestPublish(GithubApiTestMixin):
             task._init_task()
 
     @responses.activate
+    def test_init_task_no_plan_name(self):
+        project_config = create_project_config()
+        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
+        )
+        task_config = TaskConfig({"options": {"tag": "release/1.0", "plan": "install"}})
+        task = Publish(project_config, task_config)
+        with pytest.raises(
+            TaskOptionsError,
+            match="Plan install not found in project configuration",
+        ):
+            task._init_task()
+
+    @responses.activate
     def test_find_or_create_plan_template__not_found(self):
         responses.add(
             "GET",

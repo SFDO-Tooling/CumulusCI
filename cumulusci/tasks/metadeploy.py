@@ -83,6 +83,10 @@ class Publish(BaseMetaDeployTask):
         Path(self.labels_path).mkdir(parents=True, exist_ok=True)
 
         if plan_name := self.options.get("plan"):
+            if not self.project_config.lookup(f"plans__{plan_name}"):
+                raise TaskOptionsError(
+                    f"Plan {plan_name} not found in project configuration"
+                )
             plan_configs = {
                 plan_name: self.project_config.lookup(f"plans__{plan_name}")
             }
