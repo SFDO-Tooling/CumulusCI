@@ -94,7 +94,7 @@ class Publish(BaseMetaDeployTask):
             self.plan_configs = plan_configs
         else:
             self.plan_configs = self.project_config.plans
-
+        # Handled exception for no plan
         if self.plan_configs is None or len(self.plan_configs) == 0:
             raise error("No plan found to publish in project configuration")
 
@@ -115,7 +115,6 @@ class Publish(BaseMetaDeployTask):
             raise CumulusCIException(
                 f"No slug found in MetaDeploy for product {product} from {repo_url}"
             )
-
         if not self.dry_run:
             version = self._find_or_create_version(product)
             if self.labels_path and "slug" in product:
