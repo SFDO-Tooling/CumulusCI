@@ -90,6 +90,11 @@ class Publish(BaseMetaDeployTask):
         else:
             self.plan_configs = self.project_config.plans
 
+        if not self.plan_configs:
+            raise CumulusCIException(
+                "No plan found to publish in project configuration"
+            )
+
         self._load_labels()
 
     def _run_task(self):
@@ -138,7 +143,6 @@ class Publish(BaseMetaDeployTask):
             )
             project_config.set_keychain(self.project_config.keychain)
 
-            # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
                 self._add_plan_labels(
                     plan_name=plan_name,
