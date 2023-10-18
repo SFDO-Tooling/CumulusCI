@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 from lxml import etree as ET
 from pydantic import BaseModel, root_validator
-
+from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
@@ -23,6 +23,7 @@ from cumulusci.utils import (
     temporary_dir,
     tokenize_namespace,
     zip_clean_metaxml,
+    zip_clean_profile_metaxml
 )
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.ziputils import process_text_in_zipfile
@@ -211,6 +212,220 @@ class CleanMetaXMLTransform(SourceTransform):
         )
         return zip_clean_metaxml(zf)
 
+class CleanProfileMetaXMLTransform(SourceTransform):
+    """Source transform that cleans *-meta.xml files of invalid references."""
+
+    options_model = None
+
+    identifier = "clean_profiles"
+
+
+    def _create_package_xml(self, input_dict: dict, api_version: str):
+        package_xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        package_xml += '<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n'
+
+        for name, members in input_dict.items():
+            package_xml += "    <types>\n"
+            for member in members:
+                package_xml += f"        <members>{member}</members>\n"
+            package_xml += f"        <name>{name}</name>\n"
+            package_xml += "    </types>\n"
+
+            package_xml+=(
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>ApexClass</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>Flow</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>ApexPage</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>CustomPermission</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>CustomTab</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>CustomApplication</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>*</members>\n'
+            '        <name>CustomObject</name>\n'
+            '    </types>\n'
+            '    <types>\n'
+            '        <members>TestProfile</members>\n'
+            '        <name>Profile</name>\n'
+            '    </types>\n')
+
+        package_xml += f"    <version>{api_version}</version>\n"
+        package_xml += "</Package>\n"
+
+        return package_xml
+    
+    def strip_namespace(self, element):
+        for elem in element.iter():
+            if '}' in elem.tag:
+                elem.tag = elem.tag.split('}', 1)[1]
+        return element
+
+    def fetchObjectAPINamesAndUserPermissionsFromProfileXML(self, docroot):
+        objectAPINames = set()
+        userPermissionNames = set()
+
+        docroot = self.strip_namespace(docroot)
+
+        for objectPermission in docroot.findall('.//objectPermissions'):
+            objectAPINames.add(objectPermission.find('object').text)
+
+        for recordTypeVisibility in docroot.findall('.//recordTypeVisibilities'):
+            objectAPINames.add(recordTypeVisibility.find('recordType').text.split('.')[0])
+        
+        for fieldPermission in docroot.findall('.//fieldPermissions'):
+            objectAPINames.add(fieldPermission.find('field').text.split('.')[0])
+
+        for userPermission in docroot.findall('.//userPermissions'):
+            userPermissionNames.add(userPermission.find('name').text)
+
+        return (objectAPINames, userPermissionNames)
+    
+    def CleanProfileXML(self, docroot, orgMetadataDict):
+        docroot = self.strip_namespace(docroot)
+
+        for objectPermission in docroot.findall('.//objectPermissions'):
+            if objectPermission.find('object').text not in orgMetadataDict["objects"]:
+                docroot.remove(objectPermission)
+    
+        for fieldPermission in docroot.findall('.//fieldPermissions'):
+            if fieldPermission.find('field').text not in orgMetadataDict["fields"]:
+                docroot.remove(fieldPermission)
+
+        for tabVisibility in docroot.findall('.//tabVisibilities'):
+            if tabVisibility.find('tab').text not in orgMetadataDict["tabs"]:
+                docroot.remove(tabVisibility)
+        
+        for applicationVisibility in docroot.findall('.//applicationVisibilities'):
+            if applicationVisibility.find('application').text not in orgMetadataDict["applications"]:
+                docroot.remove(applicationVisibility)
+        
+        for customPermission in docroot.findall('.//customPermissions'):
+            if customPermission.find('name').text not in orgMetadataDict["customPermissions"]:
+                docroot.remove(customPermission)
+        
+        for pageAccess in docroot.findall('.//pageAccesses'):
+            if pageAccess.find('apexPage').text not in orgMetadataDict["pages"]:
+                docroot.remove(pageAccess)
+
+        for classAccess in docroot.findall('.//classAccesses'):
+            if classAccess.find('apexClass').text not in orgMetadataDict["classes"]:
+                docroot.remove(classAccess)
+        
+        for flowAccess in docroot.findall('.//flowAccesses'):
+            if flowAccess.find('flow').text not in orgMetadataDict["flows"]:
+                docroot.remove(flowAccess)
+
+        for recordTypeVisibility in docroot.findall('.//recordTypeVisibilities'):
+            if recordTypeVisibility.find('recordType').text not in orgMetadataDict["recordTypes"]:
+                docroot.remove(recordTypeVisibility)
+        
+        return docroot
+    
+
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
+        context.logger.info(
+            "Cleaning profile meta.xml files of invalid references"
+        )
+
+        objectAPINames = set()
+        userPermissionsNames = set()
+
+        for name in zf.namelist():
+            if name.endswith('.profile'):
+                # Open and remove invalid references
+                f = zf.open(name)
+                docroot = ET.parse(f).getroot()
+                objectAPINamesTemp, userPermissionsNamesTemp = self.fetchObjectAPINamesAndUserPermissionsFromProfileXML(docroot=docroot)
+                objectAPINames.update(objectAPINamesTemp)
+                userPermissionsNames.update(userPermissionsNamesTemp)
+        
+        package_xml = self._create_package_xml(input_dict={'CustomObject': list(objectAPINames)}, api_version='58')
+        context.logger.info(package_xml)
+      
+        api = ApiRetrieveUnpackaged(context, package_xml=package_xml, api_version='58')
+
+        obj_zf = api()
+        context.logger.info(obj_zf.namelist())
+        
+        # for name in obj_zf.namelist():
+        #     f = zf.open(name)
+        #     docroot = ET.parse(f).getroot()
+        #     context.logger.info(ET.tostring(docroot))
+        
+        obj_zf.extractall('./unpackaged')
+
+        #orgMetadata = obj_zf.open(name)
+
+        orgMetadataDict = {}
+
+        for name in obj_zf.namelist():
+            if name=='package.xml':
+                continue
+
+
+            metadataType = name.split('/')[0]
+            metadataName = name.split('/')[1].split('.')[0]
+            orgMetadataDict.setdefault(metadataType, set()).update([metadataName])
+
+            if name.endswith('.object'):
+                f = obj_zf.open(name)
+                docroot = ET.parse(f).getroot()
+                docroot = self.strip_namespace(docroot)
+
+                for field in docroot.findall('fields'):
+                    orgMetadataDict.setdefault('fields', set()).update([metadataName+'.'+field.find('fullName').text])
+                
+                for recordType in docroot.findall('recordTypes'):
+                    orgMetadataDict.setdefault('recordTypes', set()).update([metadataName+'.'+recordType.find('fullName').text])
+
+        context.logger.info(orgMetadataDict['fields'])
+
+        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+        # for name in zf.namelist():
+        #     f = zf.open(name)
+        #     docroot = ET.parse(f).getroot()
+        #     if name.endswith('.profile'):
+        #         # Open and remove invalid references
+        #         cleaned_doc = self.CleanProfileXML(docroot=docroot, orgMetadataDict=orgMetadataDict)
+        #         docroot = cleaned_doc
+
+        #     tree = ET.ElementTree(cleaned_doc)
+        #     tree.write(f'unpackaged/{name}_cleaned.xml', pretty_print=True, xml_declaration=True, encoding="utf-8")
+        
+        for name in zf.namelist():
+            f = zf.open(name)
+            
+            if name.endswith('.profile'):
+                # If it's a .profile file, clean the XML content
+                docroot = ET.parse(f).getroot()
+                cleaned_doc = self.CleanProfileXML(docroot, orgMetadataDict)
+                tree = ET.ElementTree(cleaned_doc)
+                cleaned_content = io.BytesIO()
+                tree.write(f'unpackaged/{name}_cleaned.xml', pretty_print=True, xml_declaration=True, encoding="utf-8")
+                tree.write(cleaned_content, pretty_print=True, xml_declaration=True, encoding="utf-8")
+                zip_dest.writestr(name, cleaned_content.getvalue())
+            else:
+                # If it's not a .profile file, add it to the new ZIP archive as is
+                zip_dest.writestr(name, f.read())
+
+        return zip_dest
+    
 
 class BundleStaticResourcesOptions(BaseModel):
     static_resource_path: str

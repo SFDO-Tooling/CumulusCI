@@ -348,6 +348,19 @@ def zip_clean_metaxml(zip_src, logger=None):
     zip_src.close()
     return zip_dest
 
+def zip_clean_profile_metaxml(zip_src, logger=None):
+    """Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
+    deployment by stripping all ``<packageVersions/>`` elements
+    """
+    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    changed = []
+    for name in zip_src.namelist():
+        logger.info(
+            f'File name: {name}')
+    
+   
+    zip_src.close()
+    return zip_dest
 
 def doc_task(task_name, task_config, project_config=None, org_config=None):
     """Document a (project specific) task configuration in RST format."""

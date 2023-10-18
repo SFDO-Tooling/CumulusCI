@@ -13,6 +13,7 @@ from cumulusci.core.source_transforms.transforms import (
     BundleStaticResourcesOptions,
     BundleStaticResourcesTransform,
     CleanMetaXMLTransform,
+    CleanProfileMetaXMLTransform,
     NamespaceInjectionOptions,
     NamespaceInjectionTransform,
     RemoveFeatureParametersTransform,
@@ -189,6 +190,10 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         # -meta.xml cleaning
         if self.options.get("clean_meta_xml", True):
             transforms.append(CleanMetaXMLTransform())
+        
+        if self.options.get("clean_profiles", True):
+            transforms.append(CleanProfileMetaXMLTransform())
+
         # Static resource bundling
         relpath = self.options.get("static_resource_path")
         if relpath and os.path.exists(relpath):
