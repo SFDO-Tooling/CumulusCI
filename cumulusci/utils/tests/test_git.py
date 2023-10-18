@@ -44,7 +44,7 @@ def test_construct_release_branch_name():
         ),
         ("https://github.com/owner/repo_name/", "owner", "repo_name", "github.com"),
         ("https://github.com/owner/repo_name.git", "owner", "repo_name", "github.com"),
-        ("https://user@github.com/owner/repo.git", "owner", "repo_name", "github.com"),
+        ("https://user@github.com/owner/repo_name.git", "owner", "repo_name", "github.com"),
         (
             "https://git.ent.example.com/org/private_repo.git",
             "org",
