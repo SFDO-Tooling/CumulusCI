@@ -72,6 +72,7 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
         Returns (owner, name, host)
     """
     url_parts = re.split("/|@|:", url.rstrip("/"))
+    url_parts = list(filter(None, url_parts))
 
     name = url_parts[-1]
     if name.endswith(".git"):
