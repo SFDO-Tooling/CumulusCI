@@ -82,6 +82,6 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
 
     host = url_parts[-3]
     # Need to consider "https://api.github.com/repos/owner/repo/" pattern
-    if "http" in url_parts[0] and len(url_parts) > 6:
+    if "http" in url_parts[0] and len(url_parts) > 4 and not host.endswith(".com"):
         host = url_parts[-4]
     return (owner, name, host)
