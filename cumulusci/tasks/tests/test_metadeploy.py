@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import zipfile
 from base64 import b64encode
+from os import error
 from pathlib import Path
 
 import pytest
@@ -505,7 +506,7 @@ class TestPublish(GithubApiTestMixin):
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
         with pytest.raises(
-            CumulusCIException,
+            error,
             match="No plan found to publish in project configuration",
         ):
             task._init_task()
