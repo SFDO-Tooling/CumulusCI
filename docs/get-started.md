@@ -74,7 +74,7 @@ When finished, [verify your installation](verify-your-installation).
     particular computer setup.
     
 ```{note}
-CumulusCI is usually compatible with the latest stable version of Python. If the latest version is less than a month old, consider using the previous version for increased stability.
+CumulusCI is usually compatible with the latest stable version of Python. This may be less true in the month of October, when Python does major releases.
 ```
 
 4.  Install using the installation wizard.
