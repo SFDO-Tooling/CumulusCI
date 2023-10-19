@@ -63,8 +63,10 @@ keyring==23.0.1
     # via cumulusci (pyproject.toml)
 lxml==4.9.3
     # via cumulusci (pyproject.toml)
-markdown-it-py==3.0.0
-    # via rich
+markdown-it-py==2.2.0
+    # via
+    #   cumulusci (pyproject.toml)
+    #   rich
 markupsafe==2.1.3
     # via
     #   cumulusci (pyproject.toml)

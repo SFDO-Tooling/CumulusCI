@@ -34,6 +34,7 @@ dependencies = [
     "keyring<=23.0.1",
     "defusedxml",
     "lxml",
+    "markdown-it-py==2.2.0", # resolve dependency conflict between prod/dev
     "MarkupSafe",
     "psutil",
     "pydantic<2",

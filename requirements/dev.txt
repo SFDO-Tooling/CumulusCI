@@ -129,6 +129,7 @@ lxml==4.9.3
     # via cumulusci (pyproject.toml)
 markdown-it-py==2.2.0
     # via
+    #   cumulusci (pyproject.toml)
     #   mdit-py-plugins
     #   myst-parser
     #   rich
