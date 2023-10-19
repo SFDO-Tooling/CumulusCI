@@ -274,9 +274,6 @@ class CleanProfileMetaXMLTransform(SourceTransform):
             self.entities_user_permission(sf)
         )
         target_entites.setdefault("tabs", set()).update(self.entities_tabs(sf))
-
-        print(target_entites["tabs"])
-
         return zip_clean_invalid_references(zf, target_entites)
 
 
