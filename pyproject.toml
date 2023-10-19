@@ -36,7 +36,7 @@ dependencies = [
     "lxml",
     "MarkupSafe",
     "psutil",
-    "pydantic",
+    "pydantic<2",
     "PyJWT",
     "pytz",
     "pyyaml",
