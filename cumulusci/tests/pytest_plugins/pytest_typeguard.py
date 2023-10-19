@@ -1,4 +1,4 @@
-from typeguard import install_import_hook
+from typeguard.importhook import install_import_hook
 
 
 def pytest_sessionstart(session):

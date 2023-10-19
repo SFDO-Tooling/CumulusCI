@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -104,10 +103,10 @@ class TestPackageUpload:
     }
 
     def generate_valid_version_options(
-        major_version: Optional[str],
-        minor_version: Optional[str],
-        asserted_major_version: Optional[str],
-        asserted_minor_version: Optional[str],
+        major_version: str,
+        minor_version: str,
+        asserted_major_version: str,
+        asserted_minor_version: str,
         is_negative: bool = False,
     ):
 

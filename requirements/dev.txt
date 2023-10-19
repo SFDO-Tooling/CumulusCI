@@ -104,7 +104,6 @@ importlib-metadata==6.8.0
     # via
     #   keyring
     #   sphinx
-    #   typeguard
 importlib-resources==6.1.0
     # via
     #   jsonschema
@@ -339,7 +338,7 @@ tomli==2.0.1
     #   tox
 tox==4.11.3
     # via cumulusci (pyproject.toml)
-typeguard==4.1.5
+typeguard==2.13.3
     # via cumulusci (pyproject.toml)
 types-pyyaml==6.0.12.12
     # via responses
@@ -350,7 +349,6 @@ typing-extensions==4.7.1
     #   pydantic
     #   rich
     #   snowfakery
-    #   typeguard
 unicodecsv==0.14.1
     # via salesforce-bulk
 uritemplate==4.1.1

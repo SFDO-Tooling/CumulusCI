@@ -74,7 +74,7 @@ test = [
     "responses",
     "testfixtures",
     "tox",
-    "typeguard",
+    "typeguard<=2.13.3", # TODO: Lots of changes required for v4
     "vcrpy"
 ]
 
