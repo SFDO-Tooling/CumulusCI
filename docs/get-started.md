@@ -69,18 +69,22 @@ When finished, [verify your installation](verify-your-installation).
 1.  Go to the [Python downloads
     page](https://www.python.org/downloads/windows/).
 
-2.  Download the latest Python 3.9 release. Most users select the
+2.  Download the latest Python 3.10 release. Most users select the
     "Windows Installer (64-bit)" link, but it depends on your
     particular computer setup.
+    
+```{note}
+CumulusCI is usually compatible with the latest stable version of Python. If the latest version is less than a month old, consider using the previous version for increased stability.
+```
 
-3.  Install using the installation wizard.
+4.  Install using the installation wizard.
 
     -   Select **Add Python \<version\> to PATH**.
     -   Click "Install Now".
 
     ![image](images/windows_python.png)
 
-4.  On the screen entitled "Setup was successful," click the "Disable
+5.  On the screen entitled "Setup was successful," click the "Disable
     path length limit" button (if it's present).
 
     ![image](images/windows_python_success.png)
@@ -131,7 +135,9 @@ When finished, [verify your installation](verify-your-installation).
     (administrator rights) to your machine. Add these paths to your PATH
     environment variable:
     -   `%USERPROFILE%\.local\bin`
-    -   `%USERPROFILE%\AppData\Roaming\Python\Python38\Scripts`
+    -   `%USERPROFILE%\AppData\Roaming\Python\Python310\Scripts` for Python 3.10
+    -   `%USERPROFILE%\AppData\Roaming\Python\Python311\Scripts` for Python 3.11
+    -   `%USERPROFILE%\AppData\Roaming\Python\Python312\Scripts` for Python 3.12
 
 ![image](images/env-var2.png)
 
@@ -151,7 +157,7 @@ running `cci version`.
 ```console
 $ cci version
 CumulusCI version: 3.29.0 (/path/to/bin/cci)
-Python version: 3.8.5 (/path/to/bin/python)
+Python version: 3.10.8 (/path/to/bin/python)
 
 You have the latest version of CumulusCI.
 ```
