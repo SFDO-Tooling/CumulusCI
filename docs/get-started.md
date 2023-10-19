@@ -69,7 +69,7 @@ When finished, [verify your installation](verify-your-installation).
 1.  Go to the [Python downloads
     page](https://www.python.org/downloads/windows/).
 
-2.  Download the latest Python 3.10 release. Most users select the
+2.  Download the latest stable Python 3 release. Most users select the
     "Windows Installer (64-bit)" link, but it depends on your
     particular computer setup.
     
