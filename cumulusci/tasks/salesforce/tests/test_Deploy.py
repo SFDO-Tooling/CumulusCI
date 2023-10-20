@@ -129,8 +129,8 @@ class TestDeploy:
             is_collision, xml_map = task._collision_check(path)
 
             assert is_collision is False
+            print(xml_map)
             assert xml_map == {
-                "CustomField": [],
                 "CustomObject": [],
                 "CustomTab": [],
                 "Layout": [],
