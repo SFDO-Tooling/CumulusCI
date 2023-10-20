@@ -6,7 +6,7 @@ from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class ReleaseReport(BaseGithubTask):
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "date_start": {
             "description": "Filter out releases created before this date (YYYY-MM-DD)"
         },
@@ -69,7 +69,8 @@ class ReleaseReport(BaseGithubTask):
                 "time_push_sandbox": None,
                 "time_push_production": None,
             }
-            for line in release.body.splitlines():
+            release_body = release.body or ""
+            for line in release_body.splitlines():
                 m = regex_compiled_prefix.match(line)
                 if m:
                     if not m.group("remaining"):

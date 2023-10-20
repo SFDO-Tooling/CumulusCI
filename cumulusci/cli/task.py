@@ -7,7 +7,6 @@ from rst2ansi import rst2ansi
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.utils import import_global
 from cumulusci.utils import doc_task
 
 from .runtime import pass_runtime
@@ -144,7 +143,7 @@ class RunTaskCommand(click.MultiCommand):
         if "options" not in task_config.config:
             task_config.config["options"] = {}
 
-        task_class = import_global(task_config.class_path)
+        task_class = task_config.get_class()
         task_options = task_class.task_options
 
         params = self._get_default_command_options(task_class.salesforce_task)

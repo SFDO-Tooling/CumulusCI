@@ -1,0 +1,32 @@
+project:
+    name: CumulusCI-Test-Local-Fake
+
+sources:
+    child:
+        path: cumulusci/core/tests/fake_remote_repo_2
+        allow_remote_code: True
+
+tasks:
+    example_task:
+        description: Normal tasks meant to be used by parent tasks
+        class_path: tasks.example.ExampleTask
+
+    example_task_from_subdirectory:
+        description: A task from a sub-directory of this repo's tasks/ directory
+        class_path: tasks.directory.example_2.ExampleTask2
+
+    task_from_child_project:
+        description: A task from a nested "grand-child" (my direct child, root's grand-child)
+        class_path: tasks.example_3.ExampleTask3
+
+flows:
+    run_child_tasks:
+        steps:
+            1:
+                task: example_task_from_subdirectory
+
+            2:
+                task: child:example_task
+
+            3:
+                task: task_from_child_project

@@ -2,11 +2,159 @@
 
 <!-- latest-start -->
 
+## v3.80.0 (2023-09-29)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Allow setting Major and Minor Version in upload_production task by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
+-   Add better error handling for empty or invalid org and service env vars by [@prescod](https://github.com/prescod) in [#3365](https://github.com/SFDO-Tooling/CumulusCI/pull/3365)
+-   Query with install_key in promote_package_version (via @zenibako) by [@davidmreed](https://github.com/davidmreed) in [#3654](https://github.com/SFDO-Tooling/CumulusCI/pull/3654)
+-   Trim whitespaces during service data entry by [@aditya-balachander](https://github.com/aditya-balachander) in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
+-   Display namespace in output of `cci org info` by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3662](https://github.com/SFDO-Tooling/CumulusCI/pull/3662)
+-   Extend `deploy` task to support REST API deployment by [@aditya-balachander](https://github.com/aditya-balachander) in [#3650](https://github.com/SFDO-Tooling/CumulusCI/pull/3650)
+-   Add `ApexTestSuite` support in the `run_tests` task by [@mjawadtp](https://github.com/mjawadtp) in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
+-   Implement variable substitution for nested structures in cumulusci.yml by [@aditya-balachander](https://github.com/aditya-balachander) in [#3665](https://github.com/SFDO-Tooling/CumulusCI/pull/3665)
+-   Add XPath-based 'find_replace' functionality to `deploy` by [@aditya-balachander](https://github.com/aditya-balachander) in [#3655](https://github.com/SFDO-Tooling/CumulusCI/pull/3655)
+-   Improve message description handling for scratch org cli `not_found` error by [@lakshmi2506](https://github.com/lakshmi2506) in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
+-   Add `deactivate_flows` task by [@lakshmi2506](https://github.com/lakshmi2506) in [#3664](https://github.com/SFDO-Tooling/CumulusCI/pull/3664)
+
+### Issues Fixed 🩴
+
+-   Add guard for empty body to github_release_report by [@jstvz](https://github.com/jstvz) in [#3645](https://github.com/SFDO-Tooling/CumulusCI/pull/3645)
+
+## New Contributors
+
+-   @zenibako made their first contribution in [#3654](https://github.com/SFDO-Tooling/CumulusCI/pull/3654)
+
+*   @jain-naman-sf made their first contribution in [#3651](https://github.com/SFDO-Tooling/CumulusCI/pull/3651)
+*   @aditya-balachander made their first contribution in [#3661](https://github.com/SFDO-Tooling/CumulusCI/pull/3661)
+*   @mjawadtp made their first contribution in [#3660](https://github.com/SFDO-Tooling/CumulusCI/pull/3660)
+*   @lakshmi2506 made their first contribution in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.79.0...v3.80.0
+
+<!-- latest-stop -->
+
+## v3.79.0 (2023-09-07)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added workarounds to support Vlocity local compilation in CI by [@jstvz](https://github.com/jstvz) in [#3642](https://github.com/SFDO-Tooling/CumulusCI/pull/3642)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.78.0...v3.79.0
+
+## v3.78.0 (2023-08-10)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Updated Permission Set preflights to handle Permission Set Groups by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3623](https://github.com/SFDO-Tooling/CumulusCI/pull/3623)
+-   Added the `create_pull_request_on_conflict` option to automerge tasks by [@BenjaminFrench](https://github.com/ BenjaminFrench) in [#3632](https://github.com/SFDO-Tooling/CumulusCI/pull/3632)
+
+### Issues Fixed 🩴
+
+-   Fixed issues with uploading some Unlocked Packages by [@jstvz](https://github.com/jstvz) in [#3636](https://github.com/SFDO-Tooling/CumulusCI/pull/3636)
+-   Corrected behavior of the `skip_future_releases` option by [@jstvz](https://github.com/jstvz) in [#3624](https://github.com/SFDO-Tooling/CumulusCI/pull/3624)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.77.0...v3.78.0
+
+## v3.77.0 (2023-07-07)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Add preflight check for PSL assignments by [@davidmreed](https://github.com/davidmreed) in [#3616](https://github.com/SFDO-Tooling/CumulusCI/pull/3616)
+-   Use Marketing Cloud's validate endpoint to update deployment packages by [@davidmreed](https://github.com/davidmreed) and [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3598](https://github.com/SFDO-Tooling/CumulusCI/pull/3598)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0...v3.77.0
+
+## v3.76.0.dev0 (2023-05-25)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Use Marketing Cloud's validate endpoint to update deployment packages by [@davidmreed](https://github.com/davidmreed) and [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3598](https://github.com/SFDO-Tooling/CumulusCI/pull/3598)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.76.0...v3.76.0.dev0
+
+## v3.76.0 (2023-05-25)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added opt-in Pydantic-based task option parsing. by [@prescod](https://github.com/prescod) in [#1618](https://github.com/SFDO-Tooling/CumulusCI/pull/1618)
+-   Add deploy transform to inject org URLs by [@davidmreed](https://github.com/davidmreed) in [#3596](https://github.com/SFDO-Tooling/CumulusCI/pull/3596)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.1...v3.76.0
+
+## v3.75.1 (2023-04-14)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Issues Fixed 🩴
+
+-   Ensure that top-level 'tasks' directory is read for custom tasks by [@prescod](https://github.com/prescod) in [#3582](https://github.com/SFDO-Tooling/CumulusCI/pull/3582)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.75.0...v3.75.1
+
+## v3.75.0 (2023-04-13)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix bug that prevented "api" declaration in `extract_declaration` from being respected during `capture_sample_dataset`. by [@prescod](https://github.com/prescod) in [#3568](https://github.com/SFDO-Tooling/CumulusCI/pull/3568)
+-   Update windows install steps by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3571](https://github.com/SFDO-Tooling/CumulusCI/pull/3571)
+-   CCI projects can now run tasks from their "sources" even when they are custom tasks coded in Python. By [@prescod](https://github.com/prescod) in [#3345](https://github.com/SFDO-Tooling/CumulusCI/pull/3345)
+-   The `capture_sample_data` task now looks for a `datasetname.load.yml` file to influence how it generates its .mapping file for subquent loads. By [@prescod](https://github.com/prescod) in [#3569](https://github.com/SFDO-Tooling/CumulusCI/pull/3569)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.74.0...v3.75.0
+
+## v3.74.0 (2023-03-06)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Allow use of static release notes on GitHub by [@davidmreed](https://github.com/davidmreed) in [#3550](https://github.com/SFDO-Tooling/CumulusCI/pull/3550)
+-   `cci service update` by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3481](https://github.com/SFDO-Tooling/CumulusCI/pull/3481)
+-   Add TimelineObjectDefinition metadata type by [@jstvz](https://github.com/jstvz) in [#3551](https://github.com/SFDO-Tooling/CumulusCI/pull/3551)
+
+### Issues Fixed 🩴
+
+-   Fix an issue with `capture_sample_data` and record type capturing. by [@prescod](https://github.com/prescod) in [#3552](https://github.com/SFDO-Tooling/CumulusCI/pull/3552)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.73.0...v3.74.0
+
 ## v3.73.0 (2023-02-16)
 
 No changes (other than dependency updates) since v3.72.1.dev2 . Please see the changes below.
-
-<!-- latest-stop -->
 
 ## v3.72.1.dev2 (2023-02-10)
 
@@ -4105,7 +4253,6 @@ the original set of flows was designed.
     > -   **dependencies** Runs the pre-package deployment dependency
     >     tasks **update_dependencies** and **deploy_pre** This flow is
     >     called by almost all the main flows.
-    >
     > -   **config\_**\* flows provide a place to customize the package
     >     configuration for different environments. These flows are
     >     called by the main flows after the package metadata is

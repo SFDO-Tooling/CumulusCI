@@ -12,11 +12,13 @@ from pathlib import Path
 
 import pytz
 
+from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.exceptions import (
     ConfigMergeError,
     CumulusCIException,
     TaskOptionsError,
 )
+from cumulusci.utils.options import parse_list_of_pairs_dict_arg
 
 
 def import_global(path: str):
@@ -24,6 +26,16 @@ def import_global(path: str):
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
+
+    if get_debug_mode():
+        import sys
+
+        logger = getLogger(__file__)
+        logger.info(f"Importing {path}")
+        logger.info(f"Looking in sys.path {sys.path}")
+        if components[0] == "tasks":
+            logger.info(f"With tasks.__path__ {sys.modules['tasks'].__path__}")
+
     mod = __import__(module, fromlist=[str(components[-1])])
     return getattr(mod, str(components[-1]))
 
@@ -125,22 +137,10 @@ def process_list_arg(arg):
 
 def process_list_of_pairs_dict_arg(arg):
     """Process an arg in the format "aa:bb,cc:dd" """
-    if isinstance(arg, dict):
-        return arg
-    elif isinstance(arg, str):
-        rc = {}
-        for key_value in arg.split(","):
-            subparts = key_value.split(":", 1)
-            if len(subparts) == 2:
-                key, value = subparts
-                if key in rc:
-                    raise TaskOptionsError(f"Var specified twice: {key}")
-                rc[key] = value
-            else:
-                raise TaskOptionsError(f"Var is not a name/value pair: {key_value}")
-        return rc
-    else:
-        raise TaskOptionsError(f"Arg is not a dict or string ({type(arg)}): {arg}")
+    try:
+        return parse_list_of_pairs_dict_arg(arg)
+    except TypeError as e:
+        raise TaskOptionsError(e) from e
 
 
 def decode_to_unicode(content):
@@ -219,7 +219,8 @@ def remove_overridden_flow_steps_in_config(
 ):
     """If any steps of flows from the config_to_override are being overridden in overriding_config,
     then we need to set those steps in the config_to_override to an empty dict so that we don't have
-    both a "task" and a "flow" listed in a flow step after merging the configs with `dictmerge()`."""
+    both a "task" and a "flow" listed in a flow step after merging the configs with `dictmerge()`.
+    """
 
     if "flows" not in config_to_override or "flows" not in overriding_config:
         return

@@ -90,6 +90,7 @@ class TestCreateRelease(GithubApiTestMixin):
                         "version": "1.0",
                         "version_id": "04t000000000000",
                         "dependencies": [{"namespace": "foo", "version": "1.0"}],
+                        "release_content": "foo release",
                         "package_type": "1GP",
                         "tag_prefix": "release/",
                     }
@@ -108,6 +109,7 @@ class TestCreateRelease(GithubApiTestMixin):
         # confirm we didn't create a prerelease
         release_request = json.loads(responses.calls._calls[-1].request.body)
         assert not release_request["prerelease"]
+        assert release_request["body"] == "foo release"
 
     @responses.activate
     def test_run_task__release_already_exists(self):

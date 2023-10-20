@@ -4,10 +4,20 @@ on:
     pull_request_review:
         types: [submitted]
 
+    workflow_call:
+        secrets:
+            CUMULUSCI_SERVICE_github:
+                required: true
+            CCITEST_APP_KEY:
+                required: true
+
     workflow_dispatch:
 
 env:
     CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
+    CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+    GITHUB_APP_ID: 129383
+    GITHUB_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
 
 jobs:
     org_backed_tests:
@@ -55,12 +65,12 @@ jobs:
                     - browser: "BROWSER:headlesschrome"
                       job-name: "Chrome"
                       org-shape: "dev"
-                    - browser: "BROWSER:headlessfirefox"
-                      job-name: "Firefox"
-                      org-shape: "dev"
-                    - browser: "BROWSER:headlesschrome"
-                      job-name: "Pre-release"
-                      org-shape: "prerelease"
+                    # - browser: "BROWSER:headlessfirefox"
+                    #   job-name: "Firefox"
+                    #   org-shape: "dev"
+                    # - browser: "BROWSER:headlesschrome"
+                    #   job-name: "Pre-release"
+                    #   org-shape: "prerelease"
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
