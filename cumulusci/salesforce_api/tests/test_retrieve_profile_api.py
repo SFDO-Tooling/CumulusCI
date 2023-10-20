@@ -18,6 +18,7 @@ def retrieve_profile_api_instance():
     project_config = MagicMock()
     task_config = MagicMock()
     org_config = MagicMock()
+    org_config.latest_api_version = "58.0"
     sf_mock.query.return_value = {"records": []}
     api = RetrieveProfileApi(
         project_config=project_config, org_config=org_config, task_config=task_config

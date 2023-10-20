@@ -7,18 +7,15 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
 
-EXTRACT_DIR = "force-app/default/main"
-
 
 class RetrieveProfile(BaseSalesforceMetadataApiTask):
-    api_version = "58.0"
     api_class = ApiRetrieveUnpackaged
     task_options = {
         "profiles": {
-            "description": "List of profiles that you want to retrieve",
+            "description": "List of profile API names that you want to retrieve",
             "required": True,
         },
-        "target": {
+        "path": {
             "description": "Target folder path. By default, it uses force-app/main/default",
         },
         "strict_mode": {
@@ -31,11 +28,12 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
 
     def _init_options(self, kwargs):
         super(RetrieveProfile, self)._init_options(kwargs)
+        self.api_version = self.org_config.latest_api_version
         self.profiles = process_list_arg(self.options["profiles"])
         if not self.profiles:
             raise ValueError("At least one profile must be specified.")
 
-        self.extract_dir = self.options.get("target", EXTRACT_DIR)
+        self.extract_dir = self.options.get("path", "force-app/default/main")
 
         if not os.path.exists(self.extract_dir):
             raise FileNotFoundError(
@@ -116,7 +114,9 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
             **{"Profile": self.existing_profiles},
         }
 
-        self.package_xml = self._create_package_xml(entities_to_be_retrieved)
+        self.package_xml = self._create_package_xml(
+            entities_to_be_retrieved, self.api_version
+        )
         api = self._get_api()
         zip_result = api()
 
@@ -155,7 +155,7 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
             package_xml=self.package_xml,
         )
 
-    def _create_package_xml(self, input_dict: dict, api_version: str = api_version):
+    def _create_package_xml(self, input_dict: dict, api_version: str):
         package_xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
         package_xml += '<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n'
 

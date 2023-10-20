@@ -5,11 +5,10 @@ from typing import Callable, Dict
 class RunParallelQueries:
     @staticmethod
     def _run_queries_in_parallel(
-        queries: Dict[str, str], run_query: Callable[[str], dict]
+        queries: Dict[str, str], run_query: Callable[[str], dict], num_threads: int = 4
     ) -> Dict[str, list]:
         """Accepts a set of queries structured as {'query_name': 'query'}
         and a run_query function that runs a particular query. Runs queries in parallel and returns the queries"""
-        num_threads = 4
         results_dict = {}
 
         with ThreadPoolExecutor(max_workers=num_threads) as executor:

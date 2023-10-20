@@ -20,7 +20,7 @@ def retrieve_profile_task(tmpdir):
         {
             "options": {
                 "profiles": ["Profile1", "Profile2"],
-                "target": tmpdir,
+                "path": tmpdir,
                 "strict_mode": False,
             }
         }
@@ -38,7 +38,7 @@ def test_check_existing_profiles_with_missing_profiles_and_strict_mode_enabled(t
         {
             "options": {
                 "profiles": ["Profile1", "Profile2"],
-                "target": tmpdir,
+                "path": tmpdir,
                 "strict_mode": True,
             }
         }
@@ -60,7 +60,7 @@ def test_check_existing_profiles_with_no_existing_profiles(tmpdir):
         {
             "options": {
                 "profiles": ["Profile1", "Profile2"],
-                "target": tmpdir,
+                "path": tmpdir,
                 "strict_mode": False,
             }
         }
@@ -93,10 +93,10 @@ def test_init_options_raises_error_with_no_profiles():
     assert str(exc_info.value) == "At least one profile must be specified."
 
 
-def test_init_options_raises_error_with_invalid_target_directory():
+def test_init_options_raises_error_with_invalid_path_directory():
     project_config = MagicMock()
     task_config = TaskConfig(
-        {"options": {"profiles": ["Profile1"], "target": "/nonexistent/directory"}}
+        {"options": {"profiles": ["Profile1"], "path": "/nonexistent/directory"}}
     )
     org_config = MagicMock()
 
@@ -107,11 +107,11 @@ def test_init_options_raises_error_with_invalid_target_directory():
     assert str(exc_info.value) == expected_message
 
 
-def test_init_options_raises_error_with_non_directory_target(tmp_path):
+def test_init_options_raises_error_with_non_directory_path(tmp_path):
     tmpfile = tmp_path / "file.txt"
     tmpfile.write_text("Something")
     project_config = MagicMock()
-    task_config = TaskConfig({"options": {"profiles": ["Profile1"], "target": tmpfile}})
+    task_config = TaskConfig({"options": {"profiles": ["Profile1"], "path": tmpfile}})
     org_config = MagicMock()
 
     with pytest.raises(NotADirectoryError) as exc_info:
@@ -229,7 +229,7 @@ def test_create_package_xml(retrieve_profile_task):
         "ApexClass": ["Class1", "Class2"],
         "Profile": ["Profile1", "Profile2"],
     }
-    package_xml = retrieve_profile_task._create_package_xml(input_dict)
+    package_xml = retrieve_profile_task._create_package_xml(input_dict, "58.0")
 
     expected_package_xml = """<?xml version="1.0" encoding="UTF-8"?>
     <Package xmlns="http://soap.sforce.com/2006/04/metadata">
