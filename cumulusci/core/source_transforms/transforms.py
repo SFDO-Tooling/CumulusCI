@@ -250,7 +250,7 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
         response = sf._call_salesforce(method, urlpath)
 
         fields = [
-            f["name"].replace("Permissions", "")
+            f["name"][len("Permissions") :]
             for f in response.json()["fields"]
             if f["name"].startswith("Permissions") and f["type"] == "boolean"
         ]

@@ -13,7 +13,7 @@ class FileName:
         self.extension = extension
 
 
-PROFILE_FILE = FileName("profiles/", ".profile-meta.xml")
+PROFILE_FILE = FileName("profiles/", ".profile")
 PERMISSIONSET_FILE = FileName("permissionsets/", ".permissionset")
 FILES_TO_BE_CLEANED = [PROFILE_FILE, PERMISSIONSET_FILE]
 
@@ -86,7 +86,7 @@ def return_package_xml_from_zip(zip_src, api_version: str = "58.0"):
     package_xml_input = {}
     for name in zip_src.namelist():
         if any(
-            name.endswith(item.extension) and name.startswith(item.folder_name)
+            item.extension in name and name.startswith(item.folder_name)
             for item in FILES_TO_BE_CLEANED
         ):
             file = zip_src.open(name)
@@ -102,6 +102,10 @@ def return_package_xml_from_zip(zip_src, api_version: str = "58.0"):
                     package_xml_input.setdefault(key, set()).update(
                         fetch_permissionable_entity_names(root, value)
                     )
+    # Remove any entities with no entries
+    package_xml_input = {
+        key: value for key, value in package_xml_input.items() if value
+    }
     package_xml = create_package_xml(
         input_dict=package_xml_input, api_version=api_version
     )
@@ -178,7 +182,7 @@ def zip_clean_invalid_references(zip_src, target_entities):
     for name in zip_src.namelist():
         file = zip_src.open(name)
         if any(
-            name.endswith(item.extension) and name.startswith(item.folder_name)
+            item.extension in name and name.startswith(item.folder_name)
             for item in FILES_TO_BE_CLEANED
         ):
             root = ET.parse(file).getroot()
