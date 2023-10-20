@@ -130,7 +130,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     table_data.append([type, component_name])
             table = CliTable(
                 table_data,
-                "Overriding Components",
             )
             table.echo()
             return None
