@@ -26,7 +26,7 @@ from cumulusci.utils import (
     tokenize_namespace,
     zip_clean_metaxml,
 )
-from cumulusci.utils.clean_before_deploy import (
+from cumulusci.utils.clean_invalid_references import (
     get_target_entities_from_zip,
     return_package_xml_from_zip,
     zip_clean_invalid_references,
@@ -219,11 +219,11 @@ class CleanMetaXMLTransform(SourceTransform):
         return zip_clean_metaxml(zf)
 
 
-class CleanProfileMetaXMLTransform(SourceTransform):
+class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
     """Source transform that cleans *-meta.xml files of invalid references."""
 
     options_model = None
-    identifier = "clean_profiles"
+    identifier = "clean_invalid_ref"
     api_version = "58.0"
 
     def entities_from_package(self, zf, context):
