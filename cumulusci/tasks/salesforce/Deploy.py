@@ -4,6 +4,7 @@ from typing import List, Optional, Union
 from defusedxml.minidom import parseString
 from pydantic import ValidationError
 
+from cumulusci.cli.ui import CliTable
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.sfdx import convert_sfdx_source
@@ -119,7 +120,19 @@ class Deploy(BaseSalesforceMetadataApiTask):
         package_zip = self._get_package_zip(path)
 
         if isinstance(package_zip, dict):
-            self.logger.warning(f"Below Components are getting overridden{package_zip}")
+            self.logger.warning(
+                "Deploy getting aborted due to collision of following components"
+            )
+            table_header_row = ["Component API Name", "Type"]
+            table_data = [table_header_row]
+            for type in package_zip.keys():
+                for component_name in package_zip[type]:
+                    table_data.append([type, component_name])
+            table = CliTable(
+                table_data,
+                "Overriding Components",
+            )
+            table.echo()
             return None
         elif package_zip is not None:
             self.logger.info("Payload size: {} bytes".format(len(package_zip)))
@@ -154,7 +167,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
             self, package_xml, api_version
         )
-        print(type(api_retrieve_unpackaged_object))
         return api_retrieve_unpackaged_object
 
     def _collision_check(self, src_path):
@@ -188,6 +200,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
             if message_list[3] in xml_map[message_list[1]]:
                 xml_map[message_list[1]].remove(message_list[3])
+                if len(xml_map[message_list[1]]) == 0:
+                    del xml_map[message_list[1]]
 
         for type, api_names in xml_map.items():
             if len(api_names) != 0:
