@@ -123,7 +123,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             self.logger.warning(
                 "Deploy getting aborted due to collision of following components"
             )
-            table_header_row = ["Component API Name", "Type"]
+            table_header_row = ["Type", "Component API Name"]
             table_data = [table_header_row]
             for type in package_zip.keys():
                 for component_name in package_zip[type]:
