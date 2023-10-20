@@ -12,8 +12,8 @@ from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.source_transforms.transforms import (
     BundleStaticResourcesOptions,
     BundleStaticResourcesTransform,
+    CleanInvalidReferencesMetaXMLTransform,
     CleanMetaXMLTransform,
-    CleanProfileMetaXMLTransform,
     NamespaceInjectionOptions,
     NamespaceInjectionTransform,
     RemoveFeatureParametersTransform,
@@ -190,9 +190,9 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         # -meta.xml cleaning
         if self.options.get("clean_meta_xml", True):
             transforms.append(CleanMetaXMLTransform())
-        
-        if self.options.get("clean_profiles", True):
-            transforms.append(CleanProfileMetaXMLTransform())
+
+        if self.options.get("clean_invalid_ref", True):
+            transforms.append(CleanInvalidReferencesMetaXMLTransform())
 
         # Static resource bundling
         relpath = self.options.get("static_resource_path")
