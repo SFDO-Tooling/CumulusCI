@@ -117,7 +117,7 @@ def handle_exception(
     """
     error_console = Console(stderr=True)
     if isinstance(error, requests.exceptions.ConnectionError):
-        connection_error_message(error_console)
+        connection_error_message(error_console, error)
     elif isinstance(error, click.ClickException):
         error_console.print(f"[red bold]Error: {escape(error.format_message())}")
     else:
@@ -136,11 +136,29 @@ def handle_exception(
         error_console.print_exception()
 
 
-def connection_error_message(console: Console):
-    message = (
-        "We encountered an error with your internet connection. "
-        "Please check your connection and try the last cci command again."
-    )
+def connection_error_message(
+    console: Console, error: requests.exceptions.ConnectionError
+):
+    network_seems_okay = False
+    real_error = error
+    try:
+        if requests.get("http://www.salesforce.com").ok:
+            network_seems_okay = True
+
+    except Exception:
+        pass
+
+    if network_seems_okay:
+        try:
+            real_error = f"https://{error.__context__.pool.host}{error.__context__.url}"  # type: ignore
+        except Exception:
+            pass
+        message = f"We could not access the org or service: {real_error}"
+    else:
+        message = (
+            "We encountered an error with your internet connection. "
+            "Please check your connection and try the last cci command again."
+        )
     console.print(f"[red bold]{message}")
 
 
