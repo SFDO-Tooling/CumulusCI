@@ -199,6 +199,7 @@ include = [
     'cumulusci/salesforce_api/exceptions.py',
     'cumulusci/salesforce_api/filterable_objects.py',
     'cumulusci/salesforce_api/mc_soap_envelopes.py',
+    'cumulusci/salesforce_api/org_schema.py',
     'cumulusci/salesforce_api/org_schema_models.py',
     'cumulusci/salesforce_api/package_install.py',
     'cumulusci/salesforce_api/soap_envelopes.py',

@@ -4,13 +4,15 @@ import typing as T
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
 from enum import Enum
-from logging import getLogger
+from logging import Logger, getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Iterable, List, NamedTuple, Optional
+from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 
+from simple_salesforce import Salesforce
 from sqlalchemy import MetaData, create_engine, not_
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import create_session, exc, sessionmaker
 
 from cumulusci.salesforce_api.filterable_objects import NOT_COUNTABLE, NOT_EXTRACTABLE
@@ -104,22 +106,28 @@ class Filters(Enum):
     populated = SObject.count > 0  # does it have data in the org?
 
 
-# TODO: Profiling and optimizing of the
-#      SQL parts. After the object is frozen,
-#      all query-sets can be cached as
-#      dicts and lists
+class SchemaConfig(NamedTuple):
+    # look at get_org_schema docstring for the definitions of these
+    filters: T.Set[Filters]  # type: ignore
+    include_counts: bool
+    patterns_to_ignore: Tuple[str, ...]
+    included_objects: Tuple[str, ...]
+
+
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
-    included_objects = None
+    included_objects: T.Optional[T.List[str]] = None
     includes_counts = False
+    from_cache: bool
 
-    def __init__(self, engine, schema_path, filters: T.Sequence[Filters] = ()):
+    def __init__(self, engine, schema_path, filters: Optional[T.Set[Filters]] = None):
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.path = schema_path
-        self.filters = set(filters)
+        self.filters = filters or set()
+        assert isinstance(self.filters, set)
 
     @property
     def sobjects(self):
@@ -131,8 +139,8 @@ class Schema:
     def __getitem__(self, name):
         try:
             return self.sobjects.filter_by(name=name).one()
-        except exc.NoResultFound:
-            raise KeyError(f"No sobject named `{name}`")
+        except exc.NoResultFound as e:
+            raise KeyError(f"No sobject named `{name}`") from e
 
     def __contains__(self, name):
         return bool(self.sobjects.filter_by(name=name).first())
@@ -156,7 +164,7 @@ class Schema:
         def closed():
             raise IOError("Database is not open for writing")
 
-        self.session._real_commit__ = self.session.commit
+        self.session._real_commit__ = self.session.commit  # type: ignore
         self.session.commit = closed
 
     def close(self):
@@ -175,34 +183,35 @@ class Schema:
     def populate_cache(
         self,
         sf,
-        included_objects,
-        filters: T.Sequence[Filters] = (),
-        patterns_to_ignore: T.Sequence[str] = (),
+        schema_config: SchemaConfig,
         logger=None,
-        *,
-        include_counts: bool = False,
     ) -> T.Union[T.Dict[str, int], T.Dict[str, None]]:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
-        for pat in patterns_to_ignore:
+
+        for pat in schema_config.patterns_to_ignore:
             assert pat.replace("%", "").isidentifier(), f"Pattern has wrong chars {pat}"
 
         # Platform bug!
-        patterns_to_ignore = ("MacroInstruction%",) + tuple(patterns_to_ignore)
+        patterns_to_ignore = ("MacroInstruction%",) + tuple(
+            schema_config.patterns_to_ignore
+        )
         regexps_to_ignore = [
             re.compile(pat.replace("%", ".*"), re.IGNORECASE)
             for pat in patterns_to_ignore
         ]
 
         objs = [obj for obj in sf.describe()["sobjects"]]
-        if included_objects:
-            objs = [obj for obj in objs if obj["name"] in included_objects]
+        if schema_config.included_objects:
+            objs = [
+                obj for obj in objs if obj["name"] in schema_config.included_objects
+            ]
         sobj_names = [
             obj["name"]
             for obj in objs
             if not (
                 ignore_based_on_name(obj["name"], regexps_to_ignore)
-                or ignore_based_on_properties(obj, filters)
+                or ignore_based_on_properties(obj, schema_config.filters)
             )
         ]
 
@@ -218,7 +227,7 @@ class Schema:
         changes = list(deep_describe(sf, objs_to_refresh, logger))
 
         self._populate_cache_from_describe(changes)
-        if include_counts:
+        if schema_config.include_counts:
             results = populate_counts(sf, self, sobj_names, logger)
         else:
             results = {name: None for name in sobj_names}
@@ -340,7 +349,7 @@ def get_org_schema(
     include_counts: bool = False,
     filters: T.Sequence[Filters] = (),
     patterns_to_ignore: T.Tuple[str, ...] = (),
-    included_objects: T.List[str] = (),
+    included_objects: T.Sequence[str] = (),
     force_recache=False,
     logger=None,
 ):
@@ -362,7 +371,8 @@ def get_org_schema(
     patterns_to_ignore: Strings in SQL %LIKE% syntax that match SObjects to be
                         ignored.
 
-    force_recache: True - replace cache. False (default) - use/update cache is available.
+    force_recache: True - replace cache. False (default) - use/update cache
+                         is available.
     logger - replace the standard logger "cumulusci.salesforce_api.org_schema"
 
     This function take 5-20 seconds (or even more) depending on
@@ -370,7 +380,30 @@ def get_org_schema(
     """
     assert not isinstance(patterns_to_ignore, str)
 
-    filters = set(filters)
+    # What should go in the schema cache db?
+    schema_config = setup_schema_config(
+        filters, include_counts, patterns_to_ignore, included_objects
+    )
+
+    with get_org_schema_with_schema_config(
+        sf,
+        org_config,
+        schema_config=schema_config,
+        force_recache=force_recache,
+        logger=logger,
+    ) as schema:
+        yield schema
+
+
+@contextmanager
+def get_org_schema_with_schema_config(
+    sf,
+    org_config,
+    *,
+    schema_config: SchemaConfig,
+    force_recache=False,
+    logger=None,
+):
     with org_config.get_orginfo_cache_dir(Schema.__module__) as directory:
         directory.mkdir(exist_ok=True, parents=True)
         schema_path = directory / "org_schema.db.gz"
@@ -378,77 +411,141 @@ def get_org_schema(
         if force_recache and schema_path.exists():
             schema_path.unlink()
 
-        if Filters.populated in filters:
-            filters.add(Filters.queryable)
-            filters.add(Filters.retrieveable)
-            # experiment with removing this limitation by using limit 1 query instead
-            assert include_counts, "Filters.populated depends on include_counts"
-            patterns_to_ignore += NOT_COUNTABLE
-
-        if Filters.extractable in filters:
-            filters.add(Filters.queryable)
-            filters.add(Filters.retrieveable)
-            filters.add(Filters.createable)  # so we can load again later
-            patterns_to_ignore += NOT_EXTRACTABLE
-
         logger = logger or getLogger(__name__)
+        with download_schema(sf, schema_path, schema_config, logger) as schema:
+            yield schema
 
+
+@contextmanager
+def download_schema(
+    sf: Salesforce, schema_path: Path, schema_config: SchemaConfig, logger: Logger
+):
+    # in rare cases a corrupted database can cause an exception here
+    # so we retry it
+    #
+    # The only way we should get back to the top is based on the continue
+    # statement due to the `continue` statement in an exception handler
+    for __current_try in [0, 1]:
         with ZippableTempDb() as tempdb, ExitStack() as closer:
+            logger.info("Inspecting org schema")
             schema = None
             engine = tempdb.create_engine()
             if schema_path.exists():
-                try:
-                    cleanups_on_failure = []
-                    tempdb.unzip_database(schema_path)
-                    cleanups_on_failure.extend([schema_path.unlink, tempdb.clear])
-                    schema = Schema(engine, schema_path, filters)
-
-                    cleanups_on_failure.append(schema.close)
-                    closer.callback(schema.close)
-                    if schema.version != schema.CurrentFormatVersion:
-                        raise SilentMigration(
-                            "was created with older CumulusCI version"
-                        )
-                    assert schema.sobjects.first().name
-                    schema.from_cache = True
-                except Exception as e:
-                    if not isinstance(e, SilentMigration):
-                        logger.warning(
-                            f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
-                        )
-                    schema = None
-                    for cleanup_action in reversed(cleanups_on_failure):
-                        cleanup_action()
-
+                schema = load_schema_from_disk(
+                    schema_path, schema_config, tempdb, engine, closer, logger
+                )
             if schema is None:
-                Base.metadata.bind = engine
-                Base.metadata.create_all()
-                schema = Schema(engine, schema_path, filters)
+                schema = create_schema_cache_from_scratch(
+                    engine, schema_path, schema_config
+                )
                 closer.callback(schema.close)
-                schema.from_cache = False
 
-            populated_objs = schema.populate_cache(
-                sf,
-                included_objects,
-                filters,
-                patterns_to_ignore,
-                logger,
-                include_counts=include_counts,
+            # in rare cases a corrupted database can cause an exception here
+            try:
+                populated_objs = schema.populate_cache(sf, schema_config, logger)
+            except DatabaseError as e:
+                message = (
+                    f"Error reading schema: {e}\n"
+                    f"Removing {schema_path}.\n"
+                    "Trying again.\n"
+                )
+                logger.warning(message)
+                if schema_path.exists():
+                    schema_path.unlink()
+                continue  # go back to the retry
+
+            schema.included_objects = filter_schema_based_on_counts(
+                schema_config, populated_objs
             )
 
-            if Filters.populated in filters:
-                # another way to compute this might be by querying the first ID
-                objs_to_include = [
-                    objname for objname, count in populated_objs.items() if count > 0
-                ]
-            else:
-                objs_to_include = [objname for objname, _ in populated_objs.items()]
-
-            schema.included_objects = objs_to_include
+            # make it not writable to avoid mistakes
+            # it's too late to change it because it will be cached
+            # now
             schema.block_writing()
+
             # save a gzipped copy for later
             tempdb.zip_database(schema_path)
             yield schema
+            return  # return without retry if first time
+
+
+def load_schema_from_disk(
+    schema_path: Path,
+    schema_config: SchemaConfig,
+    tempdb: "ZippableTempDb",
+    engine: Engine,
+    closer: ExitStack,
+    logger: Logger,
+):
+    cleanups_on_failure = []
+    try:
+        tempdb.unzip_database(schema_path)
+        cleanups_on_failure.extend([schema_path.unlink, tempdb.clear])
+        schema = Schema(engine, schema_path, schema_config.filters)
+
+        cleanups_on_failure.append(schema.close)
+        closer.callback(schema.close)
+        if schema.version != schema.CurrentFormatVersion:
+            raise SilentMigration("was created with older CumulusCI version")
+        assert schema.sobjects.first().name  # type: ignore
+        schema.from_cache = True
+    except Exception as e:
+        if not isinstance(e, SilentMigration):
+            logger.warning(f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`.")
+        schema = None
+        for cleanup_action in reversed(cleanups_on_failure):
+            cleanup_action()
+    return schema
+
+
+def filter_schema_based_on_counts(schema_config, populated_objs):
+    """Set up a few properties of the schema"""
+    if Filters.populated in schema_config.filters:
+        # another way to compute this might be by querying the first ID
+        objs_to_include = [
+            objname for objname, count in populated_objs.items() if count
+        ]
+    else:
+        objs_to_include = [objname for objname, _ in populated_objs.items()]
+
+    return objs_to_include
+
+
+def create_schema_cache_from_scratch(
+    engine: Engine, schema_path: Path, schema_config: SchemaConfig
+) -> Schema:
+    Base.metadata.bind = engine
+    Base.metadata.create_all()
+    schema = Schema(engine, schema_path, schema_config.filters)
+    schema.from_cache = False
+    return schema
+
+
+def setup_schema_config(
+    user_filters: T.Sequence[Filters],
+    include_counts: bool,
+    patterns_to_ignore: T.Sequence[str],
+    included_objects: T.Sequence[str],
+) -> SchemaConfig:
+    filters = set(user_filters)
+    patterns_to_ignore = tuple(patterns_to_ignore)
+
+    if Filters.populated in filters:
+        filters.add(Filters.queryable)
+        filters.add(Filters.retrieveable)
+        # experiment with removing this limitation by using limit 1 query instead
+        assert include_counts, "Filters.populated depends on include_counts"
+        patterns_to_ignore += NOT_COUNTABLE
+
+    if Filters.extractable in filters:
+        filters.add(Filters.queryable)
+        filters.add(Filters.retrieveable)
+        filters.add(Filters.createable)  # so we can load again later
+        patterns_to_ignore += NOT_EXTRACTABLE
+
+    return SchemaConfig(
+        filters, include_counts, patterns_to_ignore, tuple(included_objects)
+    )
 
 
 class ZippableTempDb:
@@ -481,7 +578,7 @@ class ZippableTempDb:
 def populate_counts(sf, schema, objs_cached, logger) -> T.Dict[str, int]:
     objects_to_count = [objname for objname in objs_cached]
     counts, transports_errors, salesforce_errors = count_sobjects(sf, objects_to_count)
-    errors = transports_errors + salesforce_errors
+    errors = tuple(transports_errors) + tuple(salesforce_errors)
     for error in errors[0:10]:
         logger.warning(f"Error counting SObjects: {error}")
 
@@ -498,12 +595,12 @@ class DescribeResponse(NamedTuple):
 
     status: int
     body: dict
-    last_modified_date: str = None
+    last_modified_date: Optional[str] = None
 
 
 class DescribeUpdate(NamedTuple):
     body: dict
-    last_modified_date: str = None
+    last_modified_date: Optional[str] = None
 
 
 lm_date = Optional[str]
@@ -542,7 +639,7 @@ def deep_describe(sf, objs: Dict[str, lm_date], logger) -> Iterable[DescribeUpda
         )
         first_unrecoverable_error = next(unrecoverable_errors, None)
         if first_unrecoverable_error:
-            raise first_unrecoverable_error
+            raise first_unrecoverable_error  # type: ignore
 
         responses = (
             DescribeResponse(
@@ -567,5 +664,5 @@ def deep_describe(sf, objs: Dict[str, lm_date], logger) -> Iterable[DescribeUpda
         yield from changes
 
 
-def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
+def ignore_based_on_properties(obj: dict, filters: T.Iterable[Filters]):
     return not all(obj.get(filter.name, True) for filter in filters)
