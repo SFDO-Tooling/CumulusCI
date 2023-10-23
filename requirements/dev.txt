@@ -353,7 +353,7 @@ unicodecsv==0.14.1
     # via salesforce-bulk
 uritemplate==4.1.1
     # via github3-py
-urllib3==1.26.16
+urllib3==1.26.18
     # via
     #   requests
     #   responses
