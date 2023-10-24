@@ -1,7 +1,6 @@
 import contextlib
 import json
 import re
-from os import error
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -96,7 +95,9 @@ class Publish(BaseMetaDeployTask):
             self.plan_configs = self.project_config.plans
         # Handled exception for no plan
         if self.plan_configs is None or len(self.plan_configs) == 0:
-            raise error("No plan found to publish in project configuration")
+            raise CumulusCIException(
+                "No plan found to publish in project configuration"
+            )
 
         self._load_labels()
 

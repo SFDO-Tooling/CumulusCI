@@ -4,7 +4,6 @@ import shutil
 import tempfile
 import zipfile
 from base64 import b64encode
-from os import error
 from pathlib import Path
 
 import pytest
@@ -494,8 +493,22 @@ class TestPublish(GithubApiTestMixin):
         task._init_task()
         assert expected_plans == task.plan_configs
 
-    @responses.activate
-    def test_init_task_no_plan(self):
+    @pytest.mark.parametrize(
+        "options, errortype,errormsg",
+        [
+            (
+                {"tag": "release/1.0"},
+                CumulusCIException,
+                "No plan found to publish in project configuration",
+            ),
+            (
+                {"tag": "release/1.0", "plan": "install"},
+                TaskOptionsError,
+                "Plan install not found in project configuration",
+            ),
+        ],
+    )
+    def test_init_task_no_plan(self, options, errortype, errormsg):
         project_config = create_project_config()
         project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
         project_config.keychain.set_service(
@@ -503,28 +516,11 @@ class TestPublish(GithubApiTestMixin):
             "test_alias",
             ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
-        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+        task_config = TaskConfig({"options": options})
         task = Publish(project_config, task_config)
         with pytest.raises(
-            error,
-            match="No plan found to publish in project configuration",
-        ):
-            task._init_task()
-
-    @responses.activate
-    def test_init_task_no_plan_name(self):
-        project_config = create_project_config()
-        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
-        project_config.keychain.set_service(
-            "metadeploy",
-            "test_alias",
-            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
-        )
-        task_config = TaskConfig({"options": {"tag": "release/1.0", "plan": "install"}})
-        task = Publish(project_config, task_config)
-        with pytest.raises(
-            TaskOptionsError,
-            match="Plan install not found in project configuration",
+            errortype,
+            match=errormsg,
         ):
             task._init_task()
 
