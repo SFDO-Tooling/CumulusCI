@@ -371,7 +371,7 @@ def get_service_data(service_config, sensitive_attributes) -> list:
                 click.style(k, bold=True),
                 (
                     (v[:5] + (len(v[5:]) * "*") if len(v) > 10 else "*" * len(v))
-                    if k in sensitive_attributes
+                    if k in sensitive_attributes and v is not None
                     else str(v)
                 ),
             ]
