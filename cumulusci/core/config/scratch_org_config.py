@@ -23,6 +23,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
     instance: str
     password_failed: bool
     devhub: str
+    release: str
 
     createable: bool = True
 
@@ -145,6 +146,8 @@ class ScratchOrgConfig(SfdxOrgConfig):
             args += ["--noancestors"]
         if self.days:
             args += ["--durationdays", str(self.days)]
+        if self.release:
+            args += [f"release={self.release}"]
         if self.sfdx_alias:
             args += ["-a", self.sfdx_alias]
         with open(self.config_file, "r") as org_def:
