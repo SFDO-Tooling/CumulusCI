@@ -14,6 +14,7 @@ from cumulusci.utils.clean_invalid_references import (
     get_tabs_from_app,
     get_target_entities_from_zip,
     return_package_xml_from_zip,
+    strip_namespace,
     zip_clean_invalid_references,
 )
 
@@ -41,6 +42,9 @@ SAMPLE_XML = (
     "    <objectPermissions>\n"
     "        <object>Contact</object>\n"
     "    </objectPermissions>\n"
+    "    <fieldPermissions>\n"
+    "        <field>Opportunity.SomeField</field>\n"
+    "    </fieldPermissions>\n"
     "    <customPermissions>\n"
     "        <name>CustomPermission1</name>\n"
     "    </customPermissions>\n"
@@ -53,6 +57,9 @@ EXPECTED_XML = (
     "    <objectPermissions>\n"
     "        <object>Account</object>\n"
     "    </objectPermissions>\n"
+    "    <fieldPermissions>\n"
+    "        <field>Opportunity.SomeField</field>\n"
+    "    </fieldPermissions>\n"
     "</root>\n"
 )
 
@@ -92,6 +99,13 @@ def test_fetch_permissionable_entity_names(sample_root):
     expected_result = {"Account", "Contact"}
     assert entity_names == expected_result
 
+    permission_element = PermissionElementXPath(".//fieldPermissions", "field")
+    entity_names = fetch_permissionable_entity_names(
+        sample_root, permission_element, parent=True
+    )
+    expected_result = {"Opportunity"}
+    assert entity_names == expected_result
+
 
 @pytest.mark.parametrize("sample_xml", [SAMPLE_OBJ_XML])
 def test_get_fields_and_recordtypes(sample_root):
@@ -127,13 +141,18 @@ def test_CleanXML(sample_root):
 
     for element in cleaned_root.findall(".//objectPermissions"):
         assert "Contact" not in element.find("object").text
+    for element in cleaned_root.findall(".//fieldPermissions"):
+        assert "SomeField" not in element.find("field").text
 
 
 @pytest.fixture
 def sample_zip(elements):
     zip_file = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for folder, extension, sample_xml in elements:
-        zip_file.writestr(f"{folder}/sample{extension}", sample_xml)
+    for folder, name, extension, sample_xml in elements:
+        if folder is not None:
+            zip_file.writestr(f"{folder}/{name}{extension}", sample_xml)
+        else:
+            zip_file.writestr(f"{name}{extension}", sample_xml)
 
     return zip_file
 
@@ -142,8 +161,9 @@ def sample_zip(elements):
     "elements",
     [
         [
-            ("objects", ".object", SAMPLE_OBJ_XML),
-            ("applications", ".app", SAMPLE_APP_XML),
+            ("objects", "sample", ".object", SAMPLE_OBJ_XML),
+            ("applications", "sample", ".app", SAMPLE_APP_XML),
+            (None, "package", ".xml", EXPECTED_PACKAGEXML),
         ]
     ],
 )
@@ -168,8 +188,6 @@ def test_get_target_entities_from_zip(sample_zip):
             "applications": {"sample"},
             "tabs": {"Tab1", "Tab2"},
         }
-        print(target_entities)
-        print(expected_target_entities)
         assert target_entities == expected_target_entities
 
 
@@ -178,8 +196,8 @@ def test_get_target_entities_from_zip(sample_zip):
     "elements",
     [
         [
-            ("profiles", ".profile", SAMPLE_XML),
-            ("permissionsets", ".permissionset", SAMPLE_XML),
+            ("profiles", "sample", ".profile", SAMPLE_XML),
+            ("permissionsets", "sample", ".permissionset", SAMPLE_XML),
         ]
     ],
 )
@@ -203,7 +221,7 @@ def test_return_package_xml_from_zip(mock_fetch_entities, sample_zip):
         return_package_xml_from_zip(sample_zip, "58.0")
 
         expected_input_dict = {
-            "CustomObject": {"Account", "Contact"},
+            "CustomObject": {"Account", "Contact", "Opportunity"},
             "CustomPermission": {"CustomPermission1"},
         }
         mock_create_package_xml.assert_called_with(
@@ -216,8 +234,9 @@ def test_return_package_xml_from_zip(mock_fetch_entities, sample_zip):
     "elements",
     [
         [
-            ("profiles", ".profile", SAMPLE_XML),
-            ("permissionsets", ".permissionset", SAMPLE_XML),
+            ("profiles", "sample", ".profile", SAMPLE_XML),
+            ("permissionsets", "sample", ".permissionset", SAMPLE_XML),
+            ("some_folder", "sample", ".some_extension", SAMPLE_XML),
         ]
     ],
 )
@@ -238,7 +257,11 @@ def test_zip_clean_invalid_references(mock_clean_xml, sample_zip):
     target_entities = {"something": {"something"}}
     zip_dest = zip_clean_invalid_references(sample_zip, target_entities)
 
-    name_list = ["profiles/sample.profile", "permissionsets/sample.permissionset"]
+    name_list = [
+        "profiles/sample.profile",
+        "permissionsets/sample.permissionset",
+        "some_folder/sample.some_extension",
+    ]
     for name in zip_dest.namelist():
         assert name in name_list
         result_root = ET.parse(zip_dest.open(name)).getroot()
@@ -257,6 +280,23 @@ def test_create_package_xml():
     result_root = ET.fromstring(result.encode("utf-8"))
     expected_root = ET.fromstring(EXPECTED_PACKAGEXML.encode("utf-8"))
     assert ET.iselement(result_root) == ET.iselement(expected_root)
+
+
+def test_strip_namespace():
+    xml_string = """
+    <root xmlns:ns1="http://example.com/ns1">
+        <ns1:element1>Value 1</ns1:element1>
+        <ns1:element2>Value 2</ns1:element2>
+    </root>
+    """
+    root = ET.fromstring(xml_string)
+
+    root = strip_namespace(root)
+    element1 = root.find("element1")
+    element2 = root.find("element2")
+
+    assert element1.text == "Value 1"
+    assert element2.text == "Value 2"
 
 
 if __name__ == "__main":
