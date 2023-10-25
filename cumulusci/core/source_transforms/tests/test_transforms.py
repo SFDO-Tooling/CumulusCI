@@ -4,6 +4,9 @@ import typing as T
 import zipfile
 from pathlib import Path, PurePosixPath
 from unittest import mock
+from unittest.mock import patch
+
+
 from zipfile import ZipFile
 
 import pytest
@@ -22,6 +25,8 @@ from cumulusci.core.source_transforms.transforms import (
     SourceTransformSpec,
     StripUnwantedComponentsOptions,
     StripUnwantedComponentTransform,
+    CleanMetaXMLTransform,
+    CleanInvalidReferencesMetaXMLTransform
 )
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import temporary_dir
@@ -1089,3 +1094,81 @@ def test_strip_unwanted_files(task_context):
             )
             == builder.zf
         )
+
+
+
+@pytest.fixture
+def sf():
+    client = mock.Mock()
+    client.query.return_value = {"records": []}  
+    return client
+
+@pytest.fixture
+def sample_zip(elements):
+    zip_file = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    for folder, extension, sample_xml in elements:
+        zip_file.writestr(f"{folder}/sample{extension}", sample_xml)
+
+    return zip_file
+
+# Test data to test entities_tabs function of CleanInvalidReferencesMetaXMLTransform class.
+entities_tabs_test_data = [
+    ({"records": [{"Name": "Standard-Account"}, {"Name": "Standard-Asset"}, {"Name": "Standard-Contact"}]}, {"Standard-Account", "Standard-Asset", "Standard-Contact"}),
+    ({"records": []}, set()),
+    ({"records": [{"Name": "Standard-Event"}, {"Name": "Standard-Feed"}]}, {"Standard-Event", "Standard-Feed"}),
+]
+
+@pytest.mark.parametrize("query_result, expected_result", entities_tabs_test_data)
+def test_entities_tabs(sf, query_result, expected_result):
+    transform = CleanInvalidReferencesMetaXMLTransform()
+    transform.sf = sf
+    sf.query.return_value = query_result
+    result = transform.entities_tabs(sf)
+    assert result == expected_result
+    sf.query.assert_called_once_with("SELECT Name FROM TabDefinition")
+
+sample_response = {
+    "fields": [
+        {'name': 'PermissionsUP1', 'type': 'boolean'},
+        {'name': 'PermissionsUP2', 'type': 'notboolean'},
+        {'name': 'PermissionsManagePermissions', 'type': 'boolean'},
+        {'name': 'SomeOtherValue', 'type': 'boolean'}
+    ]
+}
+
+class TestResponse:
+    @staticmethod
+    def json():
+        return {"fields":[{'name': 'PermissionsUP1', 'type': 'boolean'}, {'name': 'PermissionsUP2', 'type': 'notboolean'}, {'name': 'PermissionsManagePermissions', 'type': 'boolean'}, {'name': 'SomeOtherValue', 'type': 'boolean'}]}
+
+
+def test_entities_user_permission():
+    transform = CleanInvalidReferencesMetaXMLTransform()
+    mock_sf = mock.Mock()
+    transform.sf = mock_sf
+    transform.sf.base_url = 'test'
+    
+    with patch.object(transform.sf, '_call_salesforce', return_value= TestResponse):
+        result = transform.entities_user_permission(transform.sf)
+
+        assert result == {'UP1', 'ManagePermissions'}
+
+
+@pytest.mark.parametrize(
+    "elements",
+    [[('folder', '.extension', 'sampleText')]]
+)
+def test_process(sample_zip, task_context):
+    with patch('cumulusci.salesforce_api.utils.get_simple_salesforce_connection'),\
+    patch('cumulusci.utils.clean_invalid_references.return_package_xml_from_zip'),\
+    patch('cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged'),\
+    patch('cumulusci.utils.clean_invalid_references.get_target_entities_from_zip' ),\
+    patch('cumulusci.core.source_transforms.transforms.CleanInvalidReferencesMetaXMLTransform.entities_user_permission'),\
+    patch('cumulusci.core.source_transforms.transforms.CleanInvalidReferencesMetaXMLTransform.entities_tabs'):
+        transform = CleanInvalidReferencesMetaXMLTransform()
+        transform.process(sample_zip, task_context)
+
+
+
+
+
