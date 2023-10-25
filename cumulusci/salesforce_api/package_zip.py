@@ -191,7 +191,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if self.options.get("clean_meta_xml", True):
             transforms.append(CleanMetaXMLTransform())
 
-        if self.options.get("clean_invalid_ref", True):
+        if self.options.get("clean_invalid_ref", False):
             transforms.append(CleanInvalidReferencesMetaXMLTransform())
 
         # Static resource bundling

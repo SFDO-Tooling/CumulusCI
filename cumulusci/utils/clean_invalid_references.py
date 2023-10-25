@@ -81,7 +81,7 @@ FOLDER_PERM_DICT = {
 }
 
 
-def return_package_xml_from_zip(zip_src, api_version: str = "58.0"):
+def return_package_xml_from_zip(zip_src, api_version: str):
     # Iterate through the zip file to generate the package.xml
     package_xml_input = {}
     for name in zip_src.namelist():
@@ -149,7 +149,6 @@ def get_tabs_from_app(root):
 
 
 def get_target_entities_from_zip(zip_src):
-    zip_src.extractall("./unpackaged")
     target_entities = {}
     for name in zip_src.namelist():
         if name == "package.xml":
