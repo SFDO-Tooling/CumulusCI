@@ -305,7 +305,7 @@ def calculate_org_days(info):
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)
-    org_config.refresh_oauth_token(runtime.keychain)
+    org_config.refresh_oauth_token(runtime.keychain, print_json)
     console = Console()
     if print_json:
         click.echo(
