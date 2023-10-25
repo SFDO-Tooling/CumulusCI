@@ -1,3 +1,4 @@
+import fnmatch
 import json
 import os
 import shlex
@@ -5,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from robot import pythonpathsetter
 from robot import run as robot_run
 from robot.testdoc import testdoc
 
@@ -278,11 +278,8 @@ class Robot(BaseSalesforceTask):
             # Save it so that we can restore it later
             orig_sys_path = sys.path.copy()
 
-            # Add each source to PYTHONPATH. Robot recommends that we
-            # use pythonpathsetter instead of directly setting
-            # sys.path. <shrug>
             for path in source_paths.values():
-                pythonpathsetter.add_path(path, end=True)
+                add_path(path, end=True)
 
             # Make sure the path to the repo root is on sys.path. Normally
             # it will be, but if we're running this task from another repo
@@ -293,7 +290,7 @@ class Robot(BaseSalesforceTask):
             # by robot.run. Plus, robot recommends we call a special
             # function instead of directly modifying sys.path
             if self.project_config.repo_root not in sys.path:
-                pythonpathsetter.add_path(self.project_config.repo_root)
+                add_path(self.project_config.repo_root)
 
             options["stdout"] = sys.stdout
             options["stderr"] = sys.stderr
@@ -378,6 +375,18 @@ def patch_executescript():
         return self.execute_async_script(script, *args)
 
     WebDriver.execute_script = execute_script
+
+
+def add_path(path, end=False):
+    """
+    Adds a source to PYTHONPATH. Robot recommended that we
+    use pythonpathsetter.add_path instead of directly setting
+    sys.path, but removed this function in v6.1.
+    """
+    if not end:
+        sys.path.insert(0, path)
+    elif not any(fnmatch.fnmatch(p, path) for p in sys.path):
+        sys.path.append(path)
 
 
 patch_executescript()
