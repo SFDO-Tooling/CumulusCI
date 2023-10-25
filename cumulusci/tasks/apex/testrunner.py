@@ -262,12 +262,18 @@ class RunApexTests(BaseSalesforceApiTask):
         self.retry_details = None
 
     def _get_namespace_filter(self):
-        if self.options.get("managed") or self.options.get("namespace"):
+
+        if self.options.get("managed"):
+
             namespace = self.options.get("namespace")
+
             if not namespace:
                 raise TaskOptionsError(
                     "Running tests in managed mode but no namespace available."
                 )
+            namespace = "'{}'".format(namespace)
+        elif self.org_config.namespace:
+            namespace = self.org_config.namespace
             namespace = "'{}'".format(namespace)
         else:
             namespace = "null"
