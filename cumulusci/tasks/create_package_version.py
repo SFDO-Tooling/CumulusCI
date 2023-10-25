@@ -41,9 +41,10 @@ from cumulusci.utils.salesforce.soql import (
     format_subscriber_package_version_where_clause,
 )
 
-PERSISTANT_ORG_ERROR="""
+PERSISTANT_ORG_ERROR = """
 Target org scratch org definition file missing. Persistent orgs e.g.,Dev Hub can't be used for 2GP package uploads.
 """
+
 
 class PackageTypeEnum(StrEnum):
     managed = "Managed"
@@ -86,6 +87,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
+
     task_docs = """
     Facilitates the upload of 2GP (second-generation packaging)
     package versions using CumulusCI.

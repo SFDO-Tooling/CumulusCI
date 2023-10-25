@@ -12,7 +12,7 @@ import responses
 import yaml
 from pydantic import ValidationError
 
-from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig, UniversalConfig
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
@@ -28,11 +28,11 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.tasks.create_package_version import (
+    PERSISTANT_ORG_ERROR,
     CreatePackageVersion,
     PackageConfig,
     PackageTypeEnum,
     VersionTypeEnum,
-    PERSISTANT_ORG_ERROR,
 )
 from cumulusci.utils import temporary_dir, touch
 
@@ -155,16 +155,12 @@ def mock_get_static_dependencies():
 
 class TestPackageConfig:
     def test_org_config(self, project_config, org_config):
-        org_config.config_file=None
+        org_config.config_file = None
         with pytest.raises(
             TaskOptionsError,
             match=PERSISTANT_ORG_ERROR,
         ):
-            task = CreatePackageVersion(
-                project_config,
-                TaskConfig(),
-                org_config
-            )
+            task = CreatePackageVersion(project_config, TaskConfig(), org_config)
             task.__init__
 
     def test_validate_org_dependent(self):
