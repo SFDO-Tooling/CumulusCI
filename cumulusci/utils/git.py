@@ -1,7 +1,10 @@
 import pathlib
 import re
-from os import error
 from typing import Any, Optional, Tuple
+
+EMPTY_URL_MESSAGE = """
+The provided URL is empty or no URL under remote "origin".
+"""
 
 
 def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
@@ -73,7 +76,7 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
         Returns (owner, name, host)
     """
     if not url:
-        raise error("Url is none or must have `remote` set as origin")
+        raise ValueError(EMPTY_URL_MESSAGE)
 
     url_parts = re.split("/|@|:", url.rstrip("/"))
 
