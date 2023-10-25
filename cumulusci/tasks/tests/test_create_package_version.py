@@ -12,7 +12,7 @@ import responses
 import yaml
 from pydantic import ValidationError
 
-from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
+from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig, UniversalConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
@@ -32,6 +32,7 @@ from cumulusci.tasks.create_package_version import (
     PackageConfig,
     PackageTypeEnum,
     VersionTypeEnum,
+    PERSISTANT_ORG_ERROR,
 )
 from cumulusci.utils import temporary_dir, touch
 
@@ -127,11 +128,6 @@ def task(get_task):
 
 
 @pytest.fixture
-def get_persistent_org_config(persistent_org_config):
-    return persistent_org_config
-
-
-@pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
         "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
@@ -158,15 +154,16 @@ def mock_get_static_dependencies():
 
 
 class TestPackageConfig:
-    def test_org_config(self, project_config, persistent_org_config):
+    def test_org_config(self, project_config, org_config):
+        org_config.config_file=None
         with pytest.raises(
             TaskOptionsError,
-            match="Org doesn't contain a config_file. It's a persistent org like Devhub or Developer Edition org",
+            match=PERSISTANT_ORG_ERROR,
         ):
             task = CreatePackageVersion(
                 project_config,
                 TaskConfig(),
-                persistent_org_config,
+                org_config
             )
             task.__init__
 

@@ -28,16 +28,3 @@ def org_config():
     )
     org_config.refresh_oauth_token = mock.Mock()
     return org_config
-
-
-@pytest.fixture
-def persistent_org_config():
-    persistent_org_config = OrgConfig(
-        {
-            "instance_url": "https://scratch.my.salesforce.com",
-            "access_token": "token",
-        },
-        "alpha",
-    )
-    persistent_org_config.refresh_oauth_token = mock.Mock()
-    return persistent_org_config
