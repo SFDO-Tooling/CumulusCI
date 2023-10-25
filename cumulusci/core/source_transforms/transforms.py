@@ -216,7 +216,9 @@ class CleanMetaXMLTransform(SourceTransform):
         context.logger.info(
             "Cleaning meta.xml files of packageVersion elements for deploy"
         )
-        return zip_clean_metaxml(zf)
+        zip_dest = zip_clean_metaxml(zf)
+        context.logger.info("[Done]\n")
+        return zip_dest
 
 
 class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
@@ -230,6 +232,7 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
         api = ApiRetrieveUnpackaged(
             context, package_xml=package_xml, api_version=self.api_version
         )
+        context.logger.info("Retrieving entities from package.xml")
         retrieved_zf = api()
         return get_target_entities_from_zip(retrieved_zf)
 
@@ -263,7 +266,9 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
         return set(tabs)
 
     def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
-        context.logger.info("Cleaning profile meta.xml files of invalid references")
+        context.logger.info(
+            "Cleaning profiles and permission sets meta.xml files of invalid references"
+        )
 
         self.api_version = context.org_config.latest_api_version
         sf = self.ret_sf(context)
@@ -274,7 +279,10 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
             self.entities_user_permission(sf)
         )
         target_entites.setdefault("tabs", set()).update(self.entities_tabs(sf))
-        return zip_clean_invalid_references(zf, target_entites)
+        zip_dest = zip_clean_invalid_references(zf, target_entites)
+
+        context.logger.info("Done cleaning profiles and permission sets\n")
+        return zip_dest
 
 
 class BundleStaticResourcesOptions(BaseModel):

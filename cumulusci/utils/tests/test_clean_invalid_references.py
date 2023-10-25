@@ -187,6 +187,11 @@ def test_get_target_entities_from_zip(sample_zip):
             "recordTypes": {"sample.RecordType1", "sample.RecordType2"},
             "applications": {"sample"},
             "tabs": {"Tab1", "Tab2"},
+            "classes": set(),
+            "customPermissions": set(),
+            "flows": set(),
+            "pages": set(),
+            "userPermissions": set(),
         }
         assert target_entities == expected_target_entities
 

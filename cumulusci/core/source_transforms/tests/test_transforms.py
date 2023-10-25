@@ -5,13 +5,12 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from unittest import mock
 from unittest.mock import patch
-
-
 from zipfile import ZipFile
 
 import pytest
 from lxml import etree as ET
 from pydantic import ValidationError
+from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.source_transforms.transforms import (
@@ -25,9 +24,8 @@ from cumulusci.core.source_transforms.transforms import (
     SourceTransformSpec,
     StripUnwantedComponentsOptions,
     StripUnwantedComponentTransform,
-    CleanMetaXMLTransform,
-    CleanInvalidReferencesMetaXMLTransform
 )
+from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import temporary_dir
 
@@ -1096,79 +1094,101 @@ def test_strip_unwanted_files(task_context):
         )
 
 
-
-@pytest.fixture
-def sf():
-    client = mock.Mock()
-    client.query.return_value = {"records": []}  
-    return client
-
-@pytest.fixture
-def sample_zip(elements):
-    zip_file = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for folder, extension, sample_xml in elements:
-        zip_file.writestr(f"{folder}/sample{extension}", sample_xml)
-
-    return zip_file
-
-# Test data to test entities_tabs function of CleanInvalidReferencesMetaXMLTransform class.
-entities_tabs_test_data = [
-    ({"records": [{"Name": "Standard-Account"}, {"Name": "Standard-Asset"}, {"Name": "Standard-Contact"}]}, {"Standard-Account", "Standard-Asset", "Standard-Contact"}),
-    ({"records": []}, set()),
-    ({"records": [{"Name": "Standard-Event"}, {"Name": "Standard-Feed"}]}, {"Standard-Event", "Standard-Feed"}),
-]
-
-@pytest.mark.parametrize("query_result, expected_result", entities_tabs_test_data)
-def test_entities_tabs(sf, query_result, expected_result):
-    transform = CleanInvalidReferencesMetaXMLTransform()
-    transform.sf = sf
-    sf.query.return_value = query_result
-    result = transform.entities_tabs(sf)
-    assert result == expected_result
-    sf.query.assert_called_once_with("SELECT Name FROM TabDefinition")
-
+# Tests for CleanInvalidReferencesMetaXMLTransform
 sample_response = {
     "fields": [
-        {'name': 'PermissionsUP1', 'type': 'boolean'},
-        {'name': 'PermissionsUP2', 'type': 'notboolean'},
-        {'name': 'PermissionsManagePermissions', 'type': 'boolean'},
-        {'name': 'SomeOtherValue', 'type': 'boolean'}
+        {"name": "PermissionsUP1", "type": "boolean"},
+        {"name": "PermissionsUP2", "type": "notboolean"},
+        {"name": "PermissionsManagePermissions", "type": "boolean"},
+        {"name": "SomeOtherValue", "type": "boolean"},
     ]
 }
+
 
 class TestResponse:
     @staticmethod
     def json():
-        return {"fields":[{'name': 'PermissionsUP1', 'type': 'boolean'}, {'name': 'PermissionsUP2', 'type': 'notboolean'}, {'name': 'PermissionsManagePermissions', 'type': 'boolean'}, {'name': 'SomeOtherValue', 'type': 'boolean'}]}
+        return sample_response
 
 
-def test_entities_user_permission():
-    transform = CleanInvalidReferencesMetaXMLTransform()
-    mock_sf = mock.Mock()
-    transform.sf = mock_sf
-    transform.sf.base_url = 'test'
-    
-    with patch.object(transform.sf, '_call_salesforce', return_value= TestResponse):
-        result = transform.entities_user_permission(transform.sf)
+def test_clean_invalid_references(task_context):
+    xml_data = (
+        "<root>\n"
+        "    <objectPermissions>\n"
+        "        <object>Account</object>\n"
+        "    </objectPermissions>\n"
+        "    <objectPermissions>\n"
+        "        <object>Contact</object>\n"
+        "    </objectPermissions>\n"
+        "    <fieldPermissions>\n"
+        "        <field>Opportunity.SomeField</field>\n"
+        "    </fieldPermissions>\n"
+        "    <customPermissions>\n"
+        "        <name>CustomPermission1</name>\n"
+        "    </customPermissions>\n"
+        "    <tabVisibilities>\n"
+        "        <tab>Standard-Account</tab>\n"
+        "    </tabVisibilities>\n"
+        "    <tabVisibilities>\n"
+        "        <tab>Standard-Fake</tab>\n"
+        "    </tabVisibilities>\n"
+        "    <userPermissions>\n"
+        "        <name>ManagePermissions</name>\n"
+        "    </userPermissions>\n"
+        "</root>\n"
+    )
 
-        assert result == {'UP1', 'ManagePermissions'}
+    xml_data_clean = (
+        "<?xml version='1.0' encoding='UTF-8'?>\n"
+        "<root>\n"
+        "    <objectPermissions>\n"
+        "        <object>Account</object>\n"
+        "    </objectPermissions>\n"
+        "    <fieldPermissions>\n"
+        "        <field>Opportunity.SomeField</field>\n"
+        "    </fieldPermissions>\n"
+        "    <tabVisibilities>\n"
+        "        <tab>Standard-Account</tab>\n"
+        "    </tabVisibilities>\n"
+        "    <userPermissions>\n"
+        "        <name>ManagePermissions</name>\n"
+        "    </userPermissions>\n"
+        "</root>\n"
+    )
 
+    obj_xml = (
+        "<root>\n"
+        "   <fields>\n"
+        "       <fullName>SomeField</fullName>\n"
+        "   </fields>\n"
+        "   <recordTypes>\n"
+        "       <fullName>RecordType1</fullName>\n"
+        "   </recordTypes>\n"
+        "</root>"
+    )
 
-@pytest.mark.parametrize(
-    "elements",
-    [[('folder', '.extension', 'sampleText')]]
-)
-def test_process(sample_zip, task_context):
-    with patch('cumulusci.salesforce_api.utils.get_simple_salesforce_connection'),\
-    patch('cumulusci.utils.clean_invalid_references.return_package_xml_from_zip'),\
-    patch('cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged'),\
-    patch('cumulusci.utils.clean_invalid_references.get_target_entities_from_zip' ),\
-    patch('cumulusci.core.source_transforms.transforms.CleanInvalidReferencesMetaXMLTransform.entities_user_permission'),\
-    patch('cumulusci.core.source_transforms.transforms.CleanInvalidReferencesMetaXMLTransform.entities_tabs'):
-        transform = CleanInvalidReferencesMetaXMLTransform()
-        transform.process(sample_zip, task_context)
+    output_zip = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    output_zip.writestr("objects/Opportunity.object", obj_xml)
+    output_zip.writestr("objects/Account.object", obj_xml)
 
+    query_result = {
+        "records": [
+            {"Name": "Standard-Account"},
+            {"Name": "Standard-Asset"},
+            {"Name": "Standard-Contact"},
+        ]
+    }
 
-
-
-
+    with patch.object(Salesforce, "query", return_value=query_result), patch.object(
+        Salesforce, "_call_salesforce", return_value=TestResponse
+    ), patch.object(BaseMetadataApiCall, "__call__", return_value=output_zip):
+        builder = MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec({Path("profiles/Foo.profile"): xml_data}).as_zipfile(),
+            options={"clean_invalid_ref": True},
+            context=task_context,
+        )
+        for name in builder.zf.namelist():
+            assert name == "profiles/Foo.profile"
+            result_root = ET.parse(builder.zf.open(name)).getroot()
+            expected_root = ET.fromstring(xml_data_clean.encode("utf-8"))
+            assert ET.iselement(result_root) == ET.iselement(expected_root)

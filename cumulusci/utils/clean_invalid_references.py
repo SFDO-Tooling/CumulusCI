@@ -149,13 +149,13 @@ def get_tabs_from_app(root):
 
 
 def get_target_entities_from_zip(zip_src):
-    target_entities = {}
+    target_entities = {key: set() for key in FOLDER_PERM_DICT.keys()}
     for name in zip_src.namelist():
         if name == "package.xml":
             continue
         metadataType = name.split("/")[0]
         metadataName = name.split("/")[1].split(".")[0]
-        target_entities.setdefault(metadataType, set()).update([metadataName])
+        target_entities[metadataType].update([metadataName])
 
         # If object, fetch all the fields and record types present inside the file
         if name.endswith(".object"):
@@ -163,15 +163,15 @@ def get_target_entities_from_zip(zip_src):
             root = ET.parse(file).getroot()
             root = strip_namespace(root)
             fields, recordTypes = get_fields_and_recordtypes(root, metadataName)
-            target_entities.setdefault("fields", set()).update(fields)
-            target_entities.setdefault("recordTypes", set()).update(recordTypes)
+            target_entities["fields"].update(fields)
+            target_entities["recordTypes"].update(recordTypes)
 
         # To handle tabs which are not part of TabDefinition Table
         if name.endswith(".app"):
             file = zip_src.open(name)
             root = ET.parse(file).getroot()
             root = strip_namespace(root)
-            target_entities.setdefault("tabs", set()).update(get_tabs_from_app(root))
+            target_entities["tabs"].update(get_tabs_from_app(root))
 
     return target_entities
 
@@ -227,6 +227,5 @@ def CleanXML(root, target_entities):
         for perm_entity in perm_entities:
             for element in root.findall(perm_entity.permission_xpath):
                 if perm_entity.return_name(element) not in target_entities[key]:
-                    print(f"{key}: {perm_entity.return_name(element)}")
                     root.remove(element)
     return root
