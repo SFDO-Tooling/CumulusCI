@@ -224,10 +224,9 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
 
     options_model = None
     identifier = "clean_invalid_ref"
-    api_version = "58.0"
 
     def entities_from_package(self, zf, context):
-        package_xml = return_package_xml_from_zip(zf)
+        package_xml = return_package_xml_from_zip(zf, self.api_version)
         api = ApiRetrieveUnpackaged(
             context, package_xml=package_xml, api_version=self.api_version
         )
@@ -266,6 +265,7 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
     def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         context.logger.info("Cleaning profile meta.xml files of invalid references")
 
+        self.api_version = context.org_config.latest_api_version
         sf = self.ret_sf(context)
 
         target_entites = {}
