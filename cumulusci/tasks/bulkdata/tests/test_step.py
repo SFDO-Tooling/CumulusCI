@@ -1247,7 +1247,7 @@ class TestGetOperationFunctions:
         )
         assert op == bulk_query.return_value
 
-        context.sf.restful.called_once_with("limits/recordCount?sObjects=Test")
+        context.sf.restful.assert_called_once_with("limits/recordCount?sObjects=Test")
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
