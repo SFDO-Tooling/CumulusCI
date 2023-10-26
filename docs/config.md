@@ -771,41 +771,66 @@ method](https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cde
 sets `self.return_values` to a dictionary with these keys:
 `version_number`, `version_id`, and `package_id`.
 
-Now look at the standard `release_beta` flow defined in the universal
+Now look at the standard `release_unlocked_production` flow defined in the universal
 `cumulusci.yml` file:
 
 ```yaml
-release_beta:
-    description: Upload and release a beta version of the metadata currently in packaging
+release_unlocked_production:
+    group: Release Operations
+    description: Promote the latest beta 2GP unlocked package version and create a new release in GitHub
     steps:
         1:
-            task: upload_beta
-            options:
-                name: Automated beta release
+            task: promote_package_version
         2:
             task: github_release
             options:
-                version: ^^upload_beta.version_number
+                version: ^^promote_package_version.version_number
+                version_id: ^^promote_package_version.version_id
+                dependencies: ^^promote_package_version.dependencies
+                package_type: 2GP
+                tag_prefix: $project_config.project__git__prefix_release
         3:
             task: github_release_notes
-            ignore_failure: True ## Attempt to generate release notes but don't fail build
+            ignore_failure: True
             options:
-                link_pr: True
                 publish: True
                 tag: ^^github_release.tag_name
-                include_empty: True
-                version_id: ^^upload_beta.version_id
-        4:
-            task: github_master_to_feature
+                version_id: ^^promote_package_version.version_id
 ```
 
 This flow shows how subsequent tasks can reference the return values of
 a prior task. In this case, the `github_release` task uses the
-`version_numer` set by the `upload_beta` task as an option value with
-the `^^upload_beta.version_number` syntax. Similarly, the
-`github_release_notes` task uses the `version_id` set by the
-`upload_beta` task as an option value with the
-`^^upload_beta.version_id` syntax.
+`version_numer` set by the `promote_package_version` task as an option value
+with the `^^promote_package_version.version_number` syntax. Here, `dependencies`
+is of type list and it uses the list from `promote_package_version` task as an
+option value with `^^promote_package_version.dependencies` syntax.
+
+Similarly, the `github_release_notes` task uses the `version_id` set by the
+`promote_package_version` task as an option value with the
+`^^promote_package_version.version_number` syntax and uses the `tag` set by
+`github_release` task as an option value with the `^^github_release.tag_name`
+syntax.
+
+The below example shows how the task options of type list cannot be used.
+Here, `update_dependencies` task cannot set the task option `dependencies`
+as the list of values from the prior tasks. Similarly, task options of type
+dictionary cannot be set as key value pairs from the prior tasks.
+
+```yaml
+example_flow:
+    steps:
+        1:
+            task: get_latest_version_example
+        2:
+            task: get_old_version_example
+        3:
+            task: update_dependencies
+            options:
+                dependencies:
+                    - latest_version_id: ^^get_latest_version_example.version_id
+                    - version_id: ^^get_old_version_example.version_id
+                packages_only: true
+```
 
 ## Troubleshoot Configurations
 
