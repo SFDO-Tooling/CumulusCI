@@ -28,7 +28,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.tasks.create_package_version import (
-    PERSISTANT_ORG_ERROR,
+    PERSISTENT_ORG_ERROR,
     CreatePackageVersion,
     PackageConfig,
     PackageTypeEnum,
@@ -161,7 +161,6 @@ class TestPackageConfig:
             match=PERSISTANT_ORG_ERROR,
         ):
             task = CreatePackageVersion(project_config, TaskConfig(), org_config)
-            task.__init__
 
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):

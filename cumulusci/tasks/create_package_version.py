@@ -41,8 +41,8 @@ from cumulusci.utils.salesforce.soql import (
     format_subscriber_package_version_where_clause,
 )
 
-PERSISTANT_ORG_ERROR = """
-Target org scratch org definition file missing. Persistent orgs e.g.,Dev Hub can't be used for 2GP package uploads.
+PERSISTENT_ORG_ERROR = """
+Target org scratch org definition file missing. Persistent orgs like a Dev Hub can't be used for 2GP package uploads.
 """
 
 
@@ -158,7 +158,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         super()._init_options(kwargs)
 
         if not self.org_config.config_file:
-            raise TaskOptionsError(PERSISTANT_ORG_ERROR)
+            raise TaskOptionsError(PERSISTENT_ORG_ERROR)
 
         # Allow these fields to be explicitly set to blanks
         # so that unlocked builds can override an otherwise-configured
