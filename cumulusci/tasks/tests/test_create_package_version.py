@@ -158,9 +158,9 @@ class TestPackageConfig:
         org_config.config_file = None
         with pytest.raises(
             TaskOptionsError,
-            match=PERSISTANT_ORG_ERROR,
+            match=PERSISTENT_ORG_ERROR,
         ):
-            task = CreatePackageVersion(project_config, TaskConfig(), org_config)
+            CreatePackageVersion(project_config, TaskConfig(), org_config)
 
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):
