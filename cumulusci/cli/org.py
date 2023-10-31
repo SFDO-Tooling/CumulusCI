@@ -569,7 +569,7 @@ def org_remove(runtime, org_name, global_org):
 )
 @pass_runtime(require_keychain=True)
 def org_scratch(
-    runtime, config_name, org_name, default, devhub, days, no_password, release
+    runtime, config_name, org_name, default, devhub, days, no_password, release=None
 ):
     runtime.check_org_overwrite(org_name)
     release_options = ["previous", "preview"]
