@@ -1095,20 +1095,48 @@ def test_strip_unwanted_files(task_context):
 
 
 # Tests for CleanInvalidReferencesMetaXMLTransform
-sample_response = {
+up_result_dict = {
     "fields": [
-        {"name": "PermissionsUP1", "type": "boolean"},
-        {"name": "PermissionsUP2", "type": "notboolean"},
-        {"name": "PermissionsManagePermissions", "type": "boolean"},
-        {"name": "SomeOtherValue", "type": "boolean"},
+        {"name": "PermissionsEdit", "type": "boolean"},
+        {"name": "PermissionsView", "type": "boolean"},
     ]
+}
+field_result_dict = {
+    "fields": [
+        {
+            "name": "Field",
+            "picklistValues": [{"value": "Option1"}, {"value": "Option2"}],
+        }
+    ],
+}
+tabs_result_dict = {
+    "records": [
+        {"Name": "Tab1"},
+        {"Name": "Tab2"},
+    ],
+}
+objects_result_dict = {
+    "fields": [
+        {
+            "name": "SobjectType",
+            "picklistValues": [{"value": "Object1"}, {"value": "Object2"}],
+        },
+    ],
 }
 
 
-class TestResponse:
-    @staticmethod
-    def json():
-        return sample_response
+def return_response(method, urlpath):
+    response = mock.Mock()
+    if "sobjects/PermissionSet/describe" in urlpath:
+        response.json.return_value = up_result_dict
+    elif "sobjects/FieldPermissions/describe" in urlpath:
+        response.json.return_value = field_result_dict
+    elif "sobjects/ObjectPermissions/describe" in urlpath:
+        response.json.return_value = objects_result_dict
+    elif "query/?q=SELECT+Name+FROM+PermissionSetTabSetting+GROUP+BY+Name" in urlpath:
+        response.json.return_value = tabs_result_dict
+
+    return response
 
 
 def test_clean_invalid_references(task_context):
@@ -1171,16 +1199,8 @@ def test_clean_invalid_references(task_context):
     output_zip.writestr("objects/Opportunity.object", obj_xml)
     output_zip.writestr("objects/Account.object", obj_xml)
 
-    query_result = {
-        "records": [
-            {"Name": "Standard-Account"},
-            {"Name": "Standard-Asset"},
-            {"Name": "Standard-Contact"},
-        ]
-    }
-
-    with patch.object(Salesforce, "query", return_value=query_result), patch.object(
-        Salesforce, "_call_salesforce", return_value=TestResponse
+    with patch.object(
+        Salesforce, "_call_salesforce", side_effect=return_response
     ), patch.object(BaseMetadataApiCall, "__call__", return_value=output_zip):
         builder = MetadataPackageZipBuilder.from_zipfile(
             ZipFileSpec({Path("profiles/Foo.profile"): xml_data}).as_zipfile(),

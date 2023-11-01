@@ -1,19 +1,30 @@
 import io
 import zipfile
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from lxml import etree as ET
+from simple_salesforce.api import Salesforce
 
+from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.utils.clean_invalid_references import (
     CleanXML,
     PermissionElementXPath,
+    clean_zip_file,
     create_package_xml,
+    entities_from_package,
+    entities_from_query,
     fetch_permissionable_entity_names,
     get_fields_and_recordtypes,
     get_tabs_from_app,
     get_target_entities_from_zip,
+    process_fields,
+    process_objects,
+    process_tabs,
+    process_user_permissions,
+    ret_sf,
     return_package_xml_from_zip,
+    run_queries_in_parallel,
     strip_namespace,
     zip_clean_invalid_references,
 )
@@ -245,7 +256,7 @@ def test_return_package_xml_from_zip(mock_fetch_entities, sample_zip):
         ]
     ],
 )
-def test_zip_clean_invalid_references(mock_clean_xml, sample_zip):
+def test_clean_zip_file(mock_clean_xml, sample_zip):
     # Mock CleanXML
     def clean_xml(root, target_entities):
         for element in root.findall(".//objectPermissions"):
@@ -260,7 +271,7 @@ def test_zip_clean_invalid_references(mock_clean_xml, sample_zip):
 
     # Call the function
     target_entities = {"something": {"something"}}
-    zip_dest = zip_clean_invalid_references(sample_zip, target_entities)
+    zip_dest = clean_zip_file(sample_zip, target_entities)
 
     name_list = [
         "profiles/sample.profile",
@@ -302,6 +313,204 @@ def test_strip_namespace():
 
     assert element1.text == "Value 1"
     assert element2.text == "Value 2"
+
+
+up_result_dict = {
+    "fields": [
+        {"name": "PermissionsEdit", "type": "boolean"},
+        {"name": "PermissionsView", "type": "boolean"},
+    ]
+}
+field_result_dict = {
+    "fields": [
+        {
+            "name": "Field",
+            "picklistValues": [{"value": "Option1"}, {"value": "Option2"}],
+        }
+    ],
+}
+tabs_result_dict = {
+    "records": [
+        {"Name": "Tab1"},
+        {"Name": "Tab2"},
+    ],
+}
+objects_result_dict = {
+    "fields": [
+        {
+            "name": "SobjectType",
+            "picklistValues": [{"value": "Object1"}, {"value": "Object2"}],
+        },
+    ],
+}
+
+
+def test_process_user_permissions():
+    result = process_user_permissions(up_result_dict)
+    expected = {"Edit", "View"}
+    assert result == expected
+
+
+def test_process_fields():
+    result = process_fields(field_result_dict)
+    expected = {"Option1", "Option2"}
+    assert result == expected
+
+
+def test_process_tabs():
+    result = process_tabs(tabs_result_dict)
+    expected = {"Tab1", "Tab2"}
+    assert result == expected
+
+
+def test_process_objects():
+    result = process_objects(objects_result_dict)
+    expected = {"Object1", "Object2"}
+    assert result == expected
+
+
+def sample_run_query(query):
+    if query == "query1":
+        return ["Query 1 result"]
+    elif query == "query2":
+        return ["Query 2 result"]
+    elif query == "query_data_error":
+        raise ValueError("Some error occurred.")
+
+
+def test_run_queries_in_parallel():
+    queries = {
+        "query1": "query1",
+        "query2": "query2",
+    }
+
+    results = run_queries_in_parallel(queries, sample_run_query, num_threads=2)
+
+    assert "query1" in results
+    assert "query2" in results
+    assert results["query1"] == ["Query 1 result"]
+    assert results["query2"] == ["Query 2 result"]
+
+
+def test_run_queries_in_parallel_exception_handling():
+    queries = {
+        "query_that_raises": "query_data_error",
+    }
+
+    with pytest.raises(Exception) as exc_info:
+        run_queries_in_parallel(queries, sample_run_query)
+    assert "Error executing query 'query_that_raises':" in str(exc_info.value)
+
+
+class SampleResponse:
+    def __init__(self, result_list):
+        self.result_list = result_list
+
+    def json(self):
+        return self.result_list
+
+
+def call_salesforce(method, urlpath):
+    result = {
+        "123" + "sobjects/PermissionSet/describe": SampleResponse(up_result_dict),
+        "123" + "sobjects/FieldPermissions/describe": SampleResponse(field_result_dict),
+        "123"
+        + "sobjects/ObjectPermissions/describe": SampleResponse(objects_result_dict),
+        "123"
+        + "query/?q=SELECT+Name+FROM+PermissionSetTabSetting+GROUP+BY+Name": SampleResponse(
+            tabs_result_dict
+        ),
+    }
+    return result[urlpath]
+
+
+def test_entities_from_query(task_context):
+    sf = Mock()
+    sf.base_url = "123"
+    sf._call_salesforce = call_salesforce
+
+    result_userpermissions = {"Edit", "View"}
+    result_fields = {"Option1", "Option2"}
+    result_tabs = {"Tab1", "Tab2"}
+    result_objects = {"Object1", "Object2"}
+
+    with patch(
+        "cumulusci.utils.clean_invalid_references.process_user_permissions",
+        return_value=result_userpermissions,
+    ) as mock_process_user_permissions, patch(
+        "cumulusci.utils.clean_invalid_references.process_fields",
+        return_value=result_fields,
+    ) as mock_process_fields, patch(
+        "cumulusci.utils.clean_invalid_references.process_tabs",
+        return_value=result_tabs,
+    ) as mock_process_tabs, patch(
+        "cumulusci.utils.clean_invalid_references.process_objects",
+        return_value=result_objects,
+    ) as mock_process_objects:
+        userpermissions, fields, tabs, objects = entities_from_query(sf)
+        assert userpermissions == result_userpermissions
+        assert fields == result_fields
+        assert tabs == result_tabs
+        assert objects == result_objects
+
+        mock_process_user_permissions.assert_called_with(up_result_dict)
+        mock_process_fields.assert_called_with(field_result_dict)
+        mock_process_tabs.assert_called_with(tabs_result_dict)
+        mock_process_objects.assert_called_with(objects_result_dict)
+
+
+def test_ret_sf(task_context):
+    sf = ret_sf(task_context, "58.0")
+    assert isinstance(sf, Salesforce)
+
+
+@pytest.mark.parametrize(
+    "elements",
+    [
+        [
+            ("sample", "sample", ".sample", SAMPLE_XML),
+        ]
+    ],
+)
+def test_entities_from_package(task_context, sample_zip):
+    zf = Mock()
+    with patch(
+        "cumulusci.utils.clean_invalid_references.return_package_xml_from_zip",
+        return_value="package_xml",
+    ), patch.object(ApiRetrieveUnpackaged, "__call__", return_value=sample_zip), patch(
+        "cumulusci.utils.clean_invalid_references.get_target_entities_from_zip"
+    ) as mock_get_target:
+        entities_from_package(zf, task_context, "58.0")
+        mock_get_target.assert_called_once_with(sample_zip)
+
+
+def test_zip_clean_invalid_references(task_context):
+    userPermissions = {"UserPermissions"}
+    fields = {"fields"}
+    tabs = {"tabs"}
+    objects = {"objects"}
+    entities = {"applications": {"applications"}}
+
+    expected_target_entites = {}
+    expected_target_entites.setdefault("userPermissions", set()).update(userPermissions)
+    expected_target_entites.setdefault("tabs", set()).update(tabs)
+    expected_target_entites.setdefault("fields", set()).update(fields)
+    expected_target_entites.setdefault("objects", set()).update(objects)
+    expected_target_entites.update(entities)
+
+    zf = Mock()
+
+    with patch("cumulusci.utils.clean_invalid_references.ret_sf"), patch(
+        "cumulusci.utils.clean_invalid_references.entities_from_query",
+        return_value=(userPermissions, fields, tabs, objects),
+    ), patch(
+        "cumulusci.utils.clean_invalid_references.entities_from_package",
+        return_value=entities,
+    ), patch(
+        "cumulusci.utils.clean_invalid_references.clean_zip_file"
+    ) as mock_clean_zip_file:
+        zip_clean_invalid_references(zf, task_context)
+        mock_clean_zip_file.assert_called_once_with(zf, expected_target_entites)
 
 
 if __name__ == "__main":

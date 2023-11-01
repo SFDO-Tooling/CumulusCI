@@ -19,6 +19,7 @@ from cumulusci.core.source_transforms.transforms import (
     RemoveFeatureParametersTransform,
     SourceTransform,
 )
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils.ziputils import hash_zipfile_contents
 
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
@@ -191,7 +192,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if self.options.get("clean_meta_xml", True):
             transforms.append(CleanMetaXMLTransform())
 
-        if self.options.get("clean_invalid_ref", False):
+        if process_bool_arg(self.options.get("clean_invalid_ref") or False):
             transforms.append(CleanInvalidReferencesMetaXMLTransform())
 
         # Static resource bundling

@@ -15,8 +15,6 @@ from pydantic import BaseModel, root_validator
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
-from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.metadata.package import RemoveSourceComponents
 from cumulusci.utils import (
     cd,
@@ -26,11 +24,7 @@ from cumulusci.utils import (
     tokenize_namespace,
     zip_clean_metaxml,
 )
-from cumulusci.utils.clean_invalid_references import (
-    get_target_entities_from_zip,
-    return_package_xml_from_zip,
-    zip_clean_invalid_references,
-)
+from cumulusci.utils.clean_invalid_references import zip_clean_invalid_references
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.ziputils import process_text_in_zipfile
 
@@ -225,62 +219,14 @@ class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
     """Source transform that cleans *-meta.xml files of invalid references."""
 
     options_model = None
+
     identifier = "clean_invalid_ref"
-
-    def entities_from_package(self, zf, context):
-        package_xml = return_package_xml_from_zip(zf, self.api_version)
-        api = ApiRetrieveUnpackaged(
-            context, package_xml=package_xml, api_version=self.api_version
-        )
-        context.logger.info("Retrieving entities from package.xml")
-        retrieved_zf = api()
-        return get_target_entities_from_zip(retrieved_zf)
-
-    def ret_sf(self, context):
-        sf = get_simple_salesforce_connection(
-            context.project_config,
-            context.org_config,
-            api_version=self.api_version,
-            base_url=None,
-        )
-        return sf
-
-    def entities_user_permission(self, sf):
-        path = "sobjects/PermissionSet/describe"
-        urlpath = sf.base_url + path
-        method = "GET"
-        response = sf._call_salesforce(method, urlpath)
-
-        fields = [
-            f["name"][len("Permissions") :]
-            for f in response.json()["fields"]
-            if f["name"].startswith("Permissions") and f["type"] == "boolean"
-        ]
-        return set(fields)
-
-    def entities_tabs(self, sf):
-        soql = "SELECT Name FROM TabDefinition"
-        result = sf.query(soql)["records"]
-
-        tabs = [record["Name"] for record in result]
-        return set(tabs)
 
     def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         context.logger.info(
             "Cleaning profiles and permission sets meta.xml files of invalid references"
         )
-
-        self.api_version = context.org_config.latest_api_version
-        sf = self.ret_sf(context)
-
-        target_entites = {}
-        target_entites.update(self.entities_from_package(zf, context))
-        target_entites.setdefault("userPermissions", set()).update(
-            self.entities_user_permission(sf)
-        )
-        target_entites.setdefault("tabs", set()).update(self.entities_tabs(sf))
-        zip_dest = zip_clean_invalid_references(zf, target_entites)
-
+        zip_dest = zip_clean_invalid_references(zf, context)
         context.logger.info("Done cleaning profiles and permission sets\n")
         return zip_dest
 
