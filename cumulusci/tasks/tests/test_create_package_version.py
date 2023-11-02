@@ -28,6 +28,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.tasks.create_package_version import (
+    PERSISTENT_ORG_ERROR,
     CreatePackageVersion,
     PackageConfig,
     PackageTypeEnum,
@@ -153,6 +154,14 @@ def mock_get_static_dependencies():
 
 
 class TestPackageConfig:
+    def test_org_config(self, project_config, org_config):
+        org_config.config_file = None
+        with pytest.raises(
+            TaskOptionsError,
+            match=PERSISTENT_ORG_ERROR,
+        ):
+            CreatePackageVersion(project_config, TaskConfig(), org_config)
+
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):
             PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)  # type: ignore
