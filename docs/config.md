@@ -811,8 +811,8 @@ Similarly, the `github_release_notes` task uses the `version_id` set by the
 `github_release` task as an option value with the `^^github_release.tag_name`
 syntax.
 
-The below example shows how the task options of type list cannot be used.
-Here, `update_dependencies` task cannot set the task option `dependencies`
+The below `example_flow` shows how the task options of type list CANNOT be used.
+Here, `update_dependencies` task CANNOT set the task option `dependencies`
 as the list of values from the prior tasks. Similarly, task options of type
 dictionary cannot be set as key value pairs from the prior tasks.
 
