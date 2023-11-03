@@ -241,7 +241,7 @@ class KeywordFile:
                 # we don't want to see the same base pageobject
                 # keywords a kajillion times. This should probably
                 # be configurable, but I don't need it to be right now.
-                if base_pageobjects_path in keyword.source:
+                if base_pageobjects_path in str(keyword.source):
                     continue
 
                 path = Path(keyword.source)

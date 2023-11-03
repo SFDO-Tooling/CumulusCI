@@ -41,6 +41,10 @@ from cumulusci.utils.salesforce.soql import (
     format_subscriber_package_version_where_clause,
 )
 
+PERSISTENT_ORG_ERROR = """
+Target org scratch org definition file missing. Persistent orgs like a Dev Hub can't be used for 2GP package uploads.
+"""
+
 
 class PackageTypeEnum(StrEnum):
     managed = "Managed"
@@ -82,6 +86,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     """Creates a new second-generation package version.
 
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
+    """
+
+    task_docs = """
+    Facilitates the upload of 2GP (second-generation packaging)
+    package versions using CumulusCI.
+
+    The target org is used both for looking up dependency package IDs and
+    configuring the build org during the package upload. Ensure the specified
+    org is a scratch org with the correct configuration for these purposes.
     """
 
     api_version = "52.0"
@@ -143,6 +156,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+
+        if not self.org_config.config_file:
+            raise TaskOptionsError(PERSISTENT_ORG_ERROR)
 
         # Allow these fields to be explicitly set to blanks
         # so that unlocked builds can override an otherwise-configured
@@ -388,7 +404,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
-
             # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
             # Note that we handle orgPreferences below by converting to settings,
             # in build_settings_package()

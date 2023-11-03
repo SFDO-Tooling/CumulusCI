@@ -1249,20 +1249,40 @@ class TestOrgCommands:
             devhub="hub",
             days=7,
             no_password=True,
+            release="previous",
         )
 
         runtime.check_org_overwrite.assert_called_once()
         runtime.keychain.create_scratch_org.assert_called_with(
-            "test", "dev", 7, set_password=False
+            "test", "dev", 7, set_password=False, release="previous"
         )
         runtime.keychain.set_default_org.assert_called_with("test")
+
+    def test_org_scratch_release_invalid(self):
+        runtime = mock.Mock()
+
+        runtime.project_config.lookup = MockLookup(
+            orgs__scratch={"dev": {"orgName": "Dev"}}
+        )
+        with pytest.raises(click.UsageError):
+            run_click_command(
+                org.org_scratch,
+                runtime=runtime,
+                config_name="dev",
+                org_name="test",
+                default=True,
+                devhub="hub",
+                days=7,
+                no_password=True,
+                release="next",
+            )
+        runtime.check_org_overwrite.assert_called_once()
 
     def test_org_scratch__not_default(self):
         runtime = mock.Mock()
         runtime.project_config.lookup = MockLookup(
             orgs__scratch={"dev": {"orgName": "Dev"}}
         )
-
         run_click_command(
             org.org_scratch,
             runtime=runtime,
@@ -1272,11 +1292,12 @@ class TestOrgCommands:
             devhub="hub",
             days=7,
             no_password=True,
+            release=None,
         )
 
         runtime.check_org_overwrite.assert_called_once()
         runtime.keychain.create_scratch_org.assert_called_with(
-            "test", "dev", 7, set_password=False
+            "test", "dev", 7, set_password=False, release=None
         )
 
     def test_org_scratch_no_configs(self):
@@ -1293,6 +1314,7 @@ class TestOrgCommands:
                 devhub="hub",
                 days=7,
                 no_password=True,
+                release="previous",
             )
 
     def test_org_scratch_config_not_found(self):
@@ -1309,6 +1331,7 @@ class TestOrgCommands:
                 devhub="hub",
                 days=7,
                 no_password=True,
+                release="previous",
             )
 
     def test_org_scratch_delete(self):
