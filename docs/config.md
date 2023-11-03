@@ -176,6 +176,10 @@ and (2) A required file path.
 
 Once the options are defined, they can be accessed via the `parsed_options` property of the task.
 
+```{important}
+When the nested `Options` class is defined within your custom task (or is part of a class you inherit from), it restricts modifications to the `options` property of the task, making it read-only. To make any changes, you should instead modify the `parsed_options` property rather than the `options` property.
+```
+
 Some of the most commonly used types are:
 
 -   `pathlib.Path`: simply uses the type itself for validation by passing the value to Path(v);
