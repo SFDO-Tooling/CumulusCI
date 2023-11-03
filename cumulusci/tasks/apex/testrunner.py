@@ -487,6 +487,22 @@ class RunApexTests(BaseSalesforceApiTask):
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
+            self.retry_details = {}
+            method_names = list(self.results_by_class_name[class_name].keys())
+            # Added to process for the None methodnames
+
+            if None in method_names:
+                class_id = self.classes_by_name[class_name]
+                self.retry_details.setdefault(class_id, []).append(
+                    self._get_test_methods_for_class(class_name)
+                )
+                del self.results_by_class_name[class_name][None]
+                self.logger.info(
+                    f"Retrying class with id: {class_id} name:{class_name} due to `None` methodname"
+                )
+                self.counts["Retriable"] += len(self.retry_details[class_id])
+                self._attempt_retries()
+
             has_failures = any(
                 result["Outcome"] in ["Fail", "CompileFail"]
                 for result in self.results_by_class_name[class_name].values()
