@@ -45,7 +45,6 @@ dependencies = [
     "requests-futures",
     "rich",
     "robotframework",
-    "robotframework-lint",
     "robotframework-pabot",
     "robotframework-requests",
     "robotframework-seleniumlibrary<6",
