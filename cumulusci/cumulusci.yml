@@ -200,6 +200,10 @@ tasks:
         options:
             license: Salesforce
         group: Salesforce Metadata
+    retrieve_profile:
+        description: Given a list of profiles, the task retrieves all complete profiles along with their associated dependencies for all permissionable entities - ApexClass, ApexPage, CustomApplications, CustomObjects, CustomPermissions, CustomTabs, ExternalDataSources and Flows
+        class_path: cumulusci.tasks.salesforce.retrieve_profile.RetrieveProfile
+        group: Salesforce Metadata
     delete_data:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
         class_path: cumulusci.tasks.bulkdata.DeleteData
