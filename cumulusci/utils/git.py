@@ -3,7 +3,7 @@ import re
 from typing import Any, Optional, Tuple
 
 EMPTY_URL_MESSAGE = """
-The provided URL is empty or no URL under remote "origin".
+The provided URL is empty or no URL under git remote "origin".
 """
 
 
