@@ -439,6 +439,14 @@ class TestPublish(GithubApiTestMixin):
         )
         project_config = create_project_config()
         project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        project_config.config["plans"] = {
+            "install": {
+                "title": "Test Install",
+                "slug": "install",
+                "tier": "primary",
+                "steps": {1: {"flow": "install_prod"}},
+            }
+        }
         project_config.keychain.set_service(
             "metadeploy",
             "test_alias",
@@ -484,6 +492,37 @@ class TestPublish(GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task._init_task()
         assert expected_plans == task.plan_configs
+
+    @pytest.mark.parametrize(
+        "options, errortype,errormsg",
+        [
+            (
+                {"tag": "release/1.0"},
+                CumulusCIException,
+                "No plan found to publish in project configuration",
+            ),
+            (
+                {"tag": "release/1.0", "plan": "install"},
+                TaskOptionsError,
+                "Plan install not found in project configuration",
+            ),
+        ],
+    )
+    def test_init_task_no_plan(self, options, errortype, errormsg):
+        project_config = create_project_config()
+        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
+        )
+        task_config = TaskConfig({"options": options})
+        task = Publish(project_config, task_config)
+        with pytest.raises(
+            errortype,
+            match=errormsg,
+        ):
+            task._init_task()
 
     @responses.activate
     def test_find_or_create_plan_template__not_found(self):
@@ -539,6 +578,9 @@ class TestPublish(GithubApiTestMixin):
             "slug": "install",
             "tier": "primary",
             "steps": {1: {"task": "None"}},
+        }
+        project_config.config["plans"] = {
+            "Test Install": plan_config,
         }
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)

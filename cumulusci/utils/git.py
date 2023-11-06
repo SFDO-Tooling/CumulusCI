@@ -2,6 +2,10 @@ import pathlib
 import re
 from typing import Any, Optional, Tuple
 
+EMPTY_URL_MESSAGE = """
+The provided URL is empty or no URL under git remote "origin".
+"""
+
 
 def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
     """Returns a Path to the .git directory in repo_root
@@ -71,6 +75,9 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
     Tuple: (str, str, str)
         Returns (owner, name, host)
     """
+    if not url:
+        raise ValueError(EMPTY_URL_MESSAGE)
+
     url_parts = re.split("/|@|:", url.rstrip("/"))
 
     name = url_parts[-1]
