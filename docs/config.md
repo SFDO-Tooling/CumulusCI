@@ -812,12 +812,13 @@ Similarly, the `github_release_notes` task uses the `version_id` set by the
 syntax.
 
 The below `example_flow` shows how the task options of type list CANNOT be used.
-Here, `update_dependencies` task CANNOT set the task option `dependencies`
+Here, `update_dependencies` task does not set the task option `dependencies`
 as the list of values from the prior tasks. Similarly, task options of type
 dictionary cannot be set as key value pairs from the prior tasks.
 
 ```yaml
 example_flow:
+    description: You cannot make a list/dict with return values like below
     steps:
         1:
             task: get_latest_version_example
