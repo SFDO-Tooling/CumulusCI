@@ -2,6 +2,27 @@
 
 <!-- latest-start -->
 
+## v3.81.0 (2023-11-03)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Add option to specify release window in `cci org scratch` by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3653](https://github.com/SFDO-Tooling/CumulusCI/pull/3653)
+-   Add describe_metadatatypes task by [@lakshmi2506](https://github.com/lakshmi2506) in [#3669](https://github.com/SFDO-Tooling/CumulusCI/pull/3669)
+-   Fix JSON output for `cci org info` by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3675](https://github.com/SFDO-Tooling/CumulusCI/pull/3675)
+-   Fix `TypeError` when service sensitive attribute is `None` by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3674](https://github.com/SFDO-Tooling/CumulusCI/pull/3674)
+-   metadeploy_publish presents clear errors when plans are not available by [@lakshmi2506](https://github.com/lakshmi2506) in [#3684](https://github.com/SFDO-Tooling/CumulusCI/pull/3684)
+-   Add clear error message when `create_package_version` run against persistent orgs by [@lakshmi2506](https://github.com/lakshmi2506) in [#3676](https://github.com/SFDO-Tooling/CumulusCI/pull/3676)
+-   Add collision-check option to deploy task by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3667](https://github.com/SFDO-Tooling/CumulusCI/pull/3667)
+-   Handling exception when the Tooling API returns a test result with a null method name by [@lakshmi2506](https://github.com/lakshmi2506) in [#3681](https://github.com/SFDO-Tooling/CumulusCI/pull/3681)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.80.0...v3.81.0
+
+<!-- latest-stop -->
+
 ## v3.80.0 (2023-09-29)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -36,8 +57,6 @@
 *   @lakshmi2506 made their first contribution in [#3659](https://github.com/SFDO-Tooling/CumulusCI/pull/3659)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.79.0...v3.80.0
-
-<!-- latest-stop -->
 
 ## v3.79.0 (2023-09-07)
 
