@@ -79,6 +79,7 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
         raise ValueError(EMPTY_URL_MESSAGE)
 
     url_parts = re.split("/|@|:", url.rstrip("/"))
+    url_parts = list(filter(None, url_parts))
 
     name = url_parts[-1]
     if name.endswith(".git"):
@@ -87,7 +88,13 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
     owner = url_parts[-2]
 
     host = url_parts[-3]
+    # Regular Expression to match domain of host com,org,in,app etc
+    domain_search_exp = re.compile(r"\.[a-zA-Z]+$")
     # Need to consider "https://api.github.com/repos/owner/repo/" pattern
-    if "http" in url_parts[0] and len(url_parts) > 6:
+    if (
+        "http" in url_parts[0]
+        and len(url_parts) > 4
+        and domain_search_exp.search(host) is None
+    ):
         host = url_parts[-4]
     return (owner, name, host)
