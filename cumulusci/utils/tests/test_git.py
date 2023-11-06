@@ -1,6 +1,7 @@
 import pytest
 
 from cumulusci.utils.git import (
+    EMPTY_URL_MESSAGE,
     construct_release_branch_name,
     get_release_identifier,
     is_release_branch,
@@ -76,3 +77,9 @@ def test_construct_release_branch_name():
 def test_parse_repo_url(repo_uri, owner, repo_name, host):
     assert parse_repo_url(repo_uri) == (owner, repo_name, host)
     assert split_repo_url(repo_uri) == (owner, repo_name)
+
+
+@pytest.mark.parametrize("URL", [None, ""])
+def test_empty_url(URL):
+    with pytest.raises(ValueError, match=EMPTY_URL_MESSAGE):
+        parse_repo_url(URL)
