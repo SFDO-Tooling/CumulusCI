@@ -287,8 +287,8 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         get_pr.return_value = [to_return, additional_pull_request]
         child_branch_name = task._get_child_branch_name_from_merge_commit()
         assert child_branch_name is None
-        assert task.logger.error.called_once_with(
-            "Received multiple pull request,s expected one, for commit sha: {}".format(
+        task.logger.error.assert_called_once_with(
+            "Received multiple pull requests, expected one, for commit sha: {}".format(
                 task.commit.sha
             )
         )
@@ -304,7 +304,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         generator.return_value = mock.Mock()
         task._run_task()
-        assert task.generator.aggregate_child_change_notes.called_once_with(
+        task.generator.aggregate_child_change_notes.assert_called_once_with(
             pull_request
         )
         assert not task.generator.update_unaggregated_pr_header.called
