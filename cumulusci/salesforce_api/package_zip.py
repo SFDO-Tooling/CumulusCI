@@ -192,6 +192,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if self.options.get("clean_meta_xml", True):
             transforms.append(CleanMetaXMLTransform())
 
+        # To clean profiles and permissionsets of invalid references
         if process_bool_arg(self.options.get("clean_invalid_ref") or False):
             transforms.append(CleanInvalidReferencesMetaXMLTransform())
 

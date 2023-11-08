@@ -1,16 +1,18 @@
 import io
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Dict
+from typing import Callable, Dict, Union
 
 from lxml import etree as ET
 from simple_salesforce.api import Salesforce
 
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 
+# Class for folder name and extension of the entities needed to be cleaned
 class FileName:
     folder_name: str
     extension: str
@@ -20,11 +22,13 @@ class FileName:
         self.extension = extension
 
 
+# Add here any other entity that you want cleaned in a similar fashion
 PROFILE_FILE = FileName("profiles/", ".profile")
 PERMISSIONSET_FILE = FileName("permissionsets/", ".permissionset")
 FILES_TO_BE_CLEANED = [PROFILE_FILE, PERMISSIONSET_FILE]
 
 
+# Class for defining the xpath of different entities
 class PermissionElementXPath:
     permission_xpath: str
     name_xpath: str
@@ -40,6 +44,7 @@ class PermissionElementXPath:
         return element.find(self.name_xpath).text
 
 
+# The entities and their xpath
 OBJECT_PERMISSION = PermissionElementXPath(".//objectPermissions", "object")
 RECORDTYPE_PERMISSION = PermissionElementXPath(
     ".//recordTypeVisibilities", "recordType"
@@ -57,6 +62,8 @@ CUSTOMMETADATA_PERMISSION = PermissionElementXPath(
     ".//customMetadataTypeAccesses", "name"
 )
 
+# Contains the relation between the <name> field (key) inside a package.xml file
+# And the <member> field entities and their xpath (value)
 PACKAGEXML_DICT = {
     # PERMISSION : is_child
     "CustomObject": {
@@ -74,6 +81,9 @@ PACKAGEXML_DICT = {
     "CustomPermission": CUSTOMPERM_PERMISSION,
 }
 
+# Contains the relation between the folder names (key) present inside the zip file from
+# ApiRetrievedUnpackaged and the entities and their xpath (value) which are present inside
+# those folders
 FOLDER_PERM_DICT = {
     "objects": [OBJECT_PERMISSION, CUSTOMSETTING_PERMISSION, CUSTOMMETADATA_PERMISSION],
     "fields": [FIELD_PERMISSION],
@@ -88,50 +98,57 @@ FOLDER_PERM_DICT = {
 }
 
 
-def run_queries_in_parallel(
-    queries: Dict[str, str], run_query: Callable[[str], dict], num_threads: int = 4
+def run_calls_in_parallel(
+    queries: Dict[str, str], run_call: Callable[[str], dict], num_threads: int = 4
 ):
-    """Accepts a set of queries structured as {'query_name': 'query'}
-    and a run_query function that runs a particular query. Runs queries in parallel and returns the queries"""
+    """Accepts a set of calls structured as {'call_name': 'call'}
+    and a run_call function that runs a particular call. Runs calls in parallel and returns the resuts"""
     results_dict = {}
 
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = {
-            query_name: executor.submit(run_query, query)
-            for query_name, query in queries.items()
+            call_name: executor.submit(run_call, call)
+            for call_name, call in queries.items()
         }
 
-    for query_name, future in futures.items():
+    for call_name, future in futures.items():
         try:
-            query_result = future.result()
-            results_dict[query_name] = query_result
+            call_result = future.result()
+            results_dict[call_name] = call_result
         except Exception as e:
-            raise Exception(f"Error executing query '{query_name}': {type(e)}: {e}")
-        else:
-            queries.pop(query_name, None)
+            raise Exception(f"Error executing call '{call_name}': {type(e)}: {e}")
 
     return results_dict
 
 
-def entities_from_query(sf: Salesforce):
-    # Define the query
-    def run_query(path: str):
+def entities_from_api_calls(sf: Salesforce):
+    """Retrieves the set of UserPermissions, Fields, Objects and Tabs from the target org
+    by using API calls and returns them"""
+    # Define the run_call method
+    def run_call(path: str):
         urlpath = sf.base_url + path
         method = "GET"
         return sf._call_salesforce(method, urlpath).json()
 
     # Queries
-    queries = {}
-    queries["userPermissions"] = "sobjects/PermissionSet/describe"
-    queries["fields"] = "sobjects/FieldPermissions/describe"
-    queries["objects"] = "sobjects/ObjectPermissions/describe"
-    queries["tabs"] = "query/?q=SELECT+Name+FROM+PermissionSetTabSetting+GROUP+BY+Name"
+    api_calls = {}
+    api_calls["userPermissions"] = "tooling/sobjects/PermissionSet/describe"
+    api_calls[
+        "permissionDependency"
+    ] = "tooling/query/?q=SELECT+Permission,+RequiredPermission+FROM+PermissionDependency+WHERE+PermissionType+=+'User Permission'+AND+RequiredPermissionType+=+'User Permission'"
+    api_calls["fields"] = "sobjects/FieldPermissions/describe"
+    api_calls["objects"] = "sobjects/ObjectPermissions/describe"
+    api_calls[
+        "tabs"
+    ] = "query/?q=SELECT+Name+FROM+PermissionSetTabSetting+GROUP+BY+Name"
 
-    # Run all queries
-    result = run_queries_in_parallel(queries, run_query)
+    # Run all api_calls
+    result = run_calls_in_parallel(api_calls, run_call)
 
     # Process the results
-    user_permissions = process_user_permissions(result["userPermissions"])
+    user_permissions = process_user_permissions(
+        result["userPermissions"], result["permissionDependency"]
+    )
     fields = process_fields(result["fields"])
     tabs = process_tabs(result["tabs"])
     objects = process_objects(result["objects"])
@@ -139,16 +156,25 @@ def entities_from_query(sf: Salesforce):
     return user_permissions, fields, tabs, objects
 
 
-def process_user_permissions(result_dict: dict) -> set:
-    permissions = [
-        f["name"][len("Permissions") :]
-        for f in result_dict["fields"]
-        if f["name"].startswith("Permissions") and f["type"] == "boolean"
-    ]
-    return set(permissions)
+def process_user_permissions(
+    result_dict_user_permission: dict, result_dict_permission_dependency: dict
+) -> dict:
+    """Process the result of the API Call and return UserPermissions"""
+    user_permissions = {}
+    for field in result_dict_user_permission["fields"]:
+        if field["name"].startswith("Permissions") and field["type"] == "boolean":
+            user_permissions.setdefault(field["name"][len("Permissions") :], set())
+
+    for record in result_dict_permission_dependency["records"]:
+        user_permissions.setdefault(record["Permission"], set()).update(
+            [record["RequiredPermission"]]
+        )
+
+    return user_permissions
 
 
 def process_fields(result_dict: dict) -> set:
+    """Process the result of the API Call and return Fields"""
     field_entities = []
     for field in result_dict["fields"]:
         if field.get("name") == "Field":
@@ -160,11 +186,12 @@ def process_fields(result_dict: dict) -> set:
 
 
 def process_tabs(result_dict: dict) -> set:
-    tabs = [tab["Name"] for tab in result_dict["records"]]
-    return set(tabs)
+    """Process the result of the API Call and return Tabs"""
+    return {tab["Name"] for tab in result_dict["records"]}
 
 
 def process_objects(result_dict: dict) -> set:
+    """Process the result of the API Call and return Objects"""
     objects = []
     for obj in result_dict["fields"]:
         if obj.get("name") == "SobjectType":
@@ -176,7 +203,9 @@ def process_objects(result_dict: dict) -> set:
 
 
 def return_package_xml_from_zip(zip_src: zipfile.ZipFile, api_version: str):
-    # Iterate through the zip file to generate the package.xml
+    """Iterates through the zip file, searches for profile/permissionset files,
+    extracts all permissionable entities, creates a package.xml file containing them,
+    and returns the resulting package.xml file"""
     package_xml_input = {}
     for name in zip_src.namelist():
         if any(
@@ -207,6 +236,7 @@ def return_package_xml_from_zip(zip_src: zipfile.ZipFile, api_version: str):
 
 
 def create_package_xml(input_dict: dict, api_version: str):
+    """Given the entities, create the package.xml"""
     package_xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     package_xml += '<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n'
 
@@ -223,6 +253,7 @@ def create_package_xml(input_dict: dict, api_version: str):
 
 
 def get_fields_and_recordtypes(root: ET.Element, objectName):
+    """Get the fields and record types that are present inside the .object file"""
     fields = set()
     recordTypes = set()
 
@@ -235,14 +266,9 @@ def get_fields_and_recordtypes(root: ET.Element, objectName):
     return fields, recordTypes
 
 
-def get_tabs_from_app(root: ET.Element):
-    tabs = set()
-    for tab in root.findall("tabs"):
-        tabs.update([tab.text])
-    return tabs
-
-
 def get_target_entities_from_zip(zip_src: zipfile.ZipFile):
+    """Accepts the resulting zip file from ApiRetrievedUnpackaged
+    and returns all the entities which are present in the target org"""
     target_entities = {key: set() for key in FOLDER_PERM_DICT.keys()}
     for name in zip_src.namelist():
         if name == "package.xml":
@@ -260,17 +286,14 @@ def get_target_entities_from_zip(zip_src: zipfile.ZipFile):
             target_entities["fields"].update(fields)
             target_entities["recordTypes"].update(recordTypes)
 
-        # To handle tabs which are not part of TabDefinition Table
-        if name.endswith(".app"):
-            file = zip_src.open(name)
-            root = ET.parse(file).getroot()
-            root = strip_namespace(root)
-            target_entities["tabs"].update(get_tabs_from_app(root))
-
     return target_entities
 
 
-def clean_zip_file(zip_src: zipfile.ZipFile, target_entities: Dict[str, set]):
+def clean_zip_file(
+    zip_src: zipfile.ZipFile, target_entities: Dict[str, Union[set, dict]]
+):
+    """Parses through the zip file and removes any of the permissionable entities
+    which are not present in the target_entities"""
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         file = zip_src.open(name)
@@ -279,7 +302,7 @@ def clean_zip_file(zip_src: zipfile.ZipFile, target_entities: Dict[str, set]):
             for item in FILES_TO_BE_CLEANED
         ):
             root = ET.parse(file).getroot()
-            cleaned_root = CleanXML(root, target_entities)
+            cleaned_root = clean_xml(root, target_entities)
             tree = ET.ElementTree(cleaned_root)
             cleaned_content = io.BytesIO()
             tree.write(
@@ -296,6 +319,7 @@ def clean_zip_file(zip_src: zipfile.ZipFile, target_entities: Dict[str, set]):
 
 
 def strip_namespace(element: ET.Element):
+    """Remove the namespace in the xml tree"""
     for elem in element.iter():
         if "}" in elem.tag:
             elem.tag = elem.tag.split("}", 1)[1]
@@ -305,6 +329,8 @@ def strip_namespace(element: ET.Element):
 def fetch_permissionable_entity_names(
     root: ET.Element, perm_entity: PermissionElementXPath, parent: bool = False
 ):
+    """Return the name of the entity given the xpath.
+    If parent is set to True, the entity's parent name is fetched"""
     entity_names = set()
     for element in root.findall(perm_entity.permission_xpath):
         entity_names.add(
@@ -315,17 +341,39 @@ def fetch_permissionable_entity_names(
     return entity_names
 
 
-def CleanXML(root: ET.Element, target_entities: Dict[str, set]):
+def clean_xml(root: ET.Element, target_entities: Dict[str, Union[set, dict]]):
+    """Given the xml tree, remove entities not present in target_entities"""
     root = strip_namespace(root)
+    user_permissions_source_org = {}
     for key, perm_entities in FOLDER_PERM_DICT.items():
         for perm_entity in perm_entities:
             for element in root.findall(perm_entity.permission_xpath):
-                if perm_entity.return_name(element) not in target_entities.get(key, []):
+                entity_name = perm_entity.return_name(element)
+                # If entity is a user permission, store it
+                if key == "userPermissions":
+                    user_permissions_source_org[entity_name] = element
+                if entity_name not in target_entities.get(key, []):
                     root.remove(element)
+
+    # Remove those UserPermissions which dont have required dependencies
+    # Find elements that should be removed based on dependencies
+    elements_to_remove = set()
+    for permission, dependencies_list in target_entities["userPermissions"].items():
+        if permission in user_permissions_source_org and not all(
+            dependency in user_permissions_source_org
+            for dependency in dependencies_list
+        ):
+            elements_to_remove.add(user_permissions_source_org[permission])
+    # Remove elements
+    for element in elements_to_remove:
+        root.remove(element)
     return root
 
 
 def entities_from_package(zf: zipfile.ZipFile, context: TaskContext, api_version: str):
+    """Creates package.xml with all permissionable entities from the profiles and permissionsets.
+    Uses ApiRetrieveUnpackaged to retieve all these entities from the target org and generate a
+    list of entities present in the target org"""
     package_xml = return_package_xml_from_zip(zf, api_version)
     api = ApiRetrieveUnpackaged(
         context, package_xml=package_xml, api_version=api_version
@@ -345,21 +393,34 @@ def ret_sf(context: TaskContext, api_version: str):
     return sf
 
 
-def zip_clean_invalid_references(zf: zipfile.ZipFile, context: TaskContext):
-    # Set API version
-    api_version = context.org_config.latest_api_version
+def ret_api_version(zf: zipfile.ZipFile):
+    with zf.open("package.xml") as package_xml_file:
+        package_xml_contents = package_xml_file.read()
+        root = ET.fromstring(package_xml_contents)
+        root = strip_namespace(root)
+        version_element = root.find(".//version")
+        if version_element is not None:
+            api_version = version_element.text
+            return api_version
+        else:
+            raise CumulusCIUsageError("API version not found in the package.xml file.")
 
+
+def zip_clean_invalid_references(zf: zipfile.ZipFile, context: TaskContext):
+    """Cleans the profiles and permissionset files in the zip file of any invalid references"""
+    # Set API version
+    api_version = ret_api_version(zf)
     # Query and get entities
     sf = ret_sf(context, api_version)
-    userPermissions, fields, tabs, objects = entities_from_query(sf)
+    user_permissions, fields, tabs, objects = entities_from_api_calls(sf)
 
     # Update the target entites
-    target_entites = {}
-    target_entites.update(entities_from_package(zf, context, api_version))
-    target_entites.setdefault("userPermissions", set()).update(userPermissions)
-    target_entites.setdefault("tabs", set()).update(tabs)
-    target_entites.setdefault("fields", set()).update(fields)
-    target_entites.setdefault("objects", set()).update(objects)
+    target_entities = {}
+    target_entities.update(entities_from_package(zf, context, api_version))
+    target_entities.setdefault("tabs", set()).update(tabs)
+    target_entities.setdefault("fields", set()).update(fields)
+    target_entities.setdefault("objects", set()).update(objects)
+    target_entities["userPermissions"] = user_permissions
 
     # Clean the zip file
-    return clean_zip_file(zf, target_entites)
+    return clean_zip_file(zf, target_entities)

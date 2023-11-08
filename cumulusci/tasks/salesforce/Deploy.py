@@ -60,15 +60,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "clean_meta_xml": {
             "description": "Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False"
         },
-        "clean_profiles": {
-            "description": "Defaults to True in which case all profiles are cleaned of invalid references before deployment."
-        },
         "transforms": {
             "description": "Apply source transforms before deploying. See the CumulusCI documentation for details on how to specify transforms."
         },
         "rest_deploy": {"description": "If True, deploy metadata using REST API"},
         "clean_invalid_ref": {
-            "description": "If specified, all profiles and permission sets are cleaned of invalid references before deployment."
+            "description": "If True, all profiles and permission sets are cleaned of invalid references before deployment."
         },
     }
 
@@ -225,9 +222,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
             **self.options,
             "clean_meta_xml": process_bool_arg(
                 self.options.get("clean_meta_xml", True)
-            ),
-            "clean_profiles": process_bool_arg(
-                self.options.get("clean_profiles", True)
             ),
             "namespace_inject": namespace,
             "unmanaged": not self._has_namespaced_package(namespace),

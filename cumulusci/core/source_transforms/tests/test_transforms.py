@@ -1099,6 +1099,16 @@ up_result_dict = {
     "fields": [
         {"name": "PermissionsEdit", "type": "boolean"},
         {"name": "PermissionsView", "type": "boolean"},
+        {"name": "PermissionsViewPackage", "type": "boolean"},
+    ]
+}
+pd_result_dict = {
+    "records": [
+        {"Permission": "ViewSetup", "RequiredPermission": "View"},
+        {"Permission": "EditSetup", "RequiredPermission": "Edit"},
+        {"Permission": "EditSetup", "RequiredPermission": "View"},
+        {"Permission": "ManageSetup", "RequiredPermission": "Manage"},
+        {"Permission": "ViewPackage", "RequiredPermission": "View"},
     ]
 }
 field_result_dict = {
@@ -1135,6 +1145,11 @@ def return_response(method, urlpath):
         response.json.return_value = objects_result_dict
     elif "query/?q=SELECT+Name+FROM+PermissionSetTabSetting+GROUP+BY+Name" in urlpath:
         response.json.return_value = tabs_result_dict
+    elif (
+        "tooling/query/?q=SELECT+Permission,+RequiredPermission+FROM+PermissionDependency+WHERE+PermissionType+=+'User Permission'+AND+RequiredPermissionType+=+'User Permission'"
+        in urlpath
+    ):
+        response.json.return_value = pd_result_dict
 
     return response
 
@@ -1161,7 +1176,7 @@ def test_clean_invalid_references(task_context):
         "        <tab>Standard-Fake</tab>\n"
         "    </tabVisibilities>\n"
         "    <userPermissions>\n"
-        "        <name>ManagePermissions</name>\n"
+        "        <name>ViewPackage</name>\n"
         "    </userPermissions>\n"
         "</root>\n"
     )
@@ -1179,7 +1194,7 @@ def test_clean_invalid_references(task_context):
         "        <tab>Standard-Account</tab>\n"
         "    </tabVisibilities>\n"
         "    <userPermissions>\n"
-        "        <name>ManagePermissions</name>\n"
+        "        <name>ViewPackage</name>\n"
         "    </userPermissions>\n"
         "</root>\n"
     )
@@ -1195,6 +1210,8 @@ def test_clean_invalid_references(task_context):
         "</root>"
     )
 
+    package_xml = "<Package>\n" "   <version>58.0</version>\n" "</Package>"
+
     output_zip = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     output_zip.writestr("objects/Opportunity.object", obj_xml)
     output_zip.writestr("objects/Account.object", obj_xml)
@@ -1203,12 +1220,17 @@ def test_clean_invalid_references(task_context):
         Salesforce, "_call_salesforce", side_effect=return_response
     ), patch.object(BaseMetadataApiCall, "__call__", return_value=output_zip):
         builder = MetadataPackageZipBuilder.from_zipfile(
-            ZipFileSpec({Path("profiles/Foo.profile"): xml_data}).as_zipfile(),
+            ZipFileSpec(
+                {
+                    Path("profiles/Foo.profile"): xml_data,
+                    Path("package.xml"): package_xml,
+                }
+            ).as_zipfile(),
             options={"clean_invalid_ref": True},
             context=task_context,
         )
         for name in builder.zf.namelist():
-            assert name == "profiles/Foo.profile"
-            result_root = ET.parse(builder.zf.open(name)).getroot()
-            expected_root = ET.fromstring(xml_data_clean.encode("utf-8"))
-            assert ET.iselement(result_root) == ET.iselement(expected_root)
+            if name == "profiles/Foo.profile":
+                result_root = ET.parse(builder.zf.open(name)).getroot()
+                expected_root = ET.fromstring(xml_data_clean.encode("utf-8"))
+                assert ET.iselement(result_root) == ET.iselement(expected_root)
