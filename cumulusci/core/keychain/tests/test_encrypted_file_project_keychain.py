@@ -1173,7 +1173,9 @@ class TestCleanupOrgCacheDir:
             org_config.config["bad"] = 25j
 
             keychain.set_org(org_config, True)
-            assert dumps.called_once_with({"bad", 25j})
+            dumps.assert_called_once_with(
+                {"foo": "bar", "good": 25, "bad": 25j}, protocol=mock.ANY
+            )
 
     def test_set_and_get_service_with_dates__global(
         self, keychain, key, withdifferentformats
