@@ -12,6 +12,7 @@ from cumulusci.core.config import (
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils.options import (
+    READONLYDICT_ERROR_MSG,
     CCIOptions,
     Field,
     ListOfStringsOption,
@@ -171,21 +172,17 @@ class TestTaskOptionsParsing:
         assert isinstance(task2.options, dict)
 
     def test_init_options__options_read_only_error(self):
-        expected_error_message = "The 'options' dictionary is read-only. Please use 'parsed_options' instead."
+        expected_error_msg = READONLYDICT_ERROR_MSG
         task = TaskToTestTypes(self.project_config, self.task_config, self.org_config)
         # Add new option
-        with pytest.raises(TaskOptionsError) as exc_info:
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
             task.options["new_option"] = "something"
-        assert expected_error_message == str(exc_info.value)
         # Modify existing option
-        with pytest.raises(TaskOptionsError) as exc_info:
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
             task.options["test_option"] = 456
-        assert expected_error_message == str(exc_info.value)
         # Delete existing option
-        with pytest.raises(TaskOptionsError) as exc_info:
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
             del task.options["test_option"]
-        assert expected_error_message == str(exc_info.value)
         # Pop existing option
-        with pytest.raises(TaskOptionsError) as exc_info:
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
             task.options.pop("test_option")
-        assert expected_error_message == str(exc_info.value)

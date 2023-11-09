@@ -7,6 +7,10 @@ from pydantic import DirectoryPath, Field, FilePath, create_model
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
+READONLYDICT_ERROR_MSG = (
+    "The 'options' dictionary is read-only. Please use 'parsed_options' instead."
+)
+
 
 def _describe_field(field):
     "Convert a Pydantic field into a CCI task_option dict"
@@ -26,19 +30,13 @@ class ReadOnlyOptions(dict):
         super().__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
-        raise TaskOptionsError(
-            "The 'options' dictionary is read-only. Please use 'parsed_options' instead."
-        )
+        raise TaskOptionsError(READONLYDICT_ERROR_MSG)
 
     def __delitem__(self, key):
-        raise TaskOptionsError(
-            "The 'options' dictionary is read-only. Please use 'parsed_options' instead."
-        )
+        raise TaskOptionsError(READONLYDICT_ERROR_MSG)
 
     def pop(self, key, default=None):
-        raise TaskOptionsError(
-            "The 'options' dictionary is read-only. Please use 'parsed_options' instead."
-        )
+        raise TaskOptionsError(READONLYDICT_ERROR_MSG)
 
 
 class CCIOptions(CCIDictModel):
