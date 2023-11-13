@@ -1663,6 +1663,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 FROM accounts
                 LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
                 LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
+                AND "account_rt_target_mapping".is_person_type = "account_rt_mapping".is_person_type
         """,
         )
 

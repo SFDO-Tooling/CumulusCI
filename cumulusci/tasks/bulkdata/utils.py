@@ -6,7 +6,7 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
-from sqlalchemy import Column, Integer, MetaData, Table, Unicode, inspect
+from sqlalchemy import Boolean, Column, Integer, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
@@ -29,6 +29,7 @@ class SqlAlchemyMixin:
         rt_map_fields = [
             Column("record_type_id", Unicode(18), primary_key=True),
             Column("developer_name", Unicode(255)),
+            Column("is_person_type", Boolean),
         ]
         rt_map_table = Table(table_name, self.metadata, *rt_map_fields)
         mapper(self.models[table_name], rt_map_table)
@@ -36,9 +37,7 @@ class SqlAlchemyMixin:
     def _extract_record_types(self, sobject, tablename: str, conn):
         """Query for Record Type information and persist it in the database."""
         self.logger.info(f"Extracting Record Types for {sobject}")
-        query = (
-            f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
-        )
+        query = f"SELECT Id, DeveloperName, IsPersonType FROM RecordType WHERE SObjectType='{sobject}'"
 
         result = self.sf.query(query)
 
@@ -46,9 +45,10 @@ class SqlAlchemyMixin:
             sql_bulk_insert_from_records(
                 connection=conn,
                 table=self.metadata.tables[tablename],
-                columns=["record_type_id", "developer_name"],
+                columns=["record_type_id", "developer_name", "is_person_type"],
                 record_iterable=(
-                    [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
+                    [rt["Id"], rt["DeveloperName"], rt["IsPersonType"]]
+                    for rt in result["records"]
                 ),
             )
 

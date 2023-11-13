@@ -1,7 +1,7 @@
 import typing as T
 from functools import cached_property
 
-from sqlalchemy import func, text
+from sqlalchemy import and_, func, text
 from sqlalchemy.orm import Query, aliased
 
 from cumulusci.core.exceptions import BulkDataException
@@ -124,8 +124,12 @@ class AddRecordTypesToQuery(LoadQueryExtender):
                 ),
                 (
                     rt_dest_table,
-                    rt_dest_table.columns.developer_name
-                    == rt_source_table.columns.developer_name,
+                    and_(
+                        rt_dest_table.columns.developer_name
+                        == rt_source_table.columns.developer_name,
+                        rt_dest_table.columns.is_person_type
+                        == rt_source_table.columns.is_person_type,
+                    ),
                 ),
             ]
 

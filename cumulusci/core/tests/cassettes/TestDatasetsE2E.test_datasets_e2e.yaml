@@ -156,7 +156,7 @@ interactions:
     - &id006
       request:
           method: GET
-          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+RecordType+WHERE+SObjectType%3D%27Account%27
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id%2C+DeveloperName%2C+IsPersonType+FROM+RecordType+WHERE+SObjectType%3D%27Account%27
           body: null
           headers: *id001
       response:
@@ -167,7 +167,7 @@ interactions:
                   \    \"attributes\" : {\n      \"type\" : \"RecordType\",\n      \"url\" :\
                   \ \"/services/data/vxx.0/sobjects/RecordType/012Da000003Vv95IAC\"\n    },\n\
                   \    \"Id\" : \"012Da000003Vv95IAC\",\n    \"DeveloperName\" : \"PytestAccountRecordType\"\
-                  \n  } ]\n}"
+                  ,\n \"IsPersonType\" : 0  } ]\n}"
     - request: *id004
       response:
           status: *id002

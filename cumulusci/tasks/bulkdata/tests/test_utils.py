@@ -51,7 +51,13 @@ class TestSqlAlchemyMixin:
         util.sf = mock.Mock()
         util.sf.query.return_value = {
             "totalSize": 1,
-            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}],
+            "records": [
+                {
+                    "Id": "012000000000000",
+                    "DeveloperName": "Organization",
+                    "IsPersonType": "0",
+                }
+            ],
         }
         util.logger = mock.Mock()
         util.metadata = mock.MagicMock()
@@ -63,14 +69,16 @@ class TestSqlAlchemyMixin:
             util._extract_record_types("Account", "test_table", conn)
 
         util.sf.query.assert_called_once_with(
-            "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
+            "SELECT Id, DeveloperName, IsPersonType FROM RecordType WHERE SObjectType='Account'"
         )
         sql_bulk_insert_from_records.assert_called_once()
         call = sql_bulk_insert_from_records.call_args_list[0][1]
         assert call["connection"] == conn
         assert call["table"] == util.metadata.tables["test_table"]
-        assert call["columns"] == ["record_type_id", "developer_name"]
-        assert list(call["record_iterable"]) == [["012000000000000", "Organization"]]
+        assert call["columns"] == ["record_type_id", "developer_name", "is_person_type"]
+        assert list(call["record_iterable"]) == [
+            ["012000000000000", "Organization", "0"]
+        ]
 
     def test_sql_bulk_insert_from_records__sqlite(self):
         engine, metadata = create_db_memory()
