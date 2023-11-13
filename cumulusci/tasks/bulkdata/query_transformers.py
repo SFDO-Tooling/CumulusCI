@@ -122,6 +122,7 @@ class AddRecordTypesToQuery(LoadQueryExtender):
                     rt_source_table.columns.record_type_id
                     == getattr(self.model, self.mapping.fields["RecordTypeId"]),
                 ),
+                # Combination of IsPersonType and DeveloperName is unique
                 (
                     rt_dest_table,
                     and_(
