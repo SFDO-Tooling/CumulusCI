@@ -371,7 +371,6 @@ def get_org_schema(
     assert not isinstance(patterns_to_ignore, str)
 
     filters = set(filters)
-
     with org_config.get_orginfo_cache_dir(Schema.__module__) as directory:
         directory.mkdir(exist_ok=True, parents=True)
         schema_path = directory / "org_schema.db.gz"
@@ -388,12 +387,11 @@ def get_org_schema(
 
         if Filters.extractable in filters:
             filters.add(Filters.queryable)
-            filters.add(Filters.retrieveable) #to be removed as part of the work item
+            filters.add(Filters.retrieveable)
             filters.add(Filters.createable)  # so we can load again later
             patterns_to_ignore += NOT_EXTRACTABLE
 
         logger = logger or getLogger(__name__)
-
 
         with ZippableTempDb() as tempdb, ExitStack() as closer:
             schema = None
