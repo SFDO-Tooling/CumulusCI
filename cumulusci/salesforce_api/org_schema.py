@@ -197,6 +197,7 @@ class Schema:
         objs = [obj for obj in sf.describe()["sobjects"]]
         if included_objects:
             objs = [obj for obj in objs if obj["name"] in included_objects]
+        filters=set()
         sobj_names = [
             obj["name"]
             for obj in objs
