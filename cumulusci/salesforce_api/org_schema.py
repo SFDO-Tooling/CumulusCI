@@ -387,9 +387,9 @@ def get_org_schema(
             patterns_to_ignore += NOT_COUNTABLE
 
         if Filters.extractable in filters:
-            #filters.add(Filters.queryable)
-            #filters.add(Filters.retrieveable) #to be removed as part of the work item
-            #filters.add(Filters.createable)  # so we can load again later
+            filters.add(Filters.queryable)
+            filters.add(Filters.retrieveable) #to be removed as part of the work item
+            filters.add(Filters.createable)  # so we can load again later
             patterns_to_ignore += NOT_EXTRACTABLE
 
         logger = logger or getLogger(__name__)
