@@ -109,9 +109,7 @@ class Dataset:
             self.sf,
             self.org_config,
             include_counts=True,
-            #filters=[Filters.extractable, Filters.createable, Filters.populated],
             filters=[Filters.extractable, Filters.createable, Filters.populated],
-
         )
 
     def _save_load_mapping(

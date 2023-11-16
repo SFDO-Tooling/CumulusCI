@@ -1,0 +1,26 @@
+#!/usr/bin/python
+
+import sys
+from rst2ansi import rst2ansi
+import argparse
+import io
+
+parser = argparse.ArgumentParser(description='Prints a reStructuredText input in an ansi-decorated format suitable for console output.')
+parser.add_argument('file', type=str, nargs='?', help='A path to the file to open')
+
+args = parser.parse_args()
+
+def process_file(f):
+  out = rst2ansi(f.read())
+  if out:
+    try:
+      print(out)
+    except UnicodeEncodeError:
+      print(out.encode('ascii', errors='backslashreplace').decode('ascii'))
+
+if args.file:
+  with io.open(args.file, 'rb') as f:
+    process_file(f)
+else:
+  process_file(sys.stdin)
+
