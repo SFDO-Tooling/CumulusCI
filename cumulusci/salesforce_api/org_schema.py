@@ -197,6 +197,7 @@ class Schema:
         objs = [obj for obj in sf.describe()["sobjects"]]
         if included_objects:
             objs = [obj for obj in objs if obj["name"] in included_objects]
+        filters=set()
         sobj_names = [
             obj["name"]
             for obj in objs
@@ -390,7 +391,6 @@ def get_org_schema(
             filters.add(Filters.queryable)
             #filters.add(Filters.retrieveable)
             filters.add(Filters.createable)  # so we can load again later
-            filters = set()
             patterns_to_ignore += NOT_EXTRACTABLE
 
         logger = logger or getLogger(__name__)
@@ -570,4 +570,5 @@ def deep_describe(sf, objs: Dict[str, lm_date], logger) -> Iterable[DescribeUpda
 
 
 def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
+
     return not all(obj.get(filter.name, True) for filter in filters)
