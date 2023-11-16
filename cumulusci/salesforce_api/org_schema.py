@@ -394,7 +394,6 @@ def get_org_schema(
 
         logger = logger or getLogger(__name__)
 
-        filters = set()
 
         with ZippableTempDb() as tempdb, ExitStack() as closer:
             schema = None
