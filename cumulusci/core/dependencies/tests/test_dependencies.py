@@ -734,6 +734,44 @@ class TestUnmanagedZipURLDependency:
 
         api_deploy_mock.return_value.assert_called_once()
 
+    @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
+    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
+    def test_install_file_scheme(
+        self, api_deploy_mock, zip_builder_mock, download_mock
+    ):
+        d = UnmanagedZipURLDependency(zip_url="file://foo.zip")
+
+        zf = ZipFile(io.BytesIO(), "w")
+        zf.writestr("src/package.xml", "test")
+        download_mock.return_value = zf
+
+        context = mock.Mock()
+        org = mock.Mock()
+        d.install(context, org)
+
+        download_mock.assert_called_once_with(d.zip_url)
+
+        zip_builder_mock.from_zipfile.assert_called_once_with(
+            mock.ANY,
+            options={
+                "unmanaged": True,
+                "namespace_inject": None,
+                "namespace_strip": None,
+            },
+            path=None,
+            context=mock.ANY,
+        )
+        api_deploy_mock.assert_called_once_with(
+            mock.ANY,  # The context object is checked below
+            zip_builder_mock.from_zipfile.return_value.as_base64.return_value,
+        )
+        mock_task = api_deploy_mock.call_args_list[0][0][0]
+        assert mock_task.org_config == org
+        assert mock_task.project_config == context
+
+        api_deploy_mock.return_value.assert_called_once()
+
     def test_get_unmanaged(self):
         org = mock.Mock()
         org.installed_packages = {"foo": "1.0"}
