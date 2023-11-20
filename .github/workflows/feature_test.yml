@@ -41,10 +41,7 @@ jobs:
             fail-fast: false
             matrix:
                 os: [macos-latest, sfdc-ubuntu-latest, sfdc-windows-latest]
-                python-version: ["3.8", "3.9", "3.10", "3.11"]
-                exclude: # FIXME: Remove when lxml publishes a 311-windows wheel
-                    - os: sfdc-windows-latest
-                      python-version: "3.11"
+                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python
@@ -74,7 +71,7 @@ jobs:
             - name: Install sfdx
               run: |
                   mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Authenticate Dev Hub
               run: |

@@ -120,13 +120,10 @@ rich==13.6.0
 robotframework==6.1.1
     # via
     #   cumulusci (pyproject.toml)
-    #   robotframework-lint
     #   robotframework-pabot
     #   robotframework-requests
     #   robotframework-seleniumlibrary
     #   robotframework-stacktrace
-robotframework-lint==1.1
-    # via cumulusci (pyproject.toml)
 robotframework-pabot==2.16.0
     # via cumulusci (pyproject.toml)
 robotframework-pythonlibcore==4.2.0

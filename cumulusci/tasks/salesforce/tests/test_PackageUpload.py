@@ -309,7 +309,7 @@ class TestPackageUpload:
         task._make_package_upload_request()
 
         assert task._upload_start_time == upload_start_time
-        assert task.logger.info.called_once_with(
+        task.logger.info.assert_called_once_with(
             f"Created PackageUploadRequest {upload_id} for Package {package_id}"
         )
 
@@ -347,27 +347,26 @@ class TestPackageUpload:
 
         task._handle_apex_test_failures()
 
-        assert task.logger.error.called_once_with("Failed Apex Test")
+        task.logger.error.assert_called_once_with("Failed Apex Tests:")
         assert task._get_apex_test_results_from_upload.call_count == 1
         assert task._log_failures.call_count == 1
 
-    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable")
+    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable", autospec=True)
     def test_log_failures(self, table):
-        table.echo = mock.Mock()
 
         task = create_task(PackageUpload, {"name": "Test Release"})
 
         table_data = [1, 2, 3, 4]
-        task._get_table_data = mock.Mock(return_value="[1,2,3,4]")
+        task._get_table_data = mock.Mock(return_value=table_data)
 
         results = "Test Results"
         task._log_failures(results)
 
-        assert table.called_once_with(
+        table.assert_called_once_with(
             table_data,
             "Failed Apex Tests",
         )
-        assert table.echo.called_once()
+        table.return_value.echo.assert_called()
 
     def test_get_table_data(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
@@ -515,7 +514,7 @@ class TestPackageUpload:
 
         task._log_package_upload_success()
 
-        assert task.logger.info.called_once_with(
+        task.logger.info.assert_called_once_with(
             f"Uploaded package version {version_number} with Id {version_id}"
         )
 

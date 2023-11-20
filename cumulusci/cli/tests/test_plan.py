@@ -70,7 +70,7 @@ class TestPlanList:
 
         run_click_command(plan.plan_list, runtime=runtime, print_json=False)
 
-        cli_table.called_once_with(
+        cli_table.assert_called_once_with(
             data=[
                 ["Name", "Title", "Slug", "Tier"],
                 ["plan 1", "Test Plan #1", "plan1_slug", "primary"],
