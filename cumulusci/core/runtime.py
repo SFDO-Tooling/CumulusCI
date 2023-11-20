@@ -90,7 +90,9 @@ class BaseCumulusCI:
             return
 
         keychain_key = (
-            self.keychain_key if hasattr(self.keychain_cls, "encrypted") else None
+            self.keychain_key
+            if getattr(self.keychain_cls, "encrypted", False)
+            else None
         )
 
         if self.project_config is None:
