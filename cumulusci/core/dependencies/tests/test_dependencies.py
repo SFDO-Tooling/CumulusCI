@@ -783,6 +783,12 @@ class TestUnmanagedZipURLDependency:
         )
         assert (
             UnmanagedZipURLDependency(
+                zip_url="file://foo.zip", unmanaged=True
+            )._get_unmanaged(org)
+            is True
+        )
+        assert (
+            UnmanagedZipURLDependency(
                 zip_url="http://foo.com", namespace_inject="foo"
             )._get_unmanaged(org)
             is False
@@ -798,6 +804,10 @@ class TestUnmanagedZipURLDependency:
         assert (
             UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="bar").name
             == "Deploy http://foo.com /bar"
+        )
+        assert (
+            UnmanagedZipURLDependency(zip_url="file://foo.zip").name
+            == "Deploy file://foo.zip "
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
