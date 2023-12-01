@@ -97,8 +97,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     org is a scratch org with the correct configuration for these purposes.
     """
 
-    api_version = "52.0"
-
     task_options = {
         "package_name": {"description": "Name of package"},
         "package_type": {
@@ -201,7 +199,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.tooling = get_simple_salesforce_connection(
             self.project_config,
             get_devhub_config(self.project_config),
-            api_version=self.api_version,
+            api_version=self.project_config.project__package__api_version,
             base_url="tooling",
         )
         self.context = TaskContext(self.org_config, self.project_config, self.logger)
@@ -424,7 +422,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 with build_settings_package(
                     scratch_org_def.get("settings"),
                     scratch_org_def.get("objectSettings"),
-                    self.api_version,
+                    self.project_config.project__package__api_version,
                 ) as path:
                     settings_zip_builder = MetadataPackageZipBuilder(
                         path=path, context=self.context

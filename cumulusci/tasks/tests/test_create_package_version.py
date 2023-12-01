@@ -34,7 +34,10 @@ from cumulusci.tasks.create_package_version import (
     PackageTypeEnum,
     VersionTypeEnum,
 )
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 from cumulusci.utils import temporary_dir, touch
+
+print(CURRENT_SF_API_VERSION)
 
 
 @pytest.fixture
