@@ -9,7 +9,7 @@
 ### Critical Changes 🛠
 * Remove `robot_lint` task and dependencies by [@jstvz](https://github.com/jstvz) in [#3697](https://github.com/SFDO-Tooling/CumulusCI/pull/3697)
 ### Changes 🎉
-* Error message when git remote URL throws exception if no origin remote by [@lakshmi2506](https://github.com/lakshmi2506) in [#3679](https://github.com/SFDO-Tooling/CumulusCI/pull/3679)
+* Show an error message when no `origin` remote is present by [@lakshmi2506](https://github.com/lakshmi2506) in [#3679](https://github.com/SFDO-Tooling/CumulusCI/pull/3679)
 * Improve task return_values documentation by [@lakshmi2506](https://github.com/lakshmi2506) in [#3689](https://github.com/SFDO-Tooling/CumulusCI/pull/3689)
 * Task to retrieve a complete Profile from an org by [@aditya-balachander](https://github.com/aditya-balachander) in [#3672](https://github.com/SFDO-Tooling/CumulusCI/pull/3672)
 * Support Python 3.12 by [@jstvz](https://github.com/jstvz) in [#3691](https://github.com/SFDO-Tooling/CumulusCI/pull/3691)
