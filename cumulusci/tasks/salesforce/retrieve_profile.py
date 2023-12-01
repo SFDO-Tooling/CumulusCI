@@ -91,9 +91,24 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
 
     def save_profile_file(self, extract_dir, filename, content):
         profile_path = os.path.join(extract_dir, filename)
-        os.makedirs(os.path.dirname(profile_path), exist_ok=True)
-        with open(profile_path, "w", encoding="utf-8") as updated_profile_file:
-            updated_profile_file.write(content)
+        profile_meta_xml_path = os.path.join(extract_dir, f"{filename}-meta.xml")
+
+        # Check if either the profile file or metadata file exists
+        if os.path.exists(profile_path):
+            self.update_file_content(profile_path, content)
+        elif os.path.exists(profile_meta_xml_path):
+            self.update_file_content(profile_meta_xml_path, content)
+        else:
+            # Neither file exists, create the profile file
+            os.makedirs(os.path.dirname(profile_meta_xml_path), exist_ok=True)
+            with open(
+                profile_meta_xml_path, "w", encoding="utf-8"
+            ) as updated_profile_file:
+                updated_profile_file.write(content)
+
+    def update_file_content(self, file_path, content):
+        with open(file_path, "w", encoding="utf-8") as updated_file:
+            updated_file.write(content)
 
     def _run_task(self):
         self.retrieve_profile_api_task = RetrieveProfileApi(

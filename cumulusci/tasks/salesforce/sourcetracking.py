@@ -6,11 +6,12 @@ import re
 import time
 from collections import defaultdict
 
-from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import ScratchOrgConfig, TaskConfig
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata, BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 from cumulusci.utils import (
     inject_namespace,
     process_text_in_directory,
@@ -114,10 +115,11 @@ class ListChanges(BaseSalesforceApiTask):
             changes.append(sourcemember)
         return changes
 
-    def _filter_changes(self, changes):
+    def _filter_changes(self, changes, separate_profiles=True):
         """Filter changes using the include/exclude options"""
         filtered = []
         ignored = []
+        profiles = []
         for change in changes:
             mdtype = change["MemberType"]
             name = change["MemberName"]
@@ -128,8 +130,15 @@ class ListChanges(BaseSalesforceApiTask):
             ) or any(re.search(s, full_name) for s in self._exclude):
                 ignored.append(change)
             else:
-                filtered.append(change)
-        return filtered, ignored
+                if not separate_profiles and mdtype == "Profile":
+                    profiles.append(name)
+                else:
+                    filtered.append(change)
+        return (
+            (filtered, ignored, profiles)
+            if not separate_profiles
+            else (filtered, ignored)
+        )
 
     def _store_snapshot(self, changes):
         """Update the snapshot of which component revisions have been retrieved."""
@@ -196,7 +205,9 @@ def _write_manifest(changes, path, api_version):
 
 def retrieve_components(
     components,
+    profiles,
     org_config,
+    project_config,
     target: str,
     md_format: bool,
     extra_package_xml_opts: dict,
@@ -247,27 +258,40 @@ def retrieve_components(
                 check_return=True,
             )
 
-        # Construct package.xml with components to retrieve, in its own tempdir
-        package_xml_path = stack.enter_context(temporary_dir(chdir=False))
-        _write_manifest(components, package_xml_path, api_version)
+        if components:
+            # Construct package.xml with components to retrieve, in its own tempdir
+            package_xml_path = stack.enter_context(temporary_dir(chdir=False))
+            _write_manifest(components, package_xml_path, api_version)
 
-        # Retrieve specified components in DX format
-        sfdx(
-            "force:source:retrieve",
-            access_token=org_config.access_token,
-            log_note="Retrieving components",
-            args=[
-                "-a",
-                str(api_version),
-                "-x",
-                os.path.join(package_xml_path, "package.xml"),
-                "-w",
-                "5",
-            ],
-            capture_output=False,
-            check_return=True,
-            env={"SFDX_INSTANCE_URL": org_config.instance_url},
-        )
+            # Retrieve specified components in DX format
+            sfdx(
+                "force:source:retrieve",
+                access_token=org_config.access_token,
+                log_note="Retrieving components",
+                args=[
+                    "-a",
+                    str(api_version),
+                    "-x",
+                    os.path.join(package_xml_path, "package.xml"),
+                    "-w",
+                    "5",
+                ],
+                capture_output=False,
+                check_return=True,
+                env={"SFDX_INSTANCE_URL": org_config.instance_url},
+            )
+
+        # Extract Profiles
+        if profiles:
+            task_config = TaskConfig(
+                config={"options": {"profiles": ",".join(profiles), "path": target}}
+            )
+            cls_retrieve_profile = RetrieveProfile(
+                org_config=org_config,
+                project_config=project_config,
+                task_config=task_config,
+            )
+            cls_retrieve_profile()
 
         if md_format:
             # Convert back to metadata format
@@ -343,12 +367,16 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         self._load_snapshot()
         self.logger.info("Querying Salesforce for changed source members")
         changes = self._get_changes()
-        filtered, ignored = self._filter_changes(changes)
-        if not filtered:
+        filtered, ignored, profiles = self._filter_changes(
+            changes, separate_profiles=False
+        )
+        if not filtered and not profiles:
             self.logger.info("No changes to retrieve")
             return
         for change in filtered:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
+        for profile in profiles:
+            self.logger.info(f"Profile: {profile}")
 
         target = os.path.realpath(self.options["path"])
         package_xml_opts = {}
@@ -363,7 +391,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
 
         retrieve_components(
             filtered,
+            profiles,
             self.org_config,
+            self.project_config,
             target,
             md_format=self.md_format,
             namespace_tokenize=self.options.get("namespace_tokenize"),

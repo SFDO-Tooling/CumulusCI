@@ -97,6 +97,10 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
         for data in result["records"]:
             existing_profiles.append(data["Name"])
 
+        # Since System Administrator is named Admin in Metadata API
+        if "Admin" in profiles:
+            existing_profiles.extend(["Admin", "System Administrator"])
+
         return existing_profiles
 
     def _run_query(self, query):

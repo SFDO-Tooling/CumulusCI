@@ -4,6 +4,7 @@ import pathlib
 from unittest import mock
 
 from cumulusci.core.config import OrgConfig
+from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 from cumulusci.tasks.salesforce.sourcetracking import (
     KNOWN_BAD_MD_TYPES,
     ListChanges,
@@ -154,6 +155,7 @@ class TestRetrieveChanges:
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
             )
             task._init_task()
+            task.org_config = mock.MagicMock()
             task.tooling = mock.Mock()
             task.tooling.query_all.return_value = {
                 "totalSize": 1,
@@ -162,18 +164,26 @@ class TestRetrieveChanges:
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
                         "RevisionCounter": 1,
-                    }
+                    },
+                    {
+                        "MemberType": "Profile",
+                        "MemberName": "TestProfile",
+                        "RevisionCounter": 1,
+                    },
                 ],
             }
+            with mock.patch.object(
+                RetrieveProfile, "_run_task"
+            ) as mock_retrieve_profile:
+                task._run_task()
 
-            task._run_task()
-
-            assert sfdx_calls == [
-                "force:mdapi:convert",
-                "force:source:retrieve",
-                "force:source:convert",
-            ]
-            assert os.path.exists(os.path.join("src", "package.xml"))
+                assert sfdx_calls == [
+                    "force:mdapi:convert",
+                    "force:source:retrieve",
+                    "force:source:convert",
+                ]
+                assert os.path.exists(os.path.join("src", "package.xml"))
+                mock_retrieve_profile.assert_called()
 
     def test_run_task__no_changes(self, sfdx, create_task_fixture):
         with temporary_dir() as path:
