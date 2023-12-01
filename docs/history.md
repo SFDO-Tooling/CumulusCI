@@ -3,25 +3,32 @@
 <!-- latest-start -->
 
 ## v3.82.0 (2023-12-01)
+
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
+
 ### Critical Changes 🛠
-* Remove `robot_lint` task and dependencies by [@jstvz](https://github.com/jstvz) in [#3697](https://github.com/SFDO-Tooling/CumulusCI/pull/3697)
+
+-   Remove `robot_lint` task and dependencies by [@jstvz](https://github.com/jstvz) in [#3697](https://github.com/SFDO-Tooling/CumulusCI/pull/3697)
+
 ### Changes 🎉
-* Show an error message when no `origin` remote is present by [@lakshmi2506](https://github.com/lakshmi2506) in [#3679](https://github.com/SFDO-Tooling/CumulusCI/pull/3679)
-* Improve task `return_values` documentation by [@lakshmi2506](https://github.com/lakshmi2506) in [#3689](https://github.com/SFDO-Tooling/CumulusCI/pull/3689)
-* Task to retrieve a complete Profile from an org by [@aditya-balachander](https://github.com/aditya-balachander) in [#3672](https://github.com/SFDO-Tooling/CumulusCI/pull/3672)
-* Support Python 3.12 by [@jstvz](https://github.com/jstvz) in [#3691](https://github.com/SFDO-Tooling/CumulusCI/pull/3691)
-* Make task `options` read only when using Pydantic option validation by [@aditya-balachander](https://github.com/aditya-balachander) in [#3695](https://github.com/SFDO-Tooling/CumulusCI/pull/3695)
+
+-   Show an error message when no `origin` remote is present by [@lakshmi2506](https://github.com/lakshmi2506) in [#3679](https://github.com/SFDO-Tooling/CumulusCI/pull/3679)
+-   Improve task `return_values` documentation by [@lakshmi2506](https://github.com/lakshmi2506) in [#3689](https://github.com/SFDO-Tooling/CumulusCI/pull/3689)
+-   Task to retrieve a complete Profile from an org by [@aditya-balachander](https://github.com/aditya-balachander) in [#3672](https://github.com/SFDO-Tooling/CumulusCI/pull/3672)
+-   Support Python 3.12 by [@jstvz](https://github.com/jstvz) in [#3691](https://github.com/SFDO-Tooling/CumulusCI/pull/3691)
+-   Make task `options` read only when using Pydantic option validation by [@aditya-balachander](https://github.com/aditya-balachander) in [#3695](https://github.com/SFDO-Tooling/CumulusCI/pull/3695)
+
 ### Issues Fixed 🩴
-* Fix Github url parse error for some scenarios by [@mgrandhi](https://github.com/mgrandhi) in [#3683](https://github.com/SFDO-Tooling/CumulusCI/pull/3683)
+
+-   Fix Github url parse error for some scenarios by [@mgrandhi](https://github.com/mgrandhi) in [#3683](https://github.com/SFDO-Tooling/CumulusCI/pull/3683)
 
 ## New Contributors
-* @mgrandhi made their first contribution in [#3683](https://github.com/SFDO-Tooling/CumulusCI/pull/3683)
+
+-   @mgrandhi made their first contribution in [#3683](https://github.com/SFDO-Tooling/CumulusCI/pull/3683)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.81.0...v3.82.0
-
 
 <!-- latest-stop -->
 
