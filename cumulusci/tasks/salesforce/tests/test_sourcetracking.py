@@ -155,7 +155,7 @@ class TestRetrieveChanges:
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
             )
             task._init_task()
-            task.org_config = mock.MagicMock()
+            task.org_config._latest_api_version = 58.0
             task.tooling = mock.Mock()
             task.tooling.query_all.return_value = {
                 "totalSize": 1,
