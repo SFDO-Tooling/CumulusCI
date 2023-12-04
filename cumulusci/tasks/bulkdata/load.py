@@ -32,6 +32,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
     get_dml_operation,
+    get_query_operation,
 )
 from cumulusci.tasks.bulkdata.upsert_utils import (
     AddUpsertsToQuery,
@@ -185,6 +186,38 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             return (mapping_path, dataset_path)
         return None
 
+    def _rollback_object(self, id_table: Table) -> None:
+
+        if id_table.name.endswith("_sf_ids"):
+            obj = id_table.name.split("_")[0]
+            result = [row.sf_id for row in self.session.query(id_table).all()]
+            result = tuple(result)
+            query = f"SELECT Id FROM {obj} WHERE Id IN {result}"
+
+            if len(result) != 0:
+                qs = get_query_operation(
+                    sobject=obj,
+                    fields=["Id"],
+                    api_options={},
+                    context=self,
+                    query=query,
+                )
+                qs.query()
+                self.logger.info(f"Deleting {obj} records")
+                ds = get_dml_operation(
+                    sobject=obj,
+                    operation=(DataOperationType.DELETE),
+                    fields=["Id"],
+                    api_options={},
+                    context=self,
+                    volume=qs.job_result.records_processed,
+                )
+                ds.start()
+                ds.load_records(qs.get_results())
+                ds.end()
+        else:
+            return
+
     def _run_task(self):
         if not self.has_dataset:
             if org_shape := self.org_config.lookup("config_name"):
@@ -212,23 +245,34 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 started = True
 
                 self.logger.info(f"Running step: {name}")
-                result = self._execute_step(mapping)
-                if result.status is DataOperationStatus.JOB_FAILURE:
-                    raise BulkDataException(
-                        f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
-                    )
+                try:
+                    result = self._execute_step(mapping)
+                    if result.status is DataOperationStatus.JOB_FAILURE:
+                        self.logger.info("Rollbacking... ")
+                        for table in reversed(self.metadata.sorted_tables):
+                            self._rollback_object(table)
+                        raise BulkDataException(
+                            f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
+                        )
 
-                if name in self.after_steps:
-                    for after_name, after_step in self.after_steps[name].items():
-                        self.logger.info(f"Running post-load step: {after_name}")
-                        result = self._execute_step(after_step)
-                        if result.status is DataOperationStatus.JOB_FAILURE:
-                            raise BulkDataException(
-                                f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
-                            )
-                results[name] = StepResultInfo(
-                    mapping.sf_object, result, mapping.record_type
-                )
+                    if name in self.after_steps:
+                        for after_name, after_step in self.after_steps[name].items():
+                            self.logger.info(f"Running post-load step: {after_name}")
+                            result = self._execute_step(after_step)
+                            if result.status is DataOperationStatus.JOB_FAILURE:
+                                # execute rollback
+                                raise BulkDataException(
+                                    f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
+                                )
+                    results[name] = StepResultInfo(
+                        mapping.sf_object, result, mapping.record_type
+                    )
+                except Exception as e:
+                    self.logger.info("Rollbacking... ")
+                    for table in reversed(self.metadata.sorted_tables):
+                        self._rollback_object(table)
+                    raise BulkDataException(f"Error: {e}")
+
         if self.options["set_recently_viewed"]:
             try:
                 self.logger.info("Setting records to 'recently viewed'.")
