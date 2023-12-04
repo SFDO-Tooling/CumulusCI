@@ -183,8 +183,12 @@ class TestPackageConfig:
 
 
 class TestCreatePackageVersion:
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
-    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v52.0"
+    devhub_base_url = (
+        f"https://devhub.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
+    )
+    scratch_base_url = (
+        f"https://scratch.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
+    )
 
     def test_postinstall_script_logic(self, get_task):
         task = get_task({"package_type": "Managed", "package_name": "Foo"})
@@ -261,7 +265,7 @@ class TestCreatePackageVersion:
         responses.add(  # get dependency org API version
             "GET",
             "https://scratch.my.salesforce.com/services/data",
-            json=[{"version": "52.0"}],
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
         responses.add(  # query for dependency org installed packages
             "GET",
