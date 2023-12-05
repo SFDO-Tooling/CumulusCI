@@ -125,6 +125,46 @@ class TestLoadData:
                 hh_ids = next(c.execute("SELECT * from households_sf_ids"))
                 assert hh_ids == ("1", "001000000000000")
 
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test__rollback_object(self, dml_mock):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "start_step": "Insert Contacts",
+                    "set_recently_viewed": False,
+                }
+            },
+        )
+        table = mock.Mock()
+        p = mock.PropertyMock(return_value="Contact_sf_ids")
+        type(table).name = p
+        task.metadata = mock.Mock(sorted_tables=[table])
+        task.session = mock.Mock(
+            query=mock.Mock(
+                return_value=mock.Mock(
+                    all=mock.Mock(return_value=[mock.Mock(sf_id="00001111")]),
+                    count=mock.Mock(return_value=2),
+                )
+            )
+        )
+
+        task._rollback_object(table)
+
+        dml_mock.assert_called_once_with(
+            sobject="Contact",
+            operation=(DataOperationType.DELETE),
+            fields=["Id"],
+            api_options={},
+            context=task,
+            volume=2,
+        )
+        dml_mock.return_value.start.assert_called_once()
+        dml_mock.return_value.end.assert_called_once()
+
     def test_run_task__start_step(self):
         task = _make_task(
             LoadData,
@@ -191,6 +231,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task.metadata = mock.Mock(sorted_tables=[])
         task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
@@ -207,8 +248,16 @@ class TestLoadData:
                 DataOperationJobResult(DataOperationStatus.JOB_FAILURE, [], 0, 0),
             ]
         )
+        task._rollback_object = mock.Mock()
+
+        table = mock.Mock()
+        p = mock.PropertyMock(return_value="Contact_sf_ids")
+        type(table).name = p
+        task.metadata = mock.Mock(sorted_tables=[table])
+
         with pytest.raises(BulkDataException):
             task()
+            assert task._rollback_object.assert_called_once()
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
@@ -1047,10 +1096,16 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
+        task._rollback_object = mock.Mock()
         task.mapping = {"Test": MappingStep(sf_object="Account")}
+        table = mock.Mock()
+        p = mock.PropertyMock(return_value="Account_sf_ids")
+        type(table).name = p
+        task.metadata = mock.Mock(sorted_tables=[table])
 
         with pytest.raises(BulkDataException):
             task()
+            assert task._rollback_object.assert_called_once()
 
     def test_process_job_results__insert_success(self):
         task = _make_task(

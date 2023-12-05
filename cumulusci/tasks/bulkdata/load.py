@@ -32,7 +32,6 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
     get_dml_operation,
-    get_query_operation,
 )
 from cumulusci.tasks.bulkdata.upsert_utils import (
     AddUpsertsToQuery,
@@ -186,37 +185,24 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             return (mapping_path, dataset_path)
         return None
 
-    def _rollback_object(self, id_table: Table) -> None:
+    def _rollback_object(self, table) -> None:
 
-        if id_table.name.endswith("_sf_ids"):
-            obj = id_table.name.split("_")[0]
-            result = [row.sf_id for row in self.session.query(id_table).all()]
-            result = tuple(result)
-            query = f"SELECT Id FROM {obj} WHERE Id IN {result}"
-
-            if len(result) != 0:
-                qs = get_query_operation(
-                    sobject=obj,
-                    fields=["Id"],
-                    api_options={},
-                    context=self,
-                    query=query,
-                )
-                qs.query()
-                self.logger.info(f"Deleting {obj} records")
-                ds = get_dml_operation(
-                    sobject=obj,
-                    operation=(DataOperationType.DELETE),
-                    fields=["Id"],
-                    api_options={},
-                    context=self,
-                    volume=qs.job_result.records_processed,
-                )
-                ds.start()
-                ds.load_records(qs.get_results())
-                ds.end()
-        else:
-            return
+        if table.name.endswith("_sf_ids") and len(self.session.query(table).all()) != 0:
+            obj = table.name.split("_")[0]
+            query = self.session.query(table)
+            object_ids = [[row.sf_id] for row in query.all()]
+            self.logger.info(f"Deleting {obj} records")
+            ds = get_dml_operation(
+                sobject=obj,
+                operation=(DataOperationType.DELETE),
+                fields=["Id"],
+                api_options={},
+                context=self,
+                volume=query.count(),
+            )
+            ds.start()
+            ds.load_records(object_ids)
+            ds.end()
 
     def _run_task(self):
         if not self.has_dataset:
@@ -260,7 +246,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             self.logger.info(f"Running post-load step: {after_name}")
                             result = self._execute_step(after_step)
                             if result.status is DataOperationStatus.JOB_FAILURE:
-                                # execute rollback
+                                for table in reversed(self.metadata.sorted_tables):
+                                    self._rollback_object(table)
                                 raise BulkDataException(
                                     f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                                 )
