@@ -176,12 +176,16 @@ class TestRunApexTests(MockLoggerMixin):
         )
 
     def _mock_get_test_results(
-        self, outcome="Pass", message="Test Passed", job_id="JOB_ID1234567"
+        self,
+        outcome="Pass",
+        message="Test Passed",
+        job_id="JOB_ID1234567",
+        methodname=["TestMethod"],
     ):
         url = self._get_mock_test_query_url(job_id)
 
         expected_response = self._get_mock_test_query_results(
-            ["TestMethod"], [outcome], [message]
+            methodname, [outcome], [message]
         )
         responses.add(
             responses.GET, url, match_querystring=True, json=expected_response
@@ -309,6 +313,42 @@ class TestRunApexTests(MockLoggerMixin):
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task()
         assert len(responses.calls) == 5
+
+    @responses.activate
+    def test_run_task_None_methodname_fail(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_symboltable()
+        self._mock_get_test_results(methodname=[None], outcome="Fail")
+        self._mock_get_test_results(methodname=["test1"])
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task()
+        assert task.counts["Retriable"] == 1
+        log = self._task_log_handler.messages
+        assert (
+            "Retrying class with id: 1 name:TestClass_TEST due to `None` methodname"
+            in log["info"]
+        )
+
+    @responses.activate
+    def test_run_task_None_methodname_pass(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_symboltable()
+        self._mock_get_test_results(methodname=[None])
+        self._mock_get_test_results(methodname=["test1"])
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task()
+        assert task.counts["Retriable"] == 1
+        log = self._task_log_handler.messages
+        assert (
+            "Retrying class with id: 1 name:TestClass_TEST due to `None` methodname"
+            in log["info"]
+        )
 
     @responses.activate
     def test_run_task__server_error(self):
