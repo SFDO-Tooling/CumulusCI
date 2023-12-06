@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "click",
@@ -45,7 +47,6 @@ dependencies = [
     "requests-futures",
     "rich",
     "robotframework",
-    "robotframework-lint",
     "robotframework-pabot",
     "robotframework-requests",
     "robotframework-seleniumlibrary<6",
