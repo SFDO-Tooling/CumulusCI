@@ -630,3 +630,6 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+# trigger pyright

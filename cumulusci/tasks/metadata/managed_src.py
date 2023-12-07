@@ -2,9 +2,13 @@
 from distutils.dir_util import copy_tree, remove_tree
 from pathlib import Path
 
+import shutils
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import find_replace
+
+print(shutils)
 
 
 class CreateManagedSrc(BaseTask):

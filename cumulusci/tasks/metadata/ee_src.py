@@ -3,9 +3,13 @@ import os
 # TODO: Replace this with shutils
 from distutils.dir_util import copy_tree, remove_tree
 
+import shutils
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import remove_xml_element_directory
+
+print(shutils)
 
 
 class CreateUnmanagedEESrc(BaseTask):
