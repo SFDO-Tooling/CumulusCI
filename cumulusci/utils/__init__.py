@@ -10,6 +10,8 @@ import tempfile
 import textwrap
 import zipfile
 from datetime import datetime
+from pathlib import Path
+from typing import Union
 
 import requests
 import sarge
@@ -630,3 +632,31 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+def update_tree(src: Union[str, Path], dest: Union[str, Path]):
+    """
+    Copies files from src to dest, same as distutils.copy_tree(update=1).
+
+    Copies the entire directory tree from src to dest. If dest exists, only
+    copies files that are newer in src than in dest, or files that don't exist
+    in dest.
+
+    Args:
+        src (Union[str, Path]): The source directory to copy files from.
+        dest (Union[str, Path]): The destination directory to copy files to.
+    """
+    src_path = Path(src)
+    dest_path = Path(dest)
+    if not dest_path.exists():
+        shutil.copytree(src_path, dest_path)
+    else:
+        for src_dir in src_path.rglob("*"):
+            if src_dir.is_file():
+                dest_file = dest_path / src_dir.relative_to(src_path)
+                if (
+                    not dest_file.exists()
+                    or src_dir.stat().st_mtime - dest_file.stat().st_mtime > 1
+                ):
+                    dest_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_dir, dest_file)
