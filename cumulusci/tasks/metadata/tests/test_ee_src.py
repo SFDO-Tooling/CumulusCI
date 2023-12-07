@@ -1,4 +1,6 @@
 import os
+import time
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -75,3 +77,36 @@ class TestRevertUnmanagedEESrc:
         task = RevertUnmanagedEESrc(project_config, task_config)
         with pytest.raises(TaskOptionsError):
             task()
+
+    def test_revert_with_update(self, tmpdir):
+        """
+        Test the 'update' behavior of RevertUnmanagedEESrc task with temporary directories.
+
+        This test creates a source and a destination directory each with one
+        file. The file in the source directory has an older timestamp. After
+        running RevertUnmanagedEESrc, it checks that the destination file is not
+        overwritten by the older source file, confirming the update logic.
+        """
+        source_dir = Path(tmpdir.mkdir("source"))
+        source_file = source_dir / "testfile.txt"
+        source_file.write_text("original content")
+
+        dest_dir = Path(tmpdir.mkdir("dest"))
+        dest_file = dest_dir / "testfile.txt"
+        dest_file.write_text("modified content")
+
+        # Ensure the source file has an older timestamp
+        past_time = time.time() - 100
+        # Use os.utime to modify the timestamp
+        source_file.touch()
+        os.utime(str(source_file), (past_time, past_time))
+
+        project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
+        task_config = TaskConfig(
+            {"options": {"path": str(dest_dir), "revert_path": str(source_dir)}}
+        )
+        task = RevertUnmanagedEESrc(project_config, task_config)
+        task()
+
+        # Verify that the destination file was not updated (due to older source file)
+        assert dest_file.read_text() == "modified content"
