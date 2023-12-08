@@ -1,4 +1,5 @@
 import os
+import time
 
 import pytest
 
@@ -51,22 +52,21 @@ class TestCreateManagedSrc:
 
 
 class TestRevertManagedSrc:
-    def test_run_task(self):
-        with temporary_dir() as revert_path:
-            with open(os.path.join(revert_path, "file"), "w"):
-                pass
-            path = os.path.join(
-                os.path.dirname(revert_path), os.path.basename(revert_path) + "_orig"
-            )
-            project_config = BaseProjectConfig(
-                UniversalConfig(), config={"noyaml": True}
-            )
-            task_config = TaskConfig(
-                {"options": {"path": path, "revert_path": revert_path}}
-            )
-            task = RevertManagedSrc(project_config, task_config)
-            task()
-            assert os.path.exists(os.path.join(path, "file"))
+    def test_run_task(self, tmp_path):
+        revert_path = tmp_path / "revert"
+        revert_path.mkdir()
+        file_path = revert_path / "file"
+        file_path.write_text("content")
+
+        path = tmp_path / "path"
+        path.mkdir()
+        project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
+        task_config = TaskConfig(
+            {"options": {"path": str(path), "revert_path": str(revert_path)}}
+        )
+        task = RevertManagedSrc(project_config, task_config)
+        task()
+        assert (path / "file").exists()
 
     def test_run_task__revert_path_not_found(self):
         project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
@@ -74,3 +74,38 @@ class TestRevertManagedSrc:
         task = RevertManagedSrc(project_config, task_config)
         with pytest.raises(TaskOptionsError):
             task()
+
+    def test_revert_with_update(self, tmp_path):
+        """
+        Test the 'update' behavior of RevertManagedSrc task with temporary directories.
+
+        This test creates a source and a destination directory each with one
+        file. The file in the source directory has an older timestamp. After
+        running RevertManagedSrc, it checks that the destination file is not
+        overwritten by the older source file, confirming the update logic.
+        """
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        source_file = source_dir / "testfile.txt"
+        source_file.write_text("original content")
+
+        dest_dir = tmp_path / "dest"
+        dest_dir.mkdir()
+        dest_file = dest_dir / "testfile.txt"
+        dest_file.write_text("modified content")
+
+        # Ensure the source file has an older timestamp
+        past_time = time.time() - 100
+        # Use os.utime to modify the timestamp
+        source_file.touch()
+        os.utime(str(source_file), (past_time, past_time))
+
+        project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
+        task_config = TaskConfig(
+            {"options": {"path": str(dest_dir), "revert_path": str(source_dir)}}
+        )
+        task = RevertManagedSrc(project_config, task_config)
+        task()
+
+        # Verify that the destination file was not updated (due to older source file)
+        assert dest_file.read_text() == "modified content"
