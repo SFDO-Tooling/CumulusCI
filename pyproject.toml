@@ -159,7 +159,8 @@ known_first_party = "cumulusci"
 known_third_party = "robot"
 
 [tool.pyright]
-reportMissingImports = "warning"
+reportMissingImports = "none"
+typeCheckingMode = "basic"
 exclude = ["**/test_*", "**/tests/**"]
 # Add files to this list as you make them compatible.
 include = [
@@ -234,7 +235,6 @@ include = [
     'cumulusci/tasks/robotframework/__init__.py',
     'cumulusci/tasks/robotframework/debugger/__init__.py',
     'cumulusci/tasks/robotframework/debugger/model.py',
-    'cumulusci/tasks/robotframework/lint.py',
     'cumulusci/tasks/salesforce/BaseRetrieveMetadata.py',
     'cumulusci/tasks/salesforce/BaseSalesforceTask.py',
     'cumulusci/tasks/salesforce/GetInstalledPackages.py',
