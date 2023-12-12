@@ -867,6 +867,21 @@ class TestRunApexTests(MockLoggerMixin):
         namespace = task._get_namespace_filter()
         assert namespace == "'testns'"
 
+    def test_get_namespace_filter__target_org(self):
+        task_config = TaskConfig({"options": {}})
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+                "namespace": "testns",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+        namespace = task._get_namespace_filter()
+        assert namespace == "'testns'"
+
     def test_get_namespace_filter__managed_no_namespace(self):
         task_config = TaskConfig({"options": {"managed": True}})
         task = RunApexTests(self.project_config, task_config, self.org_config)

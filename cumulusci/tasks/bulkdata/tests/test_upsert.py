@@ -239,7 +239,7 @@ class TestUpsert:
     def _mock_bulk(self, domain):
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v52.0/limits/recordCount?sObjects=Contact",
+            url=f"https://{domain}/services/data/v{CURRENT_SF_API_VERSION}/limits/recordCount?sObjects=Contact",
             status=200,
             json={"sObjects": []},
         )

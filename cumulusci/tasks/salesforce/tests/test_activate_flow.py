@@ -5,6 +5,7 @@ import responses
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 from .util import create_task
 
@@ -23,14 +24,10 @@ class TestActivateFlow:
             },
         )
         record_id = "3001F0000009GFwQAM"
-        activate_url = (
-            "{}/services/data/v58.0/tooling/sobjects/FlowDefinition/{}".format(
-                cc_task.org_config.instance_url, record_id
-            )
-        )
+        activate_url = f"{cc_task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/FlowDefinition/{record_id}"
         responses.add(
             method="GET",
-            url="https://test.salesforce.com/services/data/v58.0/tooling/query/?q=SELECT+Id%2C+ActiveVersion.VersionNumber%2C+LatestVersion.VersionNumber%2C+DeveloperName+FROM+FlowDefinition+WHERE+DeveloperName+IN+%28%27Auto_Populate_Date_And_Name_On_Program_Engagement%27%2C%27ape%27%29",
+            url=f"https://test.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id%2C+ActiveVersion.VersionNumber%2C+LatestVersion.VersionNumber%2C+DeveloperName+FROM+FlowDefinition+WHERE+DeveloperName+IN+%28%27Auto_Populate_Date_And_Name_On_Program_Engagement%27%2C%27ape%27%29",
             body=json.dumps(
                 {
                     "records": [
@@ -63,14 +60,10 @@ class TestActivateFlow:
             },
         )
         record_id = "3001F0000009GFwQAM"
-        activate_url = (
-            "{}/services/data/v58.0/tooling/sobjects/FlowDefinition/{}".format(
-                cc_task.org_config.instance_url, record_id
-            )
-        )
+        activate_url = f"{cc_task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/FlowDefinition/{record_id}"
         responses.add(
             method="GET",
-            url="https://test.salesforce.com/services/data/v58.0/tooling/query/?q=SELECT+Id%2C+ActiveVersion.VersionNumber%2C+LatestVersion.VersionNumber%2C+DeveloperName+FROM+FlowDefinition+WHERE+DeveloperName+IN+%28%27Auto_Populate_Date_And_Name_On_Program_Engagement%27%2C%27ape%27%29",
+            url=f"https://test.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id%2C+ActiveVersion.VersionNumber%2C+LatestVersion.VersionNumber%2C+DeveloperName+FROM+FlowDefinition+WHERE+DeveloperName+IN+%28%27Auto_Populate_Date_And_Name_On_Program_Engagement%27%2C%27ape%27%29",
             body=json.dumps(
                 {
                     "records": [
@@ -104,19 +97,11 @@ class TestActivateFlow:
         )
         record_id = "3001F0000009GFwQAM"
         record_id2 = "3001F0000009GFwQAW"
-        activate_url = (
-            "{}/services/data/v58.0/tooling/sobjects/FlowDefinition/{}".format(
-                cc_task.org_config.instance_url, record_id
-            )
-        )
-        activate_url2 = (
-            "{}/services/data/v58.0/tooling/sobjects/FlowDefinition/{}".format(
-                cc_task.org_config.instance_url, record_id2
-            )
-        )
+        activate_url = f"{cc_task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/FlowDefinition/{record_id}"
+        activate_url2 = f"{cc_task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/FlowDefinition/{record_id2}"
         responses.add(
             method="GET",
-            url="https://test.salesforce.com/services/data/v58.0/tooling/query/?q=SELECT+Id%2C+ActiveVersion.VersionNumber%2C+LatestVersion.VersionNumber%2C+DeveloperName+FROM+FlowDefinition+WHERE+DeveloperName+IN+%28%27Auto_Populate_Date_And_Name_On_Program_Engagement%27%2C%27ape%27%29",
+            url=f"https://test.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id%2C+ActiveVersion.VersionNumber%2C+LatestVersion.VersionNumber%2C+DeveloperName+FROM+FlowDefinition+WHERE+DeveloperName+IN+%28%27Auto_Populate_Date_And_Name_On_Program_Engagement%27%2C%27ape%27%29",
             body=json.dumps(
                 {
                     "records": [
