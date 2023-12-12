@@ -115,8 +115,25 @@ class ListChanges(BaseSalesforceApiTask):
             changes.append(sourcemember)
         return changes
 
-    def _filter_changes(self, changes, separate_profiles=True):
+    def _filter_changes(self, changes):
         """Filter changes using the include/exclude options"""
+        filtered = []
+        ignored = []
+        for change in changes:
+            mdtype = change["MemberType"]
+            name = change["MemberName"]
+            full_name = f"{mdtype}: {name}"
+            if (
+                self._include
+                and not any(re.search(s, full_name) for s in self._include)
+            ) or any(re.search(s, full_name) for s in self._exclude):
+                ignored.append(change)
+            else:
+                filtered.append(change)
+        return filtered, ignored
+
+    def _filter_changes_with_profiles(self, changes):
+        """Filter changes using the include/exclude options along with profiles"""
         filtered = []
         ignored = []
         profiles = []
@@ -130,15 +147,11 @@ class ListChanges(BaseSalesforceApiTask):
             ) or any(re.search(s, full_name) for s in self._exclude):
                 ignored.append(change)
             else:
-                if not separate_profiles and mdtype == "Profile":
+                if mdtype == "Profile":
                     profiles.append(name)
                 else:
                     filtered.append(change)
-        return (
-            (filtered, ignored, profiles)
-            if not separate_profiles
-            else (filtered, ignored)
-        )
+        return filtered, ignored, profiles
 
     def _store_snapshot(self, changes):
         """Update the snapshot of which component revisions have been retrieved."""
@@ -284,7 +297,9 @@ def retrieve_components(
         # Extract Profiles
         if profiles:
             task_config = TaskConfig(
-                config={"options": {"profiles": ",".join(profiles), "path": target}}
+                config={
+                    "options": {"profiles": ",".join(profiles), "path": "force-app"}
+                }
             )
             cls_retrieve_profile = RetrieveProfile(
                 org_config=org_config,
@@ -367,9 +382,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         self._load_snapshot()
         self.logger.info("Querying Salesforce for changed source members")
         changes = self._get_changes()
-        filtered, ignored, profiles = self._filter_changes(
-            changes, separate_profiles=False
-        )
+        filtered, ignored, profiles = self._filter_changes_with_profiles(changes)
         if not filtered and not profiles:
             self.logger.info("No changes to retrieve")
             return

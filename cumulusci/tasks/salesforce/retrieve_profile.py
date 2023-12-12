@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
@@ -28,20 +28,28 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
 
     def _init_options(self, kwargs):
         super(RetrieveProfile, self)._init_options(kwargs)
-        self.api_version = self.org_config.latest_api_version
+        self.api_version = self.project_config.config["project"]["package"][
+            "api_version"
+        ]
         self.profiles = process_list_arg(self.options["profiles"])
         if not self.profiles:
             raise ValueError("At least one profile must be specified.")
 
-        self.extract_dir = self.options.get("path", "force-app/default/main")
+        self.extract_dir = self.options.get("path", "force-app")
+        extract_path = Path(self.extract_dir)
 
-        if not os.path.exists(self.extract_dir):
+        if not extract_path.exists():
             raise FileNotFoundError(
                 f"The extract directory '{self.extract_dir}' does not exist."
             )
-
-        if not os.path.isdir(self.extract_dir):
+        if not extract_path.is_dir():
             raise NotADirectoryError(f"'{self.extract_dir}' is not a directory.")
+
+        # If extract_dir is force-app and main/default is not present
+        if self.extract_dir == "force-app":
+            if not (extract_path / "main" / "default").exists():
+                (extract_path / "main" / "default").mkdir(parents=True, exist_ok=True)
+            self.extract_dir = "force-app/main/default"
 
         self.strictMode = process_bool_arg(self.options.get("strict_mode", True))
 
@@ -90,19 +98,19 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
         return profile_content
 
     def save_profile_file(self, extract_dir, filename, content):
-        profile_path = os.path.join(extract_dir, filename)
-        profile_meta_xml_path = os.path.join(extract_dir, f"{filename}-meta.xml")
+        profile_path = Path(extract_dir) / filename
+        profile_meta_xml_path = Path(extract_dir) / f"{filename}-meta.xml"
 
         # Check if either the profile file or metadata file exists
-        if os.path.exists(profile_path):
+        if profile_path.exists():
             self.update_file_content(profile_path, content)
-        elif os.path.exists(profile_meta_xml_path):
+        elif profile_meta_xml_path.exists():
             self.update_file_content(profile_meta_xml_path, content)
         else:
             # Neither file exists, create the profile file
-            os.makedirs(os.path.dirname(profile_meta_xml_path), exist_ok=True)
-            with open(
-                profile_meta_xml_path, "w", encoding="utf-8"
+            profile_meta_xml_path.parent.mkdir(parents=True, exist_ok=True)
+            with profile_meta_xml_path.open(
+                mode="w", encoding="utf-8"
             ) as updated_profile_file:
                 updated_profile_file.write(content)
 
@@ -141,9 +149,7 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
             ) and file_info.filename.endswith(".profile"):
                 with zip_result.open(file_info) as profile_file:
                     profile_content = profile_file.read().decode("utf-8")
-                    profile_name = os.path.splitext(
-                        os.path.basename(file_info.filename)
-                    )[0]
+                    profile_name = profile_name = Path(file_info.filename).stem
 
                     if profile_name in profile_flows:
                         profile_content = self.add_flow_accesses(

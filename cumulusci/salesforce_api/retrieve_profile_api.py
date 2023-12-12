@@ -87,7 +87,9 @@ PROFILE_FLOW_QUERY_NAME = "profileFlow"
 class RetrieveProfileApi(BaseSalesforceApiTask):
     def _init_task(self):
         super(RetrieveProfileApi, self)._init_task()
-        self.api_version = self.org_config.latest_api_version
+        self.api_version = self.project_config.config["project"]["package"][
+            "api_version"
+        ]
 
     def _retrieve_existing_profiles(self, profiles: List[str]):
         query = self._build_query(["Name"], "Profile", {"Name": profiles})

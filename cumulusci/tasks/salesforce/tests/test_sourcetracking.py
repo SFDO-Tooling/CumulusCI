@@ -155,7 +155,6 @@ class TestRetrieveChanges:
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
             )
             task._init_task()
-            task.org_config._latest_api_version = 58.0
             task.tooling = mock.Mock()
             task.tooling.query_all.return_value = {
                 "totalSize": 1,
@@ -174,7 +173,11 @@ class TestRetrieveChanges:
             }
             with mock.patch.object(
                 RetrieveProfile, "_run_task"
-            ) as mock_retrieve_profile:
+            ) as mock_retrieve_profile, mock.patch.object(
+                pathlib.Path, "exists", return_value=True
+            ), mock.patch.object(
+                pathlib.Path, "is_dir", return_value=True
+            ):
                 task._run_task()
 
                 assert sfdx_calls == [
