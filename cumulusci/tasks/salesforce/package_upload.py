@@ -74,8 +74,6 @@ class PackageUpload(BaseSalesforceApiTask):
 
         self._validate_versions()
         self._set_version_name()
-        self.logger.info(f"Generated version name: {self.options['name']}")
-        return
         self._set_package_id()
 
         self._set_package_info()
@@ -165,6 +163,7 @@ class PackageUpload(BaseSalesforceApiTask):
         template = jinja2_env.from_string(self.options["version_name_template"])
         value = template.render(**jinja2_context)
         self.options["name"] = value
+        self.logger.info(f"Generated version name: {self.options['name']}")
 
     def _set_package_info(self):
         if not self.package_id:
