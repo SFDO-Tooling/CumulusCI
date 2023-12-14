@@ -38,7 +38,7 @@ class TestRetrievePreflightChecks:
                     {
                         "settings_type": "ChatterSettings",
                         "settings_field": "Foo",
-                        "value": True,
+                        "value": "True",
                     },
                 ],
                 "object_permissions": {
@@ -61,17 +61,45 @@ class TestRetrievePreflightChecks:
             DescribeMetadataTypes,
         ]
 
-        for cls in classes:
-            cls._run_task = Mock()
-
-        CheckSObjectOWDs._run_task = Mock()
-        CheckSettingsValue._run_task = Mock()
-        CheckSObjectPerms._run_task = Mock()
-
+        task._call_class = Mock()
         task()
-        for cls in classes:
-            cls._run_task.assert_called_once()
 
-        CheckSObjectOWDs._run_task.assert_called_once()
-        CheckSettingsValue._run_task.assert_called_once()
-        CheckSObjectPerms._run_task.assert_called_once()
+        for cls in classes:
+            task._call_class.assert_any_call(cls, {})
+
+        task._call_class.assert_any_call(
+            CheckSettingsValue,
+            {
+                "settings_type": "ChatterSettings",
+                "settings_field": "Foo",
+                "value": "True",
+                "treat_missing_as_failure": False,
+            },
+        )
+        task._call_class.assert_any_call(
+            CheckSettingsValue,
+            {
+                "settings_type": "ChatterSettings",
+                "settings_field": "settings_field",
+                "value": True,
+                "treat_missing_as_failure": False,
+            },
+        )
+        task._call_class.assert_any_call(
+            CheckSObjectOWDs,
+            {
+                "org_wide_defaults": [
+                    {"api_name": "Account", "internal_sharing_model": "Private"},
+                    {"api_name": "Contact", "internal_sharing_model": "ReadWrite"},
+                ]
+            },
+        )
+        task._call_class.assert_any_call(
+            CheckSObjectPerms,
+            {
+                "permissions": {
+                    "Account": {"createable": True, "updateable": False},
+                    "Contact": {"createable": False},
+                }
+            },
+        )

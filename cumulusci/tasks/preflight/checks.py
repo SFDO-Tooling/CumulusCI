@@ -42,6 +42,14 @@ class RetrievePreflightChecks(BaseSalesforceApiTask):
     def _init_task(self):
         super()._init_task()
 
+    def _call_class(self, class_name, options):
+        task_config = TaskConfig({"options": options})
+        return class_name(
+            org_config=self.org_config,
+            project_config=self.project_config,
+            task_config=task_config,
+        )()
+
     def _run_task(self):
 
         classes = [
@@ -58,37 +66,19 @@ class RetrievePreflightChecks(BaseSalesforceApiTask):
         ]
 
         self.return_values = {
-            cls.__name__: cls(
-                org_config=self.org_config,
-                project_config=self.project_config,
-                task_config=self.task_config,
-            )()
-            for cls in classes
+            cls.__name__: self._call_class(cls, {}) for cls in classes
         }
 
         if "object_permissions" in self.options:
-            task_config = TaskConfig(
-                {"options": {"permissions": self.options["object_permissions"]}}
+            options = {"permissions": self.options["object_permissions"]}
+            self.return_values["CheckSObjectPerms"] = self._call_class(
+                CheckSObjectPerms, options
             )
-            self.return_values["CheckSObjectPerms"] = CheckSObjectPerms(
-                org_config=self.org_config,
-                project_config=self.project_config,
-                task_config=task_config,
-            )()
         if "object_org_wide_defaults" in self.options:
-            task_config = TaskConfig(
-                {
-                    "options": {
-                        "org_wide_defaults": self.options["object_org_wide_defaults"]
-                    }
-                }
+            options = {"org_wide_defaults": self.options["object_org_wide_defaults"]}
+            self.return_values["CheckSObjectOWDs"] = self._call_class(
+                CheckSObjectOWDs, options
             )
-
-            self.return_values["CheckSObjectOWDs"] = CheckSObjectOWDs(
-                org_config=self.org_config,
-                project_config=self.project_config,
-                task_config=task_config,
-            )()
 
         if "treat_missing_setting_as_failure" not in self.options:
             self.options["treat_missing_setting_as_failure"] = False
@@ -101,25 +91,15 @@ class RetrievePreflightChecks(BaseSalesforceApiTask):
             }
 
             for type, field, value in self.setting_checks:
-                task_config = task_config = TaskConfig(
-                    {
-                        "options": {
-                            "settings_type": type,
-                            "settings_field": field,
-                            "value": value,
-                            "treat_missing_as_failure": self.options[
-                                "treat_missing_setting_as_failure"
-                            ],
-                        }
-                    }
-                )
-                self.return_values["CheckSettingsValue"] = (
-                    self.return_values["CheckSettingsValue"]
-                    and CheckSettingsValue(
-                        org_config=self.org_config,
-                        project_config=self.project_config,
-                        task_config=task_config,
-                    )()
-                )
-                if not self.return_values["CheckSettingsValue"]:
+                options = {
+                    "settings_type": type,
+                    "settings_field": field,
+                    "value": value,
+                    "treat_missing_as_failure": self.options[
+                        "treat_missing_setting_as_failure"
+                    ],
+                }
+
+                if not self._call_class(CheckSettingsValue, options):
+                    self.return_values["CheckSettingsValue"] = False
                     break
