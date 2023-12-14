@@ -5,6 +5,7 @@ import zipfile
 from unittest.mock import MagicMock, Mock, call, patch
 
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 
 def generate_sample_zip_data(parent=""):
@@ -28,7 +29,9 @@ class TestRestDeploy(unittest.TestCase):
         self.mock_task.logger = self.mock_logger
         self.mock_task.org_config.instance_url = "https://example.com"
         self.mock_task.org_config.access_token = "dummy_token"
-        self.mock_task.project_config.project__package__api_version = 58.0
+        self.mock_task.project_config.project__package__api_version = (
+            CURRENT_SF_API_VERSION
+        )
         # Empty zip file for testing
         self.mock_zip = generate_sample_zip_data()
 
@@ -64,11 +67,11 @@ class TestRestDeploy(unittest.TestCase):
         # Assertions to verify API Calls
         expected_get_calls = [
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
         ]
@@ -160,11 +163,11 @@ class TestRestDeploy(unittest.TestCase):
         # Assertions to verify API Calls
         expected_get_calls = [
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
         ]
@@ -206,15 +209,15 @@ class TestRestDeploy(unittest.TestCase):
         # Assertions to verify API Calls
         expected_get_calls = [
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
             call(
-                "https://example.com/services/data/v58.0/metadata/deployRequest/dummy_id?includeDetails=true",
+                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
                 headers={"Authorization": "Bearer dummy_token"},
             ),
         ]
