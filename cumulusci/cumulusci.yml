@@ -1,10 +1,6 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
-    preflight_checks:
-        group: Salesforce Preflight Checks
-        class_path: cumulusci.tasks.preflight.checks.RetrievePreflightChecks
-        description: Retrieves preflight checks passed and throws an error if failed
     activate_flow:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
@@ -129,6 +125,10 @@ tasks:
             settings_type: EnhancedNotesSettings
             settings_field: IsEnhancedNotesEnabled
             value: True
+    preflight_checks:
+        group: Salesforce Preflight Checks
+        class_path: cumulusci.tasks.preflight.checks.RetrievePreflightChecks
+        description: Retrieves preflight checks passed and throws an error if failed
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
