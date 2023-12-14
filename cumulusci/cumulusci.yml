@@ -1,6 +1,10 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
+    preflight_checks:
+        group: Salesforce Preflight Checks
+        class_path: cumulusci.tasks.preflight.checks.RetrievePreflightChecks
+        description: Retrieves preflight checks passed and throws an error if failed
     activate_flow:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
