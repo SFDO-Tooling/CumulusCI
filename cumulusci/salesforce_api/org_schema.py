@@ -387,7 +387,6 @@ def get_org_schema(
 
         if Filters.extractable in filters:
             filters.add(Filters.queryable)
-            filters.add(Filters.retrieveable)
             filters.add(Filters.createable)  # so we can load again later
             patterns_to_ignore += NOT_EXTRACTABLE
 
