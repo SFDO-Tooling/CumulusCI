@@ -22,6 +22,7 @@ from cumulusci.core.dependencies.resolvers import (
     GitHubBetaReleaseTagResolver,
     GitHubDefaultBranch2GPResolver,
     GitHubExactMatch2GPResolver,
+    GitHubParentBranch2GPResolver,
     GitHubReleaseBranchCommitStatusResolver,
     GitHubReleaseTagResolver,
     GitHubTagResolver,
@@ -327,6 +328,42 @@ class TestGitHubUnmanagedHeadResolver:
         assert resolver.can_resolve(dep, project_config)
 
         assert resolver.resolve(dep, project_config) == ("commit_sha", None)
+
+class ConcreteGitHubParentBranchResolver(AbstractGitHubReleaseBranchResolver):
+    def resolve(
+        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+        return (None, None)
+    
+#class TestGitHubParentBranchResolver:
+#    def test_is_valid_repo_context(self):
+#        pc = BaseProjectConfig(UniversalConfig())
+#
+#        pc.repo_info["branch"] = "feature/parent__child"
+#        pc.project__git["prefix_feature"] = "feature/"
+#        assert ConcreteGitHubParentBranchResolver().is_valid_repo_context(pc)
+#
+#        pc.repo_info["branch"] = "feature/parent__child__grandchild"
+#        assert ConcreteGitHubParentBranchResolver().is_valid_repo_context(pc)
+#
+#        pc.repo_info["branch"] = "feature/parent"
+#        assert not ConcreteGitHubParentBranchResolver().is_valid_repo_context(pc)
+#
+#    def test_can_resolve(self):
+#        pc = BaseProjectConfig(UniversalConfig())
+#
+#        pc.repo_info["branch"] = "feature/parent__child"
+#        pc.project__git["prefix_feature"] = "feature/"
+#
+#        gh = ConcreteGitHubParentBranchResolver()
+#
+#        assert gh.can_resolve(
+#            GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/Test"),
+#            pc,
+#        )
+#
+#        assert not gh.can_resolve(ConcreteDynamicDependency(), pc)
+
 
 
 class ConcreteGitHubReleaseBranchResolver(AbstractGitHubReleaseBranchResolver):

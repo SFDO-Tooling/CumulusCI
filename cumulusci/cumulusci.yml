@@ -1503,12 +1503,14 @@ project:
         resolution_strategies:
             unlocked:
                 - unlocked_exact_branch
+                - unlocked_parent_branch
                 - unlocked_release_branch
                 - unlocked_previous_release_branch
                 - unlocked_default_branch
             commit_status:
                 - tag
                 - commit_status_exact_branch
+                - commit_status_parent_branch
                 - commit_status_release_branch
                 - commit_status_previous_release_branch
                 - commit_status_default_branch
