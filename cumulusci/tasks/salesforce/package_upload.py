@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from jinja2.sandbox import ImmutableSandboxedEnvironment
 from cumulusci.cli.ui import CliTable
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import (
@@ -9,12 +10,17 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
+jinja2_env = ImmutableSandboxedEnvironment()
+DEFAULT_VERSION_NAME_TEMPLATE = (
+    "{{ project_config.project__package__name }} - {{ major_version }}.{{ minor_version }}"
+    "{% if not production %} Beta {{ build_number }}{% endif %}"
+)
 
 class PackageUpload(BaseSalesforceApiTask):
     name = "PackageUpload"
     api_version = "48.0"
     task_options = {
-        "name": {"description": "The name of the package version.", "required": True},
+        "name": {"description": "The name of the package version."},
         "production": {
             "description": "If True, uploads a production release.  Defaults to uploading a beta"
         },
@@ -44,6 +50,10 @@ class PackageUpload(BaseSalesforceApiTask):
             "description": "The desired minor version number for the uploaded package. Defaults to next available minor version for the current major version.",
             "required": False,
         },
+        "version_name_template": {
+            "description": f"A jinja2 template expression for the version name. Defaults to:\n{DEFAULT_VERSION_NAME_TEMPLATE}",
+            "required": False,
+        }
     }
 
     def _init_options(self, kwargs):
@@ -57,9 +67,13 @@ class PackageUpload(BaseSalesforceApiTask):
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
 
+        # Set the default version_name_template option if not already set
+        if "version_name_template" not in self.options:
+            self.options["version_name_template"] = DEFAULT_VERSION_NAME_TEMPLATE
     def _run_task(self):
 
         self._validate_versions()
+        self._set_version_name()
         self._set_package_id()
 
         self._set_package_info()
@@ -84,6 +98,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 SELECT MajorVersion,
                 MinorVersion,
                 PatchVersion,
+                BuildNumber,
                 ReleaseState
                 FROM MetadataPackageVersion
                 ORDER BY
@@ -133,11 +148,22 @@ class PackageUpload(BaseSalesforceApiTask):
             else:
                 if version["ReleaseState"] == "Beta":
                     self.options["minor_version"] = str(version["MinorVersion"])
+                    self.options["build_number"] = str(version["BuildNumber"] + 1)
                 else:
                     self.options["minor_version"] = str(version["MinorVersion"] + 1)
         else:
             if "minor_version" not in self.options:
                 self.options["minor_version"] = "0"
+
+    def _set_version_name(self):
+        """ Sets self.options["name"] using the jinja2 template expression in self.options["version_name_template"] """
+        # Add self.project_config and self.options keys to the jinja2 environment
+        jinja2_context = {"project_config": self.project_config}
+        jinja2_context.update(self.options)
+        template = jinja2_env.from_string(self.options["version_name_template"])
+        value = template.render(**jinja2_context)
+        self.options["name"] = value
+        self.logger.info(f"Generated version name: {self.options['name']}")
 
     def _set_package_info(self):
         if not self.package_id:
