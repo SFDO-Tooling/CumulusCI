@@ -16,6 +16,7 @@ from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.utils import import_global
 from cumulusci.core.versions import PackageVersionNumber
 from cumulusci.utils.version_strings import LooseVersion
 
@@ -165,6 +166,29 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         if project_config:
             self.config_project.update(project_config)
 
+        self.config_plugins = {}
+        for plugin in project_config.get("plugins", []):
+            # Look for a cumulusci.yml file in the plugin's python package root directory
+            # and load it if found
+            try:
+                __import__(plugin)
+                plugin_config_path = (
+                    Path(sys.modules[plugin].__file__).parent / "cumulusci.yml"
+                )
+            except Exception as exc:
+                raise ConfigError(f"Could not load plugin {plugin}: {exc}. Please make sure the plugin is installed.")
+            if plugin_config_path.is_file():
+                plugin_config = cci_safe_load(
+                    str(plugin_config_path), logger=self.logger
+                )
+                plugin_config = plugin_config
+                if plugin_config:
+                    self.config_plugins[plugin] = plugin_config
+                self.logger.info(f"Loaded plugin {plugin}")
+            else:
+                self.logger.info(f"Loaded plugin {plugin} but no cumulusci.yml found")
+            
+
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             local_config = cci_safe_load(
@@ -183,15 +207,21 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
-        self.config = merge_config(
-            {
+        merge_stack = {
                 "universal_config": self.config_universal,
                 "global_config": self.config_global,
+        }
+        if self.config_plugins:
+            for plugin, plugin_config in self.config_plugins.items():
+                merge_stack[plugin] = plugin_config
+
+        merge_stack.update({
                 "project_config": self.config_project,
                 "project_local_config": self.config_project_local,
                 "additional_yaml": self.config_additional_yaml,
-            }
-        )
+        })
+
+        self.config = merge_config(merge_stack)
 
         self._validate_config()
 
