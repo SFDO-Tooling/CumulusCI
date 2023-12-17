@@ -42,6 +42,12 @@ def is_release_branch_or_child(branch_name: str, prefix: str) -> bool:
     parts = branch_name[len(prefix) :].split("__")
     return len(parts) >= 1 and parts[0].isdigit()
 
+def is_child_branch(branch_name: str, prefix: str) -> bool:
+    if not branch_name.startswith(prefix):
+        return False
+    parts = branch_name[len(prefix) :].split("__")
+    return len(parts) >= 1
+
 
 def get_feature_branch_name(branch_name: str, prefix: str) -> Optional[str]:
     if branch_name.startswith(prefix):

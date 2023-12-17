@@ -38,6 +38,7 @@ from cumulusci.utils.git import (
     get_feature_branch_name,
     get_release_identifier,
     is_release_branch_or_child,
+    is_child_branch,
 )
 
 
@@ -46,10 +47,12 @@ class DependencyResolutionStrategy(StrEnum):
 
     STATIC_TAG_REFERENCE = "tag"
     COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
+    COMMIT_STATUS_PARENT_BRANCH = "commit_status_parent_branch"
     COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
     COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = "commit_status_previous_release_branch"
     COMMIT_STATUS_DEFAULT_BRANCH = "commit_status_default_branch"
     UNLOCKED_EXACT_BRANCH = "unlocked_exact_branch"
+    UNLOCKED_PARENT_BRANCH = "unlocked_parent_branch"
     UNLOCKED_RELEASE_BRANCH = "unlocked_release_branch"
     UNLOCKED_PREVIOUS_RELEASE_BRANCH = "unlocked_previous_release_branch"
     UNLOCKED_DEFAULT_BRANCH = "unlocked_default_branch"
@@ -304,6 +307,57 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
         )
         return (None, None)
 
+class AbstractGitHubParentBranchResolver(
+    AbstractGitHubCommitStatusPackageResolver, abc.ABC
+):
+    """Abstract base class for resolvers that use commit statuses on child branches to find refs on parent branches."""
+
+    branch_offset_start = 0
+    branch_offset_end = 0
+
+    def is_valid_repo_context(self, context: BaseProjectConfig) -> bool:
+        return is_child_branch(
+            context.repo_branch, context.project__git__prefix_feature  # type: ignore
+        )
+
+    def get_branches(
+        self,
+        dep: BaseGitHubDependency,
+        context: BaseProjectConfig,
+    ) -> List[Branch]:
+        repo = context.get_repo_from_url(dep.github)
+        if not repo:
+            raise DependencyResolutionError(
+                f"Unable to access GitHub repository for {dep.github}"
+            )
+
+        try:
+            remote_branch_prefix = find_repo_feature_prefix(repo)
+        except Exception:
+            context.logger.info(
+                f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve packages."
+            )
+            return []
+
+        # Construct a list of all parent branches for a child with format feature/foo__bar__baz        
+        parents = []
+        branch_parts = context.repo_branch[len(remote_branch_prefix) :].split("__")
+        for i in range(1, len(branch_parts)):
+            parents.append(
+                f"{remote_branch_prefix}{'__'.join(branch_parts[:i])}"
+            )
+
+        # We will check at least the release branch corresponding to our release id.
+        # We may be configured to check backwards on release branches.
+        branches = []
+        for parent in parents:
+            try:
+                branches.append(repo.branch(parent))
+            except NotFoundError:
+                context.logger.info(f"Remote branch {parent} not found")
+                pass
+
+        return branches
 
 class AbstractGitHubReleaseBranchResolver(
     AbstractGitHubCommitStatusPackageResolver, abc.ABC
@@ -451,6 +505,14 @@ class GitHubExactMatch2GPResolver(AbstractGitHubExactMatchCommitStatusResolver):
     commit_status_context = "2gp_context"
     commit_status_default = "Build Feature Test Package"
 
+class GitHubParentBranch2GPResolver(AbstractGitHubParentBranchResolver):
+    """Resolver that identifies a ref by finding a 2GP package version
+    in a commit status on a branch whose name matches the local branch."""
+
+    name = "GitHub Parent Branch Commit Status Resolver"
+    commit_status_context = "2gp_context"
+    commit_status_default = "Build Feature Test Package"
+
 
 class GitHubExactMatchUnlockedCommitStatusResolver(
     AbstractGitHubExactMatchCommitStatusResolver
@@ -459,6 +521,16 @@ class GitHubExactMatchUnlockedCommitStatusResolver(
     in a commit status on a branch whose name matches the local branch."""
 
     name = "GitHub Exact-Match Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
+
+class GitHubParentBranchUnlockedCommitStatusResolver(
+    AbstractGitHubParentBranchResolver
+):
+    """Resolver that identifies a ref by finding an unlocked package version
+    in a commit status on a parent branch of the local branch."""
+
+    name = "GitHub Parent Branch Unlocked Commit Status Resolver"
     commit_status_context = "unlocked_context"
     commit_status_default = "Build Unlocked Test Package"
 
@@ -496,6 +568,7 @@ class GitHubDefaultBranchUnlockedCommitStatusResolver(
 RESOLVER_CLASSES = {
     DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubExactMatch2GPResolver,
+    DependencyResolutionStrategy.COMMIT_STATUS_PARENT_BRANCH: GitHubParentBranch2GPResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchCommitStatusResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_DEFAULT_BRANCH: GitHubDefaultBranch2GPResolver,
@@ -503,6 +576,7 @@ RESOLVER_CLASSES = {
     DependencyResolutionStrategy.RELEASE_TAG: GitHubReleaseTagResolver,
     DependencyResolutionStrategy.UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,
     DependencyResolutionStrategy.UNLOCKED_EXACT_BRANCH: GitHubExactMatchUnlockedCommitStatusResolver,
+    DependencyResolutionStrategy.UNLOCKED_PARENT_BRANCH: GitHubParentBranchUnlockedCommitStatusResolver,
     DependencyResolutionStrategy.UNLOCKED_RELEASE_BRANCH: GitHubReleaseBranchUnlockedResolver,
     DependencyResolutionStrategy.UNLOCKED_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchUnlockedResolver,
     DependencyResolutionStrategy.UNLOCKED_DEFAULT_BRANCH: GitHubDefaultBranchUnlockedCommitStatusResolver,
