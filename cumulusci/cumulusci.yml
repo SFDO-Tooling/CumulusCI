@@ -1,9 +1,9 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
-    get_preflight_checks:
-        class_path: cumulusci.tasks.preflight.checks.RetrievePreflightChecks
-        group: Salesforce Preflight Checks
+    retrieve_tasks:
+        class_path: cumulusci.tasks.retrieve_tasks.RetrieveTasks
+        description: Retrieves the tasks under the particular category or group
 
     activate_flow:
         group: Metadata Transformations
