@@ -5,8 +5,6 @@ from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTa
 
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
-    api_version = "52.0"
-
     task_options = {
         "context": {
             "description": "Name of the commit status context",
@@ -16,6 +14,7 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
     }
 
     def _run_task(self):
+        self.api_version = self.project_config.project__api_version
         repo = self.get_repo()
         context = self.options["context"]
         commit_sha = self.project_config.repo_commit
