@@ -1,10 +1,6 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
-    retrieve_tasks:
-        class_path: cumulusci.tasks.retrieve_tasks.RetrieveTasks
-        description: Retrieves the tasks under the particular category or group
-
     activate_flow:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
@@ -130,6 +126,9 @@ tasks:
             settings_type: EnhancedNotesSettings
             settings_field: IsEnhancedNotesEnabled
             value: True
+    retrieve_tasks:
+        class_path: cumulusci.tasks.preflight.retrieve_tasks.RetrieveTasks
+        description: Retrieves the tasks under the particular category or group
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
