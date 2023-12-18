@@ -19,7 +19,7 @@ from sqlalchemy import Column, Table, Unicode, create_engine
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata import LoadData
-from cumulusci.tasks.bulkdata.load import RollbackType
+from cumulusci.tasks.bulkdata.load import Rollback, RollbackType
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
@@ -157,7 +157,8 @@ class TestLoadData:
             )
         )
 
-        task._insert_rollback(table)
+        Rollback._initialized_rollback_tables_api = {"Contact_insert_rollback": "rest"}
+        Rollback._insert_rollback(task, table)
 
         dml_mock.assert_called_once_with(
             sobject="Contact",
@@ -205,7 +206,8 @@ class TestLoadData:
             )
         )
 
-        task._upsert_rollback(table)
+        Rollback._initialized_rollback_tables_api = {"Contact_upsert_rollback": "rest"}
+        Rollback._upsert_rollback(task, table)
 
         dml_mock.assert_called_once_with(
             sobject="Contact",
@@ -242,14 +244,14 @@ class TestLoadData:
         task.metadata.sorted_tables = [table_insert, table_upsert]
 
         with mock.patch.object(
-            LoadData, "_insert_rollback"
+            Rollback, "_insert_rollback"
         ) as mock_insert_rollback, mock.patch.object(
-            LoadData, "_upsert_rollback"
+            Rollback, "_upsert_rollback"
         ) as mock_upsert_rollback:
-            task._perform_rollback()
+            Rollback._perform_rollback(task)
 
-            mock_insert_rollback.assert_called_once_with(table_insert)
-            mock_upsert_rollback.assert_called_once_with(table_upsert)
+            mock_insert_rollback.assert_called_once_with(task, table_insert)
+            mock_upsert_rollback.assert_called_once_with(task, table_upsert)
 
     def test_run_task__start_step(self):
         task = _make_task(
@@ -1734,7 +1736,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
 
         with pytest.raises(BulkDataException) as e, mock.patch(
-            "cumulusci.tasks.bulkdata.load.LoadData._perform_rollback"
+            "cumulusci.tasks.bulkdata.load.Rollback._perform_rollback"
         ) as mock_rollback, mock.patch(
             "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
         ) as mock_insert_records:
@@ -1866,7 +1868,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task._process_job_results = mock.Mock()
         task._query_db = mock.Mock()
         with mock.patch(
-            "cumulusci.tasks.bulkdata.load.LoadData._perform_rollback"
+            "cumulusci.tasks.bulkdata.load.Rollback._perform_rollback"
         ) as mock_rollback:
             task._execute_step(
                 MappingStep(

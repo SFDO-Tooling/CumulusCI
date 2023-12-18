@@ -47,13 +47,6 @@ from cumulusci.tasks.bulkdata.utils import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
-class RollbackType(StrEnum):
-    """Enum to specify type of rollback"""
-
-    UPSERT = "upsert_rollback"
-    INSERT = "insert_rollback"
-
-
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
@@ -262,93 +255,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if set_recently_viewed is not False:
             self.return_values["set_recently_viewed"] = set_recently_viewed
 
-    def _create_tables_for_rollback(self, mapping, rollback_type: RollbackType) -> str:
-        """Create the tables required for upsert and insert rollback"""
-        table_name = f"{mapping.sf_object}_{rollback_type}"
-
-        # Get or initialize the dictionary of initialized tables and APIs
-        if not hasattr(self, "_initialized_rollback_tables_api"):
-            self._initialized_rollback_tables_api = {}
-        if table_name not in self._initialized_rollback_tables_api:
-            common_columns = [Column("Id", Unicode(255), primary_key=True)]
-
-            additional_columns = (
-                [
-                    Column(field, Unicode(255))
-                    for field in mapping.fields.keys()
-                    if field != "Id"
-                ]
-                if rollback_type is RollbackType.UPSERT
-                else []
-            )
-
-            columns = common_columns + additional_columns
-
-            # Create the table
-            rollback_table = Table(table_name, self.metadata, *columns)
-            rollback_table.create()
-
-            # Store the API in the initialized tables dictionary
-            self._initialized_rollback_tables_api[table_name] = mapping.api
-
-        return table_name
-
-    def _insert_rollback(self, table: Table) -> None:
-        """Perform rollback for insert operation"""
-        sf_object = table.name.split(f"_{RollbackType.INSERT.value}")[0]
-        records = self.session.query(table).all()
-
-        if records:
-            self.logger.info(f"Deleting {sf_object} records")
-            # Perform DELETE operation using get_dml_operation
-            step = get_dml_operation(
-                sobject=sf_object,
-                operation=DataOperationType.DELETE,
-                fields=["Id"],
-                api_options={},
-                context=self,
-                api=self._initialized_rollback_tables_api[table.name],
-                volume=len(records),
-            )
-            step.start()
-            step.load_records(records)
-            step.end()
-            self.logger.info("Done")
-
-    def _upsert_rollback(self, table: Table) -> None:
-        """Perform rollback for upsert operation"""
-        sf_object = table.name.split(f"_{RollbackType.UPSERT.value}")[0]
-        records = self.session.query(table).all()
-
-        if records:
-            self.logger.info(f"Reverting upserts for {sf_object}")
-            api_options = {"update_key": "Id"}
-
-            # Use get_dml_operation to create an UPSERT step
-            step = get_dml_operation(
-                sobject=sf_object,
-                operation=DataOperationType.UPSERT,
-                api_options=api_options,
-                context=self,
-                fields=[column.name for column in table.columns],
-                api=self._initialized_rollback_tables_api[table.name],
-                volume=len(records),
-            )
-            step.start()
-            step.load_records(records)
-            step.end()
-            self.logger.info("Done")
-
-    def _perform_rollback(self):
-        """Perform total rollback"""
-        self.logger.info("--Initiated Rollback Procedure--")
-        for table in reversed(self.metadata.sorted_tables):
-            if table.name.endswith(RollbackType.INSERT):
-                self._insert_rollback(table)
-            elif table.name.endswith(RollbackType.UPSERT):
-                self._upsert_rollback(table)
-        self.logger.info("--Finished Rollback Procedure--")
-
     def _execute_step(
         self, mapping: MappingStep
     ) -> T.Union[DataOperationJobResult, MagicMock]:
@@ -377,8 +283,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     self._stream_queried_data(mapping, local_ids, query)
                 )
                 if results:
-                    table_name = self._create_tables_for_rollback(
-                        mapping, RollbackType.UPSERT
+                    table_name = Rollback._create_tables_for_rollback(
+                        self, mapping, RollbackType.UPSERT
                     )
                     conn = self.session.connection()
                     sql_bulk_insert_from_records(
@@ -400,7 +306,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 step.job_result.status is DataOperationStatus.JOB_FAILURE
                 and self.options["enable_rollback"]
             ):
-                self._perform_rollback()
+                Rollback._perform_rollback(self)
 
             return step.job_result
 
@@ -585,7 +491,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
             if self.options["enable_rollback"]:
-                self._create_tables_for_rollback(mapping, RollbackType.INSERT)
+                Rollback._create_tables_for_rollback(self, mapping, RollbackType.INSERT)
 
         sf_id_results = self._generate_results_id_map(step, local_ids)
 
@@ -635,27 +541,33 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         local_ids = (lid.strip("\n") for lid in local_ids)
         sf_id_results = []
         insert_rollback_results = []
+        failed_results = []
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
                 sf_id_results.append([local_id, result.id])
                 if result.created:
                     insert_rollback_results.append([result.id])
             else:
-                try:
-                    error_checker.check_for_row_error(result, local_id)
-                except Exception as e:
-                    if self.options["enable_rollback"]:
-                        if insert_rollback_results:
-                            table_name = f"{step.sobject}_{RollbackType.INSERT}"
-                            conn = self.session.connection()
-                            sql_bulk_insert_from_records(
-                                connection=conn,
-                                table=self.metadata.tables[table_name],
-                                columns=["Id"],
-                                record_iterable=insert_rollback_results,
-                            )
-                        self._perform_rollback()
-                    raise e
+                failed_results.append([result, local_id])
+
+        # We record failed_results separately since if a unsuccesful record
+        # was in between, it would not store all the successful ids
+        for result, local_id in failed_results:
+            try:
+                error_checker.check_for_row_error(result, local_id)
+            except Exception as e:
+                if self.options["enable_rollback"]:
+                    if insert_rollback_results:
+                        table_name = f"{step.sobject}_{RollbackType.INSERT}"
+                        conn = self.session.connection()
+                        sql_bulk_insert_from_records(
+                            connection=conn,
+                            table=self.metadata.tables[table_name],
+                            columns=["Id"],
+                            record_iterable=insert_rollback_results,
+                        )
+                    Rollback._perform_rollback(self)
+                raise e
         if self.options["enable_rollback"] and insert_rollback_results:
             table_name = f"{step.sobject}_{RollbackType.INSERT}"
             conn = self.session.connection()
@@ -968,6 +880,108 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         )
                         results.append(SetRecentlyViewedInfo(mapped_item, e))
         return results
+
+
+class RollbackType(StrEnum):
+    """Enum to specify type of rollback"""
+
+    UPSERT = "upsert_rollback"
+    INSERT = "insert_rollback"
+
+
+class Rollback:
+    # Store the table name and it's corresponding API (rest or bulk)
+    _initialized_rollback_tables_api = {}
+
+    @staticmethod
+    def _create_tables_for_rollback(
+        context, mapping, rollback_type: RollbackType
+    ) -> str:
+        """Create the tables required for upsert and insert rollback"""
+        table_name = f"{mapping.sf_object}_{rollback_type}"
+
+        if table_name not in Rollback._initialized_rollback_tables_api:
+            common_columns = [Column("Id", Unicode(255), primary_key=True)]
+
+            additional_columns = (
+                [
+                    Column(field, Unicode(255))
+                    for field in mapping.fields.keys()
+                    if field != "Id"
+                ]
+                if rollback_type is RollbackType.UPSERT
+                else []
+            )
+
+            columns = common_columns + additional_columns
+
+            # Create the table
+            rollback_table = Table(table_name, context.metadata, *columns)
+            rollback_table.create()
+
+            # Store the API in the initialized tables dictionary
+            Rollback._initialized_rollback_tables_api[table_name] = mapping.api
+
+        return table_name
+
+    @staticmethod
+    def _insert_rollback(context, table: Table) -> None:
+        """Perform rollback for insert operation"""
+        sf_object = table.name.split(f"_{RollbackType.INSERT.value}")[0]
+        records = context.session.query(table).all()
+
+        if records:
+            context.logger.info(f"Deleting {sf_object} records")
+            # Perform DELETE operation using get_dml_operation
+            step = get_dml_operation(
+                sobject=sf_object,
+                operation=DataOperationType.DELETE,
+                fields=["Id"],
+                api_options={},
+                context=context,
+                api=Rollback._initialized_rollback_tables_api[table.name],
+                volume=len(records),
+            )
+            step.start()
+            step.load_records(records)
+            step.end()
+            context.logger.info("Done")
+
+    @staticmethod
+    def _upsert_rollback(context, table: Table) -> None:
+        """Perform rollback for upsert operation"""
+        sf_object = table.name.split(f"_{RollbackType.UPSERT.value}")[0]
+        records = context.session.query(table).all()
+
+        if records:
+            context.logger.info(f"Reverting upserts for {sf_object}")
+            api_options = {"update_key": "Id"}
+
+            # Use get_dml_operation to create an UPSERT step
+            step = get_dml_operation(
+                sobject=sf_object,
+                operation=DataOperationType.UPSERT,
+                api_options=api_options,
+                context=context,
+                fields=[column.name for column in table.columns],
+                api=Rollback._initialized_rollback_tables_api[table.name],
+                volume=len(records),
+            )
+            step.start()
+            step.load_records(records)
+            step.end()
+            context.logger.info("Done")
+
+    @staticmethod
+    def _perform_rollback(context):
+        """Perform total rollback"""
+        context.logger.info("--Initiated Rollback Procedure--")
+        for table in reversed(context.metadata.sorted_tables):
+            if table.name.endswith(RollbackType.INSERT):
+                Rollback._insert_rollback(context, table)
+            elif table.name.endswith(RollbackType.UPSERT):
+                Rollback._upsert_rollback(context, table)
+        context.logger.info("--Finished Rollback Procedure--")
 
 
 class StepResultInfo(T.NamedTuple):
