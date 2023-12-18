@@ -23,7 +23,8 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 
-CURRENT_SF_API_VERSION = "55.0"
+# putting this below FakeBulkAPI causes a circular import
+CURRENT_SF_API_VERSION = UniversalConfig().project__package__api_version
 from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
