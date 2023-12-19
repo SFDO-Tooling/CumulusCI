@@ -323,27 +323,27 @@ class ReleaseNotes(CCIDictModel):
         description="A dictionary of release notes parsers in execution order.",
         examples=[
             {
-                1: {
+                "1": {
                     "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
                     "title": "Critical Changes",
                 },
-                2: {
+                "2": {
                     "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
                     "title": "Changes",
                 },
-                3: {
+                "3": {
                     "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
                     "title": "Issues Closed",
                 },
-                4: {
+                "4": {
                     "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
                     "title": "New Metadata",
                 },
-                5: {
+                "5": {
                     "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
                     "title": "Deleted Metadata",
                 },
-                6: {
+                "6": {
                     "class_path": "cumulusci.tasks.release_notes.parser.InstallLinkParser",
                     "title": "Installation Info",
                 },
@@ -406,11 +406,11 @@ class Git(CCIDictModel):
         examples=[
             {
                 "parsers": {
-                    1: {
+                    "1": {
                         "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
                         "title": "Critical Changes",
                     },
-                    2: {
+                    "2": {
                         "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
                         "title": "Changes",
                     },
