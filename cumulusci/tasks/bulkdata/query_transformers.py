@@ -111,7 +111,7 @@ class AddRecordTypesToQuery(LoadQueryExtender):
                 ]
 
             except KeyError as e:
-
+                # For generate_and_load_from_yaml, In case of namespace_inject true, mapping table name doesn't have namespace added
                 try:
                     rt_source_table = self.metadata.tables[
                         f"{self.mapping.table}_rt_mapping"
