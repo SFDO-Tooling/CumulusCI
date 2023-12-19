@@ -19,7 +19,12 @@ from sqlalchemy import Column, Table, Unicode, create_engine
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata import LoadData
-from cumulusci.tasks.bulkdata.load import Rollback, RollbackType
+from cumulusci.tasks.bulkdata.load import (
+    CreateRollback,
+    Rollback,
+    RollbackType,
+    UpdateRollback,
+)
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
@@ -158,7 +163,7 @@ class TestLoadData:
         )
 
         Rollback._initialized_rollback_tables_api = {"Contact_insert_rollback": "rest"}
-        Rollback._insert_rollback(task, table)
+        CreateRollback._perform_rollback(task, table)
 
         dml_mock.assert_called_once_with(
             sobject="Contact",
@@ -207,7 +212,7 @@ class TestLoadData:
         )
 
         Rollback._initialized_rollback_tables_api = {"Contact_upsert_rollback": "rest"}
-        Rollback._upsert_rollback(task, table)
+        UpdateRollback._perform_rollback(task, table)
 
         dml_mock.assert_called_once_with(
             sobject="Contact",
@@ -244,9 +249,9 @@ class TestLoadData:
         task.metadata.sorted_tables = [table_insert, table_upsert]
 
         with mock.patch.object(
-            Rollback, "_insert_rollback"
+            CreateRollback, "_perform_rollback"
         ) as mock_insert_rollback, mock.patch.object(
-            Rollback, "_upsert_rollback"
+            UpdateRollback, "_perform_rollback"
         ) as mock_upsert_rollback:
             Rollback._perform_rollback(task)
 
@@ -1815,6 +1820,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         tables = {f"Account_{RollbackType.UPSERT}": "AccountUpsertTable"}
         task.metadata.tables = tables
         step = mock.Mock()
+        step.fields = ["Name"]
+        step.sobject = "Account"
         query = mock.Mock()
         task.configure_step = mock.Mock()
         task.configure_step.return_value = (step, query)
