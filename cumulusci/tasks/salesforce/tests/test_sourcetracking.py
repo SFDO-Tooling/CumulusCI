@@ -152,7 +152,8 @@ class TestRetrieveChanges:
 
         with temporary_dir():
             task = create_task_fixture(
-                RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
+                RetrieveChanges,
+                {"include": "Test", "namespace_tokenize": "ns", "ret_profile": True},
             )
             task._init_task()
             task.tooling = mock.Mock()

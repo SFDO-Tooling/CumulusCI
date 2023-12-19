@@ -132,27 +132,6 @@ class ListChanges(BaseSalesforceApiTask):
                 filtered.append(change)
         return filtered, ignored
 
-    def _filter_changes_with_profiles(self, changes):
-        """Filter changes using the include/exclude options along with profiles"""
-        filtered = []
-        ignored = []
-        profiles = []
-        for change in changes:
-            mdtype = change["MemberType"]
-            name = change["MemberName"]
-            full_name = f"{mdtype}: {name}"
-            if (
-                self._include
-                and not any(re.search(s, full_name) for s in self._include)
-            ) or any(re.search(s, full_name) for s in self._exclude):
-                ignored.append(change)
-            else:
-                if mdtype == "Profile":
-                    profiles.append(name)
-                else:
-                    filtered.append(change)
-        return filtered, ignored, profiles
-
     def _store_snapshot(self, changes):
         """Update the snapshot of which component revisions have been retrieved."""
         for change in changes:
@@ -189,6 +168,12 @@ retrieve_changes_task_options["api_version"] = {
         + " Defaults to project__package__api_version"
     )
 }
+retrieve_changes_task_options["ret_profile"] = {
+    "description": (
+        "If set to True, will use RetrieveProfile to retrieve"
+        + " the complete profile. Default is set to False"
+    )
+}
 retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_options[
     "namespace_tokenize"
 ]
@@ -216,9 +201,21 @@ def _write_manifest(changes, path, api_version):
         f.write(package_xml)
 
 
+def separate_profiles(components):
+    """Separate the profiles from components"""
+    updated_components = []
+    profiles = []
+    for comp in components:
+        if comp["MemberType"] == "Profile":
+            profiles.append(comp["MemberName"])
+        else:
+            updated_components.append(comp)
+
+    return updated_components, profiles
+
+
 def retrieve_components(
     components,
-    profiles,
     org_config,
     project_config,
     target: str,
@@ -226,6 +223,7 @@ def retrieve_components(
     extra_package_xml_opts: dict,
     namespace_tokenize: str,
     api_version: str,
+    ret_profile: bool = False,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -239,6 +237,7 @@ def retrieve_components(
     """
 
     target = os.path.realpath(target)
+    profiles = []
     with contextlib.ExitStack() as stack:
         if md_format:
             # Create target if it doesn't exist
@@ -270,6 +269,11 @@ def retrieve_components(
                 args=["-r", target, "-d", "force-app"],
                 check_return=True,
             )
+
+        # If ret_profile is True, separate the profiles from
+        # components to retrieve complete profile
+        if ret_profile:
+            components, profiles = separate_profiles(components)
 
         if components:
             # Construct package.xml with components to retrieve, in its own tempdir
@@ -343,6 +347,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(RetrieveChanges, self)._init_options(kwargs)
         self.options["snapshot"] = process_bool_arg(kwargs.get("snapshot", True))
+        self.options["ret_profile"] = process_bool_arg(
+            self.options.get("ret_profile", False)
+        )
 
         # Check which directories are configured as dx packages
         package_directories = []
@@ -382,14 +389,12 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         self._load_snapshot()
         self.logger.info("Querying Salesforce for changed source members")
         changes = self._get_changes()
-        filtered, ignored, profiles = self._filter_changes_with_profiles(changes)
-        if not filtered and not profiles:
+        filtered, ignored = self._filter_changes(changes)
+        if not filtered:
             self.logger.info("No changes to retrieve")
             return
         for change in filtered:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
-        for profile in profiles:
-            self.logger.info(f"Profile: {profile}")
 
         target = os.path.realpath(self.options["path"])
         package_xml_opts = {}
@@ -404,7 +409,6 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
 
         retrieve_components(
             filtered,
-            profiles,
             self.org_config,
             self.project_config,
             target,
@@ -412,6 +416,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             namespace_tokenize=self.options.get("namespace_tokenize"),
             api_version=self.options["api_version"],
             extra_package_xml_opts=package_xml_opts,
+            ret_profile=self.options["ret_profile"],
         )
 
         if self.options["snapshot"]:
