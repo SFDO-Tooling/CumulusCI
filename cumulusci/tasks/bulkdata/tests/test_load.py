@@ -1705,11 +1705,12 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         conn = mock.Mock()
         task._extract_record_types = mock.Mock()
+        task.org_config._is_person_accounts_enabled = True
         task._load_record_types(["Account", "Contact"], conn)
         task._extract_record_types.assert_has_calls(
             [
-                mock.call("Account", "Account_rt_target_mapping", conn),
-                mock.call("Contact", "Contact_rt_target_mapping", conn),
+                mock.call("Account", "Account_rt_target_mapping", conn, True),
+                mock.call("Contact", "Contact_rt_target_mapping", conn, True),
             ]
         )
 

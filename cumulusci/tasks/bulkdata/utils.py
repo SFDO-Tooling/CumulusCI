@@ -34,10 +34,15 @@ class SqlAlchemyMixin:
         rt_map_table = Table(table_name, self.metadata, *rt_map_fields)
         mapper(self.models[table_name], rt_map_table)
 
-    def _extract_record_types(self, sobject, tablename: str, conn):
+    def _extract_record_types(
+        self, sobject, tablename: str, conn, is_person_accounts_enabled: bool
+    ):
         """Query for Record Type information and persist it in the database."""
         self.logger.info(f"Extracting Record Types for {sobject}")
-        query = f"SELECT Id, DeveloperName, IsPersonType FROM RecordType WHERE SObjectType='{sobject}'"
+        if is_person_accounts_enabled:
+            query = f"SELECT Id, DeveloperName, IsPersonType FROM RecordType WHERE SObjectType='{sobject}'"
+        else:
+            query = f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
 
         result = self.sf.query(query)
 
@@ -47,7 +52,7 @@ class SqlAlchemyMixin:
                 table=self.metadata.tables[tablename],
                 columns=["record_type_id", "developer_name", "is_person_type"],
                 record_iterable=(
-                    [rt["Id"], rt["DeveloperName"], rt["IsPersonType"]]
+                    [rt["Id"], rt["DeveloperName"], rt.get("IsPersonType", False)]
                     for rt in result["records"]
                 ),
             )

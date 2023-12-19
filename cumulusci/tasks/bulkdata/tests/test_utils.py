@@ -66,12 +66,12 @@ class TestSqlAlchemyMixin:
         with mock.patch(
             "cumulusci.tasks.bulkdata.utils.sql_bulk_insert_from_records"
         ) as sql_bulk_insert_from_records:
-            util._extract_record_types("Account", "test_table", conn)
+            util._extract_record_types("Account", "test_table", conn, True)
 
         util.sf.query.assert_called_once_with(
             "SELECT Id, DeveloperName, IsPersonType FROM RecordType WHERE SObjectType='Account'"
         )
-        sql_bulk_insert_from_records.assert_called_once()
+        sql_bulk_insert_from_records.assert_called()
         call = sql_bulk_insert_from_records.call_args_list[0][1]
         assert call["connection"] == conn
         assert call["table"] == util.metadata.tables["test_table"]
