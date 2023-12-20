@@ -613,6 +613,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.metadata.bind = connection
                 self.inspector = inspect(parent_engine)
 
+                # empty the record of initalized tables
+                Rollback._initialized_rollback_tables_api = {}
+
                 # initialize the automap mapping
                 self.base = automap_base(bind=connection, metadata=self.metadata)
                 self.base.prepare(connection, reflect=True)
