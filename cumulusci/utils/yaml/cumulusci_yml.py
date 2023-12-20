@@ -69,11 +69,24 @@ class PreflightCheck(CCIDictModel):
         description = "A preflight check to run before a step or plan in MetaDeploy."
 
 
+class StepUIOptionsKindEnum(StrEnum):
+    metadata = "Metadata"
+    onetime = "One Time Apex"
+    managed = "Managed Package"
+    data = "Data"
+    other = "Other"
+
+
 class StepUIOptions(TypedDict):
-    name: str  # Name of the step shown to the user.
-    is_required: bool  # If True, the step will always be run.
-    is_recommended: bool  # If True, the step will be run unless the user opts out.
-    is_optional: bool  # If True, the step will be run only if the user opts in.
+    name: Optional[str]  # Name of the step shown to the user.
+    description: Optional[str]  # Description of the step shown to the user.
+    is_required: Optional[bool]  # If True, the step will always be run.
+    is_recommended: Optional[
+        bool
+    ]  # If True, the step will be run unless the user opts out.
+    kind: Optional[
+        StepUIOptionsKindEnum
+    ]  # The kind of step. Used to group steps in the UI.
 
 
 class Step(CCIDictModel):
@@ -117,8 +130,19 @@ class Step(CCIDictModel):
         title="UI Options",
         description="Options for the task or flow that are only used by MetaDeploy. For flows, this should be a dictionary with a key for the task name containing keys for each option.",
         examples=[
-            {"name": "Deploy Recommended Config", "is_recommended": True},
-            {"name": "Deploy Optional Config", "is_optional": True},
+            {"name": "Deploy Required Config", "kind": "managed"},
+            {
+                "name": "Deploy Recommended Config",
+                "kind": "metadata",
+                "is_required": False,
+                "is_recommended": True,
+            },
+            {
+                "name": "Deploy Optional Config",
+                "kind": "other",
+                "is_required": False,
+                "is_recommended": False,
+            },
         ],
     )
     checks: List[PreflightCheck] = Field(
