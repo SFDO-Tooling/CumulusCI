@@ -6,7 +6,8 @@ import re
 import time
 from collections import defaultdict
 
-from cumulusci.core.config import ScratchOrgConfig, TaskConfig
+from cumulusci.core.config import BaseProjectConfig, ScratchOrgConfig, TaskConfig
+from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
@@ -168,7 +169,7 @@ retrieve_changes_task_options["api_version"] = {
         + " Defaults to project__package__api_version"
     )
 }
-retrieve_changes_task_options["ret_profile"] = {
+retrieve_changes_task_options["retrieve_complete_profile"] = {
     "description": (
         "If set to True, will use RetrieveProfile to retrieve"
         + " the complete profile. Default is set to False"
@@ -217,13 +218,13 @@ def separate_profiles(components):
 def retrieve_components(
     components,
     org_config,
-    project_config,
     target: str,
     md_format: bool,
     extra_package_xml_opts: dict,
     namespace_tokenize: str,
     api_version: str,
-    ret_profile: bool = False,
+    project_config: BaseProjectConfig = None,
+    retrieve_complete_profile: bool = False,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -238,6 +239,14 @@ def retrieve_components(
 
     target = os.path.realpath(target)
     profiles = []
+
+    # If retrieve_complete_profile and project_config is None, raise error
+    # This is because project_config is only required if retrieve_complete_profile is True
+    if retrieve_complete_profile and project_config is None:
+        raise ProjectConfigNotFound(
+            "Kindly provide project_config as part of retrieve_components"
+        )
+
     with contextlib.ExitStack() as stack:
         if md_format:
             # Create target if it doesn't exist
@@ -270,9 +279,9 @@ def retrieve_components(
                 check_return=True,
             )
 
-        # If ret_profile is True, separate the profiles from
+        # If retrieve_complete_profile is True, separate the profiles from
         # components to retrieve complete profile
-        if ret_profile:
+        if retrieve_complete_profile:
             components, profiles = separate_profiles(components)
 
         if components:
@@ -347,8 +356,8 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(RetrieveChanges, self)._init_options(kwargs)
         self.options["snapshot"] = process_bool_arg(kwargs.get("snapshot", True))
-        self.options["ret_profile"] = process_bool_arg(
-            self.options.get("ret_profile", False)
+        self.options["retrieve_complete_profile"] = process_bool_arg(
+            self.options.get("retrieve_complete_profile", False)
         )
 
         # Check which directories are configured as dx packages
@@ -410,13 +419,13 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         retrieve_components(
             filtered,
             self.org_config,
-            self.project_config,
             target,
             md_format=self.md_format,
             namespace_tokenize=self.options.get("namespace_tokenize"),
             api_version=self.options["api_version"],
             extra_package_xml_opts=package_xml_opts,
-            ret_profile=self.options["ret_profile"],
+            project_config=self.project_config,
+            retrieve_complete_profile=self.options["retrieve_complete_profile"],
         )
 
         if self.options["snapshot"]:

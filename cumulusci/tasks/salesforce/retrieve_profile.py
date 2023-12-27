@@ -161,7 +161,9 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
                     )
 
         # zip_result.extractall('./unpackaged')
-
+        self.existing_profiles.remove(
+            "Admin"
+        ) if "Admin" in self.existing_profiles else None
         self.logger.info(
             f"Profiles {', '.join(self.existing_profiles)} unzipped into folder '{self.extract_dir}'"
         )

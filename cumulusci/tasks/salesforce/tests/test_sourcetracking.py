@@ -3,7 +3,10 @@ import os
 import pathlib
 from unittest import mock
 
+import pytest
+
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 from cumulusci.tasks.salesforce.sourcetracking import (
     KNOWN_BAD_MD_TYPES,
@@ -11,6 +14,7 @@ from cumulusci.tasks.salesforce.sourcetracking import (
     RetrieveChanges,
     SnapshotChanges,
     _write_manifest,
+    retrieve_components,
 )
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
@@ -153,7 +157,11 @@ class TestRetrieveChanges:
         with temporary_dir():
             task = create_task_fixture(
                 RetrieveChanges,
-                {"include": "Test", "namespace_tokenize": "ns", "ret_profile": True},
+                {
+                    "include": "Test",
+                    "namespace_tokenize": "ns",
+                    "retrieve_complete_profile": True,
+                },
             )
             task._init_task()
             task.tooling = mock.Mock()
@@ -265,3 +273,28 @@ def test_write_manifest__bad_md_types():
         assert "<name>Report</name>" in package_xml
         for name in bad_md_types:
             assert f"<name>{name}</name>" not in package_xml
+
+
+def test_retrieve_components_project_config_not_found():
+    components = mock.Mock()
+    org_config = mock.Mock()
+    target = "force-app/"
+    md_format = False
+    extra_package_xml_opts = {"sample": "dict"}
+    namespace_tokenize = "sample"
+    api_version = "58.0"
+    expected_error_message = (
+        "Kindly provide project_config as part of retrieve_components"
+    )
+    with pytest.raises(ProjectConfigNotFound) as e:
+        retrieve_components(
+            components=components,
+            org_config=org_config,
+            target=target,
+            md_format=md_format,
+            extra_package_xml_opts=extra_package_xml_opts,
+            namespace_tokenize=namespace_tokenize,
+            api_version=api_version,
+            retrieve_complete_profile=True,
+        )
+        assert expected_error_message == e.value.message
