@@ -70,6 +70,7 @@ class TestUpsert:
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
                 # "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
 
@@ -128,6 +129,7 @@ class TestUpsert:
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
                 # "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -196,6 +198,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_mapping_rest.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -385,6 +388,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_mapping_bulk.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -437,6 +441,7 @@ class TestUpsert:
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}_complex.yml",
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -457,6 +462,7 @@ class TestUpsert:
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}_complex.yml",
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -528,6 +534,7 @@ class TestUpsert:
                 "mapping": cumulusci_test_repo_root
                 / "datasets/upsert/upsert_mapping_rest_complex.yml",
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -656,6 +663,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_smart__native_field.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -722,6 +730,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_smart__native_field.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -893,6 +902,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_smart__non_native_field.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
