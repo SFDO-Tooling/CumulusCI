@@ -1,0 +1,8 @@
+Upsert Accounts:
+    api: rest
+    sf_object: Account
+    action: etl_upsert
+    update_key: AccountNumber
+    fields:
+        - AccountNumber
+        - RecordTypeId

@@ -396,7 +396,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Persist record types for the given sObjects into the database."""
         for sobject in sobjects:
             table_name = sobject + "_rt_target_mapping"
-            self._extract_record_types(sobject, table_name, conn)
+            self._extract_record_types(
+                sobject, table_name, conn, self.org_config.is_person_accounts_enabled
+            )
 
     def _get_statics(self, mapping):
         """Return the static values (not column names) to be appended to
