@@ -1663,6 +1663,20 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 FROM accounts
                 LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
                 LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
+                AND "account_rt_target_mapping".is_person_type = "account_rt_mapping".is_person_type
+        """,
+        )
+
+    def test_query_db__record_type_mapping_table_from_tablename(self):
+        _validate_query_for_mapping_step(
+            sql_path="cumulusci/tasks/bulkdata/tests/recordtypes_2.sql",
+            mapping="cumulusci/tasks/bulkdata/tests/recordtypes_2.yml",
+            mapping_step_name="Insert Account",
+            expected="""SELECT "Beta".id AS "Beta_id", "Beta"."Name" AS "Beta_Name", "Account_rt_target_mapping".record_type_id AS "Account_rt_target_mapping_record_type_id"
+            FROM "Beta"
+            LEFT OUTER JOIN "Beta_rt_mapping" ON "Beta_rt_mapping".record_type_id = "Beta"."RecordType"
+            LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Beta_rt_mapping".developer_name
+            AND "Account_rt_target_mapping".is_person_type = "Beta_rt_mapping".is_person_type
         """,
         )
 
@@ -1704,11 +1718,12 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         conn = mock.Mock()
         task._extract_record_types = mock.Mock()
+        task.org_config._is_person_accounts_enabled = True
         task._load_record_types(["Account", "Contact"], conn)
         task._extract_record_types.assert_has_calls(
             [
-                mock.call("Account", "Account_rt_target_mapping", conn),
-                mock.call("Contact", "Contact_rt_target_mapping", conn),
+                mock.call("Account", "Account_rt_target_mapping", conn, True),
+                mock.call("Contact", "Contact_rt_target_mapping", conn, True),
             ]
         )
 

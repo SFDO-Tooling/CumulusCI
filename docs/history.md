@@ -2,6 +2,22 @@
 
 <!-- latest-start -->
 
+## v3.83.0 (2023-12-08)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Allowed namespace injection without managed by [@jain-naman-sf](https://github.com/jain-naman-sf) in [#3677](https://github.com/SFDO-Tooling/CumulusCI/pull/3677)
+-   Update pyright configuration for 1.1.339 by [@jstvz](https://github.com/jstvz) in [#3715](https://github.com/SFDO-Tooling/CumulusCI/pull/3715)
+-   Replace distutils with shutil for 3.12 by [@jstvz](https://github.com/jstvz) in [#3714](https://github.com/SFDO-Tooling/CumulusCI/pull/3714)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.82.0...v3.83.0
+
+<!-- latest-stop -->
+
 ## v3.82.0 (2023-12-01)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -29,8 +45,6 @@
 -   @mgrandhi made their first contribution in [#3683](https://github.com/SFDO-Tooling/CumulusCI/pull/3683)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.81.0...v3.82.0
-
-<!-- latest-stop -->
 
 ## v3.81.0 (2023-11-03)
 
