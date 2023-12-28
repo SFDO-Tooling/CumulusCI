@@ -92,7 +92,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "When True, all path options are ignored and only a dataset matching the org shape name will be loaded. Defaults to False."
         },
         "enable_rollback": {
-            "description": "When True, performs rollback operation incase of error. Defaults to True"
+            "description": "When True, performs rollback operation incase of error. Defaults to False"
         },
     }
     row_warning_limit = 10
@@ -122,7 +122,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("set_recently_viewed", True)
         )
         self.options["enable_rollback"] = process_bool_arg(
-            self.options.get("enable_rollback", True)
+            self.options.get("enable_rollback", False)
         )
 
     def _init_dataset(self):
