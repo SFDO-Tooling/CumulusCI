@@ -929,4 +929,4 @@ $ cci flow info custom_flow_for_1.2 --load-yml migrations/1.2.yml
 $ cci flow run custom_flow_for_1.2 --load-yml migrations/1.2.yml
 ```
 
-Behind the scenes, CumulusCI is merging the yaml file specified by `--load-yml` on top of the project config. This means any customizations you could make in cumulusci.yml can also be made in a file loaded via `--load-yml`
+Behind the scenes, CumulusCI is merging the yaml file specified by `--load-yml` on top of the project config only for the single command being run. This means any customizations you could make in cumulusci.yml can also be made in a file loaded via `--load-yml`, and they won't have any impact on any other commands you run without `--load-yml` or with a different yaml file path provided.
