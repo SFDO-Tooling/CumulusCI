@@ -1,3 +1,4 @@
+import builtins
 import contextlib
 import io
 import os
@@ -8,6 +9,8 @@ from pathlib import Path
 from unittest import mock
 
 import click
+from click import Command
+from click.testing import CliRunner
 import pkg_resources
 import pytest
 from requests.exceptions import ConnectionError
@@ -15,10 +18,11 @@ from rich.console import Console
 
 import cumulusci
 from cumulusci.cli import cci
+from cumulusci.cli.task import task_list
 from cumulusci.cli.tests.utils import run_click_command
 from cumulusci.cli.utils import get_installed_version
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, CumulusCIUsageError
 from cumulusci.utils import temporary_dir
 
 MagicMock = mock.MagicMock()
@@ -212,12 +216,88 @@ def test_main__CliRuntime_error(CliRuntime, get_tempfile_logger, tee):
 @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+@mock.patch("sys.exit")
+def test_cci_load_yml__missing(
+    exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+):
+    # get_tempfile_logger doesn't clean up after itself which breaks other tests
+    get_tempfile_logger.return_value = mock.Mock(), ""
+    runner = CliRunner()
+    # Mock the contents of the yaml file
+    with pytest.raises(CumulusCIUsageError):
+        cci.main(
+            [
+                "cci",
+                "task",
+                "list",
+                "--load-yml",
+            ],
+        )
+
+
+@mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+@mock.patch("sys.exit")
+# @mock.patch("cumulusci.cli.cci.CliRuntime")
+def test_cci_load_yml__notfound(
+    exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+):
+    # get_tempfile_logger doesn't clean up after itself which breaks other tests
+    get_tempfile_logger.return_value = mock.Mock(), ""
+    runner = CliRunner()
+    with pytest.raises(CumulusCIUsageError):
+        cci.main(
+            [
+                "cci",
+                "task",
+                "list",
+                "--load-yml",
+                "/path/that/does/not/exist/anywhere",
+            ],
+        )
+
+
+@mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+@mock.patch("sys.exit")
+@mock.patch("cumulusci.cli.cci.CliRuntime")
+def test_cci_load_yml(
+    CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+):
+    # get_tempfile_logger doesn't clean up after itself which breaks other tests
+    get_tempfile_logger.return_value = mock.Mock(), ""
+
+    load_yml_path = [cumulusci.__path__[0][: -len("/cumulusci")]]
+    load_yml_path.append("additional.yml")
+    load_yml = os.path.join(*load_yml_path)
+
+    cci.main(
+        [
+            "cci",
+            "org",
+            "default",
+            "--load-yml",
+            load_yml,
+        ]
+    )
+
+    # Check that CliRuntime was called with the correct arguments
+    with open(load_yml, "r") as f:
+        CliRuntime.assert_called_once_with(
+            load_keychain=False, additional_yaml=f.read()
+        )
+
+
+@mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
 @mock.patch("cumulusci.cli.cci.CliRuntime")
 @mock.patch("sys.exit", MagicMock())
 def test_handle_org_name(
     CliRuntime, tee_stdout_stderr, get_tempfile_logger, init_logger
 ):
-
     # get_tempfile_logger doesn't clean up after itself which breaks other tests
     get_tempfile_logger.return_value = mock.Mock(), ""
 

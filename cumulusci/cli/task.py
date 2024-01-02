@@ -25,8 +25,12 @@ def task():
 @task.command(name="list", help="List available tasks for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_project=False)
-def task_list(runtime, plain, print_json):
+def task_list(runtime, plain, print_json, load_yml=None):
     tasks = runtime.get_available_tasks()
     plain = plain or runtime.universal_config.cli__plain_output
 
@@ -60,8 +64,12 @@ def task_list(runtime, plain, print_json):
     is_flag=True,
     help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_project=False)
-def task_doc(runtime, project=False, write=False):
+def task_doc(runtime, project=False, write=False, load_yml=None):
     if project and runtime.project_config is None:
         raise click.UsageError(
             "The --project option can only be used inside a project."
@@ -95,8 +103,12 @@ def task_doc(runtime, project=False, write=False):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def task_info(runtime, task_name):
+def task_info(runtime, task_name, load_yml=None):
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
@@ -125,6 +137,10 @@ class RunTaskCommand(click.MultiCommand):
         "debug-after": {
             "help": "Drops into the Python debugger at task completion.",
             "is_flag": True,
+        },
+        "load-yml": {
+            "help": "If set, loads the specified yml file into the the project config as additional config",
+            "is_flag": False,
         },
     }
 

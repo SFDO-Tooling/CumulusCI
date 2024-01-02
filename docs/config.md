@@ -908,3 +908,25 @@ how a task or flow is _currently_ configured. The information output by
 these commands change as you make further customizations to your
 project's `cumulusci.yml` file.
 ```
+
+## Loading additional yaml configuration from a file
+
+CumulusCI supports loading in an additional yaml file from the command line with the `--load-yml <path/to/file>` option on `cci task` and `cci flow` commands. This can be useful if you have one-off automation configurations that you want to keep out of the main project's configuration and load only in special cases.
+
+A good example of this is upgrade or migration scripts to do things like enabling a new feature from a release. If you create a lot of these upgrade scripts as their own flows. All those flows and all their one-off custom tasks would show up for everyone in the `cci task list` and `cci flow list`. Instead, you could create a directory of yaml files such as `migrations/1.2.yml` and `migrations/1.3.yml` where each file contains a set of custom tasks and flows only needed for their migration logic.
+
+You could inspect the new commands added on top of the existing project config defined in cumulusci.yml with the following commands:
+
+```console
+# Tasks
+$ cci task list --load-yml migrations/1.2.yml
+$ cci task info custom_task_for_1.2 --load-yml migrations/1.2.yml
+$ cci task run custom_task_for_1.2 --load-yml migrations/1.2.yml
+
+# Flows
+$ cci flow list --load-yml migrations/1.2.yml
+$ cci flow info custom_flow_for_1.2 --load-yml migrations/1.2.yml
+$ cci flow run custom_flow_for_1.2 --load-yml migrations/1.2.yml
+```
+
+Behind the scenes, CumulusCI is merging the yaml file specified by `--load-yml` on top of the project config only for the single command being run. This means any customizations you could make in cumulusci.yml can also be made in a file loaded via `--load-yml`, and they won't have any impact on any other commands you run without `--load-yml` or with a different yaml file path provided.
