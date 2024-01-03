@@ -4,6 +4,7 @@ import os
 import requests
 import sarge
 
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_list_arg
@@ -64,6 +65,7 @@ class ListMetadatatypes(BaseSalesforceApiTask):
             project_config=self.project_config,
             task_config=self.task_config,
         )._run_task()
+
         self.return_values = []
         for md_type in all_nonsource_types:
             if md_type in types_supported:
@@ -98,13 +100,13 @@ class ListComponents(BaseSalesforceApiTask):
 
     def _init_task(self):
         super()._init_task()
-
-    def _init_options(self, kwargs):
-        super(ListComponents, self)._init_options(kwargs)
         if "api_version" not in self.options:
             self.options[
                 "api_version"
             ] = self.project_config.project__package__api_version
+
+    def _init_options(self, kwargs):
+        super(ListComponents, self)._init_options(kwargs)
         self.options["include"] = process_list_arg(self.options.get("include", [])) + [
             f"{mdtype}:" for mdtype in process_list_arg(self.options.get("types", []))
         ]
@@ -114,10 +116,13 @@ class ListComponents(BaseSalesforceApiTask):
         self._exclude.extend(self.project_config.project__source__ignore or [])
 
     def _get_components(self):
+        task_config = TaskConfig(
+            {"options": {"api_version": self.options["api_version"]}}
+        )
         metadata_types = ListMetadatatypes(
             org_config=self.org_config,
             project_config=self.project_config,
-            task_config=self.task_config,
+            task_config=task_config,
         )._run_task()
         list_components = []
         for md_type in metadata_types:
@@ -146,13 +151,11 @@ class ListComponents(BaseSalesforceApiTask):
                 if result:
                     for cmp in result:
                         change_dict = {
-                            "MemberType": type,
+                            "MemberType": md_type,
                             "MemberName": cmp["fullName"],
                         }
                         if change_dict not in list_components:
-                            list_components.append(
-                                {"MemberType": md_type, "MemberName": cmp["fullName"]}
-                            )
+                            list_components.append(change_dict)
 
         return list_components
 

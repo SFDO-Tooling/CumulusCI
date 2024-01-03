@@ -1,3 +1,6 @@
+import io
+import json
+import os
 from unittest import mock
 
 import pytest
@@ -8,7 +11,10 @@ from cumulusci.tasks.salesforce import DescribeMetadataTypes
 from cumulusci.tasks.salesforce.nonsourcetracking import (
     ListComponents,
     ListMetadatatypes,
+    RetrieveComponents,
 )
+from cumulusci.tests.util import create_project_config
+from cumulusci.utils import temporary_dir
 
 
 class TestListMetadatatypes:
@@ -79,13 +85,141 @@ class TestListMetadatatypes:
             assert non_source_trackable == ["Scontrol", "SharingRules"]
 
 
+@mock.patch("sarge.Command")
 class TestListComponents:
-    def test_run_task(self, create_task_fixture):
+    @pytest.mark.parametrize(
+        "return_code, result",
+        [
+            (
+                0,
+                b"""{
+  "status": 0,
+  "result": [],
+  "warnings": [
+    "No metadata found for type: SharingRules"
+  ]
+}""",
+            ),
+            (1, b""),
+        ],
+    )
+    def test_check_sfdx_output(self, cmd, create_task_fixture, return_code, result):
         options = {"api_version": 44.0, "exclude": "Ignore"}
         task = create_task_fixture(ListComponents, options)
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=return_code
+        )
         task._init_task()
         with mock.patch.object(
-            ListMetadatatypes, "_run_task", return_value=["Scontrol", "SharingRules"]
+            ListMetadatatypes, "_run_task", return_value=["SharingRules"]
         ):
-            with pytest.raises(SfdxOrgException):
+            if return_code:
+                with pytest.raises(SfdxOrgException):
+                    task._run_task()
+            else:
+                assert task._run_task() == []
+
+    @pytest.mark.parametrize("options", [{"include": "alpha"}, {"exclude": "beta"}])
+    def test_check_sfdx_result(self, cmd, create_task_fixture, options):
+        task = create_task_fixture(ListComponents, options)
+        result = b"""{
+  "status": 0,
+  "result": [
+    {
+      "createdById": "0051y00000OdeZBAAZ",
+      "createdByName": "User User",
+      "createdDate": "2024-01-02T06:50:03.000Z",
+      "fileName": "flowDefinitions/alpha.flowDefinition",
+      "fullName": "alpha",
+      "id": "3001y000000ERX6AAO",
+      "lastModifiedById": "0051y00000OdeZBAAZ",
+      "lastModifiedByName": "User User",
+      "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+      "manageableState": "unmanaged",
+      "namespacePrefix": "myalpha",
+      "type": "FlowDefinition"
+    },{
+      "createdById": "0051y00000OdeZBAAZ",
+      "createdByName": "User User",
+      "createdDate": "2024-01-02T06:50:03.000Z",
+      "fileName": "flowDefinitions/beta.flowDefinition",
+      "fullName": "beta",
+      "id": "3001y000000ERX6AAO",
+      "lastModifiedById": "0051y00000OdeZBAAZ",
+      "lastModifiedByName": "User User",
+      "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+      "manageableState": "unmanaged",
+      "namespacePrefix": "myalpha",
+      "type": "FlowDefinition"
+    }
+  ],
+  "warnings": []
+}"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+        messages = []
+        task._init_task()
+        with mock.patch.object(
+            ListMetadatatypes, "_run_task", return_value=["FlowDefinition"]
+        ):
+            task.logger = mock.Mock()
+            task.logger.info = messages.append
+            components = task._run_task()
+            assert components == [
+                {"MemberType": "FlowDefinition", "MemberName": "alpha"}
+            ]
+            assert "Found 2 non source trackable components in the org." in messages
+            assert "1 remaining components after filtering." in messages
+
+
+@mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
+class TestRetrieveComponents:
+    def test_init_options__sfdx_format(self, sfdx, create_task_fixture):
+        with temporary_dir():
+            project_config = create_project_config()
+            project_config.project__source_format = "sfdx"
+            with open("sfdx-project.json", "w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            task = create_task_fixture(RetrieveComponents, {}, project_config)
+            assert not task.md_format
+            assert task.options["path"] == "force-app"
+
+    def test_run_task(self, sfdx, create_task_fixture):
+        sfdx_calls = []
+        sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
+
+        with temporary_dir():
+            task = create_task_fixture(
+                RetrieveComponents, {"include": "alpha", "namespace_tokenize": "ns"}
+            )
+            task._init_task()
+            with mock.patch.object(
+                ListComponents,
+                "_get_components",
+                return_value=[
+                    {"MemberType": "FlowDefinition", "MemberName": "alpha"},
+                    {"MemberType": "FlowDefinition", "MemberName": "beta"},
+                ],
+            ):
                 task._run_task()
+
+                assert sfdx_calls == [
+                    "force:mdapi:convert",
+                    "force:source:retrieve",
+                    "force:source:convert",
+                ]
+                assert os.path.exists(os.path.join("src", "package.xml"))
+
+    def test_run_task__no_changes(self, sfdx, create_task_fixture):
+        with temporary_dir() as path:
+            task = create_task_fixture(RetrieveComponents, {"path": path})
+            task._init_task()
+            messages = []
+            with mock.patch.object(ListComponents, "_get_components", return_value=[]):
+                task.logger = mock.Mock()
+                task.logger.info = messages.append
+                task._run_task()
+                assert "No changes to retrieve" in messages
