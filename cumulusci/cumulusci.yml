@@ -1,16 +1,6 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
-    list_nonsource_trackable:
-        description: Returns non source trackable metadata types supported by org
-        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListMetadatatypes
-
-    list_components:
-        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListComponents
-
-    retrieve_components:
-        class_path: cumulusci.tasks.salesforce.nonsourcetracking.RetrieveComponents
-
     activate_flow:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
@@ -520,6 +510,18 @@ tasks:
         options:
             path: unpackaged/config/qa
             namespace_tokenize: $project_config.project__package__namespace
+        group: Salesforce Metadata
+    list_nonsource_trackable:
+        description: Returns non source trackable metadata types supported by org
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListMetadatatypes
+        group: Salesforce Metadata
+    list_components:
+        description: List the components of the non source trackable components
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListComponents
+        group: Salesforce Metadata
+    retrieve_components:
+        description: Retrieves the non source trackable components filtered
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.RetrieveComponents
         group: Salesforce Metadata
     set_field_help_text:
         group: Metadata Transformations
