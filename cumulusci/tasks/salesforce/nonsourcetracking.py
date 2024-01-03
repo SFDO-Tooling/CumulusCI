@@ -48,7 +48,6 @@ class ListMetadatatypes(BaseSalesforceApiTask):
             "types"
         ]
         all_nonsource_types = []
-        print(metadatatypes_details)
         for md_type, details in metadatatypes_details.items():
             if not details["channels"]:
                 raise CumulusCIException(
@@ -94,7 +93,7 @@ class ListComponents(BaseSalesforceApiTask):
         "types": {
             "description": "A comma-separated list of metadata types to include."
         },
-        "exclude": {"description": "Exclude changed components matching this string."},
+        "exclude": {"description": "Exclude components matching this string."},
     }
 
     def _init_task(self):
@@ -135,14 +134,15 @@ class ListComponents(BaseSalesforceApiTask):
                 ],
                 env={"SFDX_INSTANCE_URL": self.org_config.instance_url},
             )
+            stdout = p.stdout_text.read()
+            stderr = p.stderr_text.read()
 
             if p.returncode:
-                message = f"\nstderr:\n{nl.join(p.stderr_text.readlines())}"
-                message += f"\nstdout:\n{nl.join(p.stdout_text.readlines())}"
+                message = f"\nstderr:\n{nl.join(stderr)}"
+                message += f"\nstdout:\n{nl.join(stdout)}"
                 raise SfdxOrgException(message)
             else:
-                output = p.stdout_text.read()
-                result = json.loads(output)["result"]
+                result = json.loads(stdout)["result"]
                 if result:
                     for cmp in result:
                         change_dict = {
@@ -151,14 +151,13 @@ class ListComponents(BaseSalesforceApiTask):
                         }
                         if change_dict not in list_components:
                             list_components.append(
-                                {"MemberType": type, "MemberName": cmp["fullName"]}
+                                {"MemberType": md_type, "MemberName": cmp["fullName"]}
                             )
 
         return list_components
 
     def _run_task(self):
         changes = self._get_components()
-        filtered, ignored = ListChanges._filter_changes(self, changes)  # type: ignore
         if changes:
             self.logger.info(
                 f"Found {len(changes)} non source trackable components in the org."
@@ -166,12 +165,15 @@ class ListComponents(BaseSalesforceApiTask):
         else:
             self.logger.info("Found no non source trackable components.")
 
+        filtered, ignored = ListChanges._filter_changes(self, changes)
         if ignored:
             self.logger.info(f"Ignored {len(ignored)} components in the org.")
             self.logger.info(f"{len(filtered)} remaining components after filtering.")
 
         for change in filtered:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
+        self.return_values = filtered
+        return self.return_values
 
 
 retrieve_components_task_options = ListComponents.task_options.copy()
@@ -220,7 +222,7 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
         self.options["path"] = path
 
     def _run_task(self):
-        changes = self._get_changes()
+        changes = self._get_components()
         filtered, ignored = ListChanges._filter_changes(self, changes)
         if not filtered:
             self.logger.info("No changes to retrieve")
