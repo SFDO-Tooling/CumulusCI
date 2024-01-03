@@ -221,7 +221,6 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
         else:
             md_format = path not in package_directories
         self.md_format = md_format
-        self.logger.info(self.md_format)
         self.options["path"] = path
 
     def _run_task(self):
