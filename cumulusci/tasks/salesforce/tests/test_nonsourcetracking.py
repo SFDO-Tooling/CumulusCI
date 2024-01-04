@@ -10,14 +10,14 @@ from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
 from cumulusci.tasks.salesforce import DescribeMetadataTypes
 from cumulusci.tasks.salesforce.nonsourcetracking import (
     ListComponents,
-    ListMetadatatypes,
+    ListNonSourceTrackable,
     RetrieveComponents,
 )
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
 
-class TestListMetadatatypes:
+class TestListNonSourceTrackable:
     @pytest.mark.parametrize(
         "json_data, expected_status,error_msg",
         [
@@ -40,7 +40,7 @@ class TestListMetadatatypes:
             json=json_data,
             status=expected_status,
         )
-        task = create_task_fixture(ListMetadatatypes, options)
+        task = create_task_fixture(ListNonSourceTrackable, options)
         task._init_task()
         with pytest.raises(CumulusCIException, match=error_msg):
             task._run_task()
@@ -74,7 +74,7 @@ class TestListMetadatatypes:
             status=200,
         )
 
-        task = create_task_fixture(ListMetadatatypes, options)
+        task = create_task_fixture(ListNonSourceTrackable, options)
         task._init_task()
         with mock.patch.object(
             DescribeMetadataTypes,
@@ -111,7 +111,7 @@ class TestListComponents:
         )
         task._init_task()
         with mock.patch.object(
-            ListMetadatatypes, "_run_task", return_value=["SharingRules"]
+            ListNonSourceTrackable, "_run_task", return_value=["SharingRules"]
         ):
             if return_code:
                 with pytest.raises(SfdxOrgException):
@@ -161,7 +161,7 @@ class TestListComponents:
         messages = []
         task._init_task()
         with mock.patch.object(
-            ListMetadatatypes, "_run_task", return_value=["FlowDefinition"]
+            ListNonSourceTrackable, "_run_task", return_value=["FlowDefinition"]
         ):
             task.logger = mock.Mock()
             task.logger.info = messages.append

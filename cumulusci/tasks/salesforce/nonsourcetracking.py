@@ -18,7 +18,7 @@ from cumulusci.tasks.salesforce.sourcetracking import ListChanges, retrieve_comp
 nl = "\n"
 
 
-class ListMetadatatypes(BaseSalesforceApiTask):
+class ListNonSourceTrackable(BaseSalesforceApiTask):
 
     task_options = {
         "api_version": {
@@ -119,7 +119,7 @@ class ListComponents(BaseSalesforceApiTask):
         task_config = TaskConfig(
             {"options": {"api_version": self.options["api_version"]}}
         )
-        metadata_types = ListMetadatatypes(
+        metadata_types = ListNonSourceTrackable(
             org_config=self.org_config,
             project_config=self.project_config,
             task_config=task_config,
