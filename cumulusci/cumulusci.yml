@@ -416,7 +416,7 @@ tasks:
         class_path: cumulusci.tasks.util.ListMetadataTypes
         group: Salesforce Metadata
     list_nonsource_trackable_components:
-        description: List the components of the non source trackable components
+        description: List the components of non source trackable Metadata types.
         class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListComponents
         group: Salesforce Metadata
     list_nonsource_trackable_metadatatypes:

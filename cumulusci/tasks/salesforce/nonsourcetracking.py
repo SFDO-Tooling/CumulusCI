@@ -5,7 +5,11 @@ import requests
 import sarge
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    SfdxOrgException,
+    TaskOptionsError,
+)
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import (
@@ -34,6 +38,8 @@ class ListNonSourceTrackable(BaseSalesforceApiTask):
             ] = self.project_config.project__package__api_version
 
     def get_types_details(self, api_version):
+        # The Metadata coverage report: https://developer.salesforce.com/docs/metadata-coverage/{version} is created from
+        # the below URL. (So the api versions are allowed based on those report ranges)
         url = f"https://dx-extended-coverage.my.salesforce-sites.com/services/apexrest/report?version={api_version}"
         response = requests.get(url)
         if response.status_code == 200:
@@ -85,35 +91,21 @@ class ListComponents(BaseSalesforceApiTask):
         "api_version": {
             "description": "Override the API version used to list metadatatypes",
         },
-        "include": {
-            "description": "A comma-separated list of strings. "
-            "Components will be included if one of these strings "
-            "is part of either the metadata type or name. "
-            "Example: ``-o include CustomField,Admin`` matches both "
-            "``CustomField: Favorite_Color__c`` and ``Profile: Admin``"
-        },
-        "types": {
-            "description": "A comma-separated list of metadata types to include."
-        },
-        "exclude": {"description": "Exclude components matching this string."},
+        "metadata_types": {"description": "A comma-separated list of metadata types."},
     }
 
     def _init_task(self):
         super()._init_task()
+
+    def _init_options(self, kwargs):
+        super(ListComponents, self)._init_options(kwargs)
         if "api_version" not in self.options:
             self.options[
                 "api_version"
             ] = self.project_config.project__package__api_version
-
-    def _init_options(self, kwargs):
-        super(ListComponents, self)._init_options(kwargs)
-        self.options["include"] = process_list_arg(self.options.get("include", [])) + [
-            f"{mdtype}:" for mdtype in process_list_arg(self.options.get("types", []))
-        ]
-        self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
-        self._include = self.options["include"]
-        self._exclude = self.options["exclude"]
-        self._exclude.extend(self.project_config.project__source__ignore or [])
+        self.options["metadata_types"] = process_list_arg(
+            self.options.get("metadata_types", [])
+        )
 
     def _get_components(self):
         task_config = TaskConfig(
@@ -124,8 +116,14 @@ class ListComponents(BaseSalesforceApiTask):
             project_config=self.project_config,
             task_config=task_config,
         )._run_task()
+        if not self.options["metadata_types"]:
+            self.options["metadata_types"] = metadata_types
+        else:
+            for md_type in self.options["metadata_types"]:
+                if md_type not in metadata_types:
+                    raise TaskOptionsError(f"Invalid metadata type: {md_type}")
         list_components = []
-        for md_type in metadata_types:
+        for md_type in self.options["metadata_types"]:
             p: sarge.Command = sfdx(
                 "force:mdapi:listmetadata",
                 access_token=self.org_config.access_token,
@@ -153,6 +151,8 @@ class ListComponents(BaseSalesforceApiTask):
                         change_dict = {
                             "MemberType": md_type,
                             "MemberName": cmp["fullName"],
+                            "lastModifiedByName": cmp["lastModifiedByName"],
+                            "lastModifiedDate": cmp["lastModifiedDate"],
                         }
                         if change_dict not in list_components:
                             list_components.append(change_dict)
@@ -160,22 +160,12 @@ class ListComponents(BaseSalesforceApiTask):
         return list_components
 
     def _run_task(self):
-        changes = self._get_components()
-        if changes:
-            self.logger.info(
-                f"Found {len(changes)} non source trackable components in the org."
-            )
-        else:
-            self.logger.info("Found no non source trackable components.")
-
-        filtered, ignored = ListChanges._filter_changes(self, changes)
-        if ignored:
-            self.logger.info(f"Ignored {len(ignored)} components in the org.")
-            self.logger.info(f"{len(filtered)} remaining components after filtering.")
-
-        for change in filtered:
+        self.return_values = self._get_components()
+        self.logger.info(
+            f"Found {len(self.return_values)} non source trackable components in the org for the given types."
+        )
+        for change in self.return_values:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
-        self.return_values = filtered
         return self.return_values
 
 
@@ -183,6 +173,15 @@ retrieve_components_task_options = ListComponents.task_options.copy()
 retrieve_components_task_options["path"] = {
     "description": "The path to write the retrieved metadata",
     "required": False,
+}
+retrieve_components_task_options["include"] = {
+    "description": "Components will be included if one of these names"
+    "is part of either the metadata type or name. "
+    "Example: ``-o include CustomField,Admin`` matches both "
+    "``CustomField: Favorite_Color__c`` and ``Profile: Admin``"
+}
+retrieve_components_task_options["exclude"] = {
+    "description": "Exclude components matching this name."
 }
 retrieve_components_task_options[
     "namespace_tokenize"
@@ -194,6 +193,11 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(RetrieveComponents, self)._init_options(kwargs)
+        self.options["include"] = process_list_arg(self.options.get("include", []))
+        self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
+        self._include = self.options["include"]
+        self._exclude = self.options["exclude"]
+        self._exclude.extend(self.project_config.project__source__ignore or [])
 
         package_directories = []
         default_package_directory = None
@@ -224,13 +228,13 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
         self.options["path"] = path
 
     def _run_task(self):
-        changes = self._get_components()
-        filtered, ignored = ListChanges._filter_changes(self, changes)
+        components = self._get_components()
+        filtered, ignored = ListChanges._filter_changes(self, components)
         if not filtered:
-            self.logger.info("No changes to retrieve")
+            self.logger.info("No components to retrieve")
             return
-        for change in filtered:
-            self.logger.info("{MemberType}: {MemberName}".format(**change))
+        for cmp in filtered:
+            self.logger.info("{MemberType}: {MemberName}".format(**cmp))
 
         target = os.path.realpath(self.options["path"])
         package_xml_opts = {}
@@ -242,7 +246,6 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
                     "uninstall_class": self.project_config.project__package__uninstall_class,
                 }
             )
-
         retrieve_components(
             filtered,
             self.org_config,

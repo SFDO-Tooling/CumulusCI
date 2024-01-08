@@ -6,7 +6,11 @@ from unittest import mock
 import pytest
 import responses
 
-from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    SfdxOrgException,
+    TaskOptionsError,
+)
 from cumulusci.tasks.salesforce import DescribeMetadataTypes
 from cumulusci.tasks.salesforce.nonsourcetracking import (
     ListComponents,
@@ -104,7 +108,7 @@ class TestListComponents:
         ],
     )
     def test_check_sfdx_output(self, cmd, create_task_fixture, return_code, result):
-        options = {"api_version": 44.0, "exclude": "Ignore"}
+        options = {"api_version": 44.0}
         task = create_task_fixture(ListComponents, options)
         cmd.return_value = mock.Mock(
             stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=return_code
@@ -119,7 +123,13 @@ class TestListComponents:
             else:
                 assert task._run_task() == []
 
-    @pytest.mark.parametrize("options", [{"include": "alpha"}, {"exclude": "beta"}])
+    @pytest.mark.parametrize(
+        "options",
+        [
+            {"api_version": 44.0, "metadata_types": "FlowDefinition"},
+            {"api_version": 44.0, "metadata_types": "Index"},
+        ],
+    )
     def test_check_sfdx_result(self, cmd, create_task_fixture, options):
         task = create_task_fixture(ListComponents, options)
         result = b"""{
@@ -161,16 +171,41 @@ class TestListComponents:
         messages = []
         task._init_task()
         with mock.patch.object(
-            ListNonSourceTrackable, "_run_task", return_value=["FlowDefinition"]
+            ListNonSourceTrackable,
+            "_run_task",
+            return_value=["FlowDefinition", "SharingRules"],
         ):
-            task.logger = mock.Mock()
-            task.logger.info = messages.append
-            components = task._run_task()
-            assert components == [
-                {"MemberType": "FlowDefinition", "MemberName": "alpha"}
-            ]
-            assert "Found 2 non source trackable components in the org." in messages
-            assert "1 remaining components after filtering." in messages
+
+            if task.options["metadata_types"] == ["Index"]:
+                with pytest.raises(TaskOptionsError):
+                    task._run_task()
+            else:
+                task.logger = mock.Mock()
+                task.logger.info = messages.append
+                components = task._run_task()
+                assert cmd.call_count == 1
+                assert (
+                    "sfdx force:mdapi:listmetadata -a 44.0 -m FlowDefinition --json"
+                    in cmd.call_args[0][0]
+                )
+                assert components == [
+                    {
+                        "MemberType": "FlowDefinition",
+                        "MemberName": "alpha",
+                        "lastModifiedByName": "User User",
+                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                    },
+                    {
+                        "MemberType": "FlowDefinition",
+                        "MemberName": "beta",
+                        "lastModifiedByName": "User User",
+                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                    },
+                ]
+                assert (
+                    "Found 2 non source trackable components in the org for the given types."
+                    in messages
+                )
 
 
 @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
@@ -200,8 +235,18 @@ class TestRetrieveComponents:
                 ListComponents,
                 "_get_components",
                 return_value=[
-                    {"MemberType": "FlowDefinition", "MemberName": "alpha"},
-                    {"MemberType": "FlowDefinition", "MemberName": "beta"},
+                    {
+                        "MemberType": "FlowDefinition",
+                        "MemberName": "alpha",
+                        "lastModifiedByName": "User User",
+                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                    },
+                    {
+                        "MemberType": "FlowDefinition",
+                        "MemberName": "beta",
+                        "lastModifiedByName": "User User",
+                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                    },
                 ],
             ):
                 task._run_task()
@@ -222,4 +267,4 @@ class TestRetrieveComponents:
                 task.logger = mock.Mock()
                 task.logger.info = messages.append
                 task._run_task()
-                assert "No changes to retrieve" in messages
+                assert "No components to retrieve" in messages
