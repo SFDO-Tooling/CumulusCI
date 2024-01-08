@@ -13,8 +13,9 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 jinja2_env = ImmutableSandboxedEnvironment()
 DEFAULT_VERSION_NAME_TEMPLATE = (
     "{{ project_config.project__package__name }} - {{ major_version }}.{{ minor_version }}"
-    "{% if not production %} Beta {{ build_number }}{% endif %}"
+    "{% if not production %} (Beta {{ build_number }}){% endif %}"
 )
+
 
 class PackageUpload(BaseSalesforceApiTask):
     name = "PackageUpload"
@@ -53,7 +54,7 @@ class PackageUpload(BaseSalesforceApiTask):
         "version_name_template": {
             "description": f"A jinja2 template expression for the version name. Defaults to:\n{DEFAULT_VERSION_NAME_TEMPLATE}",
             "required": False,
-        }
+        },
     }
 
     def _init_options(self, kwargs):
@@ -70,8 +71,8 @@ class PackageUpload(BaseSalesforceApiTask):
         # Set the default version_name_template option if not already set
         if "version_name_template" not in self.options:
             self.options["version_name_template"] = DEFAULT_VERSION_NAME_TEMPLATE
-    def _run_task(self):
 
+    def _run_task(self):
         self._validate_versions()
         self._set_version_name()
         self._set_package_id()
@@ -105,6 +106,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 MajorVersion DESC,
                 MinorVersion DESC,
                 PatchVersion DESC,
+                BuildNumber DESC,
                 ReleaseState DESC
                 LIMIT 1
                 """
@@ -156,7 +158,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 self.options["minor_version"] = "0"
 
     def _set_version_name(self):
-        """ Sets self.options["name"] using the jinja2 template expression in self.options["version_name_template"] """
+        """Sets self.options["name"] using the jinja2 template expression in self.options["version_name_template"]"""
         # Add self.project_config and self.options keys to the jinja2 environment
         jinja2_context = {"project_config": self.project_config}
         jinja2_context.update(self.options)
