@@ -227,11 +227,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # into two separate streams and load into the main table and the sf_id_table
             values, ids = itertools.tee(record_iterator)
 
-            id_source_sobj, id_source_global = itertools.tee(
-                self._id_generator_for_object(mapping.sf_object)
-            )
+            id_source_global = self._id_generator_for_object(mapping.sf_object)
             f_ids = ((row[0], next(id_source_global)) for row in ids)
-            f_values = ([next(id_source_sobj)] + row[1:] for row in values)
+            f_values = ([record_number] + row[1:] for record_number, row in enumerate(values, start=1))
 
             values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
@@ -264,7 +262,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if sobject not in self._id_generators:
 
             def _generate_ids():
-                counter = 0
+                counter = 1
                 while True:
                     yield f"{sobject}-{counter}"
                     counter += 1
@@ -316,14 +314,17 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 f"Cannot find lookup mapping for {lookup_info.table}"
             )
 
+            key_field = lookup_info.get_lookup_key_field()
+
+            key_attr = getattr(model, key_field, None) or throw(
+                f"key_field {key_field} not found in table {mapping.table}"
+            )
+
+            # Keep track of total mapping operations
+            total_mapping_operations = 0
+
             for lookup_mapping in lookup_mappings:
                 lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
-
-                key_field = lookup_info.get_lookup_key_field()
-
-                key_attr = getattr(model, key_field, None) or throw(
-                    f"key_field {key_field} not found in table {mapping.table}"
-                )
                 try:
                     self.session.query(model).filter(
                         key_attr.isnot(None), key_attr == lookup_model.sf_id
@@ -335,7 +336,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         lookup_model, key_attr == lookup_model.sf_id
                     ):
                         mappings.append({"id": row.id, key_field: lookup_id})
+                    total_mapping_operations += len(mappings)                        
                     self.session.bulk_update_mappings(model, mappings)
+            # Count the total number of rows excluding those with no entry for that field
+            total_rows = self.session.query(model).filter(key_attr.isnot('')).count()
+
+            if total_mapping_operations != total_rows:
+                raise ValueError(f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}")
         self.session.commit()
 
     def _create_tables(self):
