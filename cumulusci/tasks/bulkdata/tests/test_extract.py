@@ -285,7 +285,7 @@ class TestExtractData:
                 assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert contact.household_id == "1"
+                assert contact.household_id == "Account-1"
                 assert not hasattr(contact, "IsPersonAccount")
 
     @responses.activate
@@ -336,7 +336,7 @@ class TestExtractData:
                 assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert contact.household_id == "1"
+                assert contact.household_id == "Account-1"
                 assert contact.IsPersonAccount == "true"
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
