@@ -82,7 +82,7 @@ def _handle_primary_key(mapping, fields):
         id_column = mapping.fields["Id"]
         fields.append(Column(id_column, Unicode(255), primary_key=True))
     else:
-        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
+        fields.append(Column("id", Unicode(255), primary_key=True))
 
 
 def create_table(mapping, metadata) -> Table:
