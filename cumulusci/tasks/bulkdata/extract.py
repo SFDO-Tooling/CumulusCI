@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
-from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError, CumulusCIException, ConfigError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.mapping_parser import (
@@ -294,7 +294,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if isinstance(table, list) and len(mappings) != len(table):
             missing_tables = set(table) - set(mapping["table"] for mapping in mappings)
-            raise ValueError(f"The following tables are missing in the mapping file: {missing_tables}")
+            raise CumulusCIException(f"The following tables are missing in the mapping file: {missing_tables}")
 
         return mappings
 
@@ -346,7 +346,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             ).count()
 
             if total_mapping_operations != total_rows:
-                raise ValueError(f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}")
+                raise ConfigError(f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}")
         self.session.commit()
 
     def _create_tables(self):
