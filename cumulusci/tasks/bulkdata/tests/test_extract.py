@@ -570,6 +570,8 @@ class TestExtractData:
             "Opportunity": MappingStep(sf_object="Opportunity"),
         }
 
+        task.session.query.return_value.filter.return_value.count.return_value = 0
+        task.session.query.return_value.filter.return_value.update.return_value.rowcount = 0
         task._convert_lookups_to_id(
             MappingStep(
                 sf_object="Opportunity",
@@ -607,6 +609,7 @@ class TestExtractData:
         item = mock.Mock()
 
         task.session.query.return_value.join.return_value = [(item, "1")]
+        task.session.query.return_value.filter.return_value.count.return_value = 1
 
         task._convert_lookups_to_id(
             MappingStep(
@@ -1019,8 +1022,8 @@ class TestExtractData:
                 assert len(output_accounts) == 2
                 output_opportunities = list(conn.execute("select * from Opportunity"))
 
-                assert output_opportunities[0].AccountId == "2"
-                assert output_opportunities[0].ContactId == "1"
+                assert output_opportunities[0].AccountId == "Account-2"
+                assert output_opportunities[0].ContactId == "Contact-1"
 
     def test_run_soql_filter(self):
         """This test case is to verify when soql_filter is specified with valid filter in the mapping yml"""

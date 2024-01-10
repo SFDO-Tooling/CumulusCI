@@ -234,7 +234,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
                 table=self.metadata.tables[mapping.table],
-                columns=["id"] + columns[1:],
+                columns= columns[1:],
                 record_iterable=f_values,
             )
             ids_chunks = sql_bulk_insert_from_records_incremental(
@@ -326,9 +326,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             for lookup_mapping in lookup_mappings:
                 lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
                 try:
-                    self.session.query(model).filter(
+                    update_query = self.session.query(model).filter(
                         key_attr.isnot(None), key_attr == lookup_model.sf_id
                     ).update({key_attr: lookup_model.id}, synchronize_session=False)
+                    total_mapping_operations += update_query.rowcount
                 except NotImplementedError:
                     # Some databases such as sqlite don't support multitable update
                     mappings = []
@@ -336,10 +337,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         lookup_model, key_attr == lookup_model.sf_id
                     ):
                         mappings.append({"id": row.id, key_field: lookup_id})
-                    total_mapping_operations += len(mappings)                        
+                    total_mapping_operations += len(mappings)
                     self.session.bulk_update_mappings(model, mappings)
             # Count the total number of rows excluding those with no entry for that field
-            total_rows = self.session.query(model).filter(key_attr.isnot('')).count()
+            total_rows = self.session.query(model).filter(
+                key_attr.isnot(None),  # Ensure key_attr is not None
+                key_attr.isnot('')     # Ensure key_attr is not an empty string
+            ).count()
 
             if total_mapping_operations != total_rows:
                 raise ValueError(f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}")
