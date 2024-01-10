@@ -1260,3 +1260,18 @@ class TestUpsertKeyValidations:
             "FirstName",
             "LastName",
         ), mapping["Insert Accounts"]["update_key"]
+    
+    def test_get_extract_field_list(self):
+        m = MappingStep(
+            sf_object="Account",
+            fields=["Name", "RecordTypeId", "AccountSite"],
+            lookups={"ParentId": MappingLookup(table="Account")},
+        )
+
+        assert m.get_extract_field_list() == [
+            "Id",
+            "Name",
+            "AccountSite",
+            "ParentId",
+            "RecordTypeId",
+        ]

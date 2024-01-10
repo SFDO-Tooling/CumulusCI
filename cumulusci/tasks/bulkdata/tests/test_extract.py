@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import date, timedelta
 from tempfile import TemporaryDirectory
 from unittest import mock
+from sqlalchemy.orm import Query
 
 import pytest
 import responses
@@ -79,6 +80,7 @@ class TestExtractData:
 
     mapping_file_v1 = "mapping_v1.yml"
     mapping_file_v2 = "mapping_v2.yml"
+    mapping_file_poly = "mapping_poly.yml"
     mapping_file_vanilla = "mapping_vanilla_sf.yml"
 
     @responses.activate
@@ -338,6 +340,71 @@ class TestExtractData:
                 contact = next(conn.execute("select * from contacts"))
                 assert contact.household_id == "Account-1"
                 assert contact.IsPersonAccount == "true"
+    
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__poly__polymorphic_lookups(self, query_op_mock):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_poly)
+        mock_describe_calls()
+
+        with temporary_dir() as t:
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{t}/temp_poly.db",  # in memory
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
+
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, Name FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            )
+            mock_query_events = MockBulkQueryOperation(
+                sobject="Event",
+                api_options={},
+                context=task,
+                query="SELECT Id, LastName, WhoId FROM Event",
+            )
+            mock_query_households.results = [["abc123", "TestHousehold"]]
+            mock_query_contacts.results = [
+                ["def456", "First", "Last", "test@example.com", "abc123"]
+            ]
+            mock_query_events.results = [
+                ["ijk789", "Last1", "abc123"],
+                ["lmn010", "Last2", "def456"]
+            ]
+
+            query_op_mock.side_effect = [mock_query_households, mock_query_contacts, mock_query_events]
+            task()
+            with create_engine(task.options["database_url"]).connect() as conn:
+                household = next(conn.execute("select * from households"))
+                assert household.name == "TestHousehold"
+                assert not hasattr(household, "IsPersonAccount")
+                assert household.record_type == "HH_Account"
+
+                contact = next(conn.execute("select * from contacts"))
+                assert contact.household_id == "Account-1"
+                assert not hasattr(contact, "IsPersonAccount")
+
+                events = conn.execute("select * from events").fetchall()
+                assert events[0].who_id == "Account-1"
+                assert events[1].who_id == "Contact-1"
+                
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):

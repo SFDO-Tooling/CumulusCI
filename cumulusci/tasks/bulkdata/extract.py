@@ -229,7 +229,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             id_source_global = self._id_generator_for_object(mapping.sf_object)
             f_ids = ((row[0], next(id_source_global)) for row in ids)
-            f_values = ([record_number] + row[1:] for record_number, row in enumerate(values, start=1))
+            f_values = (row[1:] for row in values)
 
             values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
