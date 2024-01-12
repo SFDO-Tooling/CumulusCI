@@ -1,53 +1,64 @@
 BEGIN TRANSACTION;
 CREATE TABLE "Account" (
-	id INTEGER NOT NULL,
-	"Name" VARCHAR(255),
-	"Description" VARCHAR(255),
-	"NumberOfEmployees" VARCHAR(255),
-	"BillingStreet" VARCHAR(255),
-	"BillingCity" VARCHAR(255),
-	"BillingState" VARCHAR(255),
-	"BillingPostalCode" VARCHAR(255),
-	"BillingCountry" VARCHAR(255),
-	"ShippingStreet" VARCHAR(255),
-	"ShippingCity" VARCHAR(255),
-	"ShippingState" VARCHAR(255),
-	"ShippingPostalCode" VARCHAR(255),
-	"ShippingCountry" VARCHAR(255),
-	"Phone" VARCHAR(255),
-	"Fax" VARCHAR(255),
-	"Website" VARCHAR(255),
-	"AccountNumber" VARCHAR(255),
+	"id" VARCHAR(255) NOT NULL, 
+	"Name" VARCHAR(255), 
+	"Description" VARCHAR(255), 
+	"NumberOfEmployees" VARCHAR(255), 
+	"BillingStreet" VARCHAR(255), 
+	"BillingCity" VARCHAR(255), 
+	"BillingState" VARCHAR(255), 
+	"BillingPostalCode" VARCHAR(255), 
+	"BillingCountry" VARCHAR(255), 
+	"ShippingStreet" VARCHAR(255), 
+	"ShippingCity" VARCHAR(255), 
+	"ShippingState" VARCHAR(255), 
+	"ShippingPostalCode" VARCHAR(255), 
+	"ShippingCountry" VARCHAR(255), 
+	"Phone" VARCHAR(255), 
+	"Fax" VARCHAR(255), 
+	"Website" VARCHAR(255), 
+	"AccountNumber" VARCHAR(255), 
 	PRIMARY KEY (id)
 );
-INSERT INTO "Account" VALUES(1,'Sample Account for Entitlements','','','','','','','','','','','','','','','','');
-INSERT INTO "Account" VALUES(2,'The Bluth Company','Solid as a rock','6','','','','','','','','','','','','','','');
-INSERT INTO "Account" VALUES(3,'Camacho PLC','Total logistical task-force','59908','2852 Caleb Village Suite 428','Porterside','Maryland','14525','Canada','6070 Davidson Rapids','Gibsonland','North Dakota','62676','Lithuania','221.285.1033','+1-081-230-6073x31438','http://jenkins.info/category/tag/tag/terms/','2679965');
+INSERT INTO "Account" VALUES("Account-1",'alpha','','','Baker St.','','','','','','','','','','','','','');
+INSERT INTO "Account" VALUES("Account-2",'beta','','','Baker St.','','','','','','','','','','','','','');
+INSERT INTO "Account" VALUES("Account-3",'gamma','','','Baker St.','','','','','','','','','','','','','');
+
 CREATE TABLE "Contact" (
-	id INTEGER NOT NULL,
-	"FirstName" VARCHAR(255),
-	"LastName" VARCHAR(255),
-	"Salutation" VARCHAR(255),
-	"Email" VARCHAR(255),
-	"Phone" VARCHAR(255),
-	"MobilePhone" VARCHAR(255),
-	"Title" VARCHAR(255),
-	"Birthdate" VARCHAR(255),
-	"AccountId" VARCHAR(255),
+	"id" VARCHAR(255) NOT NULL, 
+	"FirstName" VARCHAR(255), 
+	"LastName" VARCHAR(255), 
+	"Salutation" VARCHAR(255), 
+	"Email" VARCHAR(255), 
+	"Phone" VARCHAR(255), 
+	"MobilePhone" VARCHAR(255), 
+	"Title" VARCHAR(255), 
+	"Birthdate" VARCHAR(255), 
+	"AccountId" VARCHAR(255), 
 	PRIMARY KEY (id)
 );
-INSERT INTO "Contact" VALUES(1,'Michael','Bluth','','','','','','','2');
-INSERT INTO "Contact" VALUES(2,'Jared','Burnett','Ms.','ja-burnett2011@example.net','372.865.5762x5990','033.134.7156x7943','Systems analyst','2000-04-18','3');
-CREATE TABLE "Opportunity" (
-	id INTEGER NOT NULL,
-	"Name" VARCHAR(255),
-	"CloseDate" VARCHAR(255),
-	"Amount" VARCHAR(255),
-	"StageName" VARCHAR(255),
+INSERT INTO "Contact" VALUES("Contact-1",'alphass','Mannwereerevhefwingefew','','krithvtffder@example.com','','','','','Account-1');
+INSERT INTO "Contact" VALUES("Contact-2",'betasss','Blackefefererf','','kathjvhryn85@exaerfemple.com','','','','','Account-2');
+INSERT INTO "Contact" VALUES("Contact-3",'deltasss','Hunteererbhjbefrewererfef','','dfdfvgh@example.com','','','','','Account-3');
+INSERT INTO "Contact" VALUES("Contact-4",'gammasss','Carererfbhjhjbrlsonere','','johnmjbbhontddfgfdcsdcsces@example.com','','','','','');
+CREATE TABLE "Event" (
+	"id" VARCHAR(255) NOT NULL, 
+	"Subject" VARCHAR(255), 
+	"DurationInMinutes" VARCHAR(255), 
+	"ActivityDateTime" VARCHAR(255), 
+	"WhoId" VARCHAR(255), 
 	PRIMARY KEY (id)
 );
-INSERT INTO "Opportunity" VALUES(1,'democratic Opportunity','2022-07-27','69.0','In Progress');
-INSERT INTO "Opportunity" VALUES(2,'your Opportunity','2022-10-09','76.0','Closed Won');
-INSERT INTO "Opportunity" VALUES(3,'heart Opportunity','2022-11-04','32.0','Closed Won');
-INSERT INTO "Opportunity" VALUES(4,'treat Opportunity','2022-12-12','137.0','Closed Won');
+INSERT INTO "Event" VALUES("Event-1",'helllo','60','2024-01-10T05:30:00.000Z','Contact-1');
+INSERT INTO "Event" VALUES("Event-2",'newer','60','2024-01-10T05:30:00.000Z','Lead-1');
+
+CREATE TABLE "Lead" (
+	"id" VARCHAR(255) NOT NULL, 
+	"LastName" VARCHAR(255), 
+	"Company" VARCHAR(255), 
+	PRIMARY KEY (id)
+);
+INSERT INTO "Lead" VALUES("Lead-1",'deltassssds','Farmers Coop. of Florida');
+INSERT INTO "Lead" VALUES("Lead-2",'gauramm','Abbott Insurance');
+
 COMMIT;

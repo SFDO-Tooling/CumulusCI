@@ -7,6 +7,7 @@ from sqlalchemy.orm import Query, aliased
 from cumulusci.core.exceptions import BulkDataException
 
 Criterion = T.Any
+ID_TABLE_NAME = "cumulusci_id_table"
 
 
 class LoadQueryExtender:
@@ -59,9 +60,7 @@ class AddLookupsToQuery(LoadQueryExtender):
     @cached_property
     def columns_to_add(self):
         for lookup in self.lookups:
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
-            )
+            lookup.aliased_table = aliased(self.metadata.tables[ID_TABLE_NAME])
         return [lookup.aliased_table.columns.sf_id for lookup in self.lookups]
 
     @cached_property
