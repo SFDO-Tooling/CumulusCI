@@ -125,6 +125,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("enable_rollback", False)
         )
         self._id_generators = {}
+        self._old_format = False
 
     def _init_dataset(self):
         """Find the dataset paths to use with the following sequence:
@@ -444,12 +445,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         query = self.session.query(*columns)
 
         classes = [
-            AddLookupsToQuery,
             AddRecordTypesToQuery,
             AddMappingFiltersToQuery,
             AddUpsertsToQuery,
         ]
         transformers = [cls(mapping, self.metadata, model) for cls in classes]
+        transformers.append(
+            AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
+        )
 
         if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
             transformers.append(AddPersonAccountsToQuery(mapping, self.metadata, model))
@@ -488,6 +491,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         conn = self.session.connection()
         sf_id_results = self._generate_results_id_map(step, local_ids)
 
+        for i in range(len(sf_id_results)):
+            if str.isdigit(sf_id_results[i][0][0]):
+                self._old_format = True
+                sf_id_results[i][0] = mapping.table + "-" + str(sf_id_results[i][0])
+            else:
+                break
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
         if is_insert_or_upsert and (

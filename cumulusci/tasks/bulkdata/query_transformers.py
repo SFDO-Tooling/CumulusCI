@@ -51,8 +51,9 @@ class LoadQueryExtender:
 class AddLookupsToQuery(LoadQueryExtender):
     """Adds columns and joins relatinng to lookups"""
 
-    def __init__(self, mapping, metadata, model) -> None:
+    def __init__(self, mapping, metadata, model, _old_format) -> None:
         super().__init__(mapping, metadata, model)
+        self._old_format = _old_format
         self.lookups = [
             lookup for lookup in self.mapping.lookups.values() if not lookup.after
         ]
@@ -70,10 +71,17 @@ class AddLookupsToQuery(LoadQueryExtender):
         def join_for_lookup(lookup):
             key_field = lookup.get_lookup_key_field(self.model)
             value_column = getattr(self.model, key_field)
-            return (
-                lookup.aliased_table,
-                lookup.aliased_table.columns.id == value_column,
-            )
+            if self._old_format:
+                return (
+                    lookup.aliased_table,
+                    lookup.aliased_table.columns.id
+                    == str(lookup.table) + "-" + value_column,
+                )
+            else:
+                return (
+                    lookup.aliased_table,
+                    lookup.aliased_table.columns.id == value_column,
+                )
 
         return [join_for_lookup(lookup) for lookup in self.lookups]
 
