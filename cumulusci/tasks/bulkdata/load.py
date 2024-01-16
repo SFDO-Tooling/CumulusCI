@@ -124,8 +124,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["enable_rollback"] = process_bool_arg(
             self.options.get("enable_rollback", False)
         )
-        self._id_generators = {}
-        self._old_format = False
 
     def _init_dataset(self):
         """Find the dataset paths to use with the following sequence:
@@ -207,11 +205,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     "No data will be loaded because this is a persistent org and no dataset was specified."
                 )
             return
-        self.ID_TABLE_NAME = "cumulusci_id_table"
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
-            self._initialize_id_table(self.reset_oids)
+
             start_step = self.options.get("start_step")
             started = False
             results = {}
@@ -362,8 +359,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
-        # statics = self._get_statics(mapping)
-        staticizer = self._add_statics_to_row(mapping)
+        statics = self._get_statics(mapping)
         total_rows = 0
 
         if mapping.anchor_date:
@@ -376,13 +372,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         batch_size = mapping.batch_size or DEFAULT_BULK_BATCH_SIZE
         for row in query.yield_per(batch_size):
             total_rows += 1
-
+            # Add static values to row
+            pkey = row[0]
+            row = list(row[1:]) + statics
             if mapping.anchor_date and (date_context[0] or date_context[1]):
                 row = adjust_relative_dates(
                     mapping, date_context, row, DataOperationType.INSERT
                 )
-            pkey = row[0]  # FIXME: This is a local-DB ordering assumption.
-            row = staticizer(list(row[1:]))
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
@@ -393,7 +389,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             yield row
 
         self.logger.info(
-            f"Prepared {total_rows} rows for {mapping.action.value} to {mapping.sf_object}."
+            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
         )
 
     def _load_record_types(self, sobjects, conn):
@@ -404,9 +400,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 sobject, table_name, conn, self.org_config.is_person_accounts_enabled
             )
 
-    def _add_statics_to_row(self, mapping):
+    def _get_statics(self, mapping):
+        """Return the static values (not column names) to be appended to
+        records for this mapping."""
         statics = list(mapping.static.values())
-
         if mapping.record_type:
             query = (
                 f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.sf_object}'"
@@ -419,10 +416,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 raise BulkDataException(f"Cannot find RecordType with query `{query}`")
             statics.append(record_type_id)
 
-        def add_statics(row):
-            return row + statics
-
-        return add_statics
+        return statics
 
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
@@ -445,14 +439,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         query = self.session.query(*columns)
 
         classes = [
+            AddLookupsToQuery,
             AddRecordTypesToQuery,
             AddMappingFiltersToQuery,
             AddUpsertsToQuery,
         ]
         transformers = [cls(mapping, self.metadata, model) for cls in classes]
-        transformers.append(
-            AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
-        )
 
         if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
             transformers.append(AddPersonAccountsToQuery(mapping, self.metadata, model))
@@ -487,25 +479,20 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             DataOperationType.UPSERT,
             DataOperationType.ETL_UPSERT,
         )
+        if is_insert_or_upsert:
+            id_table_name = self._initialize_id_table(mapping, self.reset_oids)
+            conn = self.session.connection()
 
-        conn = self.session.connection()
         sf_id_results = self._generate_results_id_map(step, local_ids)
 
-        for i in range(len(sf_id_results)):
-            if str(sf_id_results[i][0]).isnumeric():
-                self._old_format = True
-                sf_id_results[i][0] = mapping.table + "-" + str(sf_id_results[i][0])
-            else:
-                break
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
         if is_insert_or_upsert and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
-            table = self.metadata.tables[self.ID_TABLE_NAME]
             sql_bulk_insert_from_records(
                 connection=conn,
-                table=table,
+                table=self.metadata.tables[id_table_name],
                 columns=("id", "sf_id"),
                 record_iterable=sf_id_results,
             )
@@ -523,7 +510,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             if account_id_lookup:
                 sql_bulk_insert_from_records(
                     connection=conn,
-                    table=self.metadata.tables[self.ID_TABLE_NAME],
+                    table=self.metadata.tables[id_table_name],
                     columns=("id", "sf_id"),
                     record_iterable=self._generate_contact_id_map_for_person_accounts(
                         mapping, account_id_lookup, conn
@@ -567,7 +554,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             CreateRollback.prepare_for_rollback(self, step, created_results)
         return sf_id_results
 
-    def _initialize_id_table(self, should_reset_table):
+    def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
 
         The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
@@ -575,20 +562,29 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         If the table already exists, should_reset_table determines whether to
         drop and recreate it or not.
         """
+        id_table_name = f"{mapping['table']}_sf_ids"
 
-        already_exists = self.ID_TABLE_NAME in self.metadata.tables
+        already_exists = id_table_name in self.metadata.tables
 
         if already_exists and not should_reset_table:
-            return
-        id_table = Table(
-            self.ID_TABLE_NAME,
-            self.metadata,
-            Column("id", Unicode(255), primary_key=True),
-            Column("sf_id", Unicode(18)),
-        )
-        if id_table.exists():
-            id_table.drop()
-        id_table.create()
+            return id_table_name
+
+        if not hasattr(self, "_initialized_id_tables"):
+            self._initialized_id_tables = set()
+        if id_table_name not in self._initialized_id_tables:
+            if already_exists:
+                self.metadata.remove(self.metadata.tables[id_table_name])
+            id_table = Table(
+                id_table_name,
+                self.metadata,
+                Column("id", Unicode(255), primary_key=True),
+                Column("sf_id", Unicode(18)),
+            )
+            if self.inspector.has_table(id_table_name):
+                id_table.drop()
+            id_table.create()
+            self._initialized_id_tables.add(id_table_name)
+        return id_table_name
 
     def _sqlite_load(self):
         """Read a SQLite script and initialize the in-memory database."""
@@ -659,7 +655,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             mapping=self.mapping,
             sf=self.sf,
             namespace=self.project_config.project__package__namespace,
-            data_operation=DataOperationType.QUERY,
+            data_operation=DataOperationType.INSERT,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
         )
