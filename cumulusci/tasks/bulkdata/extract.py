@@ -227,14 +227,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # into two separate streams and load into the main table and the sf_id_table
             values, ids = itertools.tee(record_iterator)
 
-            id_source_global = self._id_generator_for_object(mapping.sf_object)
+            id_source_sobj, id_source_global = itertools.tee(
+                self._id_generator_for_object(mapping.sf_object)
+            )
             f_ids = ((row[0], next(id_source_global)) for row in ids)
-            f_values = (row[1:] for row in values)
+            f_values = ([next(id_source_sobj)] + row[1:] for row in values)
 
             values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
                 table=self.metadata.tables[mapping.table],
-                columns= columns[1:],
+                columns= ["id"] + columns[1:],
                 record_iterable=f_values,
             )
             ids_chunks = sql_bulk_insert_from_records_incremental(

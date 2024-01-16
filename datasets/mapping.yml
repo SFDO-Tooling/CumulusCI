@@ -3,6 +3,7 @@ Account:
     api: bulk
     fields:
         - Name
+        - LastName
         - Description
         - NumberOfEmployees
         - BillingStreet
@@ -19,6 +20,7 @@ Account:
         - Fax
         - Website
         - AccountNumber
+        - RecordTypeId
 
 Contact:
     sf_object: Contact

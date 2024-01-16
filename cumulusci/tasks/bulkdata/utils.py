@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, mapper
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.iterators import iterate_in_chunks
 
+ID_TABLE_NAME = "cumulusci_id_table"
 
 class SqlAlchemyMixin:
     logger: logging.Logger
@@ -78,11 +79,11 @@ def _handle_primary_key(mapping, fields):
     """Provide support for legacy mappings which used the OID as the pk but
     default to using an autoincrementing int pk and a separate sf_id column"""
 
+    id_column = "id"
     if mapping.get_oid_as_pk():
         id_column = mapping.fields["Id"]
-        fields.append(Column(id_column, Unicode(255), primary_key=True))
-    else:
-        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
+    
+    fields.append(Column(id_column, Unicode(255), primary_key=True))
 
 
 def create_table(mapping, metadata) -> Table:

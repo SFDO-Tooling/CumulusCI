@@ -204,14 +204,6 @@ class MappingStep(CCIDictModel):
         fields.extend([f for f in self.fields.keys() if f != "Id"])
         fields.extend(self.lookups.keys())
 
-        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
-        # This makes it easier to manage the relationship with database columns.
-        if "RecordTypeId" in fields:
-            fields.remove("RecordTypeId")
-
-        if "RecordTypeId" in self.fields:
-            fields.append("RecordTypeId")
-
         return fields
 
     def get_relative_date_context(self, fields: List[str], sf: Salesforce):
