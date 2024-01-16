@@ -492,7 +492,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         sf_id_results = self._generate_results_id_map(step, local_ids)
 
         for i in range(len(sf_id_results)):
-            if str.isdigit(sf_id_results[i][0][0]):
+            if str(sf_id_results[i][0]).isnumeric():
                 self._old_format = True
                 sf_id_results[i][0] = mapping.table + "-" + str(sf_id_results[i][0])
             else:
