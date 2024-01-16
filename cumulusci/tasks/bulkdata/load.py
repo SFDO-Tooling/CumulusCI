@@ -831,7 +831,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 contact_sf_id = record["Id"]
 
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
-                yield (contact_id, contact_sf_id)
+                if self._old_format:
+                    yield (contact_mapping.table + "-" + contact_id, contact_sf_id)
+                else:
+                    yield (contact_id, contact_sf_id)
 
     def _set_viewed(self) -> T.List["SetRecentlyViewedInfo"]:
         """Set items as recently viewed. Filter out custom objects without custom tabs."""
