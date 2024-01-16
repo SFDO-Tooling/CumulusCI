@@ -13,8 +13,6 @@ from sqlalchemy.orm import Session, mapper
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.iterators import iterate_in_chunks
 
-ID_TABLE_NAME = "cumulusci_id_table"
-
 
 class SqlAlchemyMixin:
     logger: logging.Logger
@@ -75,60 +73,16 @@ class SqlAlchemyMixin:
         else:
             return self._temp_database_url()
 
-    def _id_generator_for_object(self, sobject: str):
-        if sobject not in self._id_generators:
 
-            def _generate_ids():
-                counter = 0
-                while True:
-                    yield f"{sobject}-{counter}"
-                    counter += 1
+def _handle_primary_key(mapping, fields):
+    """Provide support for legacy mappings which used the OID as the pk but
+    default to using an autoincrementing int pk and a separate sf_id column"""
 
-            self._id_generators[sobject] = _generate_ids()
-
-        return self._id_generators[sobject]
-
-    def _update_column(
-        self, *, source_model, target_model, key_field, join_field, target_field
-    ):
-        key_attr = getattr(source_model, key_field)
-        join_attr = getattr(target_model, join_field)
-        target_attr = getattr(target_model, target_field)
-
-        id_column = inspect(source_model).primary_key[0].name
-
-        try:
-            self.session.query(source_model).filter(
-                key_attr.isnot(None), key_attr == join_attr
-            ).update({key_attr: target_attr}, synchronize_session=False)
-        except NotImplementedError:
-            # Some databases, such as SQLite, don't support multitable update
-            # TODO: review memory consumption of this routine.
-            mappings = []
-            for row, lookup_id in self.session.query(source_model, target_attr).join(
-                target_model, key_attr == join_attr
-            ):
-                mappings.append(
-                    {id_column: getattr(row, id_column), key_field: lookup_id}
-                )
-            self.session.bulk_update_mappings(source_model, mappings)
-
-    def _update_sf_id_column(self, model, key_field):
-        self._update_column(
-            source_model=model,
-            target_model=self.models[self.ID_TABLE_NAME],
-            key_field=key_field,
-            join_field="sf_id",
-            target_field="id",
-        )
-
-    def _is_autopk_database(self):
-        # If the type of the Id column on a mapping is INTEGER,
-        # this is an autopk database.
-
-        mapping = self.mapping.values()[0]
-        id_field = mapping.fields["Id"]
-        return isinstance(getattr(self.models[mapping.table], id_field).type, Integer)
+    if mapping.get_oid_as_pk():
+        id_column = mapping.fields["Id"]
+        fields.append(Column(id_column, Unicode(255), primary_key=True))
+    else:
+        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
 
 
 def create_table(mapping, metadata) -> Table:
@@ -138,15 +92,10 @@ def create_table(mapping, metadata) -> Table:
     Mapping should be a MappingStep instance"""
 
     fields = []
-    # _handle_primary_key(mapping, fields)
-    id_column = mapping.fields["Id"]  # Guaranteed to be present by mapping parser.
-    fields.append(Column(id_column, Unicode(255), primary_key=True))
+    _handle_primary_key(mapping, fields)
 
     # make a field list to create
-    # for field, db in mapping.get_complete_field_map().items():
-    for field, db in zip(
-        mapping.get_extract_field_list(), mapping.get_database_column_list()
-    ).items():
+    for field, db in mapping.get_complete_field_map().items():
         if field == "Id":
             continue
 

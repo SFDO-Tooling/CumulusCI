@@ -35,23 +35,12 @@ Contact:
     lookups:
         AccountId:
             table: Account
-Lead:
-    sf_object: Lead
-    api: rest
-    batch_size: 2
-    fields:
-        - LastName
-        - Company
-Event:
-    sf_object: Event
+Opportunity:
+    sf_object: Opportunity
     api: bulk
     batch_size: 2
     fields:
-        - Subject
-        - DurationInMinutes
-        - ActivityDateTime
-    lookups:
-        WhoId:
-            table:
-                - Contact
-                - Lead
+        - Name
+        - CloseDate
+        - Amount
+        - StageName
