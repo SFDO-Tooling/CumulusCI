@@ -779,17 +779,31 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # create a Map: Account SF ID --> Contact ID.  Outer join the
         # Account SF IDs table to get each Contact's associated
         # Account SF ID.
-        query = (
-            self.session.query(contact_id_column, account_sf_id_column)
-            .filter(
-                func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
-                == "true"
+        if self._old_format:
+            query = (
+                self.session.query(contact_id_column, account_sf_id_column)
+                .filter(
+                    func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
+                    == "true"
+                )
+                .outerjoin(
+                    account_sf_ids_table,
+                    account_sf_ids_table.columns["id"]
+                    == str(account_id_lookup.table) + "-" + account_id_column,
+                )
             )
-            .outerjoin(
-                account_sf_ids_table,
-                account_sf_ids_table.columns["id"] == account_id_column,
+        else:
+            query = (
+                self.session.query(contact_id_column, account_sf_id_column)
+                .filter(
+                    func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
+                    == "true"
+                )
+                .outerjoin(
+                    account_sf_ids_table,
+                    account_sf_ids_table.columns["id"] == account_id_column,
+                )
             )
-        )
 
         # Stream the results so we can process batches of 200 Contacts
         # in case we have large data volumes.
