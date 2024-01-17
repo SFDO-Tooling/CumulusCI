@@ -659,7 +659,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             mapping=self.mapping,
             sf=self.sf,
             namespace=self.project_config.project__package__namespace,
-            data_operation=DataOperationType.QUERY,
+            data_operation=DataOperationType.INSERT,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
         )
