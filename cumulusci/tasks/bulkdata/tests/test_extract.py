@@ -565,7 +565,7 @@ class TestExtractData:
             output_Opportunties = list(
                 task.session.execute("select * from Opportunity")
             )
-            assert output_Opportunties == [(1,), (2,)]
+            assert output_Opportunties == [('Opportunity-1',), ('Opportunity-2',)]
 
     @responses.activate
     def test_import_results__relative_dates(self):
@@ -1185,8 +1185,8 @@ class TestExtractData:
                 task()
             with create_engine(task.options["database_url"]).connect() as conn:
                 output_accounts = list(conn.execute("select * from Account"))
-                assert output_accounts[0][0:2] == (1, "Account1")
-                assert output_accounts[1][0:2] == (2, "Account2")
+                assert output_accounts[0][0:2] == ('Account-1', "Account1")
+                assert output_accounts[1][0:2] == ('Account-2', "Account2")
                 assert len(output_accounts) == 2
                 output_opportunities = list(conn.execute("select * from Opportunity"))
 
