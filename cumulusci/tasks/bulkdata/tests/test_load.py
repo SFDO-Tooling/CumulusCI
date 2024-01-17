@@ -830,11 +830,12 @@ class TestLoadData:
                 ["001000000003", None],
             ]
         )
-
         local_ids = io.StringIO()
+        print(local_ids)
         records = list(
             task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
         )
+        print(records)
         assert [[(date.today() + timedelta(days=9)).isoformat()], [None]] == records
 
     def test_get_statics(self):
@@ -876,9 +877,9 @@ class TestLoadData:
             sql_path=Path(__file__).parent / "test_query_db__joins_self_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
             mapping_step_name="Update Accounts",
-            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", accounts_sf_ids_1.sf_id AS accounts_sf_ids_1_sf_id
-FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_sf_ids_1.id = accounts.parent_id ORDER BY accounts.parent_id
-        """,
+            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id
+            FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = accounts.parent_id ORDER BY accounts.parent_id
+            """,
         )
 
     @responses.activate
@@ -949,8 +950,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "contacts_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
@@ -1017,8 +1017,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "contacts_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
@@ -1089,8 +1088,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"requests": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "requests_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
@@ -1144,13 +1142,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.mapping = {}
         with task._init_db():
             id_table = Table(
-                "test_sf_ids",
+                "cumulusci_id_table",
                 task.metadata,
                 Column("id", Unicode(255), primary_key=True),
             )
             id_table.create()
-            task._initialize_id_table({"table": "test"}, True)
-            new_id_table = task.metadata.tables["test_sf_ids"]
+            task._initialize_id_table(True)
+            new_id_table = task.metadata.tables["cumulusci_id_table"]
             assert not (new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
@@ -1161,14 +1159,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.mapping = {}
         with task._init_db():
             id_table = Table(
-                "test_sf_ids",
+                "cumulusci_id_table",
                 task.metadata,
                 Column("id", Unicode(255), primary_key=True),
             )
             id_table.create()
-            table_name = task._initialize_id_table({"table": "test"}, False)
-            assert table_name == "test_sf_ids"
-            new_id_table = task.metadata.tables["test_sf_ids"]
+            task._initialize_id_table(False)
+            new_id_table = task.metadata.tables["cumulusci_id_table"]
             assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
@@ -1183,6 +1180,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
+        task._initialize_id_table = mock.Mock()
         task.mapping = {"Test": MappingStep(sf_object="Account")}
 
         with pytest.raises(BulkDataException):
@@ -1218,7 +1216,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
-        task._initialize_id_table.assert_called_once_with(mapping, True)
         sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
@@ -1268,7 +1265,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
-        task._initialize_id_table.assert_called_once_with(mapping, True)
         sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_called_once()
         assert len(task.logger.mock_calls) == 4
@@ -2057,8 +2053,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             ], step.records
 
             with create_engine(task.options["database_url"]).connect() as c:
-                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
-                assert hh_ids == ("1", "001000000000000")
+                hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
+                assert hh_ids == ("households-1", "001000000000000")
 
     @responses.activate
     def test_run__complex_lookups(self):
@@ -2818,6 +2814,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         task.after_steps = {}
 
@@ -2840,6 +2837,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
+
         with pytest.raises(TaskOptionsError, match="Mapping file path required"):
             task()
 

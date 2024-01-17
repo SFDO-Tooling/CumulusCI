@@ -126,6 +126,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
         self._id_generators = {}
         self._old_format = False
+        self.ID_TABLE_NAME = "cumulusci_id_table"
 
     def _init_dataset(self):
         """Find the dataset paths to use with the following sequence:
@@ -207,7 +208,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     "No data will be loaded because this is a persistent org and no dataset was specified."
                 )
             return
-        self.ID_TABLE_NAME = "cumulusci_id_table"
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
@@ -362,8 +362,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
-        # statics = self._get_statics(mapping)
-        staticizer = self._add_statics_to_row(mapping)
+        statics = self._get_statics(mapping)
         total_rows = 0
 
         if mapping.anchor_date:
@@ -376,13 +375,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         batch_size = mapping.batch_size or DEFAULT_BULK_BATCH_SIZE
         for row in query.yield_per(batch_size):
             total_rows += 1
+            pkey = row[0]
+            row = list(row[1:]) + statics
 
             if mapping.anchor_date and (date_context[0] or date_context[1]):
                 row = adjust_relative_dates(
                     mapping, date_context, row, DataOperationType.INSERT
                 )
-            pkey = row[0]  # FIXME: This is a local-DB ordering assumption.
-            row = staticizer(list(row[1:]))
+
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
@@ -404,9 +404,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 sobject, table_name, conn, self.org_config.is_person_accounts_enabled
             )
 
-    def _add_statics_to_row(self, mapping):
+    def _get_statics(self, mapping):
+        """Return the static values (not column names) to be appended to
+        records for this mapping."""
         statics = list(mapping.static.values())
-
         if mapping.record_type:
             query = (
                 f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.sf_object}'"
@@ -419,10 +420,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 raise BulkDataException(f"Cannot find RecordType with query `{query}`")
             statics.append(record_type_id)
 
-        def add_statics(row):
-            return row + statics
-
-        return add_statics
+        return statics
 
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
@@ -580,6 +578,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if already_exists and not should_reset_table:
             return
+        elif already_exists:
+            self.metadata.remove(self.metadata.tables[self.ID_TABLE_NAME])
         id_table = Table(
             self.ID_TABLE_NAME,
             self.metadata,
