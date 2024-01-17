@@ -129,8 +129,8 @@ class TestLoadData:
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
             with create_engine(task.options["database_url"]).connect() as c:
-                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
-                assert hh_ids == ("1", "001000000000000")
+                hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
+                assert hh_ids == ("households-1", "001000000000000")
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
@@ -271,6 +271,7 @@ class TestLoadData:
             },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
+        task._initialize_id_table = mock.Mock()
         task._init_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
@@ -298,6 +299,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         one = task.mapping["Insert Households"] = mock.Mock()
         two = task.mapping["Insert Contacts"] = mock.Mock()
@@ -324,6 +326,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
