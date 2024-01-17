@@ -597,6 +597,60 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
     return MappingSteps.parse_from_yaml(source)
 
 
+def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
+    sf_objects = [m.sf_object for m in mapping.values()]
+
+    fail = False
+
+    for idx, m in enumerate(mapping.values()):
+        describe = CaseInsensitiveDict(
+            {
+                f["name"]: f
+                for f in getattr(sf, m.sf_object).describe()[
+                    "fields"
+                ]
+            }
+        )
+
+        for lookup in m.lookups.values():
+            if lookup.after:
+                # If configured by the user, skip.
+                # TODO: do we need more validation here?
+                continue
+
+            field_describe = describe[lookup.name]
+            target_objects = field_describe["referenceTo"]
+            if len(target_objects) == 1:
+                # This is a non-polymorphic lookup.
+                try:
+                    target_index = sf_objects.index(target_objects[0])
+                except ValueError:
+                    fail = True
+                    logger.error(
+                        f"The field {m.sf_object}.{lookup.name} looks up to {target_objects[0]}, which is not included in the operation"
+                    )
+                    continue
+
+                if target_index > idx or target_index == idx:
+                    # This is a non-polymorphic after step.
+                    lookup.after = mapping.keys()[idx]
+            else:
+                # This is a polymorphic lookup.
+                # Make sure that any lookup targets present in the operation precede this step.
+                target_indices = [sf_objects.index(t) for t in target_objects]
+                if not all([target_index < idx for target_index in target_indices]):
+                    logger.error(
+                        f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup.name} "
+                        f"must precede {m.sf_object} in the mapping."
+                    )
+                    fail = True
+                    continue
+
+    if fail:
+        raise BulkDataException(
+            "One or more relationship errors blocked the operation."
+        )
+
 def validate_and_inject_mapping(
     *,
     mapping: Dict,
@@ -645,6 +699,9 @@ def validate_and_inject_mapping(
                             f"{describe[field]['referenceTo']} was removed from the operation "
                             "due to missing permissions."
                         )
+    
+    # Synthesize `after` declarations and validate lookup references.
+    _infer_and_validate_lookups(mapping, sf)
 
     # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".
     # IsPersonAccount field values are used to properly load person account records.
