@@ -29,7 +29,7 @@ interactions:
                   \n  } ]\n}"
     - request:
           method: GET
-          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id%2C+AccountNumber%2C+AccountSource%2C+AnnualRevenue%2C+BillingCity%2C+BillingCountry%2C+BillingGeocodeAccuracy%2C+BillingLatitude%2C+BillingLongitude%2C+BillingPostalCode%2C+BillingState%2C+BillingStreet%2C+CleanStatus%2C+Description%2C+DunsNumber%2C+Fax%2C+Industry%2C+Jigsaw%2C+NaicsCode%2C+NaicsDesc%2C+Name%2C+NumberOfEmployees%2C+Ownership%2C+Phone%2C+Rating%2C+ShippingCity%2C+ShippingCountry%2C+ShippingGeocodeAccuracy%2C+ShippingLatitude%2C+ShippingLongitude%2C+ShippingPostalCode%2C+ShippingState%2C+ShippingStreet%2C+Sic%2C+SicDesc%2C+Site%2C+TickerSymbol%2C+Tradestyle%2C+Type%2C+Website%2C+YearStarted%2C+ParentId%2C+RecordTypeId+FROM+Account+WHERE+Name+%21%3D+%27Sample+Account+for+Entitlements%27
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id%2C+AccountNumber%2C+AccountSource%2C+AnnualRevenue%2C+BillingCity%2C+BillingCountry%2C+BillingGeocodeAccuracy%2C+BillingLatitude%2C+BillingLongitude%2C+BillingPostalCode%2C+BillingState%2C+BillingStreet%2C+CleanStatus%2C+Description%2C+DunsNumber%2C+Fax%2C+Industry%2C+Jigsaw%2C+NaicsCode%2C+NaicsDesc%2C+Name%2C+NumberOfEmployees%2C+Ownership%2C+Phone%2C+Rating%2C+RecordTypeId%2C+ShippingCity%2C+ShippingCountry%2C+ShippingGeocodeAccuracy%2C+ShippingLatitude%2C+ShippingLongitude%2C+ShippingPostalCode%2C+ShippingState%2C+ShippingStreet%2C+Sic%2C+SicDesc%2C+Site%2C+TickerSymbol%2C+Tradestyle%2C+Type%2C+Website%2C+YearStarted%2C+ParentId+FROM+Account+WHERE+Name+%21%3D+%27Sample+Account+for+Entitlements%27
           body: null
           headers: *id002
       response:
