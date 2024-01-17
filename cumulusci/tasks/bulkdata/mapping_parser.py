@@ -599,6 +599,7 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
 
 def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
     sf_objects = [m.sf_object for m in mapping.values()]
+    table_sf_obj = {m.table: m.sf_object for m in mapping.values()}
 
     fail = False
 
@@ -619,7 +620,32 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                 continue
 
             field_describe = describe[lookup.name]
-            target_objects = field_describe["referenceTo"]
+            reference_to_objects = field_describe["referenceTo"]
+            target_objects = []
+            
+            lookup_tables = []
+            if type(lookup.table)==str:
+                lookup_tables = [lookup.table]
+            else:
+                lookup_tables = lookup.table
+            
+            for table in lookup_tables:
+                try:
+                    sf_object = table_sf_obj[table]
+                    if sf_object in reference_to_objects:
+                        target_objects.append(sf_object)
+                    else:
+                        logger.error(f"The table {table} is not a valid lookup for {lookup.name} in sf_object: {m.sf_object}")
+                        fail = True
+                except KeyError:
+                    logger.error(f"The table {table} does not exists in the mapping file")
+                    fail = True
+            
+            if fail:
+                continue
+                
+
+
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
                 try:
@@ -633,7 +659,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
 
                 if target_index > idx or target_index == idx:
                     # This is a non-polymorphic after step.
-                    lookup.after = mapping.keys()[idx]
+                    lookup.after = list(mapping.keys())[idx]
             else:
                 # This is a polymorphic lookup.
                 # Make sure that any lookup targets present in the operation precede this step.
@@ -661,6 +687,7 @@ def validate_and_inject_mapping(
     drop_missing: bool,
     org_has_person_accounts_enabled: bool = False,
 ):
+    is_load = True if data_operation == DataOperationType.INSERT else False
     should_continue = [
         m.validate_and_inject_namespace(
             sf, namespace, data_operation, inject_namespaces, drop_missing
@@ -700,8 +727,9 @@ def validate_and_inject_mapping(
                             "due to missing permissions."
                         )
     
-    # Synthesize `after` declarations and validate lookup references.
-    _infer_and_validate_lookups(mapping, sf)
+    if is_load:
+        # Synthesize `after` declarations and validate lookup references.
+        _infer_and_validate_lookups(mapping, sf)
 
     # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".
     # IsPersonAccount field values are used to properly load person account records.
