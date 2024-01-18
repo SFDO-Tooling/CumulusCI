@@ -1,12 +1,12 @@
 BEGIN TRANSACTION;
 CREATE TABLE "accounts" (
-	sf_id VARCHAR(255) NOT NULL, 
+	id VARCHAR(255) NOT NULL, 
 	"Name" VARCHAR(255), 
 	"parent_id" VARCHAR(255), 
-	PRIMARY KEY (sf_id)
+	PRIMARY KEY (id)
 );
-INSERT INTO "accounts" VALUES("001DEADBEEF",'Bluth','');
-INSERT INTO "accounts" VALUES("002DEADBEEF",'Funke-Bluth',1);
+INSERT INTO "accounts" VALUES(1,'Bluth','');
+INSERT INTO "accounts" VALUES(2,'Funke-Bluth',1);
 
 CREATE TABLE "cumulusci_id_table" (
 	id VARCHAR(255) NOT NULL, 
