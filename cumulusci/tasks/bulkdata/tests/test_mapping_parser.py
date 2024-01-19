@@ -13,6 +13,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingLookup,
     MappingStep,
     ValidationError,
+    _infer_and_validate_lookups,
     parse_from_yaml,
     validate_and_inject_mapping,
 )
@@ -1277,3 +1278,126 @@ class TestUpsertKeyValidations:
             "AccountSite",
             "ParentId",
         ]
+
+    @responses.activate
+    def test_infer_and_validate_lookups__table_doesnt_exist(self, caplog):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        expected_error_message = "The table Account does not exist in the mapping file"
+
+        with pytest.raises(BulkDataException) as e:
+            _infer_and_validate_lookups(
+                mapping=mapping, sf=org_config.salesforce_client
+            )
+            assert "One or more relationship errors blocked the operation" in str(
+                e.value
+            )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
+
+    @responses.activate
+    def test_infer_and_validate_lookups__incorrect_order(self, caplog):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Account:\n"
+                    "  sf_object: Account\n"
+                    "  table: Account\n"
+                    "  fields:\n"
+                    "    - Description__c\n"
+                    "Insert Events:\n"
+                    "  sf_object: Event\n"
+                    "  table: Event\n"
+                    "  lookups:\n"
+                    "    WhatId:\n"
+                    "      table:\n"
+                    "        - Opportunity\n"
+                    "        - Account\n"
+                    "Insert Opportunity:\n"
+                    "  sf_object: Opportunity\n"
+                    "  table: Opportunity\n"
+                    "  fields:\n"
+                    "    - Description__c\n"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        expected_error_message = "All included target objects (Opportunity,Account) for the field Event.WhatId must precede Event in the mapping."
+
+        with pytest.raises(BulkDataException) as e:
+            _infer_and_validate_lookups(
+                mapping=mapping, sf=org_config.salesforce_client
+            )
+            assert "One or more relationship errors blocked the operation" in str(
+                e.value
+            )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
+
+    @responses.activate
+    def test_infer_and_validate_lookups__after(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  lookups:\n    ParentId:\n      table: Account\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+        _infer_and_validate_lookups(mapping=mapping, sf=org_config.salesforce_client)
+        assert mapping["Insert Accounts"].lookups["ParentId"].after == "Insert Accounts"
+        assert mapping["Insert Contacts"].lookups["AccountId"].after is None
+
+    @responses.activate
+    def test_infer_and_validate_lookups__invalid_reference(self, caplog):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Events:\n  sf_object: Event\n  table: Event\n  fields:\n    - Description__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Event"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        expected_error_message = "The lookup Event is not a valid lookup"
+
+        with pytest.raises(BulkDataException) as e:
+            _infer_and_validate_lookups(
+                mapping=mapping, sf=org_config.salesforce_client
+            )
+            assert "One or more relationship errors blocked the operation" in str(
+                e.value
+            )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)

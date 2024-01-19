@@ -648,15 +648,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
 
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
-                try:
-                    target_index = list(sf_objects.values()).index(target_objects[0])
-                except ValueError:
-                    fail = True
-                    logger.error(
-                        f"The field {m.sf_object}.{lookup.name} looks up to {target_objects[0]}, which is not included in the operation"
-                    )
-                    continue
-
+                target_index = list(sf_objects.values()).index(target_objects[0])
                 if target_index > idx or target_index == idx:
                     # This is a non-polymorphic after step.
                     lookup.after = list(mapping.keys())[idx]
