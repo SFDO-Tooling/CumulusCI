@@ -1271,7 +1271,7 @@ class TestUpsertKeyValidations:
         assert m.get_extract_field_list() == [
             "Id",
             "Name",
+            "RecordTypeId",
             "AccountSite",
             "ParentId",
-            "RecordTypeId",
         ]

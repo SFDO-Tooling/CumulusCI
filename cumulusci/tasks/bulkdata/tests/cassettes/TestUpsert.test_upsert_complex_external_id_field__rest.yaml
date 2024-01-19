@@ -4,6 +4,9 @@ interactions:
       include_file: GET_sobjects_Global_describe.yaml
     - &id005
       include_file: GET_sobjects_Account_describe.yaml
+    - &id016
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id016
     - *id001
     - &id007
       include_file: GET_sobjects_Contact_describe.yaml
