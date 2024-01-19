@@ -5,6 +5,7 @@ from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from collections import OrderedDict
 
 from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
@@ -598,8 +599,8 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
 
 
 def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
-    sf_objects = [m.sf_object for m in mapping.values()]
-    table_sf_obj = {m.table: m.sf_object for m in mapping.values()}
+    # store the table name and their sobject
+    sf_objects = OrderedDict((m.table, m.sf_object) for m in mapping.values())
 
     fail = False
 
@@ -619,28 +620,25 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                 # TODO: do we need more validation here?
                 continue
 
-            field_describe = describe[lookup.name]
-            reference_to_objects = field_describe["referenceTo"]
+            field_describe = describe.get(lookup.name, {})
+            reference_to_objects = field_describe.get("referenceTo", [])
             target_objects = []
-            
-            lookup_tables = []
-            if type(lookup.table)==str:
-                lookup_tables = [lookup.table]
-            else:
-                lookup_tables = lookup.table
-            
+
+            lookup_tables = [lookup.table] if isinstance(lookup.table, str) else lookup.table
+
             for table in lookup_tables:
                 try:
-                    sf_object = table_sf_obj[table]
+                    sf_object = sf_objects[table]
+                    # Check if sf_object is a valid lookup
                     if sf_object in reference_to_objects:
                         target_objects.append(sf_object)
                     else:
-                        logger.error(f"The table {table} is not a valid lookup for {lookup.name} in sf_object: {m.sf_object}")
+                        logger.error(f"The lookup {sf_object} is not a valid lookup for {lookup.name} in sf_object: {m.sf_object}")
                         fail = True
                 except KeyError:
-                    logger.error(f"The table {table} does not exists in the mapping file")
+                    logger.error(f"The table {table} does not exist in the mapping file")
                     fail = True
-            
+                    
             if fail:
                 continue
                 
@@ -649,7 +647,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
                 try:
-                    target_index = sf_objects.index(target_objects[0])
+                    target_index = list(sf_objects.values()).index(target_objects[0])
                 except ValueError:
                     fail = True
                     logger.error(
@@ -663,7 +661,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             else:
                 # This is a polymorphic lookup.
                 # Make sure that any lookup targets present in the operation precede this step.
-                target_indices = [sf_objects.index(t) for t in target_objects]
+                target_indices = [list(sf_objects.values()).index(t) for t in target_objects]
                 if not all([target_index < idx for target_index in target_indices]):
                     logger.error(
                         f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup.name} "
