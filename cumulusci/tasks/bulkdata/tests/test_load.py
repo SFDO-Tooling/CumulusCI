@@ -831,11 +831,9 @@ class TestLoadData:
             ]
         )
         local_ids = io.StringIO()
-        print(local_ids)
         records = list(
             task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
         )
-        print(records)
         assert [[(date.today() + timedelta(days=9)).isoformat()], [None]] == records
 
     def test_get_statics(self):
