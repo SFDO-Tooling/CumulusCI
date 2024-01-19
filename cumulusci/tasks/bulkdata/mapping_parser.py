@@ -1,11 +1,11 @@
 import typing as T
+from collections import OrderedDict
 from datetime import date
 from enum import Enum
 from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
-from collections import OrderedDict
 
 from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
@@ -37,7 +37,7 @@ class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
 
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
-    table: Union[str, List[str]]
+    table: Union[str, List[str]]  # Support for polymorphic lookups
     key_field: Optional[str] = None
     value_field: Optional[str] = None
     join_field: Optional[str] = None
@@ -196,7 +196,7 @@ class MappingStep(CCIDictModel):
         return columns
 
     def get_extract_field_list(self):
-        """Build a flat list of Salesforce fields for the given mapping, including fields, lookups, and record types,
+        """Build a ordered list of Salesforce fields for the given mapping, including fields, lookups, and record types,
         for an extraction operation.
         The Id field is guaranteed to come first in the list."""
 
@@ -599,6 +599,9 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
 
 
 def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
+    """Validate that all the lookup tables mentioned are valid references
+    to the lookup. Also verify that the mapping for the tables are mentioned
+    before they are mentioned in the lookups"""
     # store the table name and their sobject
     sf_objects = OrderedDict((m.table, m.sf_object) for m in mapping.values())
 
@@ -606,12 +609,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
 
     for idx, m in enumerate(mapping.values()):
         describe = CaseInsensitiveDict(
-            {
-                f["name"]: f
-                for f in getattr(sf, m.sf_object).describe()[
-                    "fields"
-                ]
-            }
+            {f["name"]: f for f in getattr(sf, m.sf_object).describe()["fields"]}
         )
 
         for lookup in m.lookups.values():
@@ -624,7 +622,9 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             reference_to_objects = field_describe.get("referenceTo", [])
             target_objects = []
 
-            lookup_tables = [lookup.table] if isinstance(lookup.table, str) else lookup.table
+            lookup_tables = (
+                [lookup.table] if isinstance(lookup.table, str) else lookup.table
+            )
 
             for table in lookup_tables:
                 try:
@@ -633,16 +633,18 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                     if sf_object in reference_to_objects:
                         target_objects.append(sf_object)
                     else:
-                        logger.error(f"The lookup {sf_object} is not a valid lookup for {lookup.name} in sf_object: {m.sf_object}")
+                        logger.error(
+                            f"The lookup {sf_object} is not a valid lookup for {lookup.name} in sf_object: {m.sf_object}"
+                        )
                         fail = True
                 except KeyError:
-                    logger.error(f"The table {table} does not exist in the mapping file")
+                    logger.error(
+                        f"The table {table} does not exist in the mapping file"
+                    )
                     fail = True
-                    
+
             if fail:
                 continue
-                
-
 
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
@@ -661,7 +663,9 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             else:
                 # This is a polymorphic lookup.
                 # Make sure that any lookup targets present in the operation precede this step.
-                target_indices = [list(sf_objects.values()).index(t) for t in target_objects]
+                target_indices = [
+                    list(sf_objects.values()).index(t) for t in target_objects
+                ]
                 if not all([target_index < idx for target_index in target_indices]):
                     logger.error(
                         f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup.name} "
@@ -675,6 +679,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             "One or more relationship errors blocked the operation."
         )
 
+
 def validate_and_inject_mapping(
     *,
     mapping: Dict,
@@ -685,7 +690,9 @@ def validate_and_inject_mapping(
     drop_missing: bool,
     org_has_person_accounts_enabled: bool = False,
 ):
+    # Check if operation is load or extract
     is_load = True if data_operation == DataOperationType.INSERT else False
+
     should_continue = [
         m.validate_and_inject_namespace(
             sf, namespace, data_operation, inject_namespaces, drop_missing
@@ -724,9 +731,9 @@ def validate_and_inject_mapping(
                             f"{describe[field]['referenceTo']} was removed from the operation "
                             "due to missing permissions."
                         )
-    
+
+    # Infer/validate lookups
     if is_load:
-        # Synthesize `after` declarations and validate lookup references.
         _infer_and_validate_lookups(mapping, sf)
 
     # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".

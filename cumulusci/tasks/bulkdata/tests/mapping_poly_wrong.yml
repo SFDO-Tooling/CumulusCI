@@ -1,3 +1,5 @@
+# Polymorphic Mapping file for extract
+# with missing table contacts
 Insert Households:
     api: Bulk
     sf_object: Account

@@ -2,10 +2,15 @@ import itertools
 import re
 from contextlib import contextmanager
 
-from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
-from cumulusci.core.exceptions import BulkDataException, TaskOptionsError, CumulusCIException, ConfigError
+from cumulusci.core.exceptions import (
+    BulkDataException,
+    ConfigError,
+    CumulusCIException,
+    TaskOptionsError,
+)
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.mapping_parser import (
@@ -227,16 +232,18 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # into two separate streams and load into the main table and the sf_id_table
             values, ids = itertools.tee(record_iterator)
 
+            # Generate naming format (<sobject>-<number>)
             id_source_sobj, id_source_global = itertools.tee(
                 self._id_generator_for_object(mapping.sf_object)
             )
+
             f_ids = ((row[0], next(id_source_global)) for row in ids)
             f_values = ([next(id_source_sobj)] + row[1:] for row in values)
 
             values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
                 table=self.metadata.tables[mapping.table],
-                columns= ["id"] + columns[1:],
+                columns=["id"] + columns[1:],
                 record_iterable=f_values,
             )
             ids_chunks = sql_bulk_insert_from_records_incremental(
@@ -261,6 +268,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.session.commit()
 
     def _id_generator_for_object(self, sobject: str):
+        """Generates strings for local ids in format {sobject}-{counter}
+        (example: Account-2)"""
         if sobject not in self._id_generators:
 
             def _generate_ids():
@@ -288,15 +297,21 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name"""
+
+        # Get all mappings for lookups
         mappings = [
-            mapping for mapping in self.mapping.values()
-            if (isinstance(table, str) and mapping["table"] == table) or
-            (isinstance(table, list) and mapping["table"] in table)
+            mapping
+            for mapping in self.mapping.values()
+            if (isinstance(table, str) and mapping["table"] == table)
+            or (isinstance(table, list) and mapping["table"] in table)
         ]
 
+        # For polymorphic lookups, raise exception if missing mappings
         if isinstance(table, list) and len(mappings) != len(table):
             missing_tables = set(table) - set(mapping["table"] for mapping in mappings)
-            raise CumulusCIException(f"The following tables are missing in the mapping file: {missing_tables}")
+            raise CumulusCIException(
+                f"The following tables are missing in the mapping file: {missing_tables}"
+            )
 
         return mappings
 
@@ -328,27 +343,35 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             for lookup_mapping in lookup_mappings:
                 lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
                 try:
-                    update_query = self.session.query(model).filter(
-                        key_attr.isnot(None), key_attr == lookup_model.sf_id
-                    ).update({key_attr: lookup_model.id}, synchronize_session=False)
+                    update_query = (
+                        self.session.query(model)
+                        .filter(key_attr.isnot(None), key_attr == lookup_model.sf_id)
+                        .update({key_attr: lookup_model.id}, synchronize_session=False)
+                    )
                     total_mapping_operations += update_query.rowcount
                 except NotImplementedError:
                     # Some databases such as sqlite don't support multitable update
                     mappings = []
-                    for row, lookup_id in self.session.query(model, lookup_model.id).join(
-                        lookup_model, key_attr == lookup_model.sf_id
-                    ):
+                    for row, lookup_id in self.session.query(
+                        model, lookup_model.id
+                    ).join(lookup_model, key_attr == lookup_model.sf_id):
                         mappings.append({"id": row.id, key_field: lookup_id})
                     total_mapping_operations += len(mappings)
                     self.session.bulk_update_mappings(model, mappings)
             # Count the total number of rows excluding those with no entry for that field
-            total_rows = self.session.query(model).filter(
-                key_attr.isnot(None),  # Ensure key_attr is not None
-                key_attr.isnot('')     # Ensure key_attr is not an empty string
-            ).count()
+            total_rows = (
+                self.session.query(model)
+                .filter(
+                    key_attr.isnot(None),  # Ensure key_attr is not None
+                    key_attr.isnot(""),  # Ensure key_attr is not an empty string
+                )
+                .count()
+            )
 
             if total_mapping_operations != total_rows:
-                raise ConfigError(f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}")
+                raise ConfigError(
+                    f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}. Mention all related tables for lookup: {lookup_key}"
+                )
         self.session.commit()
 
     def _create_tables(self):

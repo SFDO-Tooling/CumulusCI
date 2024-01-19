@@ -6,7 +6,7 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
-from sqlalchemy import Boolean, Column, Integer, MetaData, Table, Unicode, inspect
+from sqlalchemy import Boolean, Column, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
@@ -14,6 +14,7 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.iterators import iterate_in_chunks
 
 ID_TABLE_NAME = "cumulusci_id_table"
+
 
 class SqlAlchemyMixin:
     logger: logging.Logger
@@ -81,8 +82,9 @@ def _handle_primary_key(mapping, fields):
 
     id_column = "id"
     if mapping.get_oid_as_pk():
+        # Get Id column from mapping
         id_column = mapping.fields["Id"]
-    
+
     fields.append(Column(id_column, Unicode(255), primary_key=True))
 
 

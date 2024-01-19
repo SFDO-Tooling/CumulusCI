@@ -1,3 +1,4 @@
+# Describe call for Event sobject (polymorphic purposes)
 request:
     method: GET
     uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Event/describe

@@ -1260,8 +1260,10 @@ class TestUpsertKeyValidations:
             "FirstName",
             "LastName",
         ), mapping["Insert Accounts"]["update_key"]
-    
+
     def test_get_extract_field_list(self):
+        """Test to ensure Id comes first, lookups come
+        last and order of mappings do not change"""
         m = MappingStep(
             sf_object="Account",
             fields=["Name", "RecordTypeId", "AccountSite"],

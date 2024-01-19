@@ -1,3 +1,6 @@
+# Polymorphic mapping file for extract with
+# some records of event referencing contact
+# but contact not mentioned in lookup
 Insert Households:
     api: Bulk
     sf_object: Account

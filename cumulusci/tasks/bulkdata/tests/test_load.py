@@ -878,9 +878,9 @@ class TestLoadData:
             mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
             mapping_step_name="Update Accounts",
             expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || accounts.parent_id ORDER BY accounts.parent_id""",
-            old_format= True
+            old_format=True,
         )
-    
+
     def test_query_db__joins_polymorphic_lookups(self):
         _validate_query_for_mapping_step(
             sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
@@ -888,7 +888,7 @@ class TestLoadData:
             mapping_step_name="Update Event",
             expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || events."WhoId" ORDER BY events."WhoId" """,
         )
-    
+
     @responses.activate
     def test_query_db__person_accounts_enabled__account_mapping(self):
         responses.add(
@@ -1656,7 +1656,7 @@ class TestLoadData:
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
             mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
-        assert task._old_format == True
+        assert task._old_format is True
         sql_bulk_insert_from_records.assert_called_with(
             connection=task.session.connection.return_value,
             table=task.metadata.tables[task._initialize_id_table.return_value],
@@ -2483,7 +2483,7 @@ class TestLoadData:
 
         account_sf_ids_table = mock.Mock()
         account_sf_ids_table.columns = {"id": mock.Mock(), "sf_id": mock.Mock()}
-        
+
         contact_model.__table__ = mock.Mock()
         contact_model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
         contact_model.__table__.columns = {
@@ -2988,7 +2988,9 @@ class TestLoadDataIntegrationTests:
         ]
 
 
-def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expected,old_format= False):
+def _validate_query_for_mapping_step(
+    sql_path, mapping, mapping_step_name, expected, old_format=False
+):
     """Validate the text of a SQL query"""
     task = _make_task(
         LoadData,
@@ -3004,7 +3006,7 @@ def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expec
     ), mock.patch.object(task, "sf", create=True):
         task._init_mapping()
     with task._init_db():
-        task._old_format= mock.Mock(return_value= old_format)
+        task._old_format = mock.Mock(return_value=old_format)
         query = task._query_db(task.mapping[mapping_step_name])
 
     def normalize(query):

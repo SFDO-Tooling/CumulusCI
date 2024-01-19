@@ -1,3 +1,4 @@
+# Polymorphic Mapping File for extract
 Insert Households:
     api: Bulk
     sf_object: Account
