@@ -22,6 +22,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.query_transformers import (
+    ID_TABLE_NAME,
     AddLookupsToQuery,
     AddMappingFiltersToQuery,
     AddPersonAccountsToQuery,
@@ -126,7 +127,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
         self._id_generators = {}
         self._old_format = False
-        self.ID_TABLE_NAME = "cumulusci_id_table"
+        self.ID_TABLE_NAME = ID_TABLE_NAME
 
     def _init_dataset(self):
         """Find the dataset paths to use with the following sequence:

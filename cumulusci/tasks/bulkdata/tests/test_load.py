@@ -2444,8 +2444,8 @@ class TestLoadData:
     # code to test too little code. We'll test Person accounts in context
     # instead.
     # Delete this comment whenever it is convenient.
-
-    def test_generate_contact_id_map_for_person_accounts(self):
+    @pytest.mark.parametrize("old_format", [True, False])
+    def test_generate_contact_id_map_for_person_accounts(self, old_format):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, mapping_file)
@@ -2470,7 +2470,7 @@ class TestLoadData:
         task.session.query.filter.return_value = task.session.query
         task.session.query.outerjoin.return_value = task.session.query
         task.sf = mock.Mock()
-        # task._old_format= mock.Mock(return_value= True)
+        task._old_format = old_format
 
         # Set model mocks
         account_model.__table__ = mock.Mock()
@@ -2490,7 +2490,7 @@ class TestLoadData:
             "id": mock.Mock(),
             "sf_id": mock.Mock(),
             "IsPersonAccount": mock.MagicMock(),
-            "account_id": mock.Mock,
+            "account_id": "string",
         }
 
         account_id_lookup = MappingLookup(
@@ -2505,6 +2505,12 @@ class TestLoadData:
         account_id_column = getattr(
             contact_model, account_id_lookup.get_lookup_key_field(contact_model)
         )
+        setattr(
+            contact_model,
+            account_id_lookup.get_lookup_key_field(contact_model),
+            "Contact.account_id",
+        )
+
         account_sf_ids_table = account_id_lookup["aliased_table"]
         account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
@@ -2557,7 +2563,18 @@ class TestLoadData:
         query_result.fetchmany.expected_calls = []
         task.sf.query_all.expected_calls = []
         for chunk in chunks:
-            expected.extend([(record["id"], record["sf_id"]) for record in chunk])
+            if task._old_format:
+                expected.extend(
+                    [
+                        (
+                            str(contact_mapping.table) + "-" + record["id"],
+                            record["sf_id"],
+                        )
+                        for record in chunk
+                    ]
+                )
+            else:
+                expected.extend([(record["id"], record["sf_id"]) for record in chunk])
 
             query_result.fetchmany.expected_calls.append(mock.call(200))
 
@@ -2620,7 +2637,6 @@ class TestLoadData:
         )
 
         actual = [value for value in generator]
-
         assert expected == actual
 
         # Assert query executed

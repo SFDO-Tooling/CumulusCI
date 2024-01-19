@@ -13,8 +13,6 @@ from sqlalchemy.orm import Session, mapper
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.iterators import iterate_in_chunks
 
-ID_TABLE_NAME = "cumulusci_id_table"
-
 
 class SqlAlchemyMixin:
     logger: logging.Logger
