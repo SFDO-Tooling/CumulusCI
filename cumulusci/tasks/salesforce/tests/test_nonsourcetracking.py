@@ -6,11 +6,7 @@ from unittest import mock
 import pytest
 import responses
 
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    SfdxOrgException,
-    TaskOptionsError,
-)
+from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
 from cumulusci.tasks.salesforce import DescribeMetadataTypes
 from cumulusci.tasks.salesforce.nonsourcetracking import (
     ListComponents,
@@ -127,7 +123,9 @@ class TestListComponents:
         "options",
         [
             {"api_version": 44.0, "metadata_types": "FlowDefinition"},
-            {"api_version": 44.0, "metadata_types": "Index"},
+            {
+                "api_version": 44.0,
+            },
         ],
     )
     def test_check_sfdx_result(self, cmd, create_task_fixture, options):
@@ -170,41 +168,44 @@ class TestListComponents:
         )
         messages = []
         task._init_task()
-        with mock.patch.object(
-            ListNonSourceTrackable,
-            "_run_task",
-            return_value=["FlowDefinition", "SharingRules"],
-        ):
-
-            if task.options["metadata_types"] == ["Index"]:
-                with pytest.raises(TaskOptionsError):
-                    task._run_task()
-            else:
-                task.logger = mock.Mock()
-                task.logger.info = messages.append
-                components = task._run_task()
+        task.logger = mock.Mock()
+        task.logger.info = messages.append
+        if "metadata_types" in options:
+            components = task._run_task()
+            assert cmd.call_count == 1
+            assert (
+                "sfdx force:mdapi:listmetadata -a 44.0 -m FlowDefinition --json"
+                in cmd.call_args[0][0]
+            )
+            assert components == [
+                {
+                    "MemberType": "FlowDefinition",
+                    "MemberName": "alpha",
+                    "lastModifiedByName": "User User",
+                    "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                },
+                {
+                    "MemberType": "FlowDefinition",
+                    "MemberName": "beta",
+                    "lastModifiedByName": "User User",
+                    "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                },
+            ]
+            assert (
+                "Found 2 non source trackable components in the org for the given types."
+                in messages
+            )
+        else:
+            with mock.patch.object(
+                ListNonSourceTrackable,
+                "_run_task",
+                return_value=["Index"],
+            ):
+                task._run_task()
                 assert cmd.call_count == 1
                 assert (
-                    "sfdx force:mdapi:listmetadata -a 44.0 -m FlowDefinition --json"
+                    "sfdx force:mdapi:listmetadata -a 44.0 -m Index --json"
                     in cmd.call_args[0][0]
-                )
-                assert components == [
-                    {
-                        "MemberType": "FlowDefinition",
-                        "MemberName": "alpha",
-                        "lastModifiedByName": "User User",
-                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
-                    },
-                    {
-                        "MemberType": "FlowDefinition",
-                        "MemberName": "beta",
-                        "lastModifiedByName": "User User",
-                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
-                    },
-                ]
-                assert (
-                    "Found 2 non source trackable components in the org for the given types."
-                    in messages
                 )
 
 

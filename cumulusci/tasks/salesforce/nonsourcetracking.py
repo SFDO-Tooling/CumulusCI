@@ -5,11 +5,7 @@ import requests
 import sarge
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    SfdxOrgException,
-    TaskOptionsError,
-)
+from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import (
@@ -111,17 +107,13 @@ class ListComponents(BaseSalesforceApiTask):
         task_config = TaskConfig(
             {"options": {"api_version": self.options["api_version"]}}
         )
-        metadata_types = ListNonSourceTrackable(
-            org_config=self.org_config,
-            project_config=self.project_config,
-            task_config=task_config,
-        )._run_task()
         if not self.options["metadata_types"]:
+            metadata_types = ListNonSourceTrackable(
+                org_config=self.org_config,
+                project_config=self.project_config,
+                task_config=task_config,
+            )._run_task()
             self.options["metadata_types"] = metadata_types
-        else:
-            for md_type in self.options["metadata_types"]:
-                if md_type not in metadata_types:
-                    raise TaskOptionsError(f"Invalid metadata type: {md_type}")
         list_components = []
         for md_type in self.options["metadata_types"]:
             p: sarge.Command = sfdx(
@@ -137,8 +129,7 @@ class ListComponents(BaseSalesforceApiTask):
                 ],
                 env={"SFDX_INSTANCE_URL": self.org_config.instance_url},
             )
-            stdout = p.stdout_text.read()
-            stderr = p.stderr_text.read()
+            stdout, stderr = p.stdout_text.read(), p.stderr_text.read()
 
             if p.returncode:
                 message = f"\nstderr:\n{nl.join(stderr)}"
