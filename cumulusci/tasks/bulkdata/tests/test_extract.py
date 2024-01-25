@@ -471,6 +471,7 @@ class TestExtractData:
             "Account",
             mapping.get_source_record_type_table(),
             task.session.connection.return_value,
+            task.org_config._is_person_accounts_enabled,
         )
 
     def test_import_results__person_account_name_stripped(self):

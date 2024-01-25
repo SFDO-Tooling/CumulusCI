@@ -28,7 +28,7 @@ from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
 from cumulusci.utils.metaprogramming import classproperty
-from cumulusci.utils.options import CCIOptions
+from cumulusci.utils.options import CCIOptions, ReadOnlyOptions
 
 CURRENT_TASK = threading.local()
 
@@ -163,6 +163,7 @@ class BaseTask:
                     opt: val for opt, val in self.options.items() if opt not in specials
                 }
                 self.parsed_options = self.Options(**options_without_specials)
+                self.options = ReadOnlyOptions(self.options)
             except ValidationError as e:
                 try:
                     errors = [

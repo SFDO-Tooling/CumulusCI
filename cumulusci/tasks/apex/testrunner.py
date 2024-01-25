@@ -262,12 +262,18 @@ class RunApexTests(BaseSalesforceApiTask):
         self.retry_details = None
 
     def _get_namespace_filter(self):
+
         if self.options.get("managed"):
+
             namespace = self.options.get("namespace")
+
             if not namespace:
                 raise TaskOptionsError(
                     "Running tests in managed mode but no namespace available."
                 )
+            namespace = "'{}'".format(namespace)
+        elif self.org_config.namespace:
+            namespace = self.org_config.namespace
             namespace = "'{}'".format(namespace)
         else:
             namespace = "null"
@@ -291,6 +297,7 @@ class RunApexTests(BaseSalesforceApiTask):
         query = "SELECT Id, Name FROM ApexClass " + "WHERE NamespacePrefix = {}".format(
             namespace
         )
+
         if included_tests:
             query += " AND ({})".format(" OR ".join(included_tests))
         if excluded_tests:
@@ -487,6 +494,22 @@ class RunApexTests(BaseSalesforceApiTask):
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
+            self.retry_details = {}
+            method_names = list(self.results_by_class_name[class_name].keys())
+            # Added to process for the None methodnames
+
+            if None in method_names:
+                class_id = self.classes_by_name[class_name]
+                self.retry_details.setdefault(class_id, []).append(
+                    self._get_test_methods_for_class(class_name)
+                )
+                del self.results_by_class_name[class_name][None]
+                self.logger.info(
+                    f"Retrying class with id: {class_id} name:{class_name} due to `None` methodname"
+                )
+                self.counts["Retriable"] += len(self.retry_details[class_id])
+                self._attempt_retries()
+
             has_failures = any(
                 result["Outcome"] in ["Fail", "CompileFail"]
                 for result in self.results_by_class_name[class_name].values()

@@ -197,14 +197,16 @@ class OAuth2Client(object):
                 raise
 
         if use_https:
-            if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
+            certfile = "localhost.pem"
+            keyfile = "key.pem"
+            if not Path(certfile).is_file() or not Path(keyfile).is_file():
                 create_key_and_self_signed_cert()
-            httpd.socket = ssl.wrap_socket(
+            # FIXME: Use ssl.PROTOCOL_TLS_SERVER after dropping 3.8 support
+            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)
+            ssl_context.load_cert_chain(certfile, keyfile)
+            httpd.socket = ssl_context.wrap_socket(
                 httpd.socket,
                 server_side=True,
-                certfile="localhost.pem",
-                keyfile="key.pem",
-                ssl_version=ssl.PROTOCOL_TLS,
             )
 
         httpd.timeout = self.httpd_timeout
