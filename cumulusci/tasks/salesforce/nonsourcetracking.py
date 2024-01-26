@@ -2,12 +2,11 @@ import json
 import os
 
 import requests
-import sarge
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
-from cumulusci.core.sfdx import sfdx
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import process_list_arg
+from cumulusci.salesforce_api.metadata import ApiListMetadata
 from cumulusci.tasks.salesforce import (
     BaseRetrieveMetadata,
     BaseSalesforceApiTask,
@@ -83,6 +82,7 @@ class ListNonSourceTrackable(BaseSalesforceApiTask):
 
 
 class ListComponents(BaseSalesforceApiTask):
+    api_class = ApiListMetadata
     task_options = {
         "api_version": {
             "description": "Override the API version used to list metadatatypes",
@@ -99,55 +99,35 @@ class ListComponents(BaseSalesforceApiTask):
             self.options[
                 "api_version"
             ] = self.project_config.project__package__api_version
-        self.options["metadata_types"] = process_list_arg(
-            self.options.get("metadata_types", [])
-        )
-
-    def _get_components(self):
-        task_config = TaskConfig(
-            {"options": {"api_version": self.options["api_version"]}}
-        )
-        if not self.options["metadata_types"]:
-            metadata_types = ListNonSourceTrackable(
+        if "metadata_types" not in self.options:
+            self.options["metadata_types"] = ListNonSourceTrackable(
                 org_config=self.org_config,
                 project_config=self.project_config,
-                task_config=task_config,
+                task_config=TaskConfig(
+                    {"options": {"api_version": self.options["api_version"]}}
+                ),
             )._run_task()
-            self.options["metadata_types"] = metadata_types
+        else:
+            self.options["metadata_types"] = process_list_arg(
+                self.options.get("metadata_types")
+            )
+
+    def _get_components(self):
         list_components = []
         for md_type in self.options["metadata_types"]:
-            p: sarge.Command = sfdx(
-                "force:mdapi:listmetadata",
-                access_token=self.org_config.access_token,
-                log_note="Listing components",
-                args=[
-                    "-a",
-                    str(self.options["api_version"]),
-                    "-m",
-                    str(md_type),
-                    "--json",
-                ],
-                env={"SFDX_INSTANCE_URL": self.org_config.instance_url},
+            api_object = self.api_class(
+                self, metadata_type=md_type, as_of_version=self.options["api_version"]
             )
-            stdout, stderr = p.stdout_text.read(), p.stderr_text.read()
-
-            if p.returncode:
-                message = f"\nstderr:\n{nl.join(stderr)}"
-                message += f"\nstdout:\n{nl.join(stdout)}"
-                raise SfdxOrgException(message)
-            else:
-                result = json.loads(stdout)["result"]
-                if result:
-                    for cmp in result:
-                        change_dict = {
-                            "MemberType": md_type,
-                            "MemberName": cmp["fullName"],
-                            "lastModifiedByName": cmp["lastModifiedByName"],
-                            "lastModifiedDate": cmp["lastModifiedDate"],
-                        }
-                        if change_dict not in list_components:
-                            list_components.append(change_dict)
-
+            components = api_object()
+            for temp in components[md_type]:
+                cmp = {
+                    "MemberType": md_type,
+                    "MemberName": temp["fullName"],
+                    "lastModifiedByName": temp["lastModifiedByName"],
+                    "lastModifiedDate": temp["lastModifiedDate"],
+                }
+                if cmp not in list_components:
+                    list_components.append(cmp)
         return list_components
 
     def _run_task(self):
