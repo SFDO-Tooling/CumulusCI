@@ -86,6 +86,16 @@ class TestListNonSourceTrackable:
 
 
 class TestListComponents:
+    def test_init_task(self, create_task_fixture):
+        with mock.patch.object(
+            ListNonSourceTrackable,
+            "_run_task",
+            return_value=["SharingRules", "Scontrol"],
+        ):
+            task = create_task_fixture(ListComponents, {})
+            task._init_task()
+            assert task.options["metadata_types"] == ["SharingRules", "Scontrol"]
+
     def test_check_api_result(self, create_task_fixture):
         options = {"metadata_types": "SharingRules"}
         task = create_task_fixture(ListComponents, options)
