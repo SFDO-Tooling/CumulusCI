@@ -37,6 +37,13 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
+from cumulusci.utils.salesforce.soql import (
+    format_subscriber_package_version_where_clause,
+)
+
+PERSISTENT_ORG_ERROR = """
+Target org scratch org definition file missing. Persistent orgs like a Dev Hub can't be used for 2GP package uploads.
+"""
 
 
 class PackageTypeEnum(StrEnum):
@@ -81,7 +88,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
 
-    api_version = "52.0"
+    task_docs = """
+    Facilitates the upload of 2GP (second-generation packaging)
+    package versions using CumulusCI.
+
+    The target org is used both for looking up dependency package IDs and
+    configuring the build org during the package upload. Ensure the specified
+    org is a scratch org with the correct configuration for these purposes.
+    """
 
     task_options = {
         "package_name": {"description": "Name of package"},
@@ -141,6 +155,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
+        if not self.org_config.config_file:
+            raise TaskOptionsError(PERSISTENT_ORG_ERROR)
+
         # Allow these fields to be explicitly set to blanks
         # so that unlocked builds can override an otherwise-configured
         # postinstall script
@@ -182,7 +199,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.tooling = get_simple_salesforce_connection(
             self.project_config,
             get_devhub_config(self.project_config),
-            api_version=self.api_version,
+            api_version=self.project_config.project__package__api_version,
             base_url="tooling",
         )
         self.context = TaskContext(self.org_config, self.project_config, self.logger)
@@ -211,7 +228,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = None
         with convert_sfdx_source(
             self.project_config.default_package_path,
-            self.package_config.package_name,
+            None
+            if self.package_config.package_type == PackageTypeEnum.unlocked
+            else self.package_config.package_name,
             self.logger,
         ) as path:
             package_zip_builder = MetadataPackageZipBuilder(
@@ -249,9 +268,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         ).format()
 
         # get the new version's dependencies from SubscriberPackageVersion
+        where_clause = format_subscriber_package_version_where_clause(
+            package2_version["SubscriberPackageVersionId"],
+            self.options.get("install_key"),
+        )
         res = self.tooling.query(
-            "SELECT Dependencies FROM SubscriberPackageVersion "
-            f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
+            "SELECT Dependencies FROM SubscriberPackageVersion " f"WHERE {where_clause}"
         )
         self.return_values["dependencies"] = self._prepare_cci_dependencies(
             res["records"][0]["Dependencies"]
@@ -336,7 +358,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         version_bytes = io.BytesIO()
         version_info = zipfile.ZipFile(version_bytes, "w", zipfile.ZIP_DEFLATED)
         try:
-
             # Add the package.zip
             package_hash = package_zip_builder.as_hash()
             version_info.writestr("package.zip", package_zip_builder.as_bytes())
@@ -381,7 +402,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
-
             # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
             # Note that we handle orgPreferences below by converting to settings,
             # in build_settings_package()
@@ -402,7 +422,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 with build_settings_package(
                     scratch_org_def.get("settings"),
                     scratch_org_def.get("objectSettings"),
-                    self.api_version,
+                    self.project_config.project__package__api_version,
                 ) as path:
                     settings_zip_builder = MetadataPackageZipBuilder(
                         path=path, context=self.context
@@ -439,8 +459,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "VersionInfo": version_info,
             "CalculateCodeCoverage": not skip_validation,
         }
-        if "install_key" in self.options:
-            request["InstallKey"] = self.options["install_key"]
+
+        install_key = self.options.get("install_key")
+        if install_key:
+            request["InstallKey"] = install_key
+            self.return_values["install_key"] = install_key
 
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "

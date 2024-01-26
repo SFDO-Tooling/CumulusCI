@@ -342,8 +342,8 @@ CumulusCI makes it easy to create, connect, and manage orgs. The
 `cci org` top-level command helps you work with orgs.
 
 To learn about working with orgs in detail, read
-(scratch-orgs) and
-(connected-orgs).
+[](scratch-orgs) and
+[](connected-orgs).
 
 (manage-services)=
 

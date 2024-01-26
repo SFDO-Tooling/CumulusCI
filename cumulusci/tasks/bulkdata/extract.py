@@ -247,7 +247,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if "RecordTypeId" in mapping.fields:
             self._extract_record_types(
-                mapping.sf_object, mapping.get_source_record_type_table(), conn
+                mapping.sf_object,
+                mapping.get_source_record_type_table(),
+                conn,
+                self.org_config.is_person_accounts_enabled,
             )
 
         self.session.commit()

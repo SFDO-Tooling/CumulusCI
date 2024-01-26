@@ -152,9 +152,10 @@ class TestBaseProjectKeychain:
         )
         keychain = BaseProjectKeychain(project_config, key)
         keychain.key = key
-        keychain.create_scratch_org("test", "dev", days=3)
+        keychain.create_scratch_org("test", "dev", days=3, release="previous")
         org_config = keychain.get_org("test").config
         assert org_config["days"] == 3
+        assert org_config["release"] == "previous"
 
     def test_load_scratch_orgs(self, keychain):
         assert list(keychain.orgs) == []

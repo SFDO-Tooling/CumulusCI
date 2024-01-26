@@ -279,6 +279,45 @@ class TestMergeBranch(MockUtilBase):
         assert 7 == len(responses.calls)
 
     @responses.activate
+    def test_task_output__feature_branch_merge_conflict_skip_pull_requests(self):
+        self._mock_repo()
+        self._mock_branch(self.branch)
+        self.mock_pulls()
+        branch_name = "feature/a-test"
+        branches = []
+        branches.append(self._get_expected_branch("main"))
+        branches.append(self._get_expected_branch(branch_name))
+        branches = self._mock_branches(branches)
+        self._mock_compare(
+            base=branches[1]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test.txt"}],
+        )
+        self._mock_merge(http.client.CONFLICT)
+        self._mock_pull_create(1, 2)
+        with LogCapture() as log:
+            task = self._create_task(
+                task_config={
+                    "options": {
+                        "create_pull_request_on_conflict": "False",
+                    }
+                }
+            )
+            task()
+            actual_log = self._get_log_lines(log)
+
+            expected_log = log_header() + [
+                ("DEBUG", "Skipping branch main: is source branch"),
+                ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
+                (
+                    "INFO",
+                    "Merge conflict on branch feature/a-test: skipping pull request creation",
+                ),
+            ]
+            assert expected_log == actual_log
+        assert 5 == len(responses.calls)
+
+    @responses.activate
     def test_merge__error_on_merge_conflict_pr(self):
         self._mock_repo()
         self._mock_branch(self.branch)
@@ -401,6 +440,59 @@ class TestMergeBranch(MockUtilBase):
         ]
         assert expected_log == actual_log
         assert 7 == len(responses.calls)
+
+    @responses.activate
+    def test_task_output__main_parent_with_child_skip_pull_requests(self):
+        self._mock_repo()
+        self._mock_branch(self.branch)
+        # branches
+        parent_branch_name = "feature/a-test"
+        child_branch_name = "feature/a-test__a-child"
+        branches = []
+        branches.append(self._get_expected_branch("main"))
+        branches.append(self._get_expected_branch(parent_branch_name))
+        branches.append(self._get_expected_branch(child_branch_name))
+        branches = self._mock_branches(branches)
+        # pull request
+        pull = self._get_expected_pull_request(1, 2)
+        pull["base"]["ref"] = parent_branch_name
+        pull["base"]["sha"] = branches[1]["commit"]["sha"]
+        pull["head"]["ref"] = child_branch_name
+        self.mock_pulls(pulls=[pull])
+        # compare
+        self._mock_compare(
+            base=parent_branch_name,
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test.txt"}],
+        )
+        # merge
+        self._mock_merge(http.client.CONFLICT)
+        # create PR
+        self._mock_pull_create(1, 2)
+        with LogCapture() as log:
+            task = self._create_task(
+                task_config={
+                    "options": {
+                        "create_pull_request_on_conflict": "False",
+                    }
+                }
+            )
+            task()
+            actual_log = self._get_log_lines(log)
+        expected_log = log_header() + [
+            ("DEBUG", "Skipping branch main: is source branch"),
+            (
+                "DEBUG",
+                "Skipping branch feature/a-test__a-child: is not a direct descendent of main",
+            ),
+            ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
+            (
+                "INFO",
+                "Merge conflict on branch feature/a-test: skipping pull request creation",
+            ),
+        ]
+        assert expected_log == actual_log
+        assert 5 == len(responses.calls)
 
     @responses.activate
     def test_task_output__main_merge_to_feature(self):
@@ -641,7 +733,13 @@ class TestMergeBranch(MockUtilBase):
     def test_merge_to_future_release_branches(self):
         """Tests that commits to the main branch are merged to the expected feature branches"""
         self._setup_mocks(
-            ["main", "feature/230", "feature/232", "feature/300", "feature/work-item"]
+            [
+                "main",
+                "feature/230",
+                "feature/232",
+                "feature/300",
+                "feature/work-item",
+            ]
         )
 
         task = self._create_task(
@@ -658,6 +756,104 @@ class TestMergeBranch(MockUtilBase):
         actual_branches = [branch.name for branch in task._get_branches_to_merge()]
 
         assert ["feature/232", "feature/300"] == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
+    def test_merge_to_future_release_branches_skip(self):
+        """Tests that commits to the main branch are merged to the expected feature branches"""
+        self._setup_mocks(
+            [
+                "main",
+                "feature/230",
+                "feature/232",
+                "feature/300",
+                "feature/302",
+                "feature/work-item",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "feature/230",
+                    "branch_prefix": "feature/",
+                    "update_future_releases": False,
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert [] == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
+    def test_merge_to_future_release_branches_skip_future(self):
+        """
+        Tests that commits are not merged to "release" (numeric) branches
+        """
+
+        self._setup_mocks(
+            [
+                "main",
+                "feature/230",
+                "feature/232",
+                "feature/300",
+                "feature/work-item",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "main",
+                    "branch_prefix": "feature/",
+                    "update_future_releases": False,
+                    "skip_future_releases": True,
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert ["feature/230", "feature/work-item"] == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
+    def test_merge_to_future_release_branches_noskip_future(self):
+        """Tests that commits to the main branch are merged to the expected feature branches"""
+        self._setup_mocks(
+            [
+                "main",
+                "feature/230",
+                "feature/232",
+                "feature/300",
+                "feature/work-item",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "main",
+                    "branch_prefix": "feature/",
+                    "update_future_releases": False,
+                    "skip_future_releases": False,
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert [
+            "feature/230",
+            "feature/232",
+            "feature/300",
+            "feature/work-item",
+        ] == actual_branches
         assert 2 == len(responses.calls)
 
     @responses.activate

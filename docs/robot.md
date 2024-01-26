@@ -232,9 +232,6 @@ CumulusCI integrates with Robot via custom tasks, such as:
     [testdoc](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#test-data-documentation-tool-testdoc)
     command, which creates an HTML file documenting all the tests in a
     test suite.
--   `robot_lint`: Runs the static analysis tool
-    [rflint](https://github.com/boakley/robotframework-lint/), which can
-    validate Robot tests against a set of rules related to code quality.
 
 Like with any CumulusCI task, you can get documentation and a list of
 arguments with the `cci task info` command. For example,
@@ -307,6 +304,10 @@ test case file.
 
 For more details on Robot syntax, visit the official [Robot syntax
 documentation](http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html#test-data-syntax).
+
+```{tip}
+For users interested in linting their Robot Framework code, we recommend checking out +[`robotframework-robocop`](https://robocop.readthedocs.io/). It's a static code analysis tool for Robot Framework that can help maintain good code quality.
+```
 
 ### Settings
 

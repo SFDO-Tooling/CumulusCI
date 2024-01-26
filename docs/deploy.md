@@ -91,7 +91,14 @@ Unlocked Packages do not support Feature Parameter metadata. When CumulusCI is b
 
 CumulusCI allows you to specify arbitrary injections of data against tokens you define in your metadata. This capability is often used, for example, to inject secure keys or tokens from environment variables.
 
-Configure injection with the `find_replace` transform like this:
+Configure injection with the `find_replace` transform in two ways - `find` and `xpath`.
+
+-   Using the `find` parameter, it modifies the metadata for each occurrence of its value by utilizing the supplied `replace` parameter. For XML files, this adjustment exclusively affects the values within the XML elements, leaving the tags unchanged.
+-   Using the `xpath` parameter, it exclusively modifies the content of the XML files within the specific element indicated by the provided `xpath`, replacing it with the specified `replace` parameter.
+
+**Note:** The Find-and-Replace Injection only supports one of the two parameters `find` or `xpath`.
+
+Injection with `find` parameter:
 
 ```yaml
 task: deploy
@@ -103,6 +110,21 @@ options:
                   - find: foo
                     replace: bar
 ```
+
+Injection with `xpath` parameter:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - xpath: /path/to/element
+                    replace: bar
+```
+
+The `xpath` also supports the use of predicates such as `- xpath: /path[1]/to/element[text()="some_text"]`
 
 To use an environment variable as the source of the value to replace, use the `replace_env` key. Note that it's valid to use multiple runs of `find_replace`; they will be applied in sequence.
 
@@ -115,13 +137,15 @@ options:
               patterns:
                   - find: AUTH_TOKEN
                     replace_env: SECURE_ACCESS_KEY
-                  - find: foo
-                    replace: bar
+                  - xpath: /path/to/AUTH_TOKEN
+                    replace_env: SECURE_ACCESS_KEY
 ```
 
 #### Find-and-Replace Id Injection
 
 Some metadata components contain ID references. CumulusCI offers a way to insert the ID of an existing record from the target org directly into such components during a deployment. Specify a SOQL query with the `replace_record_id_query` option as follows:
+
+Injection with `find` parameter:
 
 ```yaml
 task: deploy
@@ -135,12 +159,28 @@ options:
                     api: rest
 ```
 
+Injection with `xpath` parameter:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - xpath: /path/to/element
+                    replace_record_id_query: SELECT Id from Account WHERE name='Specific Account'
+                    api: rest
+```
+
 Available values for `api` include `rest` and `tooling`.
 
 #### Find-and-Replace Current Username Injection
 
 CumulusCI can replace a given token with the username of the current running user in the target Salesforce org.
-All that is needed is to specify a value for `find` and set `inject_username: True`:
+All that is needed is to specify a value for `find` or `xpath` and set `inject_username: True`:
+
+Injection with `find` parameter:
 
 ```yaml
 task: deploy
@@ -151,6 +191,50 @@ options:
               patterns:
                   - find: special_string
                     inject_username: True
+```
+
+Injection with `xpath` parameter:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - xpath: /path/to/element
+                    inject_username: True
+```
+
+#### Find-and-Replace Org URL Injection
+
+CumulusCI can replace a given token with the org URL of the target Salesforce org.
+All that is needed is to specify a value for `find` or `xpath` and set `inject_org_url: True`:
+
+Injection with `find` parameter:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - find: special_string
+                    inject_org_url: True
+```
+
+Injection with `xpath` parameter:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - xpath: /path/to/element
+                    inject_org_url: True
 ```
 
 ### Stripping Components with a `package.xml` Manifest

@@ -28,12 +28,16 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.tasks.create_package_version import (
+    PERSISTENT_ORG_ERROR,
     CreatePackageVersion,
     PackageConfig,
     PackageTypeEnum,
     VersionTypeEnum,
 )
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 from cumulusci.utils import temporary_dir, touch
+
+print(CURRENT_SF_API_VERSION)
 
 
 @pytest.fixture
@@ -153,6 +157,14 @@ def mock_get_static_dependencies():
 
 
 class TestPackageConfig:
+    def test_org_config(self, project_config, org_config):
+        org_config.config_file = None
+        with pytest.raises(
+            TaskOptionsError,
+            match=PERSISTENT_ORG_ERROR,
+        ):
+            CreatePackageVersion(project_config, TaskConfig(), org_config)
+
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):
             PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)  # type: ignore
@@ -171,8 +183,12 @@ class TestPackageConfig:
 
 
 class TestCreatePackageVersion:
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
-    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v52.0"
+    devhub_base_url = (
+        f"https://devhub.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
+    )
+    scratch_base_url = (
+        f"https://scratch.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
+    )
 
     def test_postinstall_script_logic(self, get_task):
         task = get_task({"package_type": "Managed", "package_name": "Foo"})
@@ -249,7 +265,7 @@ class TestCreatePackageVersion:
         responses.add(  # get dependency org API version
             "GET",
             "https://scratch.my.salesforce.com/services/data",
-            json=[{"version": "52.0"}],
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
         responses.add(  # query for dependency org installed packages
             "GET",
@@ -274,7 +290,8 @@ class TestCreatePackageVersion:
                 ],
             },
         )
-        responses.add(  # query dependency org for installed package 1)
+        # query dependency org for installed package 1
+        responses.add(
             "GET",
             f"{self.scratch_base_url}/tooling/query/",
             json={
@@ -290,7 +307,7 @@ class TestCreatePackageVersion:
                     }
                 ],
             },
-        ),
+        )
         responses.add(  # query dependency org for installed package 2)
             "GET",
             f"{self.scratch_base_url}/tooling/query/",
@@ -459,6 +476,7 @@ class TestCreatePackageVersion:
         assert task.return_values["dependencies"] == [
             {"version_id": "04t000000000009AAA"}
         ]
+        assert task.return_values["install_key"] == task.options["install_key"]
         zf.close()
 
     @responses.activate
