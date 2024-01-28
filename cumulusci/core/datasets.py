@@ -162,6 +162,7 @@ class Dataset:
         extraction_definition: T.Optional[Path] = None,
         opt_in_only: T.Sequence[str] = (),
         loading_rules_file: T.Optional[Path] = None,
+        drop_missing_schema: bool = False,
     ):
         options = options or {}
         logger = logger or DEFAULT_LOGGER
@@ -177,6 +178,7 @@ class Dataset:
                 org_config=self.org_config,
                 sql_path=self.data_file,
                 mapping=str(extract_mapping),
+                drop_missing_schema=drop_missing_schema,
             )
             task()
         loading_rules = self._parse_loading_rules_file(loading_rules_file)
@@ -233,7 +235,6 @@ class Dataset:
             )
 
     def _sql_dataload(self, options: T.Dict):
-
         task = _make_task(
             LoadData,
             project_config=self.project_config,

@@ -1,6 +1,7 @@
 import collections
 import re
 import typing as T
+from logging import Logger, getLogger
 
 from pydantic import validator
 
@@ -9,6 +10,8 @@ from cumulusci.utils.iterators import partition
 
 from .extract_yml import ExtractDeclaration, SFFieldGroupTypes, SFObjectGroupTypes
 from .hardcoded_default_declarations import DEFAULT_DECLARATIONS
+
+DEFAULT_LOGGER = getLogger(__file__)
 
 
 class SimplifiedExtractDeclaration(ExtractDeclaration):
@@ -70,7 +73,10 @@ def flatten_declarations(
 
 
 def _simplify_sfobject_declarations(
-    declarations, schema: Schema, opt_in_only: T.Sequence[str]
+    declarations: T.Iterable[ExtractDeclaration],
+    schema: Schema,
+    opt_in_only: T.Sequence[str],
+    logger: T.Optional[Logger] = DEFAULT_LOGGER,
 ) -> T.List[SimplifiedExtractDeclaration]:
     """Generate a new list of declarations such that all sf_object patterns
     (like OBJECTS(CUSTOM)) have been expanded into many declarations
@@ -78,6 +84,13 @@ def _simplify_sfobject_declarations(
     atomic_declarations, group_declarations = partition(
         lambda d: d.is_group, declarations
     )
+    missing_objs, atomic_declarations = partition(
+        lambda d: d.sf_object in schema.keys(), declarations
+    )
+    if missing_objs:
+        logger.warning(
+            f"Cannot find objects: {','.join(o.sf_object for o in missing_objs)}"
+        )
     atomic_declarations = list(atomic_declarations)
     normalized_atomic_declarations = _normalize_user_supplied_simple_declarations(
         atomic_declarations, DEFAULT_DECLARATIONS
