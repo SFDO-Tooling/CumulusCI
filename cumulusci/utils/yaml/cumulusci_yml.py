@@ -61,6 +61,7 @@ class Step(CCIDictModel):
 
 class Task(CCIDictModel):
     class_path: str = None
+    extends: Optional[str] = None
     description: str = None
     group: str = None
     # additionalProperties here works around an
@@ -68,6 +69,15 @@ class Task(CCIDictModel):
     options: Dict[str, Any] = VSCodeFriendlyDict
     ui_options: Dict[str, Any] = VSCodeFriendlyDict
     name: str = None  # get rid of this???
+
+    @root_validator
+    def validate_exclusive_keys(cls, values: dict):
+        extends, class_path = values.get("extends"), values.get("class_path")
+        assert not (
+            extends and class_path
+        ), f"Please do not include both `class_path` and `extends` for the same task: class_path: {values['class_path']}, extends: {values['extends']}"
+
+        return values
 
 
 class Flow(CCIDictModel):

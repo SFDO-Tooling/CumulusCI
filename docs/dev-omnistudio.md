@@ -19,7 +19,7 @@ Create custom tasks to install VBT and OmniStudio managed packages, as per the f
 ```
     install_vbt:
         description: Install VBT Package (for migrating OmniStudio components)
-        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+        extends: install_managed
         group: OmniStudio
         options:
             namespace: vbtapp
@@ -28,7 +28,7 @@ Create custom tasks to install VBT and OmniStudio managed packages, as per the f
 
     install_omnistudio:
         description: Install OmniStudio
-        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+        extends: install_managed
         group: OmniStudio
         options:
             namespace: omnistudio
