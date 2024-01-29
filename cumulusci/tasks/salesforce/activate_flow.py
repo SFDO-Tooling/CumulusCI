@@ -12,7 +12,11 @@ class ActivateFlow(BaseSalesforceApiTask):
         "developer_names": {
             "description": "List of DeveloperNames to query in SOQL",
             "required": True,
-        }
+        },
+        "status": {
+            "description": "Flag to check whether to activate or deactivate the flow",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -20,35 +24,46 @@ class ActivateFlow(BaseSalesforceApiTask):
         self.options["developer_names"] = process_list_arg(
             self.options.get("developer_names")
         )
-        self.api_version = "43.0"
+        self.api_version = self.project_config.project__api_version
         if not self.options["developer_names"]:
             raise TaskOptionsError(
                 "Error you are missing developer_names definition in your task cumulusci.yml file. Please pass in developer_names for your task configuration or use -o to developer_names as a commandline argument"
             )
 
     def _run_task(self):
-        self.logger.info(
-            f"Activating the following Flows: {self.options['developer_names']}"
-        )
+        if self.options["status"]:
+            self.logger.info(
+                f"Activating the following Flows: {self.options['developer_names']}"
+            )
+        else:
+            self.logger.info(
+                f"Deactivating the following Flows: {self.options['developer_names']}"
+            )
+
         self.logger.info("Querying flow definitions...")
         result = self.tooling.query(
             "SELECT Id, ActiveVersion.VersionNumber, LatestVersion.VersionNumber, DeveloperName FROM FlowDefinition WHERE DeveloperName IN ({0})".format(
                 ",".join([f"'{n}'" for n in self.options["developer_names"]])
             )
         )
+
         results = []
         for listed_flow in result["records"]:
             results.append(listed_flow["DeveloperName"])
             self.logger.info(f'Processing: {listed_flow["DeveloperName"]}')
             path = f"tooling/sobjects/FlowDefinition/{listed_flow['Id']}"
+
             urlpath = self.sf.base_url + path
-            data = {
-                "Metadata": {
-                    "activeVersionNumber": listed_flow["LatestVersion"]["VersionNumber"]
-                }
-            }
+
+            if self.options["status"]:
+                updated_version_number = listed_flow["LatestVersion"]["VersionNumber"]
+            else:
+                updated_version_number = 0
+            data = {"Metadata": {"activeVersionNumber": updated_version_number}}
+            self.logger.info(urlpath)
             response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
             self.logger.info(response)
+
         excluded = []
         for i in self.options["developer_names"]:
             if i not in results:

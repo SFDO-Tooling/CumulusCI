@@ -8,30 +8,44 @@ class TestPermsetPreflights:
     def test_assigned_permset_preflight(self):
         task = create_task(GetPermissionSetAssignments, {})
         task._init_api = Mock()
-        task._init_api.return_value.query_all.return_value = {
-            "totalSize": 2,
-            "done": True,
-            "records": [
-                {
-                    "PermissionSet": {
-                        "Label": "Document Checklist",
-                        "Name": "DocumentChecklist",
+        task._init_api.return_value.query_all.side_effect = [
+            {
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "PermissionSet": {
+                            "Label": "Document Checklist",
+                            "Name": "DocumentChecklist",
+                        },
+                        "PermissionSetGroupId": None,
                     },
-                },
-                {
-                    "PermissionSet": {
-                        "Label": "Einstein Analytics Plus Admin",
-                        "Name": "EinsteinAnalyticsPlusAdmin",
+                    {
+                        "PermissionSet": {
+                            "Label": "Einstein Analytics Plus Admin",
+                            "Name": "EinsteinAnalyticsPlusAdmin",
+                        },
+                        "PermissionSetGroupId": "0PG000000000001",
                     },
-                },
-            ],
-        }
+                ],
+            },
+            {
+                "totalSize": 1,
+                "done": True,
+                "records": [
+                    {
+                        "PermissionSet": {
+                            "Label": "Customer Experience Analytics Admin",
+                            "Name": "CustomerExperienceAnalyticsAdmin",
+                        },
+                    },
+                ],
+            },
+        ]
         task()
-
-        task._init_api.return_value.query_all.assert_called_once_with(
-            "SELECT PermissionSet.Name FROM PermissionSetAssignment WHERE AssigneeId = 'USER_ID'"
-        )
+        task._init_api.return_value.query_all.assert_called()
         assert task.return_values == [
             "DocumentChecklist",
             "EinsteinAnalyticsPlusAdmin",
+            "CustomerExperienceAnalyticsAdmin",
         ]

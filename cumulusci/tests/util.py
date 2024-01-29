@@ -23,7 +23,8 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 
-CURRENT_SF_API_VERSION = "55.0"
+# putting this below FakeBulkAPI causes a circular import
+CURRENT_SF_API_VERSION = UniversalConfig().project__package__api_version
 from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
@@ -260,6 +261,19 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         yield
 
 
+# copy over most of the environment because Windows needs something
+# non-obvious and it is quite laborius to figure out what it is.
+
+# but we want to hide the CUMULUSCI_ and GITHUB_ related stuff from tests.
+ENV_CLONE = {
+    key: value
+    for key, value in os.environ.items()
+    if "CUMULUSCI_" not in key and "GITHUB_" not in key
+}
+
+ENV_CLONE["CUMULUSCI_SYSTEM_CERTS"] = "True"
+
+
 @contextmanager
 def mock_env(
     home,
@@ -271,21 +285,9 @@ def mock_env(
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
-        "CUMULUSCI_SYSTEM_CERTS": "True",
-        "PATH": os.environ["PATH"],
+        "CUMULUSCI_KEY": cumulusci_key,
+        **ENV_CLONE,
     }
-    new_environment.update(os.environ)
-    if pythonpath := os.environ.get("PYTHONPATH"):
-        new_environment["PYTHONPATH"] = pythonpath
-
-    # among other things, this will hide CUMULUSCI_KEY, GITHUB_APP_ID
-    # and CUMULUSCI_SERVICE_github
-    #
-    # Everything else is left as-is to leave stuff like PATH, PYTHONPATH
-    # and at least one more that seems to cause Windows to fail.
-    for key in tuple(new_environment.keys()):
-        if "CUMULUSCI_" in key or "GITHUB_" in key:
-            del key
 
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
         os.environ, new_environment, clear=True

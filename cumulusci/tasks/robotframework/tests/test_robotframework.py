@@ -182,7 +182,7 @@ class TestRobot:
                 },
             },
         )
-        assert type(task.options["options"]["tagstatexclude"]) == list
+        assert type(task.options["options"]["tagstatexclude"]) is list
         task()
         outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
@@ -266,9 +266,7 @@ class TestRobot:
         assert KeywordLogger in listener_classes
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    @mock.patch(
-        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
-    )
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.add_path")
     def test_sources(self, mock_add_path, mock_robot_run):
         """Verify that sources get added to PYTHONPATH when task runs"""
         universal_config = UniversalConfig()
@@ -313,9 +311,7 @@ class TestRobot:
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    @mock.patch(
-        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
-    )
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.add_path")
     def test_repo_root_in_sys_path(self, mock_add_path, mock_robot_run):
         """Verify that the repo root is added to sys.path
 

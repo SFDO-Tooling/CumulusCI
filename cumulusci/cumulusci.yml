@@ -5,6 +5,14 @@ tasks:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
         class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+        options:
+            status: True
+    deactivate_flow:
+        group: Metadata Transformations
+        description: deactivates Flows identified by a given list of Developer Names
+        class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+        options:
+            status: False
     add_page_layout_related_lists:
         group: Metadata Transformations
         description: Adds specified Related List to one or more Page Layouts.
@@ -117,6 +125,9 @@ tasks:
             settings_type: EnhancedNotesSettings
             settings_field: IsEnhancedNotesEnabled
             value: True
+    retrieve_tasks:
+        description: Retrieves the tasks under the particular category or group
+        class_path: cumulusci.tasks.preflight.retrieve_tasks.RetrieveTasks
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
@@ -190,6 +201,10 @@ tasks:
         class_path: cumulusci.tasks.salesforce.profiles.CreateBlankProfile
         options:
             license: Salesforce
+        group: Salesforce Metadata
+    retrieve_profile:
+        description: Given a list of profiles, the task retrieves all complete profiles along with their associated dependencies for all permissionable entities - ApexClass, ApexPage, CustomApplications, CustomObjects, CustomPermissions, CustomTabs, ExternalDataSources and Flows
+        class_path: cumulusci.tasks.salesforce.retrieve_profile.RetrieveProfile
         group: Salesforce Metadata
     delete_data:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
@@ -311,8 +326,12 @@ tasks:
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
         group: Salesforce Preflight Checks
     get_assigned_permission_sets:
-        description: Retrieves a list of the names of any permission sets assigned to the running user.
+        description: Retrieves a list of the developer names of any permission sets assigned to the running user.
         class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
+        group: Salesforce Preflight Checks
+    get_assigned_permission_set_licenses:
+        description: Retrieves a list of the developer names of any Permission Set Licenses assigned to the running user.
+        class_path: cumulusci.tasks.preflight.licenses.GetPermissionLicenseSetAssignments
         group: Salesforce Preflight Checks
     get_available_permission_sets:
         description: Retrieves a list of the currently available Permission Sets
@@ -396,6 +415,14 @@ tasks:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
         group: Salesforce Metadata
+    list_nonsource_trackable_components:
+        description: List the components of non source trackable Metadata types.
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListComponents
+        group: Salesforce Metadata
+    list_nonsource_trackable_metadatatypes:
+        description: Returns non source trackable metadata types supported by org
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListNonSourceTrackable
+        group: Salesforce Metadata
     meta_xml_apiversion:
         description: Set the API version in ``*meta.xml`` files
         class_path: cumulusci.tasks.metaxml.UpdateApi
@@ -464,6 +491,10 @@ tasks:
         options:
             path: packaged
         group: Salesforce Metadata
+    describe_metadatatypes:
+        class_path: cumulusci.tasks.salesforce.DescribeMetadataTypes
+        description: Retrieves the metadata types supported by the org based on the api version
+        group: Salesforce Metadata
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
@@ -480,6 +511,10 @@ tasks:
     retrieve_changes:
         description: Retrieve changed components from a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        group: Salesforce Metadata
+    retrieve_nonsource_trackable:
+        description: Retrieves the non source trackable components filtered
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.RetrieveComponents
         group: Salesforce Metadata
     retrieve_qa_config:
         description: Retrieves the current changes in the scratch org into unpackaged/config/qa
@@ -530,10 +565,6 @@ tasks:
         options:
             output: Keywords.html
             title: $project_config.project__package__name
-        group: Robot Framework
-    robot_lint:
-        description: Static analysis tool for robot framework files
-        class_path: cumulusci.tasks.robotframework.RobotLint
         group: Robot Framework
     robot_testdoc:
         description: Generates html documentation of your Robot test suite and writes to tests/test_suite.
@@ -1323,6 +1354,7 @@ flows:
                 task: promote_package_version
                 options:
                     version_id: ^^create_package_version.subscriber_package_version_id
+                    install_key: ^^create_package_version.install_key
     unmanaged_ee:
         group: Deployment
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
@@ -1448,7 +1480,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: "55.0"
+        api_version: "59.0"
     git:
         default_branch: master
         prefix_feature: feature/
