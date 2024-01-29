@@ -43,9 +43,8 @@ class TestPermsetPreflights:
             },
         ]
         task()
-
         task._init_api.return_value.query_all.assert_called()
-        assert task.permsets == [
+        assert task.return_values == [
             "DocumentChecklist",
             "EinsteinAnalyticsPlusAdmin",
             "CustomerExperienceAnalyticsAdmin",
