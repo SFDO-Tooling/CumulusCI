@@ -12,9 +12,9 @@
 * Error during upsert on identical DeveloperName for RecordType of same sObject by [@aditya-balachander](https://github.com/aditya-balachander) in [#3702](https://github.com/SFDO-Tooling/CumulusCI/pull/3702)
 * Rollback Operation for Inserts and Upserts by [@aditya-balachander](https://github.com/aditya-balachander) in [#3718](https://github.com/SFDO-Tooling/CumulusCI/pull/3718)
 * Profile Retrieval in Metecho by [@aditya-balachander](https://github.com/aditya-balachander) in [#3711](https://github.com/SFDO-Tooling/CumulusCI/pull/3711)
-* Identifies and retrieves the non source trackable Metadata type components  by [@lakshmi2506](https://github.com/lakshmi2506) in [#3727](https://github.com/SFDO-Tooling/CumulusCI/pull/3727)
+* Identifies and retrieves non-source-trackable Metadata type components   by [@lakshmi2506](https://github.com/lakshmi2506) in [#3727](https://github.com/SFDO-Tooling/CumulusCI/pull/3727)
 * fix: re-enable telemetry, make CCI usage identifiable by [@mshanemc](https://github.com/mshanemc) in [#3728](https://github.com/SFDO-Tooling/CumulusCI/pull/3728)
-* updated return_values for task get_assigned_permission_sets by [@lakshmi2506](https://github.com/lakshmi2506) in [#3736](https://github.com/SFDO-Tooling/CumulusCI/pull/3736)
+* Add permsets to return_values for task get_assigned_permission_sets by [@lakshmi2506](https://github.com/lakshmi2506) in [#3736](https://github.com/SFDO-Tooling/CumulusCI/pull/3736)
 * ListComponents modified to SOAP call  by [@lakshmi2506](https://github.com/lakshmi2506) in [#3735](https://github.com/SFDO-Tooling/CumulusCI/pull/3735)
 
 ## New Contributors
