@@ -28,7 +28,7 @@ from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
 from cumulusci.utils.metaprogramming import classproperty
-from cumulusci.utils.options import CCIOptions
+from cumulusci.utils.options import CCIOptions, ReadOnlyOptions
 
 CURRENT_TASK = threading.local()
 
@@ -135,13 +135,26 @@ class BaseTask:
             self.options.update(kwargs)
 
         # Handle dynamic lookup of project_config values via $project_config.attr
-        for option, value in self.options.items():
-            if isinstance(value, str):
-                value = PROJECT_CONFIG_RE.sub(
+        def process_options(option):
+            if isinstance(option, str):
+                return PROJECT_CONFIG_RE.sub(
                     lambda match: str(self.project_config.lookup(match.group(1), None)),
-                    value,
+                    option,
                 )
-                self.options[option] = value
+            elif isinstance(option, dict):
+                processed_dict = {}
+                for key, value in option.items():
+                    processed_dict[key] = process_options(value)
+                return processed_dict
+            elif isinstance(option, list):
+                processed_list = []
+                for item in option:
+                    processed_list.append(process_options(item))
+                return processed_list
+            else:
+                return option
+
+        self.options = process_options(self.options)
 
         if self.Options:
             try:
@@ -150,6 +163,7 @@ class BaseTask:
                     opt: val for opt, val in self.options.items() if opt not in specials
                 }
                 self.parsed_options = self.Options(**options_without_specials)
+                self.options = ReadOnlyOptions(self.options)
             except ValidationError as e:
                 try:
                     errors = [

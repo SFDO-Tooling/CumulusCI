@@ -6,4 +6,4 @@ def test_main():
         from cumulusci import __main__
 
         __main__
-    assert main.called_once
+    main.assert_called_once()

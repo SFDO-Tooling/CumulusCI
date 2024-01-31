@@ -156,14 +156,15 @@ class TestOAuth2Client:
         # use https for callback
         client.client_config.redirect_uri = "https://localhost:8080/callback"
         # squash CERTIFICATE_VERIFY_FAILED from urllib
-        # https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
-        ssl._create_default_https_context = ssl._create_unverified_context
+        # https://peps.python.org/pep-0476/
+        unverified_context = ssl._create_unverified_context()
 
         # call OAuth object on another thread - this spawns local httpd
         with httpd_thread(client) as oauth_client:
             # simulate callback from browser
             response = urllib.request.urlopen(
-                oauth_client.client_config.redirect_uri + "?code=123"
+                oauth_client.client_config.redirect_uri + "?code=123",
+                context=unverified_context,
             )
 
         assert oauth_client.response.json() == expected_response

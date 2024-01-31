@@ -50,6 +50,11 @@ Sandbox orgs: 2018-08-01
 Production orgs: 2018-09-01""",
                 ),
                 self._get_expected_release(
+                    "rel/2.1",
+                    created_at="2018-01-02T00:00:00Z",
+                    url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/5",
+                ),
+                self._get_expected_release(
                     "rel/1.0",
                     created_at="2017-01-01T00:00:00Z",
                     url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/1",
@@ -91,5 +96,14 @@ Production orgs: 2018-09-01""",
                 ),
                 "time_push_sandbox": datetime(2018, 8, 1, 0, 0, 0, 2, tzinfo=pytz.UTC),
                 "url": "",
-            }
+            },
+            {
+                "beta": False,
+                "name": "1.0",
+                "tag": "rel/2.1",
+                "time_created": datetime(2018, 1, 2, 0, 0, tzinfo=pytz.UTC),
+                "time_push_production": None,
+                "time_push_sandbox": None,
+                "url": "",
+            },
         ] == task.return_values["releases"]
