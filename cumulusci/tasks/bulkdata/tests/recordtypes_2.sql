@@ -4,8 +4,8 @@ CREATE TABLE Beta_rt_mapping (
 	developer_name VARCHAR(255),
 	PRIMARY KEY (record_type_id)
 );
-INSERT INTO "Beta_rt_mapping" VALUES('012H40000003jCoIAI','recordtype2',0);
-INSERT INTO "Beta_rt_mapping" VALUES('012H40000003jCZIAY','recordtype1',0);
+INSERT INTO "Beta_rt_mapping" VALUES('012H40000003jCoIAI','recordtype2');
+INSERT INTO "Beta_rt_mapping" VALUES('012H40000003jCZIAY','recordtype1');
 CREATE TABLE Beta (
 	id INTEGER NOT NULL, 
 	"Name" VARCHAR(255), 
