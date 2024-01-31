@@ -130,15 +130,49 @@ def create_temp_zip_file():
     return zipfile.ZipFile(temp_zipfile, "r")
 
 
-def test_save_profile_file(retrieve_profile_task, tmpdir):
+def test_save_profile_file_new(retrieve_profile_task, tmpdir):
     extract_dir = str(tmpdir)
     filename = "TestProfile.profile"
+    meta_filename = "TestProfile.profile-meta.xml"
     content = "Profile content"
-    expected_file_path = os.path.join(extract_dir, filename)
+    expected_file_path = os.path.join(extract_dir, meta_filename)
     retrieve_profile_task.save_profile_file(extract_dir, filename, content)
 
     assert os.path.exists(expected_file_path)
     with open(expected_file_path, "r", encoding="utf-8") as profile_file:
+        saved_content = profile_file.read()
+    assert saved_content == content
+
+
+def test_save_profile_file_existing_meta_xml(retrieve_profile_task, tmpdir):
+    extract_dir = str(tmpdir)
+    filename = "TestProfile.profile"
+    meta_filename = "TestProfile.profile-meta.xml"
+    content = "Profile content"
+    existing_file_path = os.path.join(extract_dir, meta_filename)
+
+    with open(existing_file_path, "w", encoding="utf-8") as existing_file:
+        existing_file.write("Existing content")
+
+    retrieve_profile_task.save_profile_file(extract_dir, filename, content)
+
+    with open(existing_file_path, "r", encoding="utf-8") as profile_file:
+        saved_content = profile_file.read()
+    assert saved_content == content
+
+
+def test_save_profile_file_existing(retrieve_profile_task, tmpdir):
+    extract_dir = str(tmpdir)
+    filename = "TestProfile.profile"
+    content = "Profile content"
+    existing_file_path = os.path.join(extract_dir, filename)
+
+    with open(existing_file_path, "w", encoding="utf-8") as existing_file:
+        existing_file.write("Existing content")
+
+    retrieve_profile_task.save_profile_file(extract_dir, filename, content)
+
+    with open(existing_file_path, "r", encoding="utf-8") as profile_file:
         saved_content = profile_file.read()
     assert saved_content == content
 
@@ -186,7 +220,7 @@ def test_run_task(retrieve_profile_task, tmpdir, caplog):
         retrieve_profile_task._run_task()
 
     assert os.path.exists(tmpdir)
-    profile1_path = os.path.join(tmpdir, "profiles/Profile1.profile")
+    profile1_path = os.path.join(tmpdir, "profiles/Profile1.profile-meta.xml")
     assert os.path.exists(profile1_path)
 
     log_messages = [record.message for record in caplog.records]

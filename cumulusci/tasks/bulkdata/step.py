@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 import os
 import pathlib
 import tempfile
@@ -9,6 +10,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, NamedTuple, Optional
 
 import requests
+import salesforce_bulk
 
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
@@ -58,6 +60,7 @@ class DataOperationResult(NamedTuple):
     id: str
     success: bool
     error: str
+    created: Optional[bool] = None
 
 
 class DataOperationJobResult(NamedTuple):
@@ -313,6 +316,11 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def get_prev_record_values(self, records):
+        """Get the previous records values in case of UPSERT and UPDATE to prepare for rollback"""
+        pass
+
+    @abstractmethod
     def load_records(self, records):
         """Perform the requested DML operation on the supplied row iterator."""
         pass
@@ -357,6 +365,56 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     def end(self):
         self.bulk.close_job(self.job_id)
         self.job_result = self._wait_for_job(self.job_id)
+
+    def get_prev_record_values(self, records):
+        """Get the previous values of the records based on the update key
+        to ensure rollback can be performed"""
+        # Function to be called only for UPSERT and UPDATE
+        assert self.operation in [DataOperationType.UPSERT, DataOperationType.UPDATE]
+
+        self.logger.info(f"Retrieving Previous Record Values of {self.sobject}")
+        prev_record_values = []
+        relevant_fields = set(self.fields + ["Id"])
+
+        # Set update key
+        update_key = (
+            self.api_options.get("update_key")
+            if self.operation == DataOperationType.UPSERT
+            else "Id"
+        )
+
+        for count, batch in enumerate(
+            self._batch(records, self.api_options["batch_size"])
+        ):
+            self.context.logger.info(f"Querying batch {count + 1}")
+
+            # Extract update key values from the batch
+            update_key_values = [
+                rec[update_key]
+                for rec in csv.DictReader([line.decode("utf-8") for line in batch])
+            ]
+
+            # Construct the SOQL query
+            query_fields = ", ".join(relevant_fields)
+            query_values = ", ".join(f"'{value}'" for value in update_key_values)
+            query = f"SELECT {query_fields} FROM {self.sobject} WHERE {update_key} IN ({query_values})"
+
+            # Execute the query using Bulk API
+            job_id = self.bulk.create_query_job(self.sobject, contentType="JSON")
+            batch_id = self.bulk.query(job_id, query)
+            self.bulk.wait_for_batch(job_id, batch_id)
+            self.bulk.close_job(job_id)
+            results = self.bulk.get_all_results_for_query_batch(batch_id)
+
+            # Extract relevant fields from results and append to the respective lists
+            for result in results:
+                result = json.load(salesforce_bulk.util.IteratorBytesIO(result))
+                prev_record_values.extend(
+                    [[res[key] for key in relevant_fields] for res in result]
+                )
+
+        self.logger.info("Done")
+        return prev_record_values, tuple(relevant_fields)
 
     def load_records(self, records):
         self.batch_ids = []
@@ -429,10 +487,12 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
                     for row in reader:
                         success = process_bool_arg(row[1])
+                        created = process_bool_arg(row[2])
                         yield DataOperationResult(
                             row[0] if success else None,
                             success,
                             row[3] if not success else None,
+                            created,
                         )
             except Exception as e:
                 raise BulkDataException(
@@ -488,6 +548,43 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         result["attributes"] = {"type": self.sobject}
         return result
+
+    def get_prev_record_values(self, records):
+        """Get the previous values of the records based on the update key
+        to ensure rollback can be performed"""
+        # Function to be called only for UPSERT and UPDATE
+        assert self.operation in [DataOperationType.UPSERT, DataOperationType.UPDATE]
+
+        self.logger.info(f"Retrieving Previous Record Values of {self.sobject}")
+        prev_record_values = []
+        relevant_fields = set(self.fields + ["Id"])
+
+        # Set update key
+        update_key = (
+            self.api_options.get("update_key")
+            if self.operation == DataOperationType.UPSERT
+            else "Id"
+        )
+
+        for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
+            update_key_values = tuple(
+                filter(None, (self._record_to_json(rec)[update_key] for rec in chunk))
+            )
+
+            # Construct the query string
+            query_fields = ", ".join(relevant_fields)
+            query = f"SELECT {query_fields} FROM {self.sobject} WHERE {update_key} IN {update_key_values}"
+
+            # Execute the query
+            results = self.sf.query(query)
+
+            # Extract relevant fields from results and extend the list
+            prev_record_values.extend(
+                [[res[key] for key in relevant_fields] for res in results["records"]]
+            )
+
+        self.logger.info("Done")
+        return prev_record_values, tuple(relevant_fields)
 
     def load_records(self, records):
         """Load, update, upsert or delete records into the org"""
@@ -547,7 +644,14 @@ class RestApiDmlOperation(BaseDmlOperation):
             else:
                 errors = ""
 
-            return DataOperationResult(res.get("id"), res["success"], errors)
+            if self.operation == DataOperationType.INSERT:
+                created = True
+            elif self.operation == DataOperationType.UPDATE:
+                created = False
+            else:
+                created = res.get("created")
+
+            return DataOperationResult(res.get("id"), res["success"], errors, created)
 
         yield from (_convert(res) for res in self.results)
 

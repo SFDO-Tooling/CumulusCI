@@ -4,8 +4,8 @@ CREATE TABLE "Account_rt_mapping" (
 	developer_name VARCHAR(255),
 	PRIMARY KEY (record_type_id)
 );
-INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCMdIAM','Organization');
-INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCQqIAM','Subsidiary');
+INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCMdIAM','Organization',0);
+INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCQqIAM','Subsidiary',0);
 CREATE TABLE accounts (
 	sf_id VARCHAR(255) NOT NULL, 
 	"Name" VARCHAR(255), 
