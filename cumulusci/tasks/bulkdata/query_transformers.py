@@ -141,8 +141,8 @@ class AddRecordTypesToQuery(LoadQueryExtender):
                 rt_source_table.columns, "is_person_type", None
             )
             is_person_type_condition = (
-                is_person_type_column == rt_dest_table.columns.is_person_type
-                if is_person_type_column
+                rt_dest_table.columns.is_person_type == is_person_type_column
+                if is_person_type_column is not None
                 else True
             )
 

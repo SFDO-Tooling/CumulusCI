@@ -117,7 +117,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "table": "Contact",
                     "fields": ["FirstName", "LastName"],
                     "lookups": {
-                        "AccountId": {"table": "Account", "key_field": "AccountId"}
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
                 },
             }
@@ -157,7 +157,7 @@ class TestGenerateLoadMappingFromDeclarations:
                         "Primary_Contact__c": {
                             "after": "Insert Contact",
                             "key_field": "Primary_Contact__c",
-                            "table": "Contact",
+                            "table": ["Contact"],
                         }
                     },
                     "sf_object": "Account",
@@ -168,7 +168,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "table": "Contact",
                     "fields": ["FirstName", "LastName"],
                     "lookups": {
-                        "AccountId": {"table": "Account", "key_field": "AccountId"}
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
                 },
             }, mf

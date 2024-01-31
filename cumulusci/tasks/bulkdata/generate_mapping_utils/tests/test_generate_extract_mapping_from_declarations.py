@@ -69,7 +69,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "api": "smart",
                     "sf_object": "Contact",
                     "fields": ["LastName"],
-                    "lookups": {"AccountId": {"table": "Account"}},
+                    "lookups": {"AccountId": {"table": ("Account",)}},
                 },
             }
 

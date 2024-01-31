@@ -712,7 +712,14 @@ def validate_and_inject_mapping(
 
             for field in list(m.lookups.keys()):
                 lookup = m.lookups[field]
-                if lookup.table not in [step.table for step in mapping.values()]:
+                if isinstance(lookup.table, list):
+                    lookup_tables = lookup.table
+                else:
+                    lookup_tables = [lookup.table]
+                if all(
+                    table not in [step.table for step in mapping.values()]
+                    for table in lookup_tables
+                ):
                     del m.lookups[field]
 
                     # Make sure this didn't cause the operation to be invalid
