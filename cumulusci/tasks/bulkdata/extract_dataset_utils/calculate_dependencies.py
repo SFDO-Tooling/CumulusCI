@@ -11,7 +11,7 @@ from .synthesize_extract_declarations import (
 
 class SObjDependency(T.NamedTuple):
     table_name_from: str
-    table_names_to: T.Union[str, T.Tuple]
+    table_names_to: T.Union[str, T.Tuple[str, ...]]
     field_name: str
     priority: bool = False
 

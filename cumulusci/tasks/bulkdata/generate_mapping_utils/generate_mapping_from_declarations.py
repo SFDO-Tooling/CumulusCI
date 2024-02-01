@@ -18,7 +18,7 @@ from .load_mapping_file_generator import generate_load_mapping_file
 
 
 class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
-    lookups: T.Dict[str, T.Union[str, T.Tuple]]
+    lookups: T.Dict[str, T.Union[str, T.Tuple[str, ...]]]
 
 
 def create_load_mapping_file_from_extract_declarations(

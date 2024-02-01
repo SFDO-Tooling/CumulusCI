@@ -49,7 +49,7 @@ class DependencyMap:
 
     def target_table_for(
         self, tablename: str, fieldname: str
-    ) -> T.Optional[T.Union[str, T.Tuple]]:
+    ) -> T.Optional[T.Union[str, T.Tuple[str, ...]]]:
         return self.reference_fields.get((tablename, fieldname))
 
     def get_dependency_order(self):
