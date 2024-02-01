@@ -122,6 +122,64 @@ class TestGenerateLoadMappingFromDeclarations:
                 },
             }
 
+    def test_generate_load_mapping_from_declarations__polymorphic_lookups(
+        self, org_config
+    ):
+        declarations = [
+            ExtractDeclaration(sf_object="Account", fields=["Name", "Description"]),
+            ExtractDeclaration(
+                sf_object="Contact", fields=["FirstName", "LastName", "AccountId"]
+            ),
+            ExtractDeclaration(sf_object="Lead", fields=["LastName", "Company"]),
+            ExtractDeclaration(sf_object="Event", fields=["Subject", "WhoId"]),
+        ]
+        object_counts = {"Account": 10, "Contact": 5, "Case": 5, "Event": 2, "Lead": 1}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Case"),
+            describe_for("Event"),
+            describe_for("Lead"),
+        )
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            filters=[],
+            include_counts=True,
+        ) as schema:
+            mf = create_load_mapping_file_from_extract_declarations(
+                declarations, schema
+            )
+            assert mf == {
+                "Insert Account": {
+                    "sf_object": "Account",
+                    "table": "Account",
+                    "fields": ["Name", "Description"],
+                },
+                "Insert Contact": {
+                    "sf_object": "Contact",
+                    "table": "Contact",
+                    "fields": ["FirstName", "LastName"],
+                    "lookups": {
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
+                    },
+                },
+                "Insert Lead": {
+                    "sf_object": "Lead",
+                    "table": "Lead",
+                    "fields": ["LastName", "Company"],
+                },
+                "Insert Event": {
+                    "sf_object": "Event",
+                    "table": "Event",
+                    "fields": ["Subject"],
+                    "lookups": {
+                        "WhoId": {"table": ["Contact", "Lead"], "key_field": "WhoId"}
+                    },
+                },
+            }
+
     def test_generate_load_mapping_from_declarations__circular_lookups(
         self, org_config
     ):

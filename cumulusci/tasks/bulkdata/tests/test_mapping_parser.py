@@ -952,6 +952,71 @@ class TestMappingParser:
         assert "AccountId" not in mapping["Insert Contacts"].lookups
 
     @responses.activate
+    def test_validate_and_inject_mapping_removes_lookups_with_drop_missing__polymorphic_partial_present(
+        self,
+    ):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account\n"
+                    "Insert Events:\n  sf_object: Event\n  table: Event\n  lookups:\n    WhoId:\n      table:\n        - Contact\n        - Lead"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace=None,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=False,
+            drop_missing=True,
+        )
+
+        assert "Insert Accounts" not in mapping
+        assert "Insert Contacts" in mapping
+        assert "Insert Events" in mapping
+        assert "AccountId" not in mapping["Insert Contacts"].lookups
+        assert "WhoId" in mapping["Insert Events"].lookups
+
+    @responses.activate
+    def test_validate_and_inject_mapping_removes_lookups_with_drop_missing__polymorphic_none_present(
+        self,
+    ):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Contacts:\n  sf_object: NotContact\n  table: NotContact\n  fields:\n    - LastName\n"
+                    "Insert Leads:\n  sf_object: NotLead\n  table: NotLead\n  fields:\n    - LastName\n    - Company\n"
+                    "Insert Events:\n  sf_object: Event\n  table: Event\n  lookups:\n    WhoId:\n      table:\n        - Contact\n        - Lead"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace=None,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=False,
+            drop_missing=True,
+        )
+
+        assert "Insert Contacts" not in mapping
+        assert "Insert Leads" not in mapping
+        assert "Insert Events" in mapping
+        assert "WhoId" not in mapping["Insert Events"].lookups
+
+    @responses.activate
     def test_validate_and_inject_mapping_throws_exception_required_lookup_dropped(self):
         mock_describe_calls()
 
