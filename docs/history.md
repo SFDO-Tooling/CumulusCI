@@ -3,15 +3,16 @@
 <!-- latest-start -->
 
 ## v3.84.1 (2024-02-01)
+
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
-### Changes 🎉
-* Fix `is_person_type` `AttributeError` in record type handling by [@aditya-balachander](https://github.com/aditya-balachander) in [#3739](https://github.com/SFDO-Tooling/CumulusCI/pull/3739)
 
+### Changes 🎉
+
+-   Fix `is_person_type` `AttributeError` in record type handling by [@aditya-balachander](https://github.com/aditya-balachander) in [#3739](https://github.com/SFDO-Tooling/CumulusCI/pull/3739)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.0...v3.84.1
-
 
 <!-- latest-stop -->
 
