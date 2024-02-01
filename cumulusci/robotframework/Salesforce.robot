@@ -189,4 +189,5 @@ Chrome Set Headless
     Call Method  ${options}  set_headless  ${true}
     Call Method  ${options}  add_argument  --disable-dev-shm-usage
     Call Method  ${options}  add_argument  --disable-background-timer-throttling
+    Call Method  ${options}  add_argument  --no-sandbox
     [return]  ${options}
