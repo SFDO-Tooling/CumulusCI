@@ -74,6 +74,7 @@ class TestGenerateLoadMappingFromDeclarations:
             }
 
     def test_generate_mapping_from_declarations__polymorphic_lookups(self, org_config):
+        """Generate correct mapping file for sobjects with polymorphic lookup fields"""
         declarations = [
             ExtractDeclaration(sf_object="Account", fields=["Name", "Description"]),
             ExtractDeclaration(sf_object="Contact", fields=["LastName", "AccountId"]),

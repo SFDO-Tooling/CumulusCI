@@ -491,8 +491,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         sf_id_results = self._generate_results_id_map(step, local_ids)
 
         for i in range(len(sf_id_results)):
+            # Check for old_format of load sql files
             if str(sf_id_results[i][0]).isnumeric():
                 self._old_format = True
+                # Set id column with new naming format (<sobject> - <counter>)
                 sf_id_results[i][0] = mapping.table + "-" + str(sf_id_results[i][0])
             else:
                 break

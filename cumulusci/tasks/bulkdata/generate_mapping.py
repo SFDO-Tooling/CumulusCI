@@ -235,7 +235,8 @@ class GenerateMapping(BaseSalesforceApiTask):
                         for orig_reference in referenceTo
                     ]
 
-                    # The maximum reference index
+                    # The maximum reference index to set the after to the last
+                    # sobject mentioned in the reference (polymorphic support)
                     max_reference_index = max(
                         stack.index(orig_reference) for orig_reference in referenceTo
                     )
