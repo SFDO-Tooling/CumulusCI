@@ -1939,6 +1939,18 @@ class TestLoadData:
                 FROM accounts
                 LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
                 LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
+        """,
+        )
+
+    def test_query_db__record_type_mapping__with_ispersontype(self):
+        _validate_query_for_mapping_step(
+            sql_path="cumulusci/tasks/bulkdata/tests/recordtypes_with_ispersontype.sql",
+            mapping="cumulusci/tasks/bulkdata/tests/recordtypes_with_ispersontype.yml",
+            mapping_step_name="Insert Accounts",
+            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", "Account_rt_target_mapping".record_type_id AS "Account_rt_target_mapping_record_type_id"
+                FROM accounts
+                LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
+                LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
                 AND "account_rt_target_mapping".is_person_type = "account_rt_mapping".is_person_type
         """,
         )
@@ -1952,7 +1964,6 @@ class TestLoadData:
             FROM "Beta"
             LEFT OUTER JOIN "Beta_rt_mapping" ON "Beta_rt_mapping".record_type_id = "Beta"."RecordType"
             LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Beta_rt_mapping".developer_name
-            AND "Account_rt_target_mapping".is_person_type = "Beta_rt_mapping".is_person_type
         """,
         )
 
