@@ -18,7 +18,7 @@ from .load_mapping_file_generator import generate_load_mapping_file
 
 
 class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
-    lookups: T.Dict[str, str]
+    lookups: T.Dict[str, T.Union[str, T.Tuple[str, ...]]]
 
 
 def create_load_mapping_file_from_extract_declarations(
@@ -54,9 +54,9 @@ def _discover_dependendencies(simplified_decls: T.Sequence):
     intertable_dependencies = OrderedSet()
 
     for decl in simplified_decls:
-        for fieldname, tablename in decl.lookups.items():
+        for fieldname, tablenames in decl.lookups.items():
             intertable_dependencies.add(
-                SObjDependency(decl.sf_object, tablename, fieldname)
+                SObjDependency(decl.sf_object, tablenames, fieldname)
             )
     return intertable_dependencies
 
@@ -105,10 +105,7 @@ def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables
     simple_fields, lookups = partition(is_lookup, decl.fields)
 
     def target_table(field_info):
-        if len(field_info.referenceTo) == 1:
-            target = field_info.referenceTo[0]
-        else:  # pragma: no cover  # TODO: Cover
-            target = "Polymorphic lookups are not supported"
+        target = field_info.referenceTo
         return target
 
     lookups = list(lookups)
@@ -117,8 +114,8 @@ def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables
         (lookup, target_table(sobject_schema_info.fields[lookup])) for lookup in lookups
     )
     lookups_and_targets = (
-        (lookup, table)
-        for lookup, table in lookups_and_targets
-        if table in referenceable_tables
+        (lookup, [table for table in tables if table in referenceable_tables])
+        for lookup, tables in lookups_and_targets
+        if any(table in referenceable_tables for table in tables)
     )
     return simple_fields, lookups_and_targets
