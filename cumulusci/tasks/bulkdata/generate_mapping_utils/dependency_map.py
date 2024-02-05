@@ -45,9 +45,11 @@ class DependencyMap:
             table_deps.add(dep)
             self.reference_fields[
                 (dep.table_name_from, dep.field_name)
-            ] = dep.table_name_to
+            ] = dep.table_names_to
 
-    def target_table_for(self, tablename: str, fieldname: str) -> T.Optional[str]:
+    def target_table_for(
+        self, tablename: str, fieldname: str
+    ) -> T.Optional[T.Union[str, T.Tuple[str, ...]]]:
         return self.reference_fields.get((tablename, fieldname))
 
     def get_dependency_order(self):
@@ -135,9 +137,13 @@ def _table_is_free(
     """
     tables_this_table_depends_upon = dependencies.get(table_name, OrderedSet()).copy()
     for dependency in sorted(tables_this_table_depends_upon):
+        table_names = (
+            [dependency.table_names_to]
+            if isinstance(dependency.table_names_to, str)
+            else dependency.table_names_to
+        )
         if (
-            dependency.table_name_to in sorted_tables
-            or dependency.table_name_to == table_name
+            all(table in sorted_tables or table == table_name for table in table_names)
             or dependency.priority < priority
         ):
             tables_this_table_depends_upon.remove(dependency)

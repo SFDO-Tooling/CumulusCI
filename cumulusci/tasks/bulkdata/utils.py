@@ -6,7 +6,7 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
-from sqlalchemy import Boolean, Column, Integer, MetaData, Table, Unicode, inspect
+from sqlalchemy import Boolean, Column, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
@@ -78,11 +78,12 @@ def _handle_primary_key(mapping, fields):
     """Provide support for legacy mappings which used the OID as the pk but
     default to using an autoincrementing int pk and a separate sf_id column"""
 
+    id_column = "id"
     if mapping.get_oid_as_pk():
+        # Get Id column from mapping
         id_column = mapping.fields["Id"]
-        fields.append(Column(id_column, Unicode(255), primary_key=True))
-    else:
-        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
+
+    fields.append(Column(id_column, Unicode(255), primary_key=True))
 
 
 def create_table(mapping, metadata) -> Table:

@@ -1305,4 +1305,34 @@ response:
             true, "searchable": false, "triggerable": false, "undeletable": false,
             "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeShare/{ID}",
             "describe": "/services/data/v52.0/sobjects/WorkTypeShare/describe", "sobject":
-            "/services/data/v52.0/sobjects/WorkTypeShare"}}]}'
+            "/services/data/v52.0/sobjects/WorkTypeShare"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": true,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            null, "label": "Event", "labelPlural": "Events", "layoutable": true,
+            "mergeable": true, "mruEnabled": true, "name": "Event", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/Event/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Event/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Event/describe/approvalLayouts", "listviews":
+            "/services/data/v52.0/sobjects/Event/listviews", "describe": "/services/data/v52.0/sobjects/Event/describe",
+            "quickActions": "/services/data/v52.0/sobjects/Event/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/Event/describe/layouts", "sobject":
+            "/services/data/v52.0/sobjects/Event"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": true,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            null, "label": "Lead", "labelPlural": "Leads", "layoutable": true,
+            "mergeable": true, "mruEnabled": true, "name": "Lead", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/Lead/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Lead/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Lead/describe/approvalLayouts", "listviews":
+            "/services/data/v52.0/sobjects/Lead/listviews", "describe": "/services/data/v52.0/sobjects/Lead/describe",
+            "quickActions": "/services/data/v52.0/sobjects/Lead/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/Lead/describe/layouts", "sobject":
+            "/services/data/v52.0/sobjects/Lead"}}]}'
