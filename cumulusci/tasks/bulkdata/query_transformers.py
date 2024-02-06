@@ -7,6 +7,7 @@ from sqlalchemy.orm import Query, aliased
 from cumulusci.core.exceptions import BulkDataException
 
 Criterion = T.Any
+ID_TABLE_NAME = "cumulusci_id_table"
 
 
 class LoadQueryExtender:
@@ -50,8 +51,9 @@ class LoadQueryExtender:
 class AddLookupsToQuery(LoadQueryExtender):
     """Adds columns and joins relatinng to lookups"""
 
-    def __init__(self, mapping, metadata, model) -> None:
+    def __init__(self, mapping, metadata, model, _old_format) -> None:
         super().__init__(mapping, metadata, model)
+        self._old_format = _old_format
         self.lookups = [
             lookup for lookup in self.mapping.lookups.values() if not lookup.after
         ]
@@ -59,9 +61,7 @@ class AddLookupsToQuery(LoadQueryExtender):
     @cached_property
     def columns_to_add(self):
         for lookup in self.lookups:
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
-            )
+            lookup.aliased_table = aliased(self.metadata.tables[ID_TABLE_NAME])
         return [lookup.aliased_table.columns.sf_id for lookup in self.lookups]
 
     @cached_property
@@ -71,10 +71,17 @@ class AddLookupsToQuery(LoadQueryExtender):
         def join_for_lookup(lookup):
             key_field = lookup.get_lookup_key_field(self.model)
             value_column = getattr(self.model, key_field)
-            return (
-                lookup.aliased_table,
-                lookup.aliased_table.columns.id == value_column,
-            )
+            if self._old_format:
+                return (
+                    lookup.aliased_table,
+                    lookup.aliased_table.columns.id
+                    == str(lookup.table) + "-" + value_column,
+                )
+            else:
+                return (
+                    lookup.aliased_table,
+                    lookup.aliased_table.columns.id == value_column,
+                )
 
         return [join_for_lookup(lookup) for lookup in self.lookups]
 
@@ -128,6 +135,18 @@ class AddRecordTypesToQuery(LoadQueryExtender):
             rt_dest_table = self.metadata.tables[
                 self.mapping.get_destination_record_type_table()
             ]
+
+            # Check if 'is_person_type' column exists in rt_source_table.columns
+            is_person_type_column = getattr(
+                rt_source_table.columns, "is_person_type", None
+            )
+            # If it does not exist, set condition to True
+            is_person_type_condition = (
+                rt_dest_table.columns.is_person_type == is_person_type_column
+                if is_person_type_column is not None
+                else True
+            )
+
             return [
                 (
                     rt_source_table,
@@ -140,8 +159,7 @@ class AddRecordTypesToQuery(LoadQueryExtender):
                     and_(
                         rt_dest_table.columns.developer_name
                         == rt_source_table.columns.developer_name,
-                        rt_dest_table.columns.is_person_type
-                        == rt_source_table.columns.is_person_type,
+                        is_person_type_condition,
                     ),
                 ),
             ]

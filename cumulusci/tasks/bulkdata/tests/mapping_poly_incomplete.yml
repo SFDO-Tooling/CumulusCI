@@ -1,0 +1,20 @@
+# Polymorphic mapping file for extract with
+# some records of event referencing contact
+# but contact not mentioned in lookup
+Insert Households:
+    api: Bulk
+    sf_object: Account
+    table: households
+    fields:
+        Name: name
+    record_type: HH_Account
+Insert Events:
+    api: BULK
+    sf_object: Event
+    table: events
+    fields:
+        Subject: subject
+    lookups:
+        WhoId:
+            key_field: who_id
+            table: households

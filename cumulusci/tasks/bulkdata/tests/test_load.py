@@ -129,8 +129,8 @@ class TestLoadData:
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
             with create_engine(task.options["database_url"]).connect() as c:
-                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
-                assert hh_ids == ("1", "001000000000000")
+                hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
+                assert hh_ids == ("households-1", "001000000000000")
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
@@ -271,6 +271,7 @@ class TestLoadData:
             },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
+        task._initialize_id_table = mock.Mock()
         task._init_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
@@ -298,6 +299,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         one = task.mapping["Insert Households"] = mock.Mock()
         two = task.mapping["Insert Contacts"] = mock.Mock()
@@ -324,6 +326,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
@@ -827,7 +830,6 @@ class TestLoadData:
                 ["001000000003", None],
             ]
         )
-
         local_ids = io.StringIO()
         records = list(
             task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
@@ -873,9 +875,16 @@ class TestLoadData:
             sql_path=Path(__file__).parent / "test_query_db__joins_self_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
             mapping_step_name="Update Accounts",
-            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", accounts_sf_ids_1.sf_id AS accounts_sf_ids_1_sf_id
-FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_sf_ids_1.id = accounts.parent_id ORDER BY accounts.parent_id
-        """,
+            expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || accounts.parent_id ORDER BY accounts.parent_id""",
+            old_format=True,
+        )
+
+    def test_query_db__joins_polymorphic_lookups(self):
+        _validate_query_for_mapping_step(
+            sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
+            mapping=Path(__file__).parent / "test_query_db_joins_lookups.yml",
+            mapping_step_name="Update Event",
+            expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || events."WhoId" ORDER BY events."WhoId" """,
         )
 
     @responses.activate
@@ -946,8 +955,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "contacts_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
@@ -1014,8 +1022,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "contacts_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
@@ -1086,8 +1093,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"requests": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "requests_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
@@ -1141,13 +1147,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.mapping = {}
         with task._init_db():
             id_table = Table(
-                "test_sf_ids",
+                "cumulusci_id_table",
                 task.metadata,
                 Column("id", Unicode(255), primary_key=True),
             )
             id_table.create()
-            task._initialize_id_table({"table": "test"}, True)
-            new_id_table = task.metadata.tables["test_sf_ids"]
+            task._initialize_id_table(True)
+            new_id_table = task.metadata.tables["cumulusci_id_table"]
             assert not (new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
@@ -1158,14 +1164,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.mapping = {}
         with task._init_db():
             id_table = Table(
-                "test_sf_ids",
+                "cumulusci_id_table",
                 task.metadata,
                 Column("id", Unicode(255), primary_key=True),
             )
             id_table.create()
-            table_name = task._initialize_id_table({"table": "test"}, False)
-            assert table_name == "test_sf_ids"
-            new_id_table = task.metadata.tables["test_sf_ids"]
+            task._initialize_id_table(False)
+            new_id_table = task.metadata.tables["cumulusci_id_table"]
             assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
@@ -1180,6 +1185,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
+        task._initialize_id_table = mock.Mock()
         task.mapping = {"Test": MappingStep(sf_object="Account")}
 
         with pytest.raises(BulkDataException):
@@ -1215,7 +1221,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
-        task._initialize_id_table.assert_called_once_with(mapping, True)
         sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
@@ -1265,7 +1270,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
-        task._initialize_id_table.assert_called_once_with(mapping, True)
         sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_called_once()
         assert len(task.logger.mock_calls) == 4
@@ -1298,7 +1302,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         ) as sql_bulk_insert_from_records:
             task._process_job_results(mapping, step, local_ids)
 
-        task.session.connection.assert_not_called()
+        task.session.connection.assert_called_once()
         task._initialize_id_table.assert_not_called()
         sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_not_called()
@@ -1650,7 +1654,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
             mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
-
+        assert task._old_format is True
         sql_bulk_insert_from_records.assert_called_with(
             connection=task.session.connection.return_value,
             table=task.metadata.tables[task._initialize_id_table.return_value],
@@ -1935,6 +1939,18 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 FROM accounts
                 LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
                 LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
+        """,
+        )
+
+    def test_query_db__record_type_mapping__with_ispersontype(self):
+        _validate_query_for_mapping_step(
+            sql_path="cumulusci/tasks/bulkdata/tests/recordtypes_with_ispersontype.sql",
+            mapping="cumulusci/tasks/bulkdata/tests/recordtypes_with_ispersontype.yml",
+            mapping_step_name="Insert Accounts",
+            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", "Account_rt_target_mapping".record_type_id AS "Account_rt_target_mapping_record_type_id"
+                FROM accounts
+                LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
+                LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
                 AND "account_rt_target_mapping".is_person_type = "account_rt_mapping".is_person_type
         """,
         )
@@ -1948,7 +1964,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             FROM "Beta"
             LEFT OUTER JOIN "Beta_rt_mapping" ON "Beta_rt_mapping".record_type_id = "Beta"."RecordType"
             LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Beta_rt_mapping".developer_name
-            AND "Account_rt_target_mapping".is_person_type = "Beta_rt_mapping".is_person_type
         """,
         )
 
@@ -2054,8 +2069,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             ], step.records
 
             with create_engine(task.options["database_url"]).connect() as c:
-                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
-                assert hh_ids == ("1", "001000000000000")
+                hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
+                assert hh_ids == ("households-1", "001000000000000")
 
     @responses.activate
     def test_run__complex_lookups(self):
@@ -2438,8 +2453,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
     # code to test too little code. We'll test Person accounts in context
     # instead.
     # Delete this comment whenever it is convenient.
-
-    def test_generate_contact_id_map_for_person_accounts(self):
+    @pytest.mark.parametrize("old_format", [True, False])
+    def test_generate_contact_id_map_for_person_accounts(self, old_format):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, mapping_file)
@@ -2457,14 +2472,14 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.metadata.tables = {
             "accounts": mock.Mock(),
             "contacts": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
-            "contacts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task.session.query.return_value = task.session.query
         task.session.query.filter.return_value = task.session.query
         task.session.query.outerjoin.return_value = task.session.query
         task.sf = mock.Mock()
+        task._old_format = old_format
 
         # Set model mocks
         account_model.__table__ = mock.Mock()
@@ -2484,7 +2499,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             "id": mock.Mock(),
             "sf_id": mock.Mock(),
             "IsPersonAccount": mock.MagicMock(),
-            "account_id": mock.Mock,
+            "account_id": "string",
         }
 
         account_id_lookup = MappingLookup(
@@ -2499,6 +2514,12 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         account_id_column = getattr(
             contact_model, account_id_lookup.get_lookup_key_field(contact_model)
         )
+        setattr(
+            contact_model,
+            account_id_lookup.get_lookup_key_field(contact_model),
+            "Contact.account_id",
+        )
+
         account_sf_ids_table = account_id_lookup["aliased_table"]
         account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
@@ -2551,7 +2572,18 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         query_result.fetchmany.expected_calls = []
         task.sf.query_all.expected_calls = []
         for chunk in chunks:
-            expected.extend([(record["id"], record["sf_id"]) for record in chunk])
+            if task._old_format:
+                expected.extend(
+                    [
+                        (
+                            str(contact_mapping.table) + "-" + record["id"],
+                            record["sf_id"],
+                        )
+                        for record in chunk
+                    ]
+                )
+            else:
+                expected.extend([(record["id"], record["sf_id"]) for record in chunk])
 
             query_result.fetchmany.expected_calls.append(mock.call(200))
 
@@ -2614,7 +2646,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
 
         actual = [value for value in generator]
-
         assert expected == actual
 
         # Assert query executed
@@ -2815,6 +2846,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         task.after_steps = {}
 
@@ -2837,6 +2869,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
+
         with pytest.raises(TaskOptionsError, match="Mapping file path required"):
             task()
 
@@ -2980,7 +3013,9 @@ class TestLoadDataIntegrationTests:
         ]
 
 
-def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expected):
+def _validate_query_for_mapping_step(
+    sql_path, mapping, mapping_step_name, expected, old_format=False
+):
     """Validate the text of a SQL query"""
     task = _make_task(
         LoadData,
@@ -2996,6 +3031,7 @@ def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expec
     ), mock.patch.object(task, "sf", create=True):
         task._init_mapping()
     with task._init_db():
+        task._old_format = mock.Mock(return_value=old_format)
         query = task._query_db(task.mapping[mapping_step_name])
 
     def normalize(query):

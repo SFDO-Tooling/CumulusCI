@@ -238,6 +238,7 @@ def mock_describe_calls(domain="example.com", version=CURRENT_SF_API_VERSION):
         "Opportunity",
         "OpportunityContactRole",
         "Case",
+        "Event",
     ]:
         mock_sobject_describe(sobject)
 
