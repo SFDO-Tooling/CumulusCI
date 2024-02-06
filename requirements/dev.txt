@@ -48,7 +48,7 @@ coverage[toml]==7.3.2
     # via
     #   cumulusci (pyproject.toml)
     #   pytest-cov
-cryptography==41.0.7
+cryptography==42.0.0
     # via
     #   authlib
     #   cumulusci (pyproject.toml)
