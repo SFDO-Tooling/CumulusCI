@@ -92,6 +92,9 @@ class FakeBulkAPIDmlOperation(BaseDmlOperation):
             DataOperationStatus.SUCCESS, [], records_processed, 0
         )
 
+    def get_prev_record_values(self, records):
+        pass
+
     def load_records(self, records):
         self.records.extend(records)
 
