@@ -1,35 +1,9 @@
 name: Release Test
 
 on:
+    workflow_dispatch:
     pull_request:
         types: [opened, synchronize, reopened] # Default
-    workflow_call:
-        secrets:
-            CUMULUSCI_ORG_packaging:
-                required: true
-            CUMULUSCI_SERVICE_github:
-                required: true
-            CCITEST_APP_KEY:
-                required: true
-            SFDX_CLIENT_ID:
-                required: true
-            SFDX_HUB_KEY:
-                required: true
-            SFDX_HUB_KEY_BASE64:
-                required: true
-            SFDX_HUB_USERNAME:
-                required: true
-
-env:
-    CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
-    CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
-    CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
-    GITHUB_APP_ID: 129383
-    GITHUB_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
-    SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
-    SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
-    SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
-    SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
 
 jobs:
     test_artifacts:
@@ -67,45 +41,14 @@ jobs:
 
     test_release:
         name: "Test Release Flows"
-        runs-on: sfdc-ubuntu-latest
-        concurrency: release
-        steps:
-            - uses: actions/checkout@v3
-            - name: Set up Python 3.8
-              uses: actions/setup-python@v4
-              with:
-                  python-version: 3.8
-                  cache: pip
-                  cache-dependency-path: "requirements/*.txt"
-            - name: Install Python dependencies
-              run: pip install -r requirements_dev.txt
-            - name: Install sfdx
-              run: |
-                  mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-                  echo $(realpath sfdx/bin) >> $GITHUB_PATH
-            - name: Authenticate Dev Hub
-              run: |
-                  sfdx plugins --core
-                  echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-                  sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-            - name: Check out CumulusCI-Test
-              run: |
-                  git clone https://github.com/SFDO-Tooling/CumulusCI-Test
-            - name: Run ci_feature flow
-              run: |
-                  cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
-            - name: Run ci_beta flow
-              run: |
-                  cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_beta --org scratch --delete-org
-            - name: Run ci_master flow
-              run: |
-                  cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
-            - name: Run release_beta flow
-              run: |
-                  export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
-                  cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run release_beta --org packaging
+        uses: ./.github/workflows/release_test_sfdx.yml
+        with:
+            sfdx-release-channel: stable
+        secrets:
+            CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
+            CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+            CCITEST_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
+            SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+            SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
+            SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+            SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
