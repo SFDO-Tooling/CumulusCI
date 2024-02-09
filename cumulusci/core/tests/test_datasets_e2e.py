@@ -225,11 +225,19 @@ class TestDatasetsE2E:
     def test_datasets_read_explicit_extract_declaration(
         self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
     ):
-        object_counts = {"Account": 6, "Contact": 1, "Opportunity": 5}
+        object_counts = {
+            "Account": 6,
+            "Contact": 1,
+            "Opportunity": 5,
+            "Lead": 1,
+            "Event": 2,
+        }
         obj_describes = (
             describe_for("Account"),
             describe_for("Contact"),
             describe_for("Opportunity"),
+            describe_for("Lead"),
+            describe_for("Event"),
         )
         with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
             "cumulusci.core.datasets.get_org_schema",
@@ -263,12 +271,16 @@ class TestDatasetsE2E:
                             "Contact": {
                                 "fields": ["FirstName", "LastName", "AccountId"]
                             },
+                            "Event": {"fields": ["Subject", "WhoId"]},
                         }
                     },
                 )
                 loading_rules = write_yaml(
                     "loading_rules.load.yml",
-                    [{"sf_object": "Account", "load_after": "Contact"}],
+                    [
+                        {"sf_object": "Account", "load_after": "Contact"},
+                        {"sf_object": "Lead", "load_after": "Event"},
+                    ],
                 )
 
                 # Don't actually extract data.
@@ -286,9 +298,21 @@ class TestDatasetsE2E:
                         "fields": ["FirstName", "LastName"],
                         "lookups": {
                             "AccountId": {
-                                "table": "Account",
+                                "table": ["Account"],
                                 "key_field": "AccountId",
                                 "after": "Insert Account",
+                            }
+                        },
+                    },
+                    "Insert Event": {
+                        "sf_object": "Event",
+                        "table": "Event",
+                        "fields": ["Subject"],
+                        "lookups": {
+                            "WhoId": {
+                                "table": ["Contact", "Lead"],
+                                "key_field": "WhoId",
+                                "after": "Insert Lead",
                             }
                         },
                     },
@@ -296,6 +320,11 @@ class TestDatasetsE2E:
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name"],
+                    },
+                    "Insert Lead": {
+                        "sf_object": "Lead",
+                        "table": "Lead",
+                        "fields": ["Company", "LastName"],
                     },
                 }
                 assert tuple(actual.items()) == tuple(expected.items()), actual.items()

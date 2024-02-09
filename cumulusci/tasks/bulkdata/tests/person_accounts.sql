@@ -23,16 +23,11 @@ CREATE TABLE IF NOT EXISTS "Account" (
         PRIMARY KEY (id)
 );
 INSERT INTO Account VALUES(1,'Ana','Jacobson','61034 Calderon Point','Robinview','Michigan','USA','38677','AnJacobson1997@example.com','(330)320-6522','001-377-923-2289','1');
-CREATE TABLE IF NOT EXISTS "Account_sf_ids" (
+CREATE TABLE IF NOT EXISTS "cumulusci_id_table" (
         id VARCHAR(255) NOT NULL, 
         sf_id VARCHAR(18), 
         PRIMARY KEY (id)
 );
-INSERT INTO Account_sf_ids VALUES('1','0016300001AKkZyAAL');
-CREATE TABLE IF NOT EXISTS "PersonContact_sf_ids" (
-        id VARCHAR(255) NOT NULL, 
-        sf_id VARCHAR(18), 
-        PRIMARY KEY (id)
-);
-INSERT INTO PersonContact_sf_ids VALUES('1','0036300000wjVUBAA2');
+INSERT INTO cumulusci_id_table VALUES('Account-1','0016300001AKkZyAAL');
+INSERT INTO cumulusci_id_table VALUES('Contact-1','0036300000wjVUBAA2');
 COMMIT;
