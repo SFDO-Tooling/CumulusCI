@@ -31,6 +31,7 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
+from cumulusci.salesforce_api.filterable_objects import OPT_IN_ONLY
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -317,6 +318,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
+
+        # What the actual fuck
+        if mapping.sf_object in OPT_IN_ONLY:
+            return None
 
         def throw(string):  # pragma: no cover
             raise BulkDataException(string)
