@@ -8,7 +8,7 @@ from pathlib import Path
 import jinja2
 import robot.utils
 from robot.libdocpkg.builder import DocumentationBuilder
-from robot.libdocpkg.robotbuilder import LibraryDocBuilder
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder, ResourceDocBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
 from robot.utils import Importer
 
@@ -116,7 +116,14 @@ class RobotLibDoc(BaseTask):
                         kwfile.add_keywords(libdoc, pobj_name)
 
                 else:
-                    libdoc = DocumentationBuilder(library_name).build(library_name)
+                    # this test necessary due to a backwards-incompatible change
+                    # in robot 6.x where .robot files get unconditionally passed
+                    # to SuiteBuilder which then generates an error on keyword
+                    # files since they don't have test cases.
+                    if library_name.endswith(".robot"):
+                        libdoc = ResourceDocBuilder().build(library_name)
+                    else:
+                        libdoc = DocumentationBuilder(library_name).build(library_name)
                     kwfile.add_keywords(libdoc)
 
                 # if we get here, we were able to process the file correctly
@@ -234,7 +241,7 @@ class KeywordFile:
                 # we don't want to see the same base pageobject
                 # keywords a kajillion times. This should probably
                 # be configurable, but I don't need it to be right now.
-                if base_pageobjects_path in keyword.source:
+                if base_pageobjects_path in str(keyword.source):
                     continue
 
                 path = Path(keyword.source)

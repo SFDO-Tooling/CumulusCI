@@ -1,10 +1,10 @@
 import re
 import typing as T
-from enum import Enum
 from pathlib import Path
 
 from pydantic import Field, validator
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.tasks.bulkdata.step import DataApi
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 
@@ -12,13 +12,13 @@ object_decl = re.compile(r"objects\((\w+)\)", re.IGNORECASE)
 field_decl = re.compile(r"fields\((\w+)\)", re.IGNORECASE)
 
 
-class SFObjectGroupTypes(Enum):
+class SFObjectGroupTypes(StrEnum):
     all = "all"
     custom = "custom"
     standard = "standard"
 
 
-class SFFieldGroupTypes(Enum):
+class SFFieldGroupTypes(StrEnum):
     all = "all"
     custom = "custom"
     standard = "standard"
@@ -29,7 +29,7 @@ class ExtractDeclaration(HashableBaseModel):
     where: T.Optional[str] = None
     fields_: T.Union[T.List[str], str] = Field(["FIELDS(ALL)"], alias="fields")
     api: DataApi = DataApi.SMART
-    sf_object: T.Optional[str] = None  # injected, not implied
+    sf_object: T.Optional[str] = None  # injected, not declared explicitly
 
     @staticmethod
     def parse_field_complex_type(fieldspec):

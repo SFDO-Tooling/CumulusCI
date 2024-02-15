@@ -108,7 +108,7 @@ def _determine_github_client(host: str, client_params: dict) -> GitHub:
     return client_cls(**params)
 
 
-def get_github_api_for_repo(keychain, repo_url, session=None):
+def get_github_api_for_repo(keychain, repo_url, session=None) -> GitHub:
     owner, repo_name, host = parse_repo_url(repo_url)
     gh: GitHub = _determine_github_client(
         host,

@@ -13,6 +13,7 @@ import sarge
 
 from cumulusci import utils
 from cumulusci.core.config import FlowConfig, TaskConfig
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config
@@ -235,16 +236,16 @@ Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
 ``--flavor VANILLA``
-\t *Required*\n
-\t What flavor\n
+
+\t What flavor
+\n *Required*\n
 \t Type: string\n
-``--color COLOR``
-\t *Optional*\n
+``--color COLOR``\n
 \t What color\n
 \t Default: black\n
 ``--size SIZE``
-\t *Optional*\n
-\t How big"""
+\n\t How big
+\n *Optional*"""
         )
 
     def test_get_command_syntax(self, task_config):
@@ -284,15 +285,13 @@ Options\n------------------------------------------\n\n
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])
         option_two_doc = utils.create_task_options_doc(option_info[1:])
-
         assert option_one_doc == [
-            "\t *Required*",
             "\n\t description",
             "\n\t Default: default",
             "\n\t Type: option_type",
         ]
 
-        assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+        assert option_two_doc == ["\n\t Brief description here.", "\n *Optional*"]
 
     def test_document_flow(self):
         project_config = create_project_config("TestOwner", "TestRepo")
@@ -389,12 +388,23 @@ Options\n------------------------------------------\n\n
 
         def assign_bytes(archive_type, zip_content, ref=None):
             zip_content.write(zipbytes)
+            return True
 
-        mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
+        mock_archive = mock.Mock(side_effect=assign_bytes)
         mock_repo.archive = mock_archive
         zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
         assert b"test" in result
+
+    def test_download_extract_github__failure(self):
+        mock_repo = mock.Mock(default_branch="main")
+        mock_github = mock.Mock()
+        mock_github.repository.return_value = mock_repo
+
+        mock_repo.archive.return_value = False
+        with pytest.raises(CumulusCIException) as e:
+            utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
+            assert "Unable to download a zipball" in str(e)
 
     def test_process_text_in_directory__renamed_file(self):
         with utils.temporary_dir():
@@ -438,6 +448,7 @@ Options\n------------------------------------------\n\n
         result = zf.read("test")
         # assert contents were untouched
         assert contents == result
+        zf.close()
 
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
@@ -511,6 +522,7 @@ Options\n------------------------------------------\n\n
         result = zf.read("classes/test-meta.xml")
         assert b"packageVersions" not in result
         assert "other/test-meta.xml" in zf.namelist()
+        zf.close()
 
     def test_zip_clean_metaxml__skips_binary(self):
         logger = mock.Mock()
@@ -521,6 +533,7 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         assert "classes/test-meta.xml" in zf.namelist()
+        zf.close()
 
     def test_zip_clean_metaxml__handles_nonascii(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -528,6 +541,7 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
+        zf.close()
 
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(

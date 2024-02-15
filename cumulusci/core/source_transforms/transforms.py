@@ -2,15 +2,20 @@ import abc
 import functools
 import io
 import os
+import re
+import shutil
 import typing as T
 import zipfile
-from logging import Logger
 from pathlib import Path
 from zipfile import ZipFile
 
+from lxml import etree as ET
 from pydantic import BaseModel, root_validator
 
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.enums import StrEnum
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.tasks.metadata.package import RemoveSourceComponents
 from cumulusci.utils import (
     cd,
     inject_namespace,
@@ -33,7 +38,7 @@ class SourceTransform(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         ...
 
 
@@ -106,9 +111,9 @@ class NamespaceInjectionTransform(SourceTransform):
     def __init__(self, options: NamespaceInjectionOptions):
         self.options = options
 
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         if self.options.namespace_tokenize:
-            logger.info(
+            context.logger.info(
                 f"Tokenizing namespace prefix {self.options.namespace_tokenize}__"
             )
             zf = process_text_in_zipfile(
@@ -116,18 +121,18 @@ class NamespaceInjectionTransform(SourceTransform):
                 functools.partial(
                     tokenize_namespace,
                     namespace=self.options.namespace_tokenize,
-                    logger=logger,
+                    logger=context.logger,
                 ),
             )
         if self.options.namespace_inject:
             managed = not self.options.unmanaged
             if managed:
-                logger.info(
+                context.logger.info(
                     "Replacing namespace tokens from metadata with namespace prefix  "
                     f"{self.options.namespace_inject}__"
                 )
             else:
-                logger.info(
+                context.logger.info(
                     "Stripping namespace tokens from metadata for unmanaged deployment"
                 )
             zf = process_text_in_zipfile(
@@ -137,17 +142,17 @@ class NamespaceInjectionTransform(SourceTransform):
                     namespace=self.options.namespace_inject,
                     managed=managed,
                     namespaced_org=self.options.namespaced_org,
-                    logger=logger,
+                    logger=context.logger,
                 ),
             )
         if self.options.namespace_strip:
-            logger.info("Stripping namespace tokens from metadata")
+            context.logger.info("Stripping namespace tokens from metadata")
             zf = process_text_in_zipfile(
                 zf,
                 functools.partial(
                     strip_namespace,
                     namespace=self.options.namespace_strip,
-                    logger=logger,
+                    logger=context.logger,
                 ),
             )
 
@@ -161,7 +166,7 @@ class RemoveFeatureParametersTransform(SourceTransform):
 
     identifier = "remove_feature_parameters"
 
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         package_xml = None
         zip_dest = ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
         for name in zf.namelist():
@@ -169,7 +174,9 @@ class RemoveFeatureParametersTransform(SourceTransform):
                 package_xml = zf.open(name)
             elif name.startswith("featureParameters/"):
                 # skip feature parameters
-                logger.info(f"Skipping {name} because Feature Parameters are omitted.")
+                context.logger.info(
+                    f"Skipping {name} because Feature Parameters are omitted."
+                )
             else:
                 content = zf.read(name)
                 zip_dest.writestr(name, content)
@@ -198,8 +205,10 @@ class CleanMetaXMLTransform(SourceTransform):
 
     identifier = "clean_meta_xml"
 
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
-        logger.info("Cleaning meta.xml files of packageVersion elements for deploy")
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
+        context.logger.info(
+            "Cleaning meta.xml files of packageVersion elements for deploy"
+        )
         return zip_clean_metaxml(zf)
 
 
@@ -217,7 +226,7 @@ class BundleStaticResourcesTransform(SourceTransform):
     def __init__(self, options: BundleStaticResourcesOptions):
         self.options = options
 
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         path = os.path.realpath(self.options.static_resource_path)
 
         # Copy existing files to new zipfile
@@ -242,7 +251,9 @@ class BundleStaticResourcesTransform(SourceTransform):
                 bundle_path = os.path.join(path, name)
                 if not os.path.isdir(bundle_path):
                     continue
-                logger.info(f"Zipping {bundle_relpath} to add to staticresources")
+                context.logger.info(
+                    f"Zipping {bundle_relpath} to add to staticresources"
+                )
 
                 # Add resource-meta.xml file
                 meta_name = f"{name}.resource-meta.xml"
@@ -279,25 +290,45 @@ class BundleStaticResourcesTransform(SourceTransform):
 
 
 class FindReplaceBaseSpec(BaseModel, abc.ABC):
-    find: str
+    find: T.Optional[str]
+    xpath: T.Optional[str]
     paths: T.Optional[T.List[Path]] = None
 
+    @root_validator
+    def validate_find_xpath(cls, values):
+        findVal = values.get("find")
+        xpathVal = values.get("xpath")
+        if (findVal == "" or findVal is None) and (xpathVal is None or xpathVal == ""):
+            raise ValueError(
+                "Input is not valid. Please pass either find or xpath paramter."
+            )
+        if (
+            findVal != ""
+            and findVal is not None
+            and xpathVal != ""
+            and xpathVal is not None
+        ):
+            raise ValueError(
+                "Input is not valid. Please pass either find or xpath paramter not both."
+            )
+        return values
+
     @abc.abstractmethod
-    def get_replace_string(self) -> str:
+    def get_replace_string(self, context: TaskContext) -> str:
         ...
 
 
 class FindReplaceSpec(FindReplaceBaseSpec):
     replace: str
 
-    def get_replace_string(self) -> str:
+    def get_replace_string(self, context: TaskContext) -> str:
         return self.replace
 
 
 class FindReplaceEnvSpec(FindReplaceBaseSpec):
     replace_env: str
 
-    def get_replace_string(self) -> str:
+    def get_replace_string(self, context: TaskContext) -> str:
         try:
             return os.environ[self.replace_env]
         except KeyError:
@@ -306,8 +337,71 @@ class FindReplaceEnvSpec(FindReplaceBaseSpec):
             )
 
 
+class FindReplaceIdAPI(StrEnum):
+    REST = "rest"
+    TOOLING = "tooling"
+
+
+class FindReplaceIdSpec(FindReplaceBaseSpec):
+    replace_record_id_query: str
+    api: FindReplaceIdAPI = FindReplaceIdAPI.REST
+
+    def get_replace_string(self, context: TaskContext) -> str:
+        org = context.org_config
+
+        if self.api is FindReplaceIdAPI.REST:
+            results = org.salesforce_client.query(self.replace_record_id_query)
+        else:
+            results = org.tooling.query(self.replace_record_id_query)
+
+        if results["totalSize"] != 1:
+            raise CumulusCIException(
+                f"The find-replace query {self.replace_record_id_query} returned {results['totalSize']} results. Exactly 1 result is required"
+            )
+
+        try:
+            record_id = results["records"][0]["Id"]
+        except KeyError:
+            raise CumulusCIException(
+                "Results from the replace_record_id_query did not include an 'Id'. Please ensure the 'Id' field is included in your query's SELECT clause."
+            )
+        return record_id
+
+
+class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
+    inject_username: bool
+
+    def get_replace_string(self, context: TaskContext) -> str:
+        if not self.inject_username:  # pragma: no cover
+            self.logger.warning(
+                "The inject_username value for the find_replace transform is set to False. Skipping transform."
+            )
+            return self.find
+        return context.org_config.username
+
+
+class FindReplaceOrgUrlSpec(FindReplaceBaseSpec):
+    inject_org_url: bool
+
+    def get_replace_string(self, context: TaskContext) -> str:
+        if not self.inject_org_url:  # pragma: no cover
+            self.logger.warning(
+                "The inject_org_url value for the find_replace transform is set to False. Skipping transform."
+            )
+            return self.find
+        return context.org_config.instance_url
+
+
 class FindReplaceTransformOptions(BaseModel):
-    patterns: T.List[T.Union[FindReplaceSpec, FindReplaceEnvSpec]]
+    patterns: T.List[
+        T.Union[
+            FindReplaceSpec,
+            FindReplaceEnvSpec,
+            FindReplaceIdSpec,
+            FindReplaceCurrentUserSpec,
+            FindReplaceOrgUrlSpec,
+        ]
+    ]
 
 
 class FindReplaceTransform(SourceTransform):
@@ -321,18 +415,106 @@ class FindReplaceTransform(SourceTransform):
     def __init__(self, options: FindReplaceTransformOptions):
         self.options = options
 
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
+        # To handle xpath with namespaces, without
+        def transform_xpath(expression):
+            predicate_pattern = re.compile(r"\[.*?\]")
+            parts = expression.split("/")
+            transformed_parts = []
+
+            for part in parts:
+                if part:
+                    predicates = predicate_pattern.findall(part)
+                    tag = predicate_pattern.sub("", part)
+                    transformed_part = '/*[local-name()="' + tag + '"]'
+                    for predicate in predicates:
+                        transformed_part += predicate
+                    transformed_parts.append(transformed_part)
+            transformed_expression = "".join(transformed_parts)
+
+            return transformed_expression
+
         def process_file(filename: str, content: str) -> T.Tuple[str, str]:
             path = Path(filename)
             for spec in self.options.patterns:
                 if not spec.paths or any(
                     parent in path.parents for parent in spec.paths
                 ):
-                    content = content.replace(spec.find, spec.get_replace_string())
+                    try:
+                        # See if the content is an xml file
+                        content_bytes = content.encode("utf-8")
+                        root = ET.fromstring(content_bytes)
+
+                        # See if content has an xml declaration
+                        has_xml_declaration = content.strip().startswith("<?xml")
+
+                        # If find, we do not want to modify the tags in xml file, only the content
+                        if spec.find:
+                            stack = [root]
+                            while stack:
+                                element = stack.pop()
+                                if element.text and spec.find in element.text:
+                                    element.text = element.text.replace(
+                                        spec.find, spec.get_replace_string(context)
+                                    )
+                                stack.extend(element)
+                        # Modify the element given by xpath
+                        elif spec.xpath:
+                            transformed_xpath = transform_xpath(spec.xpath)
+                            elements_to_replace = root.xpath(transformed_xpath)
+                            for element in elements_to_replace:
+                                element.text = spec.get_replace_string(context)
+
+                        # Add xml declaration back to file, if it initally had xml declaration
+                        content = ET.tostring(
+                            root, encoding="utf-8", xml_declaration=has_xml_declaration
+                        ).decode("utf-8")
+
+                    except ET.XMLSyntaxError:
+                        if spec.find:
+                            content = content.replace(
+                                spec.find, spec.get_replace_string(context)
+                            )
+                        else:
+                            continue
+                    except ET.XPathError as e:
+                        raise ET.XPathError(
+                            f"An exception of type {type(e).__name__} occurred: {e} \nKindly check the xpath given"
+                        )
 
             return (filename, content)
 
         return process_text_in_zipfile(zf, process_file)
+
+
+class StripUnwantedComponentsOptions(BaseModel):
+    package_xml: str
+
+
+class StripUnwantedComponentTransform(SourceTransform):
+    options_model = StripUnwantedComponentsOptions
+    options: StripUnwantedComponentsOptions
+    identifier = "strip_unwanted_components"
+
+    def __init__(self, options: StripUnwantedComponentsOptions):
+        self.options = options
+
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
+        package_xml_path = os.path.abspath(os.path.expanduser(self.options.package_xml))
+
+        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+        with temporary_dir():
+            zf.extractall()
+            RemoveSourceComponents(
+                os.getcwd(), package_xml_path, api_version=None, logger=context.logger
+            )()
+            shutil.copy(package_xml_path, "package.xml")
+            for root, _, files in os.walk("."):
+                for f in files:
+                    file = os.path.join(root, f)
+                    zip_dest.write(file)
+
+        return zip_dest
 
 
 def get_available_transforms() -> T.Dict[str, T.Type[SourceTransform]]:
@@ -345,5 +527,6 @@ def get_available_transforms() -> T.Dict[str, T.Type[SourceTransform]]:
             RemoveFeatureParametersTransform,
             BundleStaticResourcesTransform,
             FindReplaceTransform,
+            StripUnwantedComponentTransform,
         ]
     }

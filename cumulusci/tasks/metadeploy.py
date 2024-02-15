@@ -83,12 +83,21 @@ class Publish(BaseMetaDeployTask):
         Path(self.labels_path).mkdir(parents=True, exist_ok=True)
 
         if plan_name := self.options.get("plan"):
+            if self.project_config.lookup(f"plans__{plan_name}") is None:
+                raise TaskOptionsError(
+                    f"Plan {plan_name} not found in project configuration"
+                )
             plan_configs = {
                 plan_name: self.project_config.lookup(f"plans__{plan_name}")
             }
             self.plan_configs = plan_configs
         else:
             self.plan_configs = self.project_config.plans
+        # Handled exception for no plan
+        if self.plan_configs is None or len(self.plan_configs) == 0:
+            raise CumulusCIException(
+                "No plan found to publish in project configuration"
+            )
 
         self._load_labels()
 
@@ -102,6 +111,10 @@ class Publish(BaseMetaDeployTask):
         if not product:
             raise CumulusCIException(
                 f"No product found in MetaDeploy with repo URL {repo_url}"
+            )
+        elif not product.get("slug"):  # pragma: no cover
+            raise CumulusCIException(
+                f"No slug found in MetaDeploy for product {product} from {repo_url}"
             )
         if not self.dry_run:
             version = self._find_or_create_version(product)
@@ -133,7 +146,6 @@ class Publish(BaseMetaDeployTask):
             )
             project_config.set_keychain(self.project_config.keychain)
 
-            # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
                 self._add_plan_labels(
                     plan_name=plan_name,
@@ -363,8 +375,9 @@ class Publish(BaseMetaDeployTask):
             self.logger.info(f"Updating labels in {labels_path}")
             labels_path.write_text(json.dumps(self.labels, indent=4))
 
-    def _publish_labels(self, slug):
+    def _publish_labels(self, slug: str):
         """Publish labels in all languages to MetaDeploy."""
+        assert isinstance(slug, str), f"Slug should be a string, not {slug}"
         for path in Path(self.labels_path).glob("*.json"):
             lang = path.stem.split("_")[-1].lower()
             if lang in ("en", "en-us"):

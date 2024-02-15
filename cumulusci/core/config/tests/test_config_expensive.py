@@ -370,7 +370,9 @@ class TestScratchOrgConfig:
         sfdx = mock.Mock(return_value=sfdx_response)
 
         config = ScratchOrgConfig({}, "test")
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 access_token = config.get_access_token(alias="dadvisor")
                 sfdx.assert_called_once_with(
@@ -392,7 +394,9 @@ class TestScratchOrgConfig:
 
         config = ScratchOrgConfig({}, "test")
 
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with pytest.raises(
                 SfdxOrgException,
                 match="Couldn't find a username for the specified user",
@@ -410,7 +414,9 @@ class TestScratchOrgConfig:
 
         config = ScratchOrgConfig({}, "test")
 
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with pytest.raises(
                 SfdxOrgException,
                 match="More than one user matched the search critiera.",
@@ -426,7 +432,9 @@ class TestScratchOrgConfig:
         sfdx = mock.Mock(return_value=sfdx_response)
 
         config = ScratchOrgConfig({}, "test")
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 exception = (
                     "Unable to find access token for whatever@example.com\nblah blah..."
@@ -463,7 +471,9 @@ class TestScratchOrgConfig:
             "instance_url": "test_instance",
             "access_token": "token",
         }
-        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
             assert config.user_id == "test"
 
     def test_username_from_sfdx_info(self, Command):
@@ -595,6 +605,29 @@ class TestScratchOrgConfig:
         config.generate_password.assert_called_once()
         assert config.config["created"]
         assert config.scratch_org_type == "workspace"
+
+    def test_check_apiversion_error(self, Command):
+        out = b"""{
+            "context": "Create",
+            "commandName": "Create",
+            "message": "The requested resource does not exist",
+            "name": "NOT_FOUND"
+            }"""
+
+        Command.return_value = mock.Mock(
+            stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=1
+        )
+        config = ScratchOrgConfig(
+            {"config_file": "tmp.json", "email_address": "test@example.com"}, "test"
+        )
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write("{}")
+            with pytest.raises(
+                SfdxOrgException,
+                match="The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub.",
+            ):
+                config.create_org()
 
     def test_create_org_no_config_file(self, Command):
         config = ScratchOrgConfig({}, "test")
@@ -736,14 +769,14 @@ class TestScratchOrgConfig:
         )
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
-        assert config._choose_devhub() == "fake@fake.devhub"
+        assert config._choose_devhub_username() == "fake@fake.devhub"
 
     def test_choose_devhub__service_not_configured(self, Command):
         mock_keychain = mock.Mock()
         mock_keychain.get_service.side_effect = ServiceNotConfigured
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
-        assert config._choose_devhub() is None
+        assert config._choose_devhub_username() is None
 
 
 class TestScratchOrgConfigPytest:
@@ -760,6 +793,7 @@ class TestScratchOrgConfigPytest:
                 "sfdx_alias": "project__org",
                 "default": True,
                 "instance": "NA01",
+                "release": "previous",
             },
             "test",
             mock_keychain,
@@ -776,6 +810,7 @@ class TestScratchOrgConfigPytest:
             "--noancestors",
             "--durationdays",
             "1",
+            "release=previous",
             "-a",
             "project__org",
             "adminEmail=test@example.com",

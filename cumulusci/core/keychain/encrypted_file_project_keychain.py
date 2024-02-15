@@ -3,14 +3,8 @@ import json
 import os
 import sys
 import typing as T
-from datetime import date, datetime
 from pathlib import Path
 from shutil import rmtree
-
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -21,12 +15,17 @@ from cumulusci.core.exceptions import (
     KeychainKeyNotFound,
     OrgCannotBeLoaded,
     OrgNotFound,
+    ServiceCannotBeLoaded,
     ServiceNotConfigured,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
+from cumulusci.core.keychain.serialization import (
+    load_config_from_json_or_pickle,
+    serialize_config_to_json_or_pickle,
+)
 from cumulusci.core.utils import import_class, import_global
-from cumulusci.utils.pickle import restricted_loads
+from cumulusci.utils.encryption import _get_cipher, encrypt_and_b64
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -39,32 +38,11 @@ if sys.platform.startswith("win"):
     # O_BINARY only available on Windows
     OS_FILE_FLAGS |= os.O_BINARY
 
-
-BS = 16
-backend = default_backend()
-
-
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
 if scratch_org_class:
     scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
 else:
     scratch_org_factory = ScratchOrgConfig
-
-
-def extract_dates(x):
-    if x.get("$type") == "date":
-        return date.fromisoformat(x["$value"])
-    if x.get("$type") == "datetime":
-        return datetime.fromisoformat(x["$value"])
-    assert "$type" not in x, f"Unknown $type: {x['$type']}"
-    return x
-
-
-def safe_load_json_or_pickle(data):
-    try:
-        return json.loads(data, object_hook=extract_dates)
-    except ValueError:
-        return restricted_loads(data)
 
 
 """
@@ -115,21 +93,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     #             Encryption              #
     #######################################
 
-    def _get_cipher(self, iv=None):
-        key = self.key
-        if not isinstance(key, bytes):
-            key = key.encode()
-        if iv is None:
-            iv = os.urandom(16)
-        cipher = Cipher(AES(key), CBC(iv), backend=backend)
-        return cipher, iv
-
-    def _encrypt_config(self, config):
-        json_obj = config._serialize()
-        encryptor_value = json_obj + (BS - len(json_obj) % BS) * b" "
-        cipher, iv = self._get_cipher()
-        return base64.b64encode(iv + cipher.encryptor().update(encryptor_value))
-
+    # TODO: Move this class into encryption.py
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
         if self.key:
             if not encrypted_config:
@@ -138,29 +102,53 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 else:
                     return config_class()
             encrypted_config = base64.b64decode(encrypted_config)
-            iv = encrypted_config[:16]
-            cipher, iv = self._get_cipher(iv)
-            decrypted = cipher.decryptor().update(encrypted_config[16:])
             try:
-                config_obj = safe_load_json_or_pickle(decrypted)
-            except Exception as exc:
-                raise KeychainKeyNotFound(
-                    f"Unable to decrypt{' ' + context if context else ''}. "
-                    "It was probably stored using a different CUMULUSCI_KEY."
-                ) from exc
-            # Convert bytes created in Python 2
-            config_dict = {}
-            for k, v in config_obj.items():
-                if isinstance(k, bytes):
-                    k = k.decode("utf-8")
-                if isinstance(v, bytes):
-                    v = v.decode("utf-8")
-                config_dict[k] = v
+                iv = encrypted_config[:16]
+                cipher, iv = _get_cipher(self.key, iv=iv)
+                pickled = cipher.decryptor().update(encrypted_config[16:])
+                unpickled = load_config_from_json_or_pickle(pickled)
+            except ValueError as e:
+                message = "\n".join(
+                    [
+                        f"Unable to decrypt{' ' + context if context else ''}. \n"
+                        "A changed CUMULUSCI_KEY or laptop password might be the cause.\n"
+                        "Unfortunately, there is usually no way to recover an Org's Configuration \n"
+                        "once this has happened.\n"
+                        "Typically we advise users to delete the unusable file or rename it to .bak.\n"
+                        "The org can be connected or imported again to replace the corrupted config.\n"
+                        "(Specific error: " + str(e) + ")\n"
+                    ]
+                )
+                raise KeychainKeyNotFound(message) from e
+
+        config_dict = self.cleanup_Python_2_configs(unpickled)
 
         args = [config_dict]
         if extra:
             args += extra
         return self._construct_config(config_class, args)
+
+    def cleanup_Python_2_configs(self, unpickled):
+        # Convert bytes created in Python 2
+        config_dict = {}
+
+        # After a few months, we can clean up this code if nobody reports
+        # warnings.
+        message = (
+            "Unexpected bytes found in config.\n"
+            "Please inform the CumulusCI team.\n"
+            "Future versions of CumulusCI may break your config."
+        )
+        for k, v in unpickled.items():
+            if isinstance(k, bytes):
+                self.logger.warning(message)
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                self.logger.warning(message)
+                v = v.decode("utf-8")
+            config_dict[k] = v
+
+        return config_dict
 
     def _construct_config(self, config_class, args):
         config = args[0]
@@ -175,10 +163,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         """Depending on if a key is present return
         the bytes that we want to store on the keychain."""
         org_bytes = None
+        org_bytes = serialize_config_to_json_or_pickle(config.config, self.logger)
+
         if self.key:
-            org_bytes = self._encrypt_config(config)
-        else:
-            org_bytes = config._serialize()
+            org_bytes = encrypt_and_b64(org_bytes, self.key)
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -242,7 +230,16 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 self._load_org_from_environment(env_var_name, value)
 
     def _load_org_from_environment(self, env_var_name, value):
-        org_config = json.loads(value)
+        if not value:
+            raise OrgCannotBeLoaded(
+                f"Org env var {env_var_name} cannot be loaded because it is empty. Either set {env_var_name} to a json string or unset it from the environment."
+            )
+        try:
+            org_config = json.loads(value)
+        except Exception as e:
+            raise OrgCannotBeLoaded(
+                f"Could not parse {env_var_name} as JSON becase {e}"
+            )
         org_name = env_var_name[len(self.env_org_var_prefix) :].lower()
         if org_config.get("scratch"):
             org_config = scratch_org_factory(
@@ -281,6 +278,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         org_name = org_config.name
 
         org_bytes = self._get_config_bytes(org_config)
+        assert isinstance(org_bytes, bytes)
 
         if global_org:
             org_config = GlobalOrg(org_bytes)
@@ -344,11 +342,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 raise e
             raise OrgCannotBeLoaded(
                 f"Cannot parse config loaded from\n{filename}\n{e}\n"
-                "A changed CUMULUSCI_KEY or laptop password might be the cause.\n"
-                "Unfortunately, there is usually no way to recover an Org's Configuration \n"
-                "once this has happened.\n"
-                "Typically we advise users to delete the unusable file or rename it to .bak.\n"
-                "The org can be connected or imported again to replace the corrupted config."
             )
         org.global_org = global_org
 
@@ -380,7 +373,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = safe_load_json_or_pickle(config)
+            config = load_config_from_json_or_pickle(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         return org
@@ -601,16 +594,18 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         # (like when were setting services after loading from an encrypted file)
         # then we don't need to do anything.
         if self.key and config_encrypted:
-            config = service_config
-        elif self.key and not config_encrypted:
-            config = self._encrypt_config(service_config)
+            serialized_config = service_config
         else:
-            config = service_config._serialize()
+            serialized_config = serialize_config_to_json_or_pickle(
+                service_config.config, self.logger
+            )
+            if self.key:
+                serialized_config = encrypt_and_b64(serialized_config, self.key)
 
-        self.services[service_type][alias] = config
+        self.services[service_type][alias] = serialized_config
 
         if save:
-            self._save_encrypted_service(service_type, alias, config)
+            self._save_encrypted_service(service_type, alias, serialized_config)
 
     def _save_encrypted_service(self, service_type, alias, encrypted):
         """Write out the encrypted service to disk."""
@@ -656,7 +651,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
-            config = safe_load_json_or_pickle(config)
+            config = load_config_from_json_or_pickle(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org
@@ -670,6 +665,16 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _load_service_from_environment(self, env_var_name, value):
         """Given a valid name/value pair, load the
         service from the environment on to the keychain"""
+        if not value:
+            raise ServiceCannotBeLoaded(
+                f"Service env var {env_var_name} cannot be loaded because it is empty. Either set {env_var_name} to a json string or unset it from the environment."
+            )
+        try:
+            service_config = json.loads(value)
+        except Exception as e:
+            raise ServiceCannotBeLoaded(
+                f"Could not parse {env_var_name} as JSON because {e}"
+            )
         service_config = ServiceConfig(json.loads(value))
         service_type, service_name = self._get_env_service_type_and_name(env_var_name)
         self.set_service(service_type, service_name, service_config, save=False)

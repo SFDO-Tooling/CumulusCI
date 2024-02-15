@@ -35,7 +35,7 @@ class DebugListener(object):
             self.breakpoints = list(breakpoints)
         else:
             self.breakpoints = [
-                Breakpoint(Keyword, "*::cumulusci.robotframework.Salesforce.Breakpoint")
+                Breakpoint(Keyword, "*::cumulusci.robotframework.*.Breakpoint"),
             ]
 
     def start_suite(self, name, attrs):

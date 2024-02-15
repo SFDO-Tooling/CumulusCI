@@ -10,10 +10,13 @@ import tempfile
 import textwrap
 import zipfile
 from datetime import datetime
+from pathlib import Path
+from typing import Union
 
 import requests
 import sarge
 
+from cumulusci.core.exceptions import CumulusCIException
 from .xml import (  # noqa
     elementtree_parse_file,
     remove_xml_element,
@@ -149,7 +152,14 @@ def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
-    github_repo.archive("zipball", zip_content, ref=ref)
+    if not github_repo.archive("zipball", zip_content, ref=ref):
+        raise CumulusCIException(
+            f"Unable to download an archive of the Git ref {ref} from "
+            f"{github_repo.full_name}. This can mean that the ref has "
+            "not been pushed to the server, that CumulusCI's credential "
+            "does not have permission to access it, or that your access "
+            "is restricted by an IP address allow list."
+        )
     zip_file = zipfile.ZipFile(zip_content)
     path = sorted(zip_file.namelist())[0]
     if subfolder:
@@ -432,11 +442,6 @@ def create_task_options_doc(task_options):
         if usage_str:
             doc.append(f"\n``{usage_str}``")
 
-        if option.get("required"):
-            doc.append("\t *Required*")
-        else:
-            doc.append("\t *Optional*")
-
         description = option.get("description")
         if description:
             doc.append(f"\n\t {description}")
@@ -444,6 +449,10 @@ def create_task_options_doc(task_options):
         default = option.get("default")
         if default:
             doc.append(f"\n\t Default: {default}")
+        elif option.get("required"):
+            doc.append("\n *Required*")
+        else:
+            doc.append("\n *Optional*")
 
         option_type = option.get("option_type")
         if option_type:
@@ -623,3 +632,31 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+def update_tree(src: Union[str, Path], dest: Union[str, Path]):
+    """
+    Copies files from src to dest, same as distutils.copy_tree(update=1).
+
+    Copies the entire directory tree from src to dest. If dest exists, only
+    copies files that are newer in src than in dest, or files that don't exist
+    in dest.
+
+    Args:
+        src (Union[str, Path]): The source directory to copy files from.
+        dest (Union[str, Path]): The destination directory to copy files to.
+    """
+    src_path = Path(src)
+    dest_path = Path(dest)
+    if not dest_path.exists():
+        shutil.copytree(src_path, dest_path)
+    else:
+        for src_dir in src_path.rglob("*"):
+            if src_dir.is_file():
+                dest_file = dest_path / src_dir.relative_to(src_path)
+                if (
+                    not dest_file.exists()
+                    or src_dir.stat().st_mtime - dest_file.stat().st_mtime > 1
+                ):
+                    dest_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_dir, dest_file)

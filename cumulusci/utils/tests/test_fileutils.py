@@ -1,6 +1,7 @@
 import doctest
 import os
 import sys
+import time
 import urllib.request
 from io import BytesIO, UnsupportedOperation
 from pathlib import Path
@@ -12,7 +13,7 @@ import responses
 from fs import errors, open_fs
 
 import cumulusci
-from cumulusci.utils import fileutils, temporary_dir
+from cumulusci.utils import fileutils, temporary_dir, update_tree
 from cumulusci.utils.fileutils import (
     FSResource,
     load_from_source,
@@ -253,3 +254,31 @@ class TestFSResourceError:
     def test_fs_resource_init_error(self):
         with pytest.raises(NotImplementedError):
             FSResource()
+
+
+def test_update_tree(tmpdir):
+    source_dir = Path(tmpdir.mkdir("source"))
+    source_file = source_dir / "testfile.txt"
+    source_file.write_text("original content")
+
+    dest_dir = Path(tmpdir.mkdir("dest"))
+    dest_file = dest_dir / "testfile.txt"
+    dest_file.write_text("modified content")
+
+    # Ensure the source file has an older timestamp
+    past_time = time.time() - 100
+    os.utime(str(source_file), (past_time, past_time))
+
+    update_tree(source_dir, dest_dir)
+
+    assert dest_file.read_text() == "modified content"
+
+    # Add a new file to source and run update_tree again
+    new_source_file = source_dir / "newfile.txt"
+    new_source_file.write_text("new file content")
+    update_tree(source_dir, dest_dir)
+
+    # Verify that the new file is copied to destination
+    new_dest_file = dest_dir / "newfile.txt"
+    assert new_dest_file.exists()
+    assert new_dest_file.read_text() == "new file content"

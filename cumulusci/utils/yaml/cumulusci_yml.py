@@ -5,7 +5,6 @@ Note: If you change the model here, you should run `make schema`
 to update the JSON Schema version in cumulusci.jsonschema.json
 """
 
-import enum
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -14,6 +13,7 @@ from pydantic import Field, root_validator, validator
 from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
@@ -150,6 +150,7 @@ class ScratchOrg(CCIDictModel):
     namespaced: str = None
     setup_flow: str = None
     noancestors: bool = None
+    release: Literal["preview", "previous"] = None
 
 
 class Orgs(CCIDictModel):
@@ -175,7 +176,7 @@ class CumulusCIConfig(CCIDictModel):
     keychain: PythonClassPath
 
 
-class GitHubSourceRelease(str, enum.Enum):
+class GitHubSourceRelease(StrEnum):
     LATEST = "latest"
     PREVIOUS = "previous"
     LATEST_BETA = "latest_beta"
@@ -190,6 +191,7 @@ class GitHubSourceModel(HashableBaseModel):
     tag: Optional[str]
     release: Optional[GitHubSourceRelease]
     description: Optional[str]
+    allow_remote_code: Optional[bool] = False
 
     @root_validator
     def validate(cls, values):
@@ -214,6 +216,7 @@ class GitHubSourceModel(HashableBaseModel):
 
 class LocalFolderSourceModel(HashableBaseModel):
     path: DirectoryPath
+    allow_remote_code: Optional[bool] = False
 
 
 class CumulusCLIConfig(CCIDictModel):

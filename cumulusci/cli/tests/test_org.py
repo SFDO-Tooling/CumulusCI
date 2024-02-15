@@ -23,6 +23,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLookup
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 from cumulusci.utils import parse_api_datetime
 
 from .. import org
@@ -108,7 +109,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -118,7 +119,11 @@ class TestOrgCommands:
             },
             status=200,
         )
-        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+        responses.add(
+            "GET",
+            "https://instance/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
 
         result = run_cli_command("org", "connect", "test", "--default", runtime=runtime)
 
@@ -161,7 +166,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -171,7 +176,11 @@ class TestOrgCommands:
             },
             status=200,
         )
-        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+        responses.add(
+            "GET",
+            "https://instance/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
 
         result = run_cli_command(
             "org", "connect", "test", "--connected_app", "other", runtime=runtime
@@ -288,7 +297,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
@@ -298,7 +307,11 @@ class TestOrgCommands:
             },
             status=200,
         )
-        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+        responses.add(
+            "GET",
+            "https://instance/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
 
         run_click_command(
             org.org_connect,
@@ -415,11 +428,11 @@ class TestOrgCommands:
             method="GET",
             url="https://instance/services/data",
             status=200,
-            json=[{"version": "54.0"}],
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v54.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -470,11 +483,11 @@ class TestOrgCommands:
             method="GET",
             url="https://instance/services/data",
             status=200,
-            json=[{"version": "54.0"}],
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v54.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": api_datetime,
                 "OrganizationType": "Developer Edition",
@@ -540,6 +553,7 @@ class TestOrgCommands:
             "default": True,
             "password": None,
             "connected_app": "built-in",
+            "namespace": "test",
         }
         org_config.expires = date.today()
         org_config.latest_api_version = "42.0"
@@ -557,6 +571,7 @@ class TestOrgCommands:
                     ["\x1b[1mconnected_app\x1b[0m", "built-in"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
+                    ["\x1b[1mnamespace\x1b[0m", "test"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
                 ],
             )
@@ -1247,20 +1262,40 @@ class TestOrgCommands:
             devhub="hub",
             days=7,
             no_password=True,
+            release="previous",
         )
 
         runtime.check_org_overwrite.assert_called_once()
         runtime.keychain.create_scratch_org.assert_called_with(
-            "test", "dev", 7, set_password=False
+            "test", "dev", 7, set_password=False, release="previous"
         )
         runtime.keychain.set_default_org.assert_called_with("test")
+
+    def test_org_scratch_release_invalid(self):
+        runtime = mock.Mock()
+
+        runtime.project_config.lookup = MockLookup(
+            orgs__scratch={"dev": {"orgName": "Dev"}}
+        )
+        with pytest.raises(click.UsageError):
+            run_click_command(
+                org.org_scratch,
+                runtime=runtime,
+                config_name="dev",
+                org_name="test",
+                default=True,
+                devhub="hub",
+                days=7,
+                no_password=True,
+                release="next",
+            )
+        runtime.check_org_overwrite.assert_called_once()
 
     def test_org_scratch__not_default(self):
         runtime = mock.Mock()
         runtime.project_config.lookup = MockLookup(
             orgs__scratch={"dev": {"orgName": "Dev"}}
         )
-
         run_click_command(
             org.org_scratch,
             runtime=runtime,
@@ -1270,11 +1305,12 @@ class TestOrgCommands:
             devhub="hub",
             days=7,
             no_password=True,
+            release=None,
         )
 
         runtime.check_org_overwrite.assert_called_once()
         runtime.keychain.create_scratch_org.assert_called_with(
-            "test", "dev", 7, set_password=False
+            "test", "dev", 7, set_password=False, release=None
         )
 
     def test_org_scratch_no_configs(self):
@@ -1291,6 +1327,7 @@ class TestOrgCommands:
                 devhub="hub",
                 days=7,
                 no_password=True,
+                release="previous",
             )
 
     def test_org_scratch_config_not_found(self):
@@ -1307,6 +1344,7 @@ class TestOrgCommands:
                 devhub="hub",
                 days=7,
                 no_password=True,
+                release="previous",
             )
 
     def test_org_scratch_delete(self):

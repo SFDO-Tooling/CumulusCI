@@ -42,7 +42,7 @@ class TestSynthesizeExtractDeclarations:
             filters=[],
             include_counts=True,
         ) as schema:
-            decls = flatten_declarations(declarations.values(), schema)
+            decls = flatten_declarations(declarations.values(), schema, ())
 
             assert tuple(decl.dict() for decl in decls) == tuple(
                 (
@@ -128,6 +128,41 @@ class TestSynthesizeExtractDeclarations:
                         "api": DataApi.SMART,
                         "sf_object": "Account",
                     },
+                    {
+                        "where": None,
+                        "fields_": mock.ANY,
+                        "api": DataApi.SMART,
+                        "sf_object": "Case",
+                    },
+                )
+            )
+
+    def test_filter_objects(self, org_config):
+        declarations = """
+            extract:
+                    OBJECTS(STANDARD):
+                        fields:
+                            FIELDS(REQUIRED)
+        """
+        object_counts = {"Account": 10, "Contact": 0, "Case": 5, "Custom__c": 10}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Case"),
+            describe_for("Custom__c"),
+        )
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            filters=[],
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema, ("Account"))
+
+            assert tuple(decl.dict() for decl in decls) == tuple(
+                (  # No Account
                     {
                         "where": None,
                         "fields_": mock.ANY,
@@ -280,6 +315,63 @@ class TestSynthesizeExtractDeclarations:
                 )
             )
 
+    def test_required_lookups__pulled_in__polymorphic_lookups(self, org_config):
+        """Bringing in the WhoId for sobject Event should force Contact
+        and Lead to come in.
+
+        Including all Lead/Contact/Event required fields."""
+        declarations = """
+            extract:
+                Event:
+                    fields:
+                        WhoId
+        """
+        object_counts = {
+            "Account": 3,
+            "Contact": 2,
+            "Custom__c": 5,
+            "Lead": 2,
+            "Event": 1,
+        }
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Custom__c"),
+            describe_for("Event"),
+            describe_for("Lead"),
+        )
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema)
+
+            assert tuple(decl.dict() for decl in decls) == tuple(
+                (
+                    {
+                        "where": mock.ANY,
+                        "fields_": ["WhoId"],
+                        "api": DataApi.SMART,
+                        "sf_object": "Event",
+                    },
+                    {
+                        "where": mock.ANY,
+                        "fields_": ["LastName"],
+                        "api": DataApi.SMART,
+                        "sf_object": "Contact",
+                    },
+                    {
+                        "where": mock.ANY,
+                        "fields_": ["Company", "LastName"],
+                        "api": DataApi.SMART,
+                        "sf_object": "Lead",
+                    },
+                )
+            )
+
     def test_parse_real_file(self, cumulusci_test_repo_root, org_config):
         declarations = ExtractRulesFile.parse_extract(
             cumulusci_test_repo_root / "datasets/test_minimal.extract.yml"
@@ -309,7 +401,6 @@ class TestSynthesizeExtractDeclarations:
                 "ContactId",
                 "AccountId",
                 "CloseDate",  # pull these in because they required
-                "IsPrivate",
                 "StageName",
             ]
             assert "Account" in decls
@@ -351,6 +442,44 @@ class TestSynthesizeExtractDeclarations:
             assert "Custom__c" not in decls
 
             assert set(decls["Account"].fields) == set(["Name", "Description"])
+            assert decls["Contact"].fields == ["LastName"], decls["Contact"].fields
+
+    def test_synthesize_fields(self, sf, org_config):
+        declarations = """
+            extract:
+                Opportunity:
+                    fields:
+                        - FIELDS(STANDARD)
+                Account:
+                    fields:
+                        - FIELDS(CUSTOM)
+                Contact:
+                    fields:
+                        - FIELDS(ALL)
+                Custom__c:
+                    fields:
+                        - FIELDS(CUSTOM)
+        """
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        object_counts = {"Account": 2, "Contact": 2, "Custom__c": 5}
+        object_describes = [describe_for(obj) for obj in object_counts.keys()]
+        with _fake_get_org_schema(
+            org_config,
+            object_describes,
+            object_counts,
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema)
+            decls = {decl.sf_object: decl for decl in decls}
+            assert "Account" in decls
+            assert "Contact" in decls
+            assert "Entitlement" not in decls
+            assert "Opportunity" not in decls  # not populated
+            assert "Name" not in decls["Custom__c"].fields
+            assert "Id" not in decls["Custom__c"].fields
+            assert "Name" in decls["Account"].fields  # because required
+            assert "BillingCountry" not in decls["Account"].fields  # not required
+            assert "CustomField__c" in decls["Custom__c"].fields
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()
@@ -372,7 +501,9 @@ class TestSynthesizeExtractDeclarations:
             decls = {decl.sf_object: decl for decl in decls}
             assert "WorkBadgeDefinition" in decls
             # HEY NOW!
-            assert "You\\'re a RockStar!" in decls.get("WorkBadgeDefinition").where
+            assert "You\\'re a RockStar!" in str(decls["WorkBadgeDefinition"].where)
+            if "Opportunity" in decls:
+                assert "IsPrivate" not in decls["Opportunity"].fields, decls.keys()
 
 
 @lru_cache(maxsize=None)

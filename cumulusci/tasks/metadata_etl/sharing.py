@@ -12,8 +12,9 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
         "org_wide_defaults": {
             "description": "The target Organization-Wide Defaults, "
             "organized as a list with each element containing the keys api_name, "
-            "internal_sharing_model, and external_sharing_model. NOTE: you must have "
-            "External Sharing Model turned on in Sharing Settings to use the latter feature.",
+            "internal_sharing_model, and external_sharing_model. This option must "
+            "be specified in YAML configuration and will not work if passed via the CLI. "
+            "NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature.",
             "required": True,
         },
         "timeout": {

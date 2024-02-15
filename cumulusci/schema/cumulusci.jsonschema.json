@@ -430,6 +430,11 @@
                 "noancestors": {
                     "title": "Noancestors",
                     "type": "boolean"
+                },
+                "release": {
+                    "title": "Release",
+                    "enum": ["preview", "previous"],
+                    "type": "string"
                 }
             },
             "additionalProperties": false
@@ -588,6 +593,11 @@
                     "title": "Path",
                     "format": "directory-path",
                     "type": "string"
+                },
+                "allow_remote_code": {
+                    "title": "Allow Remote Code",
+                    "default": false,
+                    "type": "boolean"
                 }
             },
             "required": ["path"],
@@ -633,6 +643,11 @@
                 "description": {
                     "title": "Description",
                     "type": "string"
+                },
+                "allow_remote_code": {
+                    "title": "Allow Remote Code",
+                    "default": false,
+                    "type": "boolean"
                 }
             },
             "required": ["github"],
