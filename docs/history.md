@@ -10,8 +10,6 @@
 
 ### Changes 🎉
 
--   Polymorphic Reference - Load (merging into another branch) by [@aditya-balachander](https://github.com/aditya-balachander) in [#3731](https://github.com/SFDO-Tooling/CumulusCI/pull/3731)
--   Revert "Polymorphic Reference - Load (merging into another branch)" by [@aditya-balachander](https://github.com/aditya-balachander) in [#3732](https://github.com/SFDO-Tooling/CumulusCI/pull/3732)
 -   Polymorphic Lookup Data Extraction by [@aditya-balachander](https://github.com/aditya-balachander) in [#3741](https://github.com/SFDO-Tooling/CumulusCI/pull/3741)
 -   Add a real email for bot commits by [@jstvz](https://github.com/jstvz) in [#3648](https://github.com/SFDO-Tooling/CumulusCI/pull/3648)
 -   ADR: Migrate from SFDX to SF CLI by [@jstvz](https://github.com/jstvz) in [#3630](https://github.com/SFDO-Tooling/CumulusCI/pull/3630)
