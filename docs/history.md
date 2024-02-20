@@ -12,7 +12,7 @@
 
 -   Polymorphic Lookup Data Extraction by [@aditya-balachander](https://github.com/aditya-balachander) in [#3741](https://github.com/SFDO-Tooling/CumulusCI/pull/3741)
 -   ADR: Migrate from SFDX to SF CLI by [@jstvz](https://github.com/jstvz) in [#3630](https://github.com/SFDO-Tooling/CumulusCI/pull/3630)
--   Fix for mismatch between fields by [@aditya-balachander](https://github.com/aditya-balachander) in [#3750](https://github.com/SFDO-Tooling/CumulusCI/pull/3750)
+-   Fix: Mismatch in the order of fields between the step and query during generation of the json request by [@aditya-balachander](https://github.com/aditya-balachander) in [#3750](https://github.com/SFDO-Tooling/CumulusCI/pull/3750)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.1...v3.84.2
 
