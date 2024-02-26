@@ -835,7 +835,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 if self._old_format:
-                    yield (contact_mapping.table + "-" + contact_id, contact_sf_id)
+                    yield (contact_mapping.table + "-" + str(contact_id), contact_sf_id)
                 else:
                     yield (contact_id, contact_sf_id)
 
