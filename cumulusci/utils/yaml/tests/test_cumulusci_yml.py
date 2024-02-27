@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from pydantic import ValidationError
 
+from cumulusci.core.exceptions import ConfigError
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
@@ -42,6 +43,7 @@ class TestCumulusciYml:
         assert "xyz" in str(lf.mock_calls[0][1][0])
 
     @patch("cumulusci.utils.yaml.cumulusci_yml.validate_data")
+    @patch("cumulusci.utils.yaml.cumulusci_yml.CUMULUSCI_IGNORE_YAML_ERRORS", True)
     def test_unexpected_exceptions(self, validate_data):
         validate_data.side_effect = AssertionError("Boom!")
         yaml = """xyz:
@@ -116,7 +118,8 @@ class TestCumulusciYml:
                             - B
                             - C """
         assert not caplog.text
-        cci_safe_load(StringIO(yaml))
+        with pytest.raises(ConfigError):
+            cci_safe_load(StringIO(yaml))
         assert "my_flow" in caplog.text
         assert "steps" in caplog.text
         assert "dict" in caplog.text
@@ -129,7 +132,8 @@ class TestCumulusciYml:
                                 - task : b
 """
         assert not caplog.text
-        cci_safe_load(StringIO(yaml))
+        with pytest.raises(ConfigError):
+            cci_safe_load(StringIO(yaml))
         print(caplog.text)
         assert "steps" in caplog.text
         assert "my_flow" in caplog.text
@@ -144,7 +148,8 @@ class TestCumulusciYml:
                                 flow: c
 """
         assert not caplog.text
-        cci_safe_load(StringIO(yaml))
+        with pytest.raises(ConfigError):
+            cci_safe_load(StringIO(yaml))
         assert "steps" in caplog.text
         assert "my_flow" in caplog.text
 
@@ -235,7 +240,8 @@ plans:
   second:
     tier: primary
     """
-    cci_safe_load(StringIO(yaml))
+    with pytest.raises(ConfigError):
+        cci_safe_load(StringIO(yaml))
     assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
 
 
@@ -247,7 +253,8 @@ plans:
   implicit:
     slug: implicit_primary
     """
-    cci_safe_load(StringIO(yaml))
+    with pytest.raises(ConfigError):
+        cci_safe_load(StringIO(yaml))
     assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
 
 
@@ -259,7 +266,8 @@ plans:
   second:
     tier: secondary
     """
-    cci_safe_load(StringIO(yaml))
+    with pytest.raises(ConfigError):
+        cci_safe_load(StringIO(yaml))
     assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
 
 
