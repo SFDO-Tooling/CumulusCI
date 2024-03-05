@@ -871,20 +871,22 @@ class TestLoadData:
         assert "RecordType" in str(e.value)
 
     def test_query_db__joins_self_lookups(self):
+        """SQL file in Old Format"""
         _validate_query_for_mapping_step(
             sql_path=Path(__file__).parent / "test_query_db__joins_self_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
             mapping_step_name="Update Accounts",
-            expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || accounts.parent_id ORDER BY accounts.parent_id""",
+            expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(accounts.parent_id as varchar) ORDER BY accounts.parent_id""",
             old_format=True,
         )
 
     def test_query_db__joins_polymorphic_lookups(self):
+        """SQL File in New Format (Polymorphic)"""
         _validate_query_for_mapping_step(
             sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db_joins_lookups.yml",
             mapping_step_name="Update Event",
-            expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || events."WhoId" ORDER BY events."WhoId" """,
+            expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(events."WhoId" as varchar) ORDER BY events."WhoId" """,
         )
 
     @responses.activate
