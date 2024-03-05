@@ -1,7 +1,7 @@
 import typing as T
 from functools import cached_property
 
-from sqlalchemy import and_, func, text, String
+from sqlalchemy import String, and_, func, text
 from sqlalchemy.orm import Query, aliased
 
 from cumulusci.core.exceptions import BulkDataException
