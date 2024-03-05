@@ -612,13 +612,13 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             {f["name"]: f for f in getattr(sf, m.sf_object).describe()["fields"]}
         )
 
-        for lookup in m.lookups.values():
+        for lookup_name, lookup in m.lookups.items():
             if lookup.after:
                 # If configured by the user, skip.
                 # TODO: do we need more validation here?
                 continue
 
-            field_describe = describe.get(lookup.name, {})
+            field_describe = describe.get(lookup_name, {})
             reference_to_objects = field_describe.get("referenceTo", [])
             target_objects = []
 
@@ -634,7 +634,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                         target_objects.append(sf_object)
                     else:
                         logger.error(
-                            f"The lookup {sf_object} is not a valid lookup for {lookup.name} in sf_object: {m.sf_object}"
+                            f"The lookup {sf_object} is not a valid lookup for {lookup_name} in sf_object: {m.sf_object}"
                         )
                         fail = True
                 except KeyError:
@@ -660,7 +660,7 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                 ]
                 if not all([target_index < idx for target_index in target_indices]):
                     logger.error(
-                        f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup.name} "
+                        f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup_name} "
                         f"must precede {m.sf_object} in the mapping."
                     )
                     fail = True

@@ -2,6 +2,20 @@
 
 <!-- latest-start -->
 
+## v3.84.3 (2024-02-24)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix: Type Error while loading Contacts when PersonAccount is enabled by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3756](https://github.com/SFDO-Tooling/CumulusCI/pull/3756)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.2...v3.84.3
+
+<!-- latest-stop -->
+
 ## v3.84.2 (2024-02-20)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -15,8 +29,6 @@
 -   Fix: Mismatch in the order of fields between the step and query during generation of the json request by [@aditya-balachander](https://github.com/aditya-balachander) in [#3750](https://github.com/SFDO-Tooling/CumulusCI/pull/3750)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.1...v3.84.2
-
-<!-- latest-stop -->
 
 ## v3.84.1 (2024-02-01)
 
