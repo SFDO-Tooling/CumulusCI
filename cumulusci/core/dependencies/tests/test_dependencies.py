@@ -903,3 +903,13 @@ class TestParseDependency:
             }
         )
         assert isinstance(u, UnmanagedZipURLDependency)
+
+        u = parse_dependency(
+            {
+                "github": "https://github.com/Test/TestRepo",
+                "ref": "aaaaaaaa",
+                "collision_check": False,
+                "namespace_inject": "ns",
+            }
+        )
+        assert isinstance(u, UnmanagedGitHubRefDependency)

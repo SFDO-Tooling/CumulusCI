@@ -1,6 +1,6 @@
 BEGIN TRANSACTION;
 CREATE TABLE "accounts" (
-	id VARCHAR(255) NOT NULL, 
+	id INTEGER NOT NULL, 
 	"Name" VARCHAR(255), 
 	"parent_id" VARCHAR(255), 
 	PRIMARY KEY (id)
