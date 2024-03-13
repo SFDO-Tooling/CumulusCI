@@ -66,7 +66,7 @@ class TestBaseConfig:
             assert config.foo is None
         with mock.patch(
             "cumulusci.core.config.base_config.STRICT_GETATTR", True
-        ), pytest.raises(AssertionError):
+        ), pytest.deprecated_call(), pytest.raises(AssertionError):
             assert config.foo is None
 
     def test_getattr_child_key(self):
