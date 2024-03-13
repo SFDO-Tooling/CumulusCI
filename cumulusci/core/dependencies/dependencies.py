@@ -510,14 +510,45 @@ class PackageVersionIdDependency(StaticDependency):
         if not retry_options:
             retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 
-        if any(
-            self.version_id == v.id
-            for v in itertools.chain(*org.installed_packages.values())
-        ):
-            context.logger.info(
-                f"{self} or a newer version is already installed; skipping."
+        ## Get the full version number from Salesforce of the package version to install so we can compare by version
+        ## SELECT Id,Name,Description, SubscriberPackageId, MajorVersion,MinorVersion,PatchVersion, BuildNumber FROM SubscriberPackageVersion WHERE Id = self.version_id
+        ## https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_subscriberpackageversion.htm
+
+        spv_result = None
+        try:
+            ## {'size': 1, 'totalSize': 1, 'done': True, 'queryLocator': None, 'entityTypeName': 'SubscriberPackageVersion', 'records': [{'attributes': {'type': 'SubscriberPackageVersion', 'url':
+            ##    '/services/data/v59.0/tooling/sobjects/SubscriberPackageVersion/04t000000000000'}, 'Id': '04t000000000000', 'MajorVersion': 0, 'MinorVersion': 2, 'PatchVersion': 0, 'BuildNumber': 1, 'SubscriberPackageId': '0333x0000009bg0AAA', 'IsBeta': False}]}
+            spv_result = org.salesforce_client.restful(
+                "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageId, "
+                f"IsBeta FROM SubscriberPackageVersion WHERE Id='{self.version_id}'"
             )
-            return
+        except Exception as err:
+            context.logger.warning(
+                f"Ignoring error while trying to check installed package {self.version_id}: {str(err)}"
+            )
+        if not spv_result or not spv_result["records"]:
+            if any(
+                self.version_id == v.id
+                for v in itertools.chain(*org.installed_packages.values())
+            ):
+                context.logger.info(
+                    f"{self} or a newer version is already installed; skipping."
+                )
+                return
+        else:
+            spv = spv_result["records"][0]
+
+            version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
+            if spv["PatchVersion"]:
+                version += f".{spv['PatchVersion']}"
+            if spv["IsBeta"]:
+                version += f"b{spv['BuildNumber']}"
+
+            if org.has_minimum_package_version(spv["SubscriberPackageId"], version):
+                context.logger.info(
+                    f"{self} or a newer version is already installed; skipping."
+                )
+                return
 
         context.logger.info(f"Installing {self.description}")
         install_package_by_version_id(
