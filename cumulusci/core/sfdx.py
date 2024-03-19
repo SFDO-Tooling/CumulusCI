@@ -52,7 +52,7 @@ def sfdx(
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
         stderr=sarge.Capture(buffer_size=-1) if capture_output else None,
         shell=True,
-        env={**env, "SFDX_DISABLE_TELEMETRY": "true"},
+        env={**env, "SFDX_TOOL": "CCI"},
     )
     p.run()
     if capture_output:

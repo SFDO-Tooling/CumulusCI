@@ -2,6 +2,84 @@
 
 <!-- latest-start -->
 
+## v3.85.0 (2024-03-13)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix Invalid Lookups of namespaced fields by [@aditya-balachander](https://github.com/aditya-balachander) in [#3759](https://github.com/SFDO-Tooling/CumulusCI/pull/3759)
+-   Fix Id Not Specified on Update Call by [@aditya-balachander](https://github.com/aditya-balachander) in [#3761](https://github.com/SFDO-Tooling/CumulusCI/pull/3761)
+-   Fix dependency parsing errors caused by `collision_check` option by [@jstvz](https://github.com/jstvz) in [#3760](https://github.com/SFDO-Tooling/CumulusCI/pull/3760)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.3...v3.85.0
+
+<!-- latest-stop -->
+
+## v3.84.3 (2024-02-24)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix: Type Error while loading Contacts when PersonAccount is enabled by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3756](https://github.com/SFDO-Tooling/CumulusCI/pull/3756)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.2...v3.84.3
+
+## v3.84.2 (2024-02-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Polymorphic Lookup Data Extraction by [@aditya-balachander](https://github.com/aditya-balachander) in [#3741](https://github.com/SFDO-Tooling/CumulusCI/pull/3741)
+-   ADR: Migrate from SFDX to SF CLI by [@jstvz](https://github.com/jstvz) in [#3630](https://github.com/SFDO-Tooling/CumulusCI/pull/3630)
+-   Fix: Mismatch in the order of fields between the step and query during generation of the json request by [@aditya-balachander](https://github.com/aditya-balachander) in [#3750](https://github.com/SFDO-Tooling/CumulusCI/pull/3750)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.1...v3.84.2
+
+## v3.84.1 (2024-02-01)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix `is_person_type` `AttributeError` in record type handling by [@aditya-balachander](https://github.com/aditya-balachander) in [#3739](https://github.com/SFDO-Tooling/CumulusCI/pull/3739)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.0...v3.84.1
+
+## v3.84.0 (2024-01-29)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Incorrect generation of record type mapping table name in a namespaced org context by [@lakshmi2506](https://github.com/lakshmi2506) in [#3713](https://github.com/SFDO-Tooling/CumulusCI/pull/3713)
+-   Retrieve pre-flight checks by [@lakshmi2506](https://github.com/lakshmi2506) in [#3723](https://github.com/SFDO-Tooling/CumulusCI/pull/3723)
+-   Error during upsert on identical DeveloperName for RecordType of same sObject by [@aditya-balachander](https://github.com/aditya-balachander) in [#3702](https://github.com/SFDO-Tooling/CumulusCI/pull/3702)
+-   Rollback Operation for Inserts and Upserts by [@aditya-balachander](https://github.com/aditya-balachander) in [#3718](https://github.com/SFDO-Tooling/CumulusCI/pull/3718)
+-   Profile Retrieval in Metecho by [@aditya-balachander](https://github.com/aditya-balachander) in [#3711](https://github.com/SFDO-Tooling/CumulusCI/pull/3711)
+-   Identifies and retrieves non-source-trackable Metadata type components by [@lakshmi2506](https://github.com/lakshmi2506) in [#3727](https://github.com/SFDO-Tooling/CumulusCI/pull/3727)
+-   fix: re-enable telemetry, make CCI usage identifiable by [@mshanemc](https://github.com/mshanemc) in [#3728](https://github.com/SFDO-Tooling/CumulusCI/pull/3728)
+-   Add permsets to return_values for task get_assigned_permission_sets by [@lakshmi2506](https://github.com/lakshmi2506) in [#3736](https://github.com/SFDO-Tooling/CumulusCI/pull/3736)
+-   ListComponents modified to SOAP call by [@lakshmi2506](https://github.com/lakshmi2506) in [#3735](https://github.com/SFDO-Tooling/CumulusCI/pull/3735)
+
+## New Contributors
+
+-   @mshanemc made their first contribution in [#3728](https://github.com/SFDO-Tooling/CumulusCI/pull/3728)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.83.0...v3.84.0
+
 ## v3.83.0 (2023-12-08)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -15,8 +93,6 @@
 -   Replace distutils with shutil for 3.12 by [@jstvz](https://github.com/jstvz) in [#3714](https://github.com/SFDO-Tooling/CumulusCI/pull/3714)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.82.0...v3.83.0
-
-<!-- latest-stop -->
 
 ## v3.82.0 (2023-12-01)
 

@@ -1,0 +1,26 @@
+Update Lead:
+    sf_object: Lead
+    table: leads
+    api: bulk
+    fields:
+        - LastName
+
+Update Contact:
+    sf_object: Contact
+    table: contacts
+    api: bulk
+    fields:
+        - FirstName
+        - LastName
+
+Update Event:
+    sf_object: Event
+    table: events
+    api: rest
+    fields:
+        - Subject
+    lookups:
+        WhoId:
+            table:
+                - Contact
+                - Lead
