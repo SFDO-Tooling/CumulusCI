@@ -151,6 +151,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "Defaults to False."
         },
     }
+    api_version = "52.0"
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
@@ -199,7 +200,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.tooling = get_simple_salesforce_connection(
             self.project_config,
             get_devhub_config(self.project_config),
-            api_version=self.project_config.project__package__api_version,
+            api_version=self.api_version,
             base_url="tooling",
         )
         self.context = TaskContext(self.org_config, self.project_config, self.logger)
