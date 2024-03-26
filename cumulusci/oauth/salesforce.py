@@ -22,9 +22,17 @@ PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforc
 
 
 def update_login_urls():
+    """
+    Updating to setup the environment variables dynamically
+    """
     global PROD_LOGIN_URL, SANDBOX_LOGIN_URL
-    PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
-    SANDBOX_LOGIN_URL = os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
+    PROD_LOGIN_URL = (
+        os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
+    )
+    SANDBOX_LOGIN_URL = (
+        os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
+    )
+
 
 def jwt_session(
     client_id, private_key, username, url=None, auth_url=None, is_sandbox=False
