@@ -10,7 +10,7 @@
 
 ### Changes 🎉
 
--   @W-15258380/ Updating the login URL's by [@lakshmi2506](https://github.com/lakshmi2506) in [#3765](https://github.com/SFDO-Tooling/CumulusCI/pull/3765)
+-   @W-15258380 - Reloading of login URL's from env before creating jwt session by [@lakshmi2506](https://github.com/lakshmi2506) in [#3765](https://github.com/SFDO-Tooling/CumulusCI/pull/3765)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.85.0...v3.86.0
 
