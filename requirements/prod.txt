@@ -6,23 +6,23 @@
 #
 appdirs==1.4.4
     # via fs
-authlib==1.2.1
+authlib==1.3.0
     # via simple-salesforce
-certifi==2023.7.22
+certifi==2024.2.2
     # via
     #   requests
     #   snowfakery
 cffi==1.16.0
     # via cryptography
-charset-normalizer==3.2.0
+charset-normalizer==3.3.2
     # via
     #   requests
     #   snowfakery
-click==8.1.6
+click==8.1.7
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
-cryptography==41.0.7
+cryptography==42.0.5
     # via
     #   authlib
     #   cumulusci (pyproject.toml)
@@ -32,13 +32,13 @@ defusedxml==0.7.1
     # via cumulusci (pyproject.toml)
 docutils==0.16
     # via cumulusci (pyproject.toml)
-faker==19.3.0
+faker==24.4.0
     # via
     #   cumulusci (pyproject.toml)
     #   faker-edu
     #   faker-nonprofit
     #   snowfakery
-faker-edu==1.0.0
+faker-edu==1.1.0
     # via snowfakery
 faker-nonprofit==1.0.0
     # via snowfakery
@@ -46,33 +46,35 @@ fs==2.4.16
     # via cumulusci (pyproject.toml)
 github3-py==4.0.1
     # via cumulusci (pyproject.toml)
-greenlet==3.0.1
-    # via sqlalchemy
+greenlet==3.0.3
+    # via
+    #   snowfakery
+    #   sqlalchemy
 gvgen==1.0
     # via snowfakery
-idna==3.4
+idna==3.6
     # via
     #   requests
     #   snowfakery
-importlib-metadata==6.8.0
+importlib-metadata==7.1.0
     # via keyring
 jeepney==0.8.0
     # via
     #   keyring
     #   secretstorage
-jinja2==3.1.2
+jinja2==3.1.3
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
 keyring==23.0.1
     # via cumulusci (pyproject.toml)
-lxml==4.9.3
+lxml==5.1.0
     # via cumulusci (pyproject.toml)
 markdown-it-py==2.2.0
     # via
     #   cumulusci (pyproject.toml)
     #   rich
-markupsafe==2.1.3
+markupsafe==2.1.5
     # via
     #   cumulusci (pyproject.toml)
     #   jinja2
@@ -81,11 +83,11 @@ mdurl==0.1.2
     # via markdown-it-py
 natsort==8.4.0
     # via robotframework-pabot
-psutil==5.9.6
+psutil==5.9.8
     # via cumulusci (pyproject.toml)
 pycparser==2.21
     # via cffi
-pydantic==1.10.12
+pydantic==1.10.14
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
@@ -97,13 +99,13 @@ pyjwt[crypto]==2.8.0
     #   github3-py
 python-baseconv==1.2.2
     # via snowfakery
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   cumulusci (pyproject.toml)
     #   faker
     #   github3-py
     #   snowfakery
-pytz==2023.3.post1
+pytz==2024.1
     # via cumulusci (pyproject.toml)
 pyyaml==6.0.1
     # via
@@ -120,18 +122,18 @@ requests==2.29.0
     #   snowfakery
 requests-futures==1.0.1
     # via cumulusci (pyproject.toml)
-rich==13.7.0
+rich==13.7.1
     # via cumulusci (pyproject.toml)
-robotframework==6.1.1
+robotframework==7.0
     # via
     #   cumulusci (pyproject.toml)
     #   robotframework-pabot
     #   robotframework-requests
     #   robotframework-seleniumlibrary
     #   robotframework-stacktrace
-robotframework-pabot==2.16.0
+robotframework-pabot==2.18.0
     # via cumulusci (pyproject.toml)
-robotframework-pythonlibcore==4.3.0
+robotframework-pythonlibcore==4.4.0
     # via robotframework-seleniumlibrary
 robotframework-requests==0.9.6
     # via cumulusci (pyproject.toml)
@@ -161,13 +163,13 @@ six==1.16.0
     #   python-dateutil
     #   salesforce-bulk
     #   snowfakery
-snowfakery==3.6.1
+snowfakery==3.6.2
     # via cumulusci (pyproject.toml)
-sqlalchemy==1.4.49
+sqlalchemy==1.4.52
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
-typing-extensions==4.7.1
+typing-extensions==4.10.0
     # via
     #   faker
     #   pydantic
@@ -177,14 +179,14 @@ unicodecsv==0.14.1
     # via salesforce-bulk
 uritemplate==4.1.1
     # via github3-py
-urllib3==1.26.16
+urllib3==1.26.18
     # via
     #   requests
     #   selenium
     #   snowfakery
 xmltodict==0.13.0
     # via cumulusci (pyproject.toml)
-zipp==3.17.0
+zipp==3.18.1
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
