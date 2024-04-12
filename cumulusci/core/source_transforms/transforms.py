@@ -2,7 +2,6 @@ import abc
 import functools
 import io
 import os
-import re
 import shutil
 import typing as T
 import zipfile
@@ -416,24 +415,6 @@ class FindReplaceTransform(SourceTransform):
         self.options = options
 
     def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
-        # To handle xpath with namespaces, without
-        def transform_xpath(expression):
-            predicate_pattern = re.compile(r"\[.*?\]")
-            parts = expression.split("/")
-            transformed_parts = []
-
-            for part in parts:
-                if part:
-                    predicates = predicate_pattern.findall(part)
-                    tag = predicate_pattern.sub("", part)
-                    transformed_part = '/*[local-name()="' + tag + '"]'
-                    for predicate in predicates:
-                        transformed_part += predicate
-                    transformed_parts.append(transformed_part)
-            transformed_expression = "".join(transformed_parts)
-
-            return transformed_expression
-
         def process_file(filename: str, content: str) -> T.Tuple[str, str]:
             path = Path(filename)
             for spec in self.options.patterns:
@@ -442,6 +423,7 @@ class FindReplaceTransform(SourceTransform):
                 ):
                     try:
                         # See if the content is an xml file
+                        content = content.replace(' xmlns="', ' xmlnamespace="')
                         content_bytes = content.encode("utf-8")
                         root = ET.fromstring(content_bytes)
 
@@ -460,8 +442,7 @@ class FindReplaceTransform(SourceTransform):
                                 stack.extend(element)
                         # Modify the element given by xpath
                         elif spec.xpath:
-                            transformed_xpath = transform_xpath(spec.xpath)
-                            elements_to_replace = root.xpath(transformed_xpath)
+                            elements_to_replace = root.xpath(spec.xpath)
                             for element in elements_to_replace:
                                 element.text = spec.get_replace_string(context)
 
@@ -469,7 +450,7 @@ class FindReplaceTransform(SourceTransform):
                         content = ET.tostring(
                             root, encoding="utf-8", xml_declaration=has_xml_declaration
                         ).decode("utf-8")
-
+                        content = content.replace(' xmlnamespace="', ' xmlns="')
                     except ET.XMLSyntaxError:
                         if spec.find:
                             content = content.replace(
