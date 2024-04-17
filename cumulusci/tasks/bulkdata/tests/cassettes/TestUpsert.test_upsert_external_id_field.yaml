@@ -451,6 +451,12 @@ interactions:
                       smts: "2022-10-20T16:45:52.000Z"
                       qdbatches: "0"
                       numbatchtotal: "0"
+    - *id011
+    - *id011
+    - *id012
+    - *id012
+    - *id013
+    - *id013
     - request:
           method: POST
           uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSBIA0

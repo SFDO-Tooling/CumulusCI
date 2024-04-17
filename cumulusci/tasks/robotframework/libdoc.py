@@ -123,7 +123,7 @@ class RobotLibDoc(BaseTask):
                     if library_name.endswith(".robot"):
                         libdoc = ResourceDocBuilder().build(library_name)
                     else:
-                        libdoc = DocumentationBuilder(library_name).build(library_name)
+                        libdoc = DocumentationBuilder().build(library_name)
                     kwfile.add_keywords(libdoc)
 
                 # if we get here, we were able to process the file correctly

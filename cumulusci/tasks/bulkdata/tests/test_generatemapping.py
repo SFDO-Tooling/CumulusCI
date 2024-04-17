@@ -269,10 +269,9 @@ class TestMappingGenerator:
             assert ["Account__c"] == list(
                 t.mapping["Insert Child__c"]["lookups"].keys()
             )
-            assert (
-                "Parent"
-                == t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
-            )
+            assert ["Parent"] == t.mapping["Insert Child__c"]["lookups"]["Account__c"][
+                "table"
+            ]
 
     @responses.activate
     def test_collect_objects__simple_custom_objects(self):
@@ -582,20 +581,21 @@ class TestMappingGenerator:
         assert t.mapping["Insert Account"]["sf_object"] == "Account"
         assert ["Name"] == t.mapping["Insert Account"]["fields"]
         assert ["Dependent__c"] == list(t.mapping["Insert Account"]["lookups"].keys())
-        assert (
-            "Child__c"
-            == t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
-        )
+        assert ["Child__c"] == t.mapping["Insert Account"]["lookups"]["Dependent__c"][
+            "table"
+        ]
 
         assert t.mapping["Insert Child__c"]["sf_object"] == "Child__c"
         assert ["Name"] == t.mapping["Insert Child__c"]["fields"]
         assert ["Account__c", "Self__c"] == list(
             t.mapping["Insert Child__c"]["lookups"].keys()
         )
-        assert (
-            "Account" == t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
-        )
-        assert t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"] == "Child__c"
+        assert ["Account"] == t.mapping["Insert Child__c"]["lookups"]["Account__c"][
+            "table"
+        ]
+        assert t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"] == [
+            "Child__c"
+        ]
 
     @mock.patch("click.prompt")
     def test_build_mapping__strip_namespace(self, prompt):
@@ -642,20 +642,21 @@ class TestMappingGenerator:
         assert t.mapping["Insert Parent__c"]["sf_object"] == "Parent__c"
         assert ["Name"] == t.mapping["Insert Parent__c"]["fields"]
         assert ["Dependent__c"] == list(t.mapping["Insert Parent__c"]["lookups"].keys())
-        assert (
-            "Child__c"
-            == t.mapping["Insert Parent__c"]["lookups"]["Dependent__c"]["table"]
-        )
+        assert ["Child__c"] == t.mapping["Insert Parent__c"]["lookups"]["Dependent__c"][
+            "table"
+        ]
 
         assert t.mapping["Insert Child__c"]["sf_object"] == "Child__c"
         assert ["Name"] == t.mapping["Insert Child__c"]["fields"]
         assert ["Parent__c", "Self__c"] == list(
             t.mapping["Insert Child__c"]["lookups"].keys()
         )
-        assert (
-            "Parent__c" == t.mapping["Insert Child__c"]["lookups"]["Parent__c"]["table"]
-        )
-        assert t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"] == "Child__c"
+        assert ["Parent__c"] == t.mapping["Insert Child__c"]["lookups"]["Parent__c"][
+            "table"
+        ]
+        assert t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"] == [
+            "Child__c"
+        ]
 
     @mock.patch("click.prompt")
     def test_build_mapping__no_strip_namespace_if_dup_component(self, prompt):
@@ -699,19 +700,17 @@ class TestMappingGenerator:
         assert set(["ns__Parent__c", "Parent__c"]) == set(
             t.mapping["Insert ns__Child__c"]["lookups"].keys()
         )
-        assert (
+        assert ["Parent__c"] == t.mapping["Insert ns__Child__c"]["lookups"][
+            "ns__Parent__c"
+        ]["table"]
+        assert ["ns__Child__c"] == t.mapping["Insert ns__Child__c"]["lookups"][
             "Parent__c"
-            == t.mapping["Insert ns__Child__c"]["lookups"]["ns__Parent__c"]["table"]
-        )
-        assert (
-            "ns__Child__c"
-            == t.mapping["Insert ns__Child__c"]["lookups"]["Parent__c"]["table"]
-        )
+        ]["table"]
 
         assert t.mapping["Insert Child__c"]["sf_object"] == "Child__c"
         assert ["Name"] == t.mapping["Insert Child__c"]["fields"]
 
-    def test_build_mapping__warns_polymorphic_lookups(self):
+    def test_build_mapping__polymorphic_lookups(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Contact", "Custom__c"]
@@ -733,12 +732,20 @@ class TestMappingGenerator:
                 "Contact": {"PolyLookup__c": _Field("PolyLookup__c", {})},
             }
         }
-        t.logger = mock.Mock()
 
         t._build_mapping()
-        t.logger.warning.assert_called_once_with(
-            "Field Custom__c.PolyLookup__c is a polymorphic lookup, which is not supported"
+        assert set(["Insert Account", "Insert Contact", "Insert Custom__c"]) == set(
+            t.mapping.keys()
         )
+
+        assert t.mapping["Insert Custom__c"]["sf_object"] == "Custom__c"
+        assert ["Name"] == t.mapping["Insert Custom__c"]["fields"]
+        assert set(["PolyLookup__c"]) == set(
+            t.mapping["Insert Custom__c"]["lookups"].keys()
+        )
+        assert ["Account", "Contact"] == t.mapping["Insert Custom__c"]["lookups"][
+            "PolyLookup__c"
+        ]["table"]
 
     def test_split_dependencies__no_cycles(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
