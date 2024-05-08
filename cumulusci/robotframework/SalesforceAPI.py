@@ -11,9 +11,10 @@ STATUS_KEY = ("status",)
 class SalesforceAPI(BaseLibrary):
     """Keywords for interacting with Salesforce API"""
 
+    _session_records = []
+
     def __init__(self):
         super().__init__()
-        self._session_records = []
 
     def delete_session_records(self):
         """Deletes records that were created while running this test case.
