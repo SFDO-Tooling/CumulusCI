@@ -2,6 +2,14 @@
 
 <!-- latest-start -->
 
+## v3.86.1 (2024-05-06)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.86.0...v3.86.1
+
+<!-- latest-stop -->
+
 ## v3.86.0 (2024-03-27)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +21,6 @@
 -   @W-15258380 - Reloading of login URL's from env before creating jwt session by [@lakshmi2506](https://github.com/lakshmi2506) in [#3765](https://github.com/SFDO-Tooling/CumulusCI/pull/3765)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.85.0...v3.86.0
-
-<!-- latest-stop -->
 
 ## v3.85.0 (2024-03-13)
 
