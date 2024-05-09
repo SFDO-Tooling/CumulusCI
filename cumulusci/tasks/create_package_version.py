@@ -234,7 +234,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         ) as path:
             package_zip_builder = MetadataPackageZipBuilder(
                 path=path,
-                name=self.package_config.package_name,
+                name=None,
                 options=options,
                 context=self.context,
             )
