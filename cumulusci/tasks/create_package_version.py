@@ -230,7 +230,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         with convert_sfdx_source(
             self.project_config.default_package_path,
             None,
-            None,
             self.logger,
         ) as path:
             package_zip_builder = MetadataPackageZipBuilder(
