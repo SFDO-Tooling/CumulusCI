@@ -229,7 +229,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = None
         with convert_sfdx_source(
             self.project_config.default_package_path,
-            None
+            None,
             None,
             self.logger,
         ) as path:
