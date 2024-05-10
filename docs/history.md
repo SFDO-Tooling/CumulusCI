@@ -2,6 +2,52 @@
 
 <!-- latest-start -->
 
+## v3.86.1 (2024-05-06)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.86.0...v3.86.1
+
+<!-- latest-stop -->
+
+## v3.86.0 (2024-03-27)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   @W-15258380 - Reloading of login URL's from env before creating jwt session by [@lakshmi2506](https://github.com/lakshmi2506) in [#3765](https://github.com/SFDO-Tooling/CumulusCI/pull/3765)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.85.0...v3.86.0
+
+## v3.85.0 (2024-03-13)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix Invalid Lookups of namespaced fields by [@aditya-balachander](https://github.com/aditya-balachander) in [#3759](https://github.com/SFDO-Tooling/CumulusCI/pull/3759)
+-   Fix Id Not Specified on Update Call by [@aditya-balachander](https://github.com/aditya-balachander) in [#3761](https://github.com/SFDO-Tooling/CumulusCI/pull/3761)
+-   Fix dependency parsing errors caused by `collision_check` option by [@jstvz](https://github.com/jstvz) in [#3760](https://github.com/SFDO-Tooling/CumulusCI/pull/3760)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.3...v3.85.0
+
+## v3.84.3 (2024-02-24)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix: Type Error while loading Contacts when PersonAccount is enabled by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3756](https://github.com/SFDO-Tooling/CumulusCI/pull/3756)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.2...v3.84.3
+
 ## v3.84.2 (2024-02-20)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -15,8 +61,6 @@
 -   Fix: Mismatch in the order of fields between the step and query during generation of the json request by [@aditya-balachander](https://github.com/aditya-balachander) in [#3750](https://github.com/SFDO-Tooling/CumulusCI/pull/3750)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.1...v3.84.2
-
-<!-- latest-stop -->
 
 ## v3.84.1 (2024-02-01)
 
