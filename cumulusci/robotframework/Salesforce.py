@@ -632,10 +632,10 @@ class Salesforce(FakerMixin, BaseLibrary):
         )
 
     @capture_screenshot_on_error
-    def wait_until_modal_is_closed(self):
+    def wait_until_modal_is_closed(self, timeout=15):
         """Wait for modal to close"""
         self.selenium.wait_until_page_does_not_contain_element(
-            lex_locators["modal"]["is_open"], timeout=15
+            lex_locators["modal"]["is_open"], timeout
         )
 
     @capture_screenshot_on_error
