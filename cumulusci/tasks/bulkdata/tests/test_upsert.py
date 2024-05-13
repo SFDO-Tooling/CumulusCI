@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 import responses
+import yaml
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata import LoadData
@@ -69,6 +70,7 @@ class TestUpsert:
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
                 # "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
 
@@ -127,6 +129,7 @@ class TestUpsert:
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
                 # "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -195,6 +198,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_mapping_rest.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -239,7 +243,7 @@ class TestUpsert:
     def _mock_bulk(self, domain):
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v52.0/limits/recordCount?sObjects=Contact",
+            url=f"https://{domain}/services/data/v{CURRENT_SF_API_VERSION}/limits/recordCount?sObjects=Contact",
             status=200,
             json={"sObjects": []},
         )
@@ -384,6 +388,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_mapping_bulk.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -436,6 +441,7 @@ class TestUpsert:
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}_complex.yml",
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -456,6 +462,7 @@ class TestUpsert:
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}_complex.yml",
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -527,6 +534,7 @@ class TestUpsert:
                 "mapping": cumulusci_test_repo_root
                 / "datasets/upsert/upsert_mapping_rest_complex.yml",
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task()
@@ -655,6 +663,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_smart__native_field.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -721,6 +730,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_smart__native_field.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()
@@ -737,6 +747,111 @@ class TestUpsert:
                 }
             }
         }
+
+    @responses.activate
+    def test_upsert_recordtype_same_developername_different_ispersontype(
+        self, create_task, cumulusci_test_repo_root, org_config, sf
+    ):
+        domain = org_config.get_domain()
+        ver = CURRENT_SF_API_VERSION
+        expected_number_of_records = 3
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{ver}/query/?q=SELECT+Id%2C+DeveloperName%2C+IsPersonType+FROM+RecordType+WHERE+SObjectType%3D%27Account%27",
+            status=200,
+            json={
+                "totalSize": 4,
+                "done": True,
+                "records": [
+                    {
+                        "Id": "0125j000000RqVkAAK",
+                        "DeveloperName": "HH_Account",
+                        "IsPersonType": False,
+                    },
+                    {
+                        "Id": "0125j000000RqVlAAK",
+                        "DeveloperName": "Organization",
+                        "IsPersonType": False,
+                    },
+                    {
+                        "Id": "0125j000000bo4yAAA",
+                        "DeveloperName": "PersonAccount",
+                        "IsPersonType": True,
+                    },
+                    {
+                        "Id": "0125j000000bo53AAA",
+                        "DeveloperName": "PersonAccount",
+                        "IsPersonType": False,
+                    },
+                ],
+            },
+        )
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{ver}/limits/recordCount?sObjects=Account",
+            status=200,
+            json={"sObjects": [{"count": 3, "name": "Account"}]},
+        )
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{ver}/query/?q=select+Id%2CAccountNumber+from+Account",
+            status=200,
+            json={
+                "totalSize": 3,
+                "done": True,
+                "records": [
+                    {"Id": "0015j00001H0q4NAAR", "AccountNumber": "12345"},
+                    {"Id": "0015j00001H0q4OAAR", "AccountNumber": "456789"},
+                    {"Id": "0015j00001H0q7bAAB", "AccountNumber": "909098"},
+                ],
+            },
+        )
+        with (
+            cumulusci_test_repo_root
+            / "cumulusci/tests/cassettes/GET_sobjects_Account_PersonAccount_describe.yaml"
+        ).open("r") as f:
+            body_accounts = yaml.safe_load(f)["response"]["body"]["string"]
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{ver}/sobjects/Account/describe",
+            body=body_accounts,
+            status=200,
+        )
+        with (
+            cumulusci_test_repo_root
+            / "cumulusci/tests/shared_cassettes/GET_sobjects_Global_describe.yaml"
+        ).open("r") as f:
+            body_global = yaml.safe_load(f)["response"]["body"]["string"]
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{ver}/sobjects",
+            body=body_global,
+            status=200,
+        )
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_recordtypes.sql",
+                "mapping": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_mapping_recordtypes.yml",
+                "set_recently_viewed": False,
+            },
+        )
+        task._update_credentials = mock.Mock()
+        task.sf = sf
+        task.bulk = mock.Mock()
+        task._init_mapping()
+        with task._init_db():
+            task._expand_mapping()
+            mapping = task.mapping["Upsert Accounts"]
+            if "RecordTypeId" in mapping.fields:
+                conn = task.session.connection()
+                task._load_record_types([mapping.sf_object], conn)
+                task.session.commit()
+            _, query = task.configure_step(mapping)
+            # Assert no duplicate records are trying to be deployed
+            assert len(list(query)) == expected_number_of_records
 
     @responses.activate
     def test_simple_upsert_smart__non_native_field(
@@ -787,6 +902,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_smart__non_native_field.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
+                "enable_rollback": False,
             },
         )
         task._update_credentials = mock.Mock()

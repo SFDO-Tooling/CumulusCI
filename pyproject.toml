@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "click",
@@ -34,9 +36,10 @@ dependencies = [
     "keyring<=23.0.1",
     "defusedxml",
     "lxml",
+    "markdown-it-py==2.2.0", # resolve dependency conflict between prod/dev
     "MarkupSafe",
     "psutil",
-    "pydantic",
+    "pydantic<2",
     "PyJWT",
     "pytz",
     "pyyaml",
@@ -44,7 +47,6 @@ dependencies = [
     "requests-futures",
     "rich",
     "robotframework",
-    "robotframework-lint",
     "robotframework-pabot",
     "robotframework-requests",
     "robotframework-seleniumlibrary<6",
@@ -54,7 +56,7 @@ dependencies = [
     "selenium<4",
     "simple-salesforce==1.11.4",
     "snowfakery",
-    "SQLAlchemy",
+    "SQLAlchemy<2",
     "xmltodict",
 ]
 
@@ -73,7 +75,7 @@ test = [
     "responses",
     "testfixtures",
     "tox",
-    "typeguard",
+    "typeguard<=2.13.3", # TODO: Lots of changes required for v4
     "vcrpy"
 ]
 
@@ -157,7 +159,8 @@ known_first_party = "cumulusci"
 known_third_party = "robot"
 
 [tool.pyright]
-reportMissingImports = "warning"
+reportMissingImports = "none"
+typeCheckingMode = "basic"
 exclude = ["**/test_*", "**/tests/**"]
 # Add files to this list as you make them compatible.
 include = [
@@ -173,8 +176,6 @@ include = [
     'cumulusci/core/config/base_config.py',
     'cumulusci/core/config/base_task_flow_config.py',
     'cumulusci/core/config/oauth2_service_config.py',
-    'cumulusci/core/config/scratch_org_config.py',
-    'cumulusci/core/config/sfdx_org_config.py',
     'cumulusci/core/debug.py',
     'cumulusci/core/dependencies/__init__.py',
     'cumulusci/core/dependencies/utils.py',
@@ -184,7 +185,6 @@ include = [
     'cumulusci/core/metadeploy/__init__.py',
     'cumulusci/core/metadeploy/api.py',
     'cumulusci/core/runtime.py',
-    'cumulusci/core/sfdx.py',
     'cumulusci/core/source/__init__.py',
     'cumulusci/core/source/local_folder.py',
     'cumulusci/core/source_transforms/__init__.py',
@@ -199,7 +199,6 @@ include = [
     'cumulusci/salesforce_api/exceptions.py',
     'cumulusci/salesforce_api/filterable_objects.py',
     'cumulusci/salesforce_api/mc_soap_envelopes.py',
-    'cumulusci/salesforce_api/org_schema_models.py',
     'cumulusci/salesforce_api/package_install.py',
     'cumulusci/salesforce_api/soap_envelopes.py',
     'cumulusci/tasks/__init__.py',
@@ -212,17 +211,10 @@ include = [
     'cumulusci/tasks/bulkdata/generate_mapping_utils/extract_mapping_file_generator.py',
     'cumulusci/tasks/bulkdata/generate_mapping_utils/generate_mapping_from_declarations.py',
     'cumulusci/tasks/bulkdata/generate_mapping_utils/mapping_generator_post_processes.py',
-    'cumulusci/tasks/bulkdata/query_transformers.py',
-    'cumulusci/tasks/bulkdata/snowfakery_utils/snowfakery_working_directory.py',
     'cumulusci/tasks/bulkdata/snowfakery_utils/subtask_configurator.py',
     'cumulusci/tasks/dx_convert_from.py',
     'cumulusci/tasks/github/__init__.py',
     'cumulusci/tasks/github/commit_status.py',
-    'cumulusci/tasks/github/merge.py',
-    'cumulusci/tasks/github/publish.py',
-    'cumulusci/tasks/github/pull_request.py',
-    'cumulusci/tasks/github/release_report.py',
-    'cumulusci/tasks/github/tag.py',
     'cumulusci/tasks/github/util.py',
     'cumulusci/tasks/marketing_cloud/__init__.py',
     'cumulusci/tasks/marketing_cloud/api.py',
@@ -243,7 +235,6 @@ include = [
     'cumulusci/tasks/robotframework/__init__.py',
     'cumulusci/tasks/robotframework/debugger/__init__.py',
     'cumulusci/tasks/robotframework/debugger/model.py',
-    'cumulusci/tasks/robotframework/lint.py',
     'cumulusci/tasks/salesforce/BaseRetrieveMetadata.py',
     'cumulusci/tasks/salesforce/BaseSalesforceTask.py',
     'cumulusci/tasks/salesforce/GetInstalledPackages.py',
@@ -263,7 +254,6 @@ include = [
     'cumulusci/tests/util.py',
     'cumulusci/utils/waiting.py',
     'cumulusci/utils/xml/robot_xml.py',
-    'cumulusci/utils/xml/salesforce_encoding.py',
     'cumulusci/utils/ziputils.py'
 ]
 # Do not add to this list. Instead use

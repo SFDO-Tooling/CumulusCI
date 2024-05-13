@@ -6,7 +6,7 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
-from sqlalchemy import Column, Integer, MetaData, Table, Unicode, inspect
+from sqlalchemy import Boolean, Column, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
@@ -29,16 +29,20 @@ class SqlAlchemyMixin:
         rt_map_fields = [
             Column("record_type_id", Unicode(18), primary_key=True),
             Column("developer_name", Unicode(255)),
+            Column("is_person_type", Boolean),
         ]
         rt_map_table = Table(table_name, self.metadata, *rt_map_fields)
         mapper(self.models[table_name], rt_map_table)
 
-    def _extract_record_types(self, sobject, tablename: str, conn):
+    def _extract_record_types(
+        self, sobject, tablename: str, conn, is_person_accounts_enabled: bool
+    ):
         """Query for Record Type information and persist it in the database."""
         self.logger.info(f"Extracting Record Types for {sobject}")
-        query = (
-            f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
-        )
+        if is_person_accounts_enabled:
+            query = f"SELECT Id, DeveloperName, IsPersonType FROM RecordType WHERE SObjectType='{sobject}'"
+        else:
+            query = f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
 
         result = self.sf.query(query)
 
@@ -46,9 +50,10 @@ class SqlAlchemyMixin:
             sql_bulk_insert_from_records(
                 connection=conn,
                 table=self.metadata.tables[tablename],
-                columns=["record_type_id", "developer_name"],
+                columns=["record_type_id", "developer_name", "is_person_type"],
                 record_iterable=(
-                    [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
+                    [rt["Id"], rt["DeveloperName"], rt.get("IsPersonType", False)]
+                    for rt in result["records"]
                 ),
             )
 
@@ -73,11 +78,12 @@ def _handle_primary_key(mapping, fields):
     """Provide support for legacy mappings which used the OID as the pk but
     default to using an autoincrementing int pk and a separate sf_id column"""
 
+    id_column = "id"
     if mapping.get_oid_as_pk():
+        # Get Id column from mapping
         id_column = mapping.fields["Id"]
-        fields.append(Column(id_column, Unicode(255), primary_key=True))
-    else:
-        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
+
+    fields.append(Column(id_column, Unicode(255), primary_key=True))
 
 
 def create_table(mapping, metadata) -> Table:

@@ -6,7 +6,11 @@ import pytest
 from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.universal_config import UniversalConfig
-from cumulusci.core.exceptions import ApexTestException, SalesforceException
+from cumulusci.core.exceptions import (
+    ApexTestException,
+    SalesforceException,
+    TaskOptionsError,
+)
 from cumulusci.tasks.salesforce import PackageUpload
 
 from .util import create_task
@@ -22,6 +26,8 @@ class TestPackageUpload:
                 "password": "pw",
                 "post_install_url": "http://www.salesforce.org",
                 "release_notes_url": "https://github.com",
+                "major_version": "2",
+                "minor_version": "11",
             },
         )
 
@@ -29,6 +35,18 @@ class TestPackageUpload:
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
+                        # Query for latest major and minor version used via validate version function
+                        {
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 0,
+                                    "PatchVersion": 1,
+                                    "ReleaseState": "Released",
+                                }
+                            ],
+                        },
                         # Query for package by namespace
                         {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
                         # Query for upload status
@@ -75,6 +93,170 @@ class TestPackageUpload:
         task._set_package_id()
         assert expected_package_id == task.package_id
 
+    test_validate_version_base_options = {
+        "name": "Test Release",
+        "production": False,
+        "description": "Test Description",
+        "password": "secret",
+        "post_install_url": "post.install.url",
+        "release_notes_url": "release.notes.url",
+    }
+
+    def generate_valid_version_options(
+        major_version: str,
+        minor_version: str,
+        asserted_major_version: str,
+        asserted_minor_version: str,
+        is_negative: bool = False,
+    ):
+
+        """This is function is used to generate test cases for test_validate_versions(positive as well as negative)
+        Arguments:
+            major_version:acutal major version which is to be passed none if not passed.
+            minor_version:acutal minor version which is to be passed none if not passed
+            asserted_major_version:major version which is expected in options dict after running of validate version function.
+            asserted_minor_version:minor version which is expected in options dict after running of validate version function.
+            is_negative:This boolean is used to decide whether the function returns a postive or negative test case. defaults to true is not passed.
+        """
+        test_validate_version_base_options = {
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
+        }
+        test_case_actual = {
+            **test_validate_version_base_options,
+        }
+        if major_version is not None:
+            test_case_actual["major_version"] = major_version
+        if minor_version is not None:
+            test_case_actual["minor_version"] = minor_version
+
+        test_case_expected = {
+            **test_validate_version_base_options,
+            "major_version": str(asserted_major_version),
+            "minor_version": str(asserted_minor_version),
+        }
+
+        if is_negative:
+            return test_case_actual
+        return test_case_actual, test_case_expected
+
+    # Generating Positive Test Cases for test_validate_versions
+    test_positive_options = [
+        generate_valid_version_options("1", "2", "1", "2"),
+        generate_valid_version_options("2", "1", "2", "1"),
+        generate_valid_version_options(None, "2", "1", "2"),
+        generate_valid_version_options("1", None, "1", "2"),
+        generate_valid_version_options("2", None, "2", "0"),
+        generate_valid_version_options(None, None, "1", "2"),
+    ]
+
+    @pytest.mark.parametrize("actual_options,expected_options", test_positive_options)
+    def test_positive_validate_versions(self, actual_options, expected_options):
+        """Runs Postive Tests for tests_validate_versions"""
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Released",
+            }
+        )
+        task._validate_versions()
+
+        assert task.options["name"] == expected_options["name"]
+        assert task.options["production"] == expected_options["production"]
+        assert task.options["password"] == expected_options["password"]
+        assert task.options["post_install_url"] == expected_options["post_install_url"]
+        assert (
+            task.options["release_notes_url"] == expected_options["release_notes_url"]
+        )
+        assert task.options["major_version"] == expected_options["major_version"]
+        assert task.options["minor_version"] == expected_options["minor_version"]
+
+    test_positive_options_beta = [
+        generate_valid_version_options("1", None, "1", "1"),
+        generate_valid_version_options("1", "1", "1", "1"),
+        generate_valid_version_options(None, "1", "1", "1"),
+        generate_valid_version_options(None, None, "1", "1"),
+    ]
+
+    @pytest.mark.parametrize(
+        "actual_options,expected_options", test_positive_options_beta
+    )
+    def test_positive_validate_versions_for_beta(
+        self, actual_options, expected_options
+    ):
+
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Beta",
+            }
+        )
+        task._validate_versions()
+
+        assert task.options["name"] == expected_options["name"]
+        assert task.options["production"] == expected_options["production"]
+        assert task.options["password"] == expected_options["password"]
+        assert task.options["post_install_url"] == expected_options["post_install_url"]
+        assert (
+            task.options["release_notes_url"] == expected_options["release_notes_url"]
+        )
+        assert task.options["major_version"] == expected_options["major_version"]
+        assert task.options["minor_version"] == expected_options["minor_version"]
+
+    # Generating Negative Test Cases for test_validate_versions
+    test_negative_options = [
+        generate_valid_version_options("0", "2", None, None, True),
+        generate_valid_version_options("1", "0", None, None, True),
+        generate_valid_version_options(None, "1", None, None, True),
+        generate_valid_version_options("ab", 0, None, None, True),
+        generate_valid_version_options("1", "ab", None, None, True),
+    ]
+
+    @pytest.mark.parametrize("actual_options", test_negative_options)
+    def test_negative_validate_versions(self, actual_options):
+        """Running Negative Tests for tests_validate_versions"""
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Released",
+            }
+        )
+        with pytest.raises(TaskOptionsError):
+            task._validate_versions()
+
+    test_negative_options_beta = [
+        generate_valid_version_options("1", "2", None, None, True),
+        generate_valid_version_options(None, "2", None, None, True),
+    ]
+
+    @pytest.mark.parametrize("actual_options", test_negative_options_beta)
+    def test_negative_validate_versions_beta(self, actual_options):
+        """Running Negative Tests for tests_validate_versions"""
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Beta",
+            }
+        )
+        with pytest.raises(TaskOptionsError):
+            task._validate_versions()
+
     def test_set_package_info(self):
         expected_package_id = "12345"
         options = {
@@ -84,6 +266,8 @@ class TestPackageUpload:
             "password": "secret",
             "post_install_url": "post.install.url",
             "release_notes_url": "release.notes.url",
+            "major_version": "2",
+            "minor_version": "2",
         }
 
         task = create_task(PackageUpload, options)
@@ -101,6 +285,8 @@ class TestPackageUpload:
         assert options["password"] == task.package_info["Password"]
         assert options["post_install_url"] == task.package_info["PostInstallUrl"]
         assert options["release_notes_url"] == task.package_info["ReleaseNotesUrl"]
+        assert options["major_version"] == task.package_info["MajorVersion"]
+        assert options["minor_version"] == task.package_info["MinorVersion"]
 
     @mock.patch("cumulusci.tasks.salesforce.package_upload.datetime")
     def test_make_package_upload_request(self, datetime):
@@ -123,7 +309,7 @@ class TestPackageUpload:
         task._make_package_upload_request()
 
         assert task._upload_start_time == upload_start_time
-        assert task.logger.info.called_once_with(
+        task.logger.info.assert_called_once_with(
             f"Created PackageUploadRequest {upload_id} for Package {package_id}"
         )
 
@@ -161,27 +347,26 @@ class TestPackageUpload:
 
         task._handle_apex_test_failures()
 
-        assert task.logger.error.called_once_with("Failed Apex Test")
+        task.logger.error.assert_called_once_with("Failed Apex Tests:")
         assert task._get_apex_test_results_from_upload.call_count == 1
         assert task._log_failures.call_count == 1
 
-    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable")
+    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable", autospec=True)
     def test_log_failures(self, table):
-        table.echo = mock.Mock()
 
         task = create_task(PackageUpload, {"name": "Test Release"})
 
         table_data = [1, 2, 3, 4]
-        task._get_table_data = mock.Mock(return_value="[1,2,3,4]")
+        task._get_table_data = mock.Mock(return_value=table_data)
 
         results = "Test Results"
         task._log_failures(results)
 
-        assert table.called_once_with(
+        table.assert_called_once_with(
             table_data,
             "Failed Apex Tests",
         )
-        assert table.echo.called_once()
+        table.return_value.echo.assert_called()
 
     def test_get_table_data(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
@@ -238,6 +423,18 @@ class TestPackageUpload:
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
+                        # Query for latest major and minor version
+                        {
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 0,
+                                    "PatchVersion": 1,
+                                    "ReleaseState": "Released",
+                                }
+                            ],
+                        },
                         # Query for package by namespace
                         {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
                         # Query for upload status
@@ -317,7 +514,7 @@ class TestPackageUpload:
 
         task._log_package_upload_success()
 
-        assert task.logger.info.called_once_with(
+        task.logger.info.assert_called_once_with(
             f"Uploaded package version {version_number} with Id {version_id}"
         )
 

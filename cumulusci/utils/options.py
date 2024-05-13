@@ -4,7 +4,12 @@ from typing import Any, Dict, List
 
 from pydantic import DirectoryPath, Field, FilePath, create_model
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+
+READONLYDICT_ERROR_MSG = (
+    "The 'options' dictionary is read-only. Please use 'parsed_options' instead."
+)
 
 
 def _describe_field(field):
@@ -16,6 +21,22 @@ def _describe_field(field):
     if field.field_info.default != ...:
         rc["default"] = field.field_info.default
     return rc
+
+
+class ReadOnlyOptions(dict):
+    """To enforce self.options to be read-only"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        raise TaskOptionsError(READONLYDICT_ERROR_MSG)
+
+    def __delitem__(self, key):
+        raise TaskOptionsError(READONLYDICT_ERROR_MSG)
+
+    def pop(self, key, default=None):
+        raise TaskOptionsError(READONLYDICT_ERROR_MSG)
 
 
 class CCIOptions(CCIDictModel):

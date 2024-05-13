@@ -273,6 +273,12 @@ interactions:
                   \n    },\n    \"Id\" : \"0035500001H9dBaAAJ\",\n    \"FirstName\" : \"Gabrielle\"\
                   ,\n    \"LastName\" : \"Vargas\"\n  } ]\n}"
     - *id007
+    - *id005
+    - *id007
+    - *id008
+    - *id005
+    - *id007
+    - *id008
     - request:
           method: PATCH
           uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Contact/Id

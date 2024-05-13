@@ -123,7 +123,7 @@ class RobotLibDoc(BaseTask):
                     if library_name.endswith(".robot"):
                         libdoc = ResourceDocBuilder().build(library_name)
                     else:
-                        libdoc = DocumentationBuilder(library_name).build(library_name)
+                        libdoc = DocumentationBuilder().build(library_name)
                     kwfile.add_keywords(libdoc)
 
                 # if we get here, we were able to process the file correctly
@@ -241,7 +241,7 @@ class KeywordFile:
                 # we don't want to see the same base pageobject
                 # keywords a kajillion times. This should probably
                 # be configurable, but I don't need it to be right now.
-                if base_pageobjects_path in keyword.source:
+                if base_pageobjects_path in str(keyword.source):
                     continue
 
                 path = Path(keyword.source)

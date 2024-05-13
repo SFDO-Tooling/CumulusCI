@@ -1,11 +1,9 @@
 import os
-
-# TODO: Replace this with shutils
-from distutils.dir_util import copy_tree, remove_tree
+from shutil import copytree, rmtree
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import remove_xml_element_directory
+from cumulusci.utils import remove_xml_element_directory, update_tree
 
 
 class CreateUnmanagedEESrc(BaseTask):
@@ -40,7 +38,7 @@ class CreateUnmanagedEESrc(BaseTask):
             )
 
         # Copy path to revert_path
-        copy_tree(self.options["path"], self.options["revert_path"])
+        copytree(self.options["path"], self.options["revert_path"])
 
         # Edit metadata in path
         self.logger.info(
@@ -88,9 +86,9 @@ class RevertUnmanagedEESrc(BaseTask):
                 self.options["path"], self.options["revert_path"]
             )
         )
-        copy_tree(self.options["revert_path"], self.options["path"], update=1)
+        update_tree(self.options["revert_path"], self.options["path"])
         self.logger.info("{} is now reverted".format(self.options["path"]))
 
         # Delete the revert_path
         self.logger.info("Deleting {}".format(self.options["revert_path"]))
-        remove_tree(self.options["revert_path"])
+        rmtree(self.options["revert_path"])
