@@ -245,7 +245,9 @@ latex_documents = [
         "index",
         "cumulusci.tex",
         "CumulusCI Documentation",
-        "Cumulus Suite Development Team",
+        """Kamalnath Devarakonda\\\\
+Sr Director Software Engineering\\\\
+kdevarakonda@salesforce.com""",
         "manual",
     )
 ]
