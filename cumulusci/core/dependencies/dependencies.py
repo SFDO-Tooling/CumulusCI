@@ -519,7 +519,7 @@ class PackageVersionIdDependency(StaticDependency):
             )
             return
 
-        package = org.get_package_from_version(self.version_id)
+        package = org.get_package_from_version(self.version_id, options.password)
 
         if package:
             package_id = package["SubscriberPackageId"]
