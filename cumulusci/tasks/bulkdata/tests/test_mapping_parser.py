@@ -1072,6 +1072,39 @@ class TestMappingParser:
         assert list(ms.fields.keys()) == ["ns__Description__c"]
 
     @responses.activate
+    def test_validate_and_inject_mapping_injects_namespaces__validates_lookup(self):
+        """Test to verify that with namespace inject, we validate lookups correctly"""
+        mock_describe_calls()
+        # Note: ns__Description__c is a mock field added to our stored, mock describes (in JSON)
+        mapping = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  table: Account
+                  fields:
+                    - Description__c
+                  lookups:
+                    LinkedAccount__c:
+                      table: Account"""
+            )
+        )
+        ms = mapping["Insert Accounts"]
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        assert ms.validate_and_inject_namespace(
+            org_config.salesforce_client,
+            "ns",
+            DataOperationType.INSERT,
+            inject_namespaces=True,
+        )
+        # Here we verify that the field ns__LinkedAccount__c does lookup
+        # to sobject Account inside of describe
+        _infer_and_validate_lookups(mapping, org_config.salesforce_client)
+        assert list(ms.lookups.keys()) == ["ns__LinkedAccount__c"]
+
+    @responses.activate
     def test_validate_and_inject_mapping_removes_namespaces(self):
         mock_describe_calls()
         # Note: History__c is a mock field added to our stored, mock describes (in JSON)

@@ -129,6 +129,7 @@ class TestDatasetsE2E:
         objs["Account"].remove("Description")
         objs["Account"].remove("History__c")
         objs["Account"].remove("ns__Description__c")
+        objs["Account"].remove("ns__LinkedAccount__c")
         objs["Account"].remove("Primary_Contact__c")
         dataset.update_schema_subset(objs)
         timer.checkpoint("Updated Subset")

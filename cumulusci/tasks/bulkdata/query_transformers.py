@@ -1,7 +1,7 @@
 import typing as T
 from functools import cached_property
 
-from sqlalchemy import and_, func, text
+from sqlalchemy import String, and_, func, text
 from sqlalchemy.orm import Query, aliased
 
 from cumulusci.core.exceptions import BulkDataException
@@ -75,7 +75,7 @@ class AddLookupsToQuery(LoadQueryExtender):
                 return (
                     lookup.aliased_table,
                     lookup.aliased_table.columns.id
-                    == str(lookup.table) + "-" + value_column,
+                    == str(lookup.table) + "-" + func.cast(value_column, String),
                 )
             else:
                 return (

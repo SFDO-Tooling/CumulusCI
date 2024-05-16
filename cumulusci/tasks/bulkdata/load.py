@@ -448,10 +448,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             AddMappingFiltersToQuery,
             AddUpsertsToQuery,
         ]
-        transformers = [cls(mapping, self.metadata, model) for cls in classes]
-        transformers.append(
+        transformers = [
             AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
-        )
+        ]
+        transformers.extend([cls(mapping, self.metadata, model) for cls in classes])
 
         if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
             transformers.append(AddPersonAccountsToQuery(mapping, self.metadata, model))
@@ -835,7 +835,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 if self._old_format:
-                    yield (contact_mapping.table + "-" + contact_id, contact_sf_id)
+                    yield (contact_mapping.table + "-" + str(contact_id), contact_sf_id)
                 else:
                     yield (contact_id, contact_sf_id)
 
