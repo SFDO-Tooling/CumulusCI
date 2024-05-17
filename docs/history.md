@@ -10,8 +10,6 @@
 
 ### Changes 🎉
 
--   Update author in Sphinx PDF output by [@jstvz](https://github.com/jstvz) in [#3646](https://github.com/SFDO-Tooling/CumulusCI/pull/3646)
--   Allow manually triggering lint workflow by [@jstvz](https://github.com/jstvz) in [#3785](https://github.com/SFDO-Tooling/CumulusCI/pull/3785)
 -   Don't add fullname tag in 2GP package.xml by [@leboff](https://github.com/leboff) in [#3748](https://github.com/SFDO-Tooling/CumulusCI/pull/3748)
 
 ## New Contributors
