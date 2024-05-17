@@ -315,6 +315,63 @@ class TestSynthesizeExtractDeclarations:
                 )
             )
 
+    def test_required_lookups__pulled_in__polymorphic_lookups(self, org_config):
+        """Bringing in the WhoId for sobject Event should force Contact
+        and Lead to come in.
+
+        Including all Lead/Contact/Event required fields."""
+        declarations = """
+            extract:
+                Event:
+                    fields:
+                        WhoId
+        """
+        object_counts = {
+            "Account": 3,
+            "Contact": 2,
+            "Custom__c": 5,
+            "Lead": 2,
+            "Event": 1,
+        }
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Custom__c"),
+            describe_for("Event"),
+            describe_for("Lead"),
+        )
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema)
+
+            assert tuple(decl.dict() for decl in decls) == tuple(
+                (
+                    {
+                        "where": mock.ANY,
+                        "fields_": ["WhoId"],
+                        "api": DataApi.SMART,
+                        "sf_object": "Event",
+                    },
+                    {
+                        "where": mock.ANY,
+                        "fields_": ["LastName"],
+                        "api": DataApi.SMART,
+                        "sf_object": "Contact",
+                    },
+                    {
+                        "where": mock.ANY,
+                        "fields_": ["Company", "LastName"],
+                        "api": DataApi.SMART,
+                        "sf_object": "Lead",
+                    },
+                )
+            )
+
     def test_parse_real_file(self, cumulusci_test_repo_root, org_config):
         declarations = ExtractRulesFile.parse_extract(
             cumulusci_test_repo_root / "datasets/test_minimal.extract.yml"
