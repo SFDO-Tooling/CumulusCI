@@ -111,7 +111,7 @@ pyyaml==6.0.1
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
-requests==2.29.0
+requests==2.32.0
     # via
     #   cumulusci (pyproject.toml)
     #   github3-py
