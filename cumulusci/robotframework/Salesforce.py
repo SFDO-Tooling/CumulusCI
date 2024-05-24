@@ -600,11 +600,11 @@ class Salesforce(FakerMixin, BaseLibrary):
         self.selenium.click_button("Next")
 
     @capture_screenshot_on_error
-    def select_app_launcher_app(self, app_name):
+    def select_app_launcher_app(self, app_name, timeout=30):
         """Navigates to a Salesforce App via the App Launcher"""
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
         self.open_app_launcher()
-        self.selenium.wait_until_page_contains_element(locator, timeout=30)
+        self.selenium.wait_until_page_contains_element(locator, timeout)
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
         link = elem.find_element_by_xpath("../../..")
@@ -623,19 +623,19 @@ class Salesforce(FakerMixin, BaseLibrary):
         self.wait_until_modal_is_closed()
 
     @capture_screenshot_on_error
-    def wait_until_modal_is_open(self):
+    def wait_until_modal_is_open(self, timeout=15):
         """Wait for modal to open"""
         self.selenium.wait_until_page_contains_element(
             lex_locators["modal"]["is_open"],
-            timeout=15,
+            timeout,
             error="Expected to see a modal window, but didn't",
         )
 
     @capture_screenshot_on_error
-    def wait_until_modal_is_closed(self):
+    def wait_until_modal_is_closed(self, timeout=15):
         """Wait for modal to close"""
         self.selenium.wait_until_page_does_not_contain_element(
-            lex_locators["modal"]["is_open"], timeout=15
+            lex_locators["modal"]["is_open"], timeout
         )
 
     @capture_screenshot_on_error
