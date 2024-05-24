@@ -56,7 +56,7 @@ dependencies = [
     "selenium<4",
     "simple-salesforce==1.11.4",
     "snowfakery",
-    "SQLAlchemy",
+    "SQLAlchemy<2",
     "xmltodict",
 ]
 
