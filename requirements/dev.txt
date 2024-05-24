@@ -96,7 +96,7 @@ gvgen==1.0
     # via snowfakery
 identify==2.5.36
     # via pre-commit
-idna==3.6
+idna==3.7
     # via
     #   requests
     #   snowfakery
