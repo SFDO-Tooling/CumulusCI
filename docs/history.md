@@ -2,6 +2,29 @@
 
 <!-- latest-start -->
 
+## v3.88.0 (2024-05-24)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Extend modal close wait with custom timeout by [@leboff](https://github.com/leboff) in [#3783](https://github.com/SFDO-Tooling/CumulusCI/pull/3783)
+-   Added check_output true to get the logs of metadata retrieval by [@lakshmi2506](https://github.com/lakshmi2506) in [#3789](https://github.com/SFDO-Tooling/CumulusCI/pull/3789)
+
+### Issues Fixed 🩴
+
+-   Fix retrieve unpackaged so it is usable in metadeploy by [@yippie](https://github.com/yippie) in [#3566](https://github.com/SFDO-Tooling/CumulusCI/pull/3566)
+
+## New Contributors
+
+-   @yippie made their first contribution in [#3566](https://github.com/SFDO-Tooling/CumulusCI/pull/3566)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.87.0...v3.88.0
+
+<!-- latest-stop -->
+
 ## v3.87.0 (2024-05-17)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -17,8 +40,6 @@
 -   @leboff made their first contribution in [#3748](https://github.com/SFDO-Tooling/CumulusCI/pull/3748)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.86.1...v3.87.0
-
-<!-- latest-stop -->
 
 ## v3.86.1 (2024-05-06)
 
