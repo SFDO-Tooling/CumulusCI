@@ -225,6 +225,7 @@ def retrieve_components(
     api_version: str,
     project_config: BaseProjectConfig = None,
     retrieve_complete_profile: bool = False,
+    capture_output: bool = False,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -290,7 +291,7 @@ def retrieve_components(
             _write_manifest(components, package_xml_path, api_version)
 
             # Retrieve specified components in DX format
-            sfdx(
+            p = sfdx(
                 "force:source:retrieve",
                 access_token=org_config.access_token,
                 log_note="Retrieving components",
@@ -302,7 +303,7 @@ def retrieve_components(
                     "-w",
                     "5",
                 ],
-                capture_output=False,
+                capture_output=capture_output,
                 check_return=True,
                 env={"SFDX_INSTANCE_URL": org_config.instance_url},
             )
@@ -327,7 +328,7 @@ def retrieve_components(
                 "force:source:convert",
                 log_note="Converting back to metadata format",
                 args=["-r", "force-app", "-d", target],
-                capture_output=False,
+                capture_output=capture_output,
                 check_return=True,
             )
 
@@ -348,6 +349,10 @@ def retrieve_components(
             package_xml = PackageXmlGenerator(**package_xml_opts)()
             with open(os.path.join(target, "package.xml"), "w", encoding="utf-8") as f:
                 f.write(package_xml)
+        if capture_output:
+            return p.stdout_text.read()
+        else:
+            return None
 
 
 class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
