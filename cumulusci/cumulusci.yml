@@ -125,6 +125,9 @@ tasks:
             settings_type: EnhancedNotesSettings
             settings_field: IsEnhancedNotesEnabled
             value: True
+    retrieve_tasks:
+        description: Retrieves the tasks under the particular category or group
+        class_path: cumulusci.tasks.preflight.retrieve_tasks.RetrieveTasks
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
@@ -412,6 +415,14 @@ tasks:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
         group: Salesforce Metadata
+    list_nonsource_trackable_components:
+        description: List the components of non source trackable Metadata types.
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListComponents
+        group: Salesforce Metadata
+    list_nonsource_trackable_metadatatypes:
+        description: Returns non source trackable metadata types supported by org
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.ListNonSourceTrackable
+        group: Salesforce Metadata
     meta_xml_apiversion:
         description: Set the API version in ``*meta.xml`` files
         class_path: cumulusci.tasks.metaxml.UpdateApi
@@ -500,6 +511,10 @@ tasks:
     retrieve_changes:
         description: Retrieve changed components from a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        group: Salesforce Metadata
+    retrieve_nonsource_trackable:
+        description: Retrieves the non source trackable components filtered
+        class_path: cumulusci.tasks.salesforce.nonsourcetracking.RetrieveComponents
         group: Salesforce Metadata
     retrieve_qa_config:
         description: Retrieves the current changes in the scratch org into unpackaged/config/qa
@@ -1465,7 +1480,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: "59.0"
+        api_version: "60.0"
     git:
         default_branch: master
         prefix_feature: feature/

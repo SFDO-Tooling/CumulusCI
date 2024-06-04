@@ -16,9 +16,9 @@ class GetAvailableLicenses(BaseSalesforceApiTask):
 class GetAvailablePermissionSetLicenses(BaseSalesforceApiTask):
     def _run_task(self):
         self.return_values = [
-            result["PermissionSetLicenseKey"]
+            result["DeveloperName"]
             for result in self.sf.query(
-                "SELECT PermissionSetLicenseKey FROM PermissionSetLicense"
+                "SELECT DeveloperName FROM PermissionSetLicense"
             )["records"]
         ]
         licenses = "\n".join(self.return_values)

@@ -6,11 +6,13 @@ import re
 import time
 from collections import defaultdict
 
-from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import BaseProjectConfig, ScratchOrgConfig, TaskConfig
+from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata, BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 from cumulusci.utils import (
     inject_namespace,
     process_text_in_directory,
@@ -167,6 +169,12 @@ retrieve_changes_task_options["api_version"] = {
         + " Defaults to project__package__api_version"
     )
 }
+retrieve_changes_task_options["retrieve_complete_profile"] = {
+    "description": (
+        "If set to True, will use RetrieveProfile to retrieve"
+        + " the complete profile. Default is set to False"
+    )
+}
 retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_options[
     "namespace_tokenize"
 ]
@@ -194,6 +202,19 @@ def _write_manifest(changes, path, api_version):
         f.write(package_xml)
 
 
+def separate_profiles(components):
+    """Separate the profiles from components"""
+    updated_components = []
+    profiles = []
+    for comp in components:
+        if comp["MemberType"] == "Profile":
+            profiles.append(comp["MemberName"])
+        else:
+            updated_components.append(comp)
+
+    return updated_components, profiles
+
+
 def retrieve_components(
     components,
     org_config,
@@ -202,6 +223,9 @@ def retrieve_components(
     extra_package_xml_opts: dict,
     namespace_tokenize: str,
     api_version: str,
+    project_config: BaseProjectConfig = None,
+    retrieve_complete_profile: bool = False,
+    capture_output: bool = False,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -215,6 +239,15 @@ def retrieve_components(
     """
 
     target = os.path.realpath(target)
+    profiles = []
+
+    # If retrieve_complete_profile and project_config is None, raise error
+    # This is because project_config is only required if retrieve_complete_profile is True
+    if retrieve_complete_profile and project_config is None:
+        raise ProjectConfigNotFound(
+            "Kindly provide project_config as part of retrieve_components"
+        )
+
     with contextlib.ExitStack() as stack:
         if md_format:
             # Create target if it doesn't exist
@@ -247,27 +280,47 @@ def retrieve_components(
                 check_return=True,
             )
 
-        # Construct package.xml with components to retrieve, in its own tempdir
-        package_xml_path = stack.enter_context(temporary_dir(chdir=False))
-        _write_manifest(components, package_xml_path, api_version)
+        # If retrieve_complete_profile is True, separate the profiles from
+        # components to retrieve complete profile
+        if retrieve_complete_profile:
+            components, profiles = separate_profiles(components)
 
-        # Retrieve specified components in DX format
-        sfdx(
-            "force:source:retrieve",
-            access_token=org_config.access_token,
-            log_note="Retrieving components",
-            args=[
-                "-a",
-                str(api_version),
-                "-x",
-                os.path.join(package_xml_path, "package.xml"),
-                "-w",
-                "5",
-            ],
-            capture_output=False,
-            check_return=True,
-            env={"SFDX_INSTANCE_URL": org_config.instance_url},
-        )
+        if components:
+            # Construct package.xml with components to retrieve, in its own tempdir
+            package_xml_path = stack.enter_context(temporary_dir(chdir=False))
+            _write_manifest(components, package_xml_path, api_version)
+
+            # Retrieve specified components in DX format
+            p = sfdx(
+                "force:source:retrieve",
+                access_token=org_config.access_token,
+                log_note="Retrieving components",
+                args=[
+                    "-a",
+                    str(api_version),
+                    "-x",
+                    os.path.join(package_xml_path, "package.xml"),
+                    "-w",
+                    "5",
+                ],
+                capture_output=capture_output,
+                check_return=True,
+                env={"SFDX_INSTANCE_URL": org_config.instance_url},
+            )
+
+        # Extract Profiles
+        if profiles:
+            task_config = TaskConfig(
+                config={
+                    "options": {"profiles": ",".join(profiles), "path": "force-app"}
+                }
+            )
+            cls_retrieve_profile = RetrieveProfile(
+                org_config=org_config,
+                project_config=project_config,
+                task_config=task_config,
+            )
+            cls_retrieve_profile()
 
         if md_format:
             # Convert back to metadata format
@@ -275,7 +328,7 @@ def retrieve_components(
                 "force:source:convert",
                 log_note="Converting back to metadata format",
                 args=["-r", "force-app", "-d", target],
-                capture_output=False,
+                capture_output=capture_output,
                 check_return=True,
             )
 
@@ -296,6 +349,10 @@ def retrieve_components(
             package_xml = PackageXmlGenerator(**package_xml_opts)()
             with open(os.path.join(target, "package.xml"), "w", encoding="utf-8") as f:
                 f.write(package_xml)
+        if capture_output:
+            return p.stdout_text.read()
+        else:
+            return None
 
 
 class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
@@ -304,6 +361,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(RetrieveChanges, self)._init_options(kwargs)
         self.options["snapshot"] = process_bool_arg(kwargs.get("snapshot", True))
+        self.options["retrieve_complete_profile"] = process_bool_arg(
+            self.options.get("retrieve_complete_profile", False)
+        )
 
         # Check which directories are configured as dx packages
         package_directories = []
@@ -369,6 +429,8 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             namespace_tokenize=self.options.get("namespace_tokenize"),
             api_version=self.options["api_version"],
             extra_package_xml_opts=package_xml_opts,
+            project_config=self.project_config,
+            retrieve_complete_profile=self.options["retrieve_complete_profile"],
         )
 
         if self.options["snapshot"]:

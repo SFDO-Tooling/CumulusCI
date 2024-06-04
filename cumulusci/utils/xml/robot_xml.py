@@ -1,7 +1,7 @@
 import re
 from typing import Callable, Dict, NamedTuple
 
-from robot.api import ExecutionResult, ResultVisitor
+from robot.api import ExecutionResult, ResultVisitor  # type: ignore
 from robot.result.model import TestCase
 
 UNITS = {
@@ -53,7 +53,8 @@ def log_perf_summary_from_xml(
 
     Supply a formatter that takes a PerfSummary triple if the default isn't a good fit:
 
-        f(test_name: str, metrics: Dict[str, float], test: robot.result.model.TestCase)"""
+        f(test_name: str, metrics: Dict[str, float], test: robot.result.model.TestCase)
+    """
     result = ExecutionResult(robot_xml)
     pl = _perf_logger(logger_func, formatter_func)
     next(pl)  # start the generator
