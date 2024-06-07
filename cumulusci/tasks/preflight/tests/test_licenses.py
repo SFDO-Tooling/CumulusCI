@@ -34,8 +34,8 @@ class TestLicensePreflights:
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
             "records": [
-                {"DeveloperName": "TEST1"},
-                {"DeveloperName": "TEST2"},
+                {"PermissionSetLicenseKey": "TEST1"},
+                {"PermissionSetLicenseKey": "TEST2"},
             ],
         }
         task()

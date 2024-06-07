@@ -174,11 +174,33 @@ Permission Set Licenses are usually associated with a Permission Set, and assign
     }
 
     permission_name = "PermissionSetLicense"
-    permission_name_field = "DeveloperName"
+    permission_name_field = ["DeveloperName", "PermissionSetLicenseKey"]
     permission_label = "Permission Set License"
     assignment_name = "PermissionSetLicenseAssign"
     assignment_lookup = "PermissionSetLicenseId"
     assignment_child_relationship = "PermissionSetLicenseAssignments"
+
+    def _get_perm_ids(self):
+        perms_by_ids = {}
+        api_names = "', '".join(self.options["api_names"])
+        missing_perms = {api_name: True for api_name in self.options["api_names"]}
+        for permission_field in self.permission_name_field:
+            perms = self.sf.query(
+                f"SELECT Id,{permission_field} FROM {self.permission_name} WHERE {permission_field} IN ('{api_names}')"
+            )
+            perms_by_ids_subset = {
+                p["Id"]: p[permission_field] for p in perms["records"]
+            }
+            perms_by_ids.update(perms_by_ids_subset)
+            missing_perms.update(
+                {api_name: False for api_name in perms_by_ids.values()}
+            )
+
+        if any(missing_perms.values()):
+            raise CumulusCIException(
+                f"The following {self.permission_label}s were not found: {', '.join(api_names for api_names in missing_perms if missing_perms[api_names])}."
+            )
+        return perms_by_ids
 
 
 class AssignPermissionSetGroups(AssignPermissionSets):
