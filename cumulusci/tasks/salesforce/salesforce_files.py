@@ -19,7 +19,7 @@ class DisplayFiles(BaseSalesforceApiTask):
         ]
         self.logger.info(f"Found {len(self.return_values)} files")
         if len(self.return_values) > 0:
-            self.logger.info(f"{'Id':<20} {'Title':<50} {'FileType':<10}")
+            self.logger.info(f"{'Id':<20} {'FileName':<50} {'FileType':<10}")
 
             # Print each row of the table
             for file_desc in self.return_values:
