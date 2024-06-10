@@ -10,7 +10,7 @@ class DisplayFiles(BaseSalesforceApiTask):
         self.return_values = [
             {
                 "Id": result["Id"],
-                "Title": result["Title"],
+                "FileName": result["Title"],
                 "FileType": result["FileType"],
             }
             for result in self.sf.query(
@@ -24,7 +24,7 @@ class DisplayFiles(BaseSalesforceApiTask):
             # Print each row of the table
             for file_desc in self.return_values:
                 self.logger.info(
-                    f"{file_desc['Id']:<20} {file_desc['Title']:<50} {file_desc['FileType']:<10}"
+                    f"{file_desc['Id']:<20} {file_desc['FileName']:<50} {file_desc['FileType']:<10}"
                 )
 
         return self.return_values

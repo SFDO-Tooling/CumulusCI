@@ -21,6 +21,6 @@ class TestDisplayFiles:
             "SELECT Title, Id, FileType FROM ContentDocument"
         )
         assert task.return_values == [
-            {"Id": "0PS000000000000", "Title": "TEST1", "FileType": "TXT"},
-            {"Id": "0PS000000000001", "Title": "TEST2", "FileType": "TXT"},
+            {"Id": "0PS000000000000", "FileName": "TEST1", "FileType": "TXT"},
+            {"Id": "0PS000000000001", "FileName": "TEST2", "FileType": "TXT"},
         ]
