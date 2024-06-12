@@ -1,7 +1,7 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
-class DisplayFiles(BaseSalesforceApiTask):
+class ListFiles(BaseSalesforceApiTask):
     task_docs = """
     Lists the available documents that has been uploaded to a library in Salesforce CRM Content or Salesforce Files
     """

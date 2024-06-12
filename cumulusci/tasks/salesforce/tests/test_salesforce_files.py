@@ -1,12 +1,12 @@
 from unittest.mock import Mock
 
-from cumulusci.tasks.salesforce.salesforce_files import DisplayFiles
+from cumulusci.tasks.salesforce.salesforce_files import ListFiles
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestDisplayFiles:
     def test_display_files(self):
-        task = create_task(DisplayFiles, {})
+        task = create_task(ListFiles, {})
         task._init_api = Mock()
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
