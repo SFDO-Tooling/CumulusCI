@@ -350,7 +350,7 @@ def retrieve_components(
             with open(os.path.join(target, "package.xml"), "w", encoding="utf-8") as f:
                 f.write(package_xml)
         if capture_output:
-            return p.stdout_text.read()
+            return p.stdout_text.read(), p.stderr_text.read()
         else:
             return None
 
