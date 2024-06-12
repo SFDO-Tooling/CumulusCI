@@ -224,10 +224,6 @@ tasks:
         class_path: cumulusci.tasks.marketing_cloud.deploy.MarketingCloudDeployTask
         description: Deploys a package zip file to a Marketing Cloud Tenant via the Marketing Cloud Package Manager API.
         group: Marketing Cloud
-    display_files:
-        description: Display documents that has been uploaded to a library in Salesforce CRM Content or Salesforce Files.
-        class_path: cumulusci.tasks.salesforce.salesforce_files.DisplayFiles
-        group: Salesforce Metadata
     marketing_cloud_create_subscriber_attribute:
         class_path: cumulusci.tasks.marketing_cloud.api.CreateSubscriberAttribute
         description: Creates a Subscriber Attribute via the Marketing Cloud SOAP API.
@@ -415,6 +411,10 @@ tasks:
         description: Prints the Community Templates available to the current org
         class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
         group: Salesforce Communities
+    list_files:
+        description: Display documents that has been uploaded to a library in Salesforce CRM Content or Salesforce Files.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.ListFiles
+        group: Salesforce Metadata
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
