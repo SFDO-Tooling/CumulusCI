@@ -183,22 +183,23 @@ Permission Set Licenses are usually associated with a Permission Set, and assign
     def _get_perm_ids(self):
         perms_by_ids = {}
         api_names = "', '".join(self.options["api_names"])
-        missing_perms = {api_name: True for api_name in self.options["api_names"]}
-        for permission_field in self.permission_name_field:
-            perms = self.sf.query(
-                f"SELECT Id,{permission_field} FROM {self.permission_name} WHERE {permission_field} IN ('{api_names}')"
-            )
-            perms_by_ids_subset = {
-                p["Id"]: p[permission_field] for p in perms["records"]
-            }
-            perms_by_ids.update(perms_by_ids_subset)
-            missing_perms.update(
-                {api_name: False for api_name in perms_by_ids.values()}
-            )
+        perms = self.sf.query(
+            f"SELECT Id,{self.permission_name_field[0]},{self.permission_name_field[1]} FROM {self.permission_name} WHERE {self.permission_name_field[0]} IN ('{api_names}') OR {self.permission_name_field[1]} IN ('{api_names}')"
+        )
+        for p in perms["records"]:
+            if p[self.permission_name_field[0]] in self.options["api_names"]:
+                perms_by_ids[p["Id"]] = p[self.permission_name_field[0]]
+            else:
+                perms_by_ids[p["Id"]] = p[self.permission_name_field[1]]
 
-        if any(missing_perms.values()):
+        missing_perms = [
+            api_name
+            for api_name in self.options["api_names"]
+            if api_name not in perms_by_ids.values()
+        ]
+        if missing_perms:
             raise CumulusCIException(
-                f"The following {self.permission_label}s were not found: {', '.join(api_names for api_names in missing_perms if missing_perms[api_names])}."
+                f"The following {self.permission_label}s were not found: {', '.join(missing_perms)}."
             )
         return perms_by_ids
 
