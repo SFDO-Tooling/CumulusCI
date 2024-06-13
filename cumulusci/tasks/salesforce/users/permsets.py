@@ -158,7 +158,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
 
 class AssignPermissionSetLicenses(AssignPermissionSets):
     task_docs = """
-Assigns Permission Set Licenses whose Developer Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Licenses that are already assigned.
+Assigns Permission Set Licenses whose Developer Names or PermissionSetLicenseKey are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Licenses that are already assigned.
 
 Permission Set Licenses are usually associated with a Permission Set, and assigning the Permission Set usually assigns the associated Permission Set License automatically.  However, in non-namespaced developer scratch orgs, assigning the associated Permission Set may not automatically assign the Permission Set License, and this task will ensure the Permission Set Licenses are assigned.
     """
