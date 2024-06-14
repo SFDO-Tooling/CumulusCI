@@ -1,7 +1,10 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-import requests
-import os
 import json
+import os
+
+import requests
+
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+
 
 class ListFiles(BaseSalesforceApiTask):
     task_docs = """
@@ -31,6 +34,7 @@ class ListFiles(BaseSalesforceApiTask):
 
         return self.return_values
 
+
 class RetrieveFiles(BaseSalesforceApiTask):
     task_docs = """
     This task downloads all the documents (files) that have been uploaded to a library in Salesforce CRM Content or Salesforce Files. 
@@ -42,7 +46,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
             "description": "The directory where the files will be saved. By default, files will be saved in Downloads",
             "required": False,
         },
-         "file_id_list": {
+        "file_id_list": {
             "description": "Specify a comma-separated list of Ids files to download. All the availables files are downloaded by default. Use display_files task to view files and their Ids",
             "required": False,
         },
@@ -60,16 +64,18 @@ class RetrieveFiles(BaseSalesforceApiTask):
         self.return_values = []
 
     def _run_task(self):
-        self.logger.info(f"Retrieving files from the specified org..")
+        self.logger.info("Retrieving files from the specified org..")
         output_directory = self.options["output_directory"]
         self.logger.info(f"Output directory: {output_directory}")
 
-        query_condition = ''
+        query_condition = ""
 
         file_id_list = self.options["file_id_list"]
 
-        if file_id_list:  # If the list of Ids of files to be downloaded is specify, fetch only those files.
-            items_list = [f"'{item.strip()}'" for item in file_id_list.split(",")]  
+        if (
+            file_id_list
+        ):  # If the list of Ids of files to be downloaded is specify, fetch only those files.
+            items_list = [f"'{item.strip()}'" for item in file_id_list.split(",")]
             query_condition = f"AND ContentDocumentId IN ({','.join(items_list)})"
 
         available_files = [
@@ -78,15 +84,17 @@ class RetrieveFiles(BaseSalesforceApiTask):
                 "FileName": result["Title"],
                 "FileType": result["FileType"],
                 "VersionData": result["VersionData"],
-                "ContentDocumentId": result["ContentDocumentId"]
+                "ContentDocumentId": result["ContentDocumentId"],
             }
             for result in self.sf.query(
-                f'SELECT Title, Id, FileType, VersionData, ContentDocumentId FROM ContentVersion WHERE isLatest=true {query_condition}'
+                f"SELECT Title, Id, FileType, VersionData, ContentDocumentId FROM ContentVersion WHERE isLatest=true {query_condition}"
             )["records"]
         ]
 
         self.logger.info(f"Found {len(available_files)} files in the org.\n")
-        self.logger.info(f'Files will be downloaded in the directory: {self.options["output_directory"]} \n' )
+        self.logger.info(
+            f'Files will be downloaded in the directory: {self.options["output_directory"]} \n'
+        )
 
         for current_file in available_files:
             versionData = current_file["VersionData"]
@@ -98,34 +106,42 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
             file_extension = current_file["FileType"].lower()
             local_filename = f"{current_file['FileName']}.{file_extension}"
-            local_filename = os.path.join(output_directory, local_filename)  
+            local_filename = os.path.join(output_directory, local_filename)
 
             self.logger.info(f"Downloading:   {current_file['FileName']}")
 
             file_exists = os.path.exists(local_filename)
 
             if file_exists:
-                file_name = current_file['FileName']
-                self.logger.info(f'A file with the name {file_name} already exists. in the directory. This file will be renamed.')
+                file_name = current_file["FileName"]
+                self.logger.info(
+                    f"A file with the name {file_name} already exists. in the directory. This file will be renamed."
+                )
             if file_exists:
                 count = 1
                 while True:
-                    local_filename = os.path.join(output_directory, f"{current_file['FileName']} ({count}).{file_extension}")
+                    local_filename = os.path.join(
+                        output_directory,
+                        f"{current_file['FileName']} ({count}).{file_extension}",
+                    )
                     if not os.path.exists(local_filename):
                         break
-                    count+=1
+                    count += 1
 
-            os.makedirs(os.path.dirname(local_filename), exist_ok=True)  # Create the folder if it doesn't exist
+            os.makedirs(
+                os.path.dirname(local_filename), exist_ok=True
+            )  # Create the folder if it doesn't exist
 
-            with open(local_filename, 'wb') as f:
+            with open(local_filename, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
 
-            self.logger.info('\n')
+            self.logger.info("\n")
 
         self.return_values = available_files
         return self.return_values
+
 
 class UploadFiles(BaseSalesforceApiTask):
     task_docs = """
@@ -167,7 +183,7 @@ class UploadFiles(BaseSalesforceApiTask):
         }
 
         if file_list:
-            files_to_upload = file_list.split(',')
+            files_to_upload = file_list.split(",")
         else:
             files_to_upload = os.listdir(path)
 
@@ -175,20 +191,26 @@ class UploadFiles(BaseSalesforceApiTask):
             file_path = os.path.join(path, filename.strip())
 
             if os.path.isfile(file_path):
-                with open(file_path, 'rb') as file:
+                with open(file_path, "rb") as file:
                     # Construct the payload for the entity content
-                    title = os.path.splitext(os.path.basename(file_path))[0] # File name
+                    title = os.path.splitext(os.path.basename(file_path))[
+                        0
+                    ]  # File name
 
                     entity_content = {
-                        'Title': title,
-                        'PathOnClient': file_path,
+                        "Title": title,
+                        "PathOnClient": file_path,
                     }
 
                     self.return_values.append(entity_content)
 
                     files = {
-                        'entity_content': ('', json.dumps(entity_content), 'application/json'),
-                        'VersionData': (filename, file, 'application/octet-stream')
+                        "entity_content": (
+                            "",
+                            json.dumps(entity_content),
+                            "application/json",
+                        ),
+                        "VersionData": (filename, file, "application/octet-stream"),
                     }
 
                     try:
@@ -198,13 +220,19 @@ class UploadFiles(BaseSalesforceApiTask):
                         # Parse the response JSON
                         response_json = response.json()
 
-                        if response.status_code == 201: # Upload successful
+                        if response.status_code == 201:  # Upload successful
                             content_version_id = response_json["id"]
-                            self.logger.info(f"File '{filename}' uploaded successfully. ContentVersion Id: {content_version_id}")
+                            self.logger.info(
+                                f"File '{filename}' uploaded successfully. ContentVersion Id: {content_version_id}"
+                            )
                         else:
-                            self.logger.error(f"Failed to upload file '{filename}': {response_json}")
+                            self.logger.error(
+                                f"Failed to upload file '{filename}': {response_json}"
+                            )
                     except requests.RequestException as e:
                         self.logger.error(f"Error uploading file '{filename}': {e}")
-                        self.logger.error(e.response.content)  # Print response content in case of error
+                        self.logger.error(
+                            e.response.content
+                        )  # Print response content in case of error
 
-        return self.return_values # Returns a list containing all the files uplaoded.
+        return self.return_values  # Returns a list containing all the files uplaoded.
