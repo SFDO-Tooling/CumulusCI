@@ -105,7 +105,8 @@ class RetrieveFiles(BaseSalesforceApiTask):
             file_exists = os.path.exists(local_filename)
 
             if file_exists:
-                self.logger.info(f'A file with the name {current_file['FileName']} already exists. in the directory. This file will be renamed.')
+                file_name = current_file['FileName']
+                self.logger.info(f'A file with the name {file_name} already exists. in the directory. This file will be renamed.')
             if file_exists:
                 count = 1
                 while True:

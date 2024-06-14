@@ -751,10 +751,6 @@ tasks:
         description: Upload documents (files) to a Salesforce org.
         class_path: cumulusci.tasks.salesforce.salesforce_files.UploadFiles
         group: Salesforce Metadata
-    display_files:
-        description: Display documents that has been uploaded to a library in Salesforce CRM Content or Salesforce Files.
-        class_path: cumulusci.tasks.salesforce.salesforce_files.DisplayFiles
-        group: Salesforce Metadata
 flows:
     ci_beta:
         group: Continuous Integration
