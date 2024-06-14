@@ -171,7 +171,7 @@ class TestUploadFiles(unittest.TestCase):
         expected_calls = [
             call(
                 "https://test.salesforce.com/services/data/v50.0/sobjects/ContentVersion/",
-                headers={"Authorization": "Bearer testtoken"},
+                headers={"Authorization": "Bearer test token"},
                 files={
                     "entity_content": (
                         "",
@@ -192,7 +192,7 @@ class TestUploadFiles(unittest.TestCase):
             ),
             call(
                 "https://test.salesforce.com/services/data/v50.0/sobjects/ContentVersion/",
-                headers={"Authorization": "Bearer testtoken"},
+                headers={"Authorization": "Bearer test token"},
                 files={
                     "entity_content": (
                         "",
