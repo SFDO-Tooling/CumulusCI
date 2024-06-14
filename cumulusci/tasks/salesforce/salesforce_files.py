@@ -37,7 +37,7 @@ class ListFiles(BaseSalesforceApiTask):
 
 class RetrieveFiles(BaseSalesforceApiTask):
     task_docs = """
-    This task downloads all the documents (files) that have been uploaded to a library in Salesforce CRM Content or Salesforce Files. 
+    This task downloads all the documents (files) that have been uploaded to a library in Salesforce CRM Content or Salesforce Files.
     Use the task display_files in order to view the files that are available to download.
     """
 
@@ -145,7 +145,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
 class UploadFiles(BaseSalesforceApiTask):
     task_docs = """
-    This task uploads files to a Salesforce org. 
+    This task uploads files to a Salesforce org.
     """
     task_options = {
         "path": {
