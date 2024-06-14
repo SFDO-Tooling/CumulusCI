@@ -67,9 +67,7 @@ class TestRetrieveFiles(unittest.TestCase):
         mock_org_config.access_token = "test token"
 
         # Create task with mocked Salesforce and org config
-        task = create_task(
-            RetrieveFiles, {"output_directory": "test_dir", "file_id_list": ""}
-        )
+        task = create_task(RetrieveFiles, {"path": "test_dir", "file_list": ""})
         task.sf = mock_sf
         task.org_config = mock_org_config
 

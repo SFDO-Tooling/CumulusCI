@@ -42,12 +42,12 @@ class RetrieveFiles(BaseSalesforceApiTask):
     """
 
     task_options = {
-        "output_directory": {
-            "description": "The directory where the files will be saved. By default, files will be saved in Downloads",
+        "path": {
+            "description": "The directory where the files will be saved. By default, files will be saved in Files",
             "required": False,
         },
-        "file_id_list": {
-            "description": "Specify a comma-separated list of Ids files to download. All the availables files are downloaded by default. Use display_files task to view files and their Ids",
+        "file_list": {
+            "description": "Specify a comma-separated list of the names of the files to download, enclosed in double quotation marks. All the availables files are downloaded by default. Use display_files task to view files in the specified org.",
             "required": False,
         },
     }
@@ -55,28 +55,28 @@ class RetrieveFiles(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(RetrieveFiles, self)._init_options(kwargs)
 
-        if "output_directory" not in self.options:
-            self.options["output_directory"] = "Files"
+        if "path" not in self.options:
+            self.options["path"] = "Files"
 
-        if "file_id_list" not in self.options:
-            self.options["file_id_list"] = ""
+        if "file_list" not in self.options:
+            self.options["file_list"] = ""
 
         self.return_values = []
 
     def _run_task(self):
         self.logger.info("Retrieving files from the specified org..")
-        output_directory = self.options["output_directory"]
-        self.logger.info(f"Output directory: {output_directory}")
+        path = self.options["path"]
+        self.logger.info(f"Output directory: {path}")
 
         query_condition = ""
 
-        file_id_list = self.options["file_id_list"]
+        file_list = self.options["file_list"]
 
         if (
-            file_id_list
+            file_list
         ):  # If the list of Ids of files to be downloaded is specify, fetch only those files.
-            items_list = [f"'{item.strip()}'" for item in file_id_list.split(",")]
-            query_condition = f"AND ContentDocumentId IN ({','.join(items_list)})"
+            items_list = [f"'{item.strip()}'" for item in file_list.split(",")]
+            query_condition = f"AND Title IN ({','.join(items_list)})"
 
         available_files = [
             {
@@ -93,7 +93,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
         self.logger.info(f"Found {len(available_files)} files in the org.\n")
         self.logger.info(
-            f'Files will be downloaded in the directory: {self.options["output_directory"]} \n'
+            f'Files will be downloaded in the directory: {self.options["path"]} \n'
         )
 
         for current_file in available_files:
@@ -106,7 +106,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
             file_extension = current_file["FileType"].lower()
             local_filename = f"{current_file['FileName']}.{file_extension}"
-            local_filename = os.path.join(output_directory, local_filename)
+            local_filename = os.path.join(path, local_filename)
 
             self.logger.info(f"Downloading:   {current_file['FileName']}")
 
@@ -115,13 +115,13 @@ class RetrieveFiles(BaseSalesforceApiTask):
             if file_exists:
                 file_name = current_file["FileName"]
                 self.logger.info(
-                    f"A file with the name {file_name} already exists. in the directory. This file will be renamed."
+                    f"A file with the name {file_name} already exists in the directory. This file will be renamed."
                 )
             if file_exists:
                 count = 1
                 while True:
                     local_filename = os.path.join(
-                        output_directory,
+                        path,
                         f"{current_file['FileName']} ({count}).{file_extension}",
                     )
                     if not os.path.exists(local_filename):
