@@ -419,6 +419,10 @@ tasks:
         description: Retrieve documents that have been uploaded to a library in Salesforce CRM Content or Salesforce Files.
         class_path: cumulusci.tasks.salesforce.salesforce_files.RetrieveFiles
         group: Salesforce Metadata
+    upload_files:
+        description: Upload documents (files) to a Salesforce org.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.UploadFiles
+        group: Salesforce Metadata
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes

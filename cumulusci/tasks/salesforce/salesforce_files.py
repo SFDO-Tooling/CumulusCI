@@ -126,3 +126,85 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
         self.return_values = available_files
         return self.return_values
+
+class UploadFiles(BaseSalesforceApiTask):
+    task_docs = """
+    This task uploads files to a Salesforce org. 
+    """
+    task_options = {
+        "path": {
+            "description": "The directory to upload files from. By default, files under 'Files' folder are uploaded.",
+            "required": False,
+        },
+        "file_list": {
+            "description": "Specify a comma-separated list of files to upload. All the files in the specified directory are uploaded by default.",
+            "required": False,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(UploadFiles, self)._init_options(kwargs)
+
+        if "path" not in self.options:
+            self.options["path"] = "Files"
+        
+        if "file_list" not in self.options:
+            self.options["file_list"] = ""
+        
+        self.return_values = []
+
+    def _run_task(self):
+        path = self.options["path"]
+        file_list = self.options["file_list"]
+
+        # Salesforce REST API endpoint for uploading files
+        api_version = self.project_config.project__package__api_version
+        url = f"{self.org_config.instance_url}/services/data/v{api_version}/sobjects/ContentVersion/"
+
+        # Prepare the request headers
+        headers = {
+            "Authorization": f"Bearer {self.org_config.access_token}",
+        }
+
+        if file_list:
+            files_to_upload = file_list.split(',')
+        else:
+            files_to_upload = os.listdir(path)
+
+        for filename in files_to_upload:
+            file_path = os.path.join(path, filename.strip())
+
+            if os.path.isfile(file_path):
+                with open(file_path, 'rb') as file:
+                    # Construct the payload for the entity content
+                    title = os.path.splitext(os.path.basename(file_path))[0] # File name
+
+                    entity_content = {
+                        'Title': title,
+                        'PathOnClient': file_path,
+                    }
+
+                    self.return_values.append(entity_content)
+
+                    files = {
+                        'entity_content': ('', json.dumps(entity_content), 'application/json'),
+                        'VersionData': (filename, file, 'application/octet-stream')
+                    }
+
+                    try:
+                        response = requests.post(url, headers=headers, files=files)
+                        response.raise_for_status()  # Raise an exception for HTTP errors
+
+                        # Parse the response JSON
+                        response_json = response.json()
+
+                        if response.status_code == 201: # Upload successful
+                            content_version_id = response_json["id"]
+                            self.logger.info(f"File '{filename}' uploaded successfully. ContentVersion Id: {content_version_id}")
+                        else:
+                            self.logger.error(f"Failed to upload file '{filename}': {response_json}")
+                    except requests.RequestException as e:
+                        self.logger.error(f"Error uploading file '{filename}': {e}")
+                        self.logger.error(e.response.content)  # Print response content in case of error
+        
+        return self.return_values # Returns a list containing all the files uplaoded.
