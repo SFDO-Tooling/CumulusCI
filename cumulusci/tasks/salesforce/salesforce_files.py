@@ -38,7 +38,7 @@ class ListFiles(BaseSalesforceApiTask):
 class RetrieveFiles(BaseSalesforceApiTask):
     task_docs = """
     This task downloads all the documents (files) that have been uploaded to a library in Salesforce CRM Content or Salesforce Files.
-    Use the task display_files in order to view the files that are available to download.
+    Use the task list_files in order to view the files that are available to download.
     """
 
     task_options = {
@@ -47,7 +47,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
             "required": False,
         },
         "file_list": {
-            "description": "Specify a comma-separated list of the names of the files to download, enclosed in double quotation marks. All the availables files are downloaded by default. Use display_files task to view files in the specified org.",
+            "description": "Specify a comma-separated list of the names of the files to download, enclosed in double quotation marks. All the availables files are downloaded by default. Use list_files task to view files in the specified org.",
             "required": False,
         },
     }
@@ -74,7 +74,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
         if (
             file_list
-        ):  # If the list of Ids of files to be downloaded is specify, fetch only those files.
+        ):  # If the list of names of files to be downloaded is specified, fetch only those files.
             items_list = [f"'{item.strip()}'" for item in file_list.split(",")]
             query_condition = f"AND Title IN ({','.join(items_list)})"
 
