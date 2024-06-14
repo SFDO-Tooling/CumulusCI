@@ -64,7 +64,7 @@ class TestRetrieveFiles(unittest.TestCase):
         # Mock org config
         mock_org_config = Mock()
         mock_org_config.instance_url = "https://test.salesforce.com"
-        mock_org_config.access_token = "testtoken"
+        mock_org_config.access_token = "test token"
 
         # Create task with mocked Salesforce and org config
         task = create_task(
@@ -138,7 +138,7 @@ class TestUploadFiles(unittest.TestCase):
         # Mock org config and project config
         mock_org_config = Mock()
         mock_org_config.instance_url = "https://test.salesforce.com"
-        mock_org_config.access_token = "testtoken"
+        mock_org_config.access_token = "test token"
 
         mock_project_config = Mock()
         mock_project_config.project__package__api_version = "50.0"
