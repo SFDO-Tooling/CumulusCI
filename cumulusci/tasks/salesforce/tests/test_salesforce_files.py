@@ -122,7 +122,10 @@ class TestUploadFiles(unittest.TestCase):
 
         # Mock file discovery
         mock_listdir.return_value = ['file1.txt', 'file2.txt']
-        mock_isfile.side_effect = lambda filepath: filepath in ['test_dir/file1.txt', 'test_dir/file2.txt']
+        mock_isfile.side_effect = lambda filepath: filepath in [
+            os.path.join('test_dir', 'file1.txt'), 
+            os.path.join('test_dir', 'file2.txt')
+        ]
 
         # Mock requests response
         mock_response = Mock()
@@ -133,17 +136,16 @@ class TestUploadFiles(unittest.TestCase):
         # Run the task
         task._run_task()
 
-        # Check if files are read correctly
-        mock_open.assert_any_call('test_dir/file1.txt', 'rb')
-        mock_open.assert_any_call('test_dir/file2.txt', 'rb')
-
+        mock_open.assert_any_call(os.path.join('test_dir', 'file1.txt'), 'rb')
+        mock_open.assert_any_call(os.path.join('test_dir', 'file2.txt'), 'rb')
+        
         # Check if requests.post was called correctly
         expected_calls = [
             call(
                 'https://test.salesforce.com/services/data/v50.0/sobjects/ContentVersion/',
                 headers={'Authorization': 'Bearer testtoken'},
                 files={
-                    'entity_content': ('', json.dumps({'Title': 'file1', 'PathOnClient': 'test_dir/file1.txt'}), 'application/json'),
+                    'entity_content': ('', json.dumps({'Title': 'file1', 'PathOnClient': os.path.join('test_dir', 'file1.txt')}), 'application/json'),
                     'VersionData': ('file1.txt', mock_open(), 'application/octet-stream')
                 }
             ),
@@ -151,15 +153,15 @@ class TestUploadFiles(unittest.TestCase):
                 'https://test.salesforce.com/services/data/v50.0/sobjects/ContentVersion/',
                 headers={'Authorization': 'Bearer testtoken'},
                 files={
-                    'entity_content': ('', json.dumps({'Title': 'file2', 'PathOnClient': 'test_dir/file2.txt'}), 'application/json'),
+                    'entity_content': ('', json.dumps({'Title': 'file2', 'PathOnClient': os.path.join('test_dir', 'file2.txt')}), 'application/json'),
                     'VersionData': ('file2.txt', mock_open(), 'application/octet-stream')
                 }
             )
         ]
-        mock_post.assert_has_calls(expected_calls, any_order=True)
 
-        # Check if return values are set correctly
         self.assertEqual(task.return_values, [
-            {'Title': 'file1', 'PathOnClient': 'test_dir/file1.txt'},
-            {'Title': 'file2', 'PathOnClient': 'test_dir/file2.txt'}
+            {'Title': 'file1', 'PathOnClient': os.path.join('test_dir', 'file1.txt')},
+            {'Title': 'file2', 'PathOnClient': os.path.join('test_dir', 'file2.txt')}
         ])
+        
+        mock_post.assert_has_calls(expected_calls, any_order=True)
