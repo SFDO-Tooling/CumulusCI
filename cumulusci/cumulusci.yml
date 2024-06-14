@@ -743,6 +743,18 @@ tasks:
         class_path: cumulusci.tasks.vlocity.vlocity.VlocityDeployTask
         description: "Executes the `vlocity packDeploy` command against an org"
         group: OmniStudio
+    retrieve_files:
+        description: Retrieve documents that have been uploaded to a library in Salesforce CRM Content or Salesforce Files.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.RetrieveFiles
+        group: Salesforce Metadata
+    upload_files:
+        description: Upload documents (files) to a Salesforce org.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.UploadFiles
+        group: Salesforce Metadata
+    display_files:
+        description: Display documents that has been uploaded to a library in Salesforce CRM Content or Salesforce Files.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.DisplayFiles
+        group: Salesforce Metadata
 flows:
     ci_beta:
         group: Continuous Integration
