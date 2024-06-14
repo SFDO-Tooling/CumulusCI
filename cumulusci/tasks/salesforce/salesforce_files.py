@@ -8,7 +8,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 class ListFiles(BaseSalesforceApiTask):
     task_docs = """
-    Lists the available documents that has been uploaded to a library in Salesforce CRM Content or Salesforce Files
+    Lists the available documents that have been uploaded to a library in Salesforce CRM Content or Salesforce Files
     """
 
     def _run_task(self):

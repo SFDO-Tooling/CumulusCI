@@ -34,7 +34,6 @@ class TestDisplayFiles:
 
 
 class TestRetrieveFiles(unittest.TestCase):
-
     @patch("requests.get")
     @patch("os.path.exists")
     @patch("os.makedirs")
@@ -93,12 +92,12 @@ class TestRetrieveFiles(unittest.TestCase):
         expected_calls = [
             call(
                 "https://test.salesforce.com/version1",
-                headers={"Authorization": "Bearer testtoken"},
+                headers={"Authorization": "Bearer test token"},
                 stream=True,
             ),
             call(
                 "https://test.salesforce.com/version2",
-                headers={"Authorization": "Bearer testtoken"},
+                headers={"Authorization": "Bearer test token"},
                 stream=True,
             ),
         ]
@@ -131,7 +130,6 @@ class TestRetrieveFiles(unittest.TestCase):
 
 
 class TestUploadFiles(unittest.TestCase):
-
     @patch("requests.post")
     @patch("os.listdir")
     @patch("os.path.isfile")
