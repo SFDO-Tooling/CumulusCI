@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import Mock, patch, call, mock_open
 import os
-import requests
 import json
 from cumulusci.tasks.salesforce.salesforce_files import ListFiles, UploadFiles, RetrieveFiles
 from cumulusci.tasks.salesforce.tests.util import create_task

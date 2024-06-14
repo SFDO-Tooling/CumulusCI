@@ -32,11 +32,11 @@ class ListFiles(BaseSalesforceApiTask):
         return self.return_values
 
 class RetrieveFiles(BaseSalesforceApiTask):
-    #task.org_config
     task_docs = """
     This task downloads all the documents (files) that have been uploaded to a library in Salesforce CRM Content or Salesforce Files. 
     Use the task display_files in order to view the files that are available to download.
     """
+
     task_options = {
         "output_directory": {
             "description": "The directory where the files will be saved. By default, files will be saved in Downloads",
@@ -47,13 +47,13 @@ class RetrieveFiles(BaseSalesforceApiTask):
             "required": False,
         },
     }
-    
+
     def _init_options(self, kwargs):
         super(RetrieveFiles, self)._init_options(kwargs)
 
         if "output_directory" not in self.options:
             self.options["output_directory"] = "Files"
-        
+
         if "file_id_list" not in self.options:
             self.options["file_id_list"] = ""
 
@@ -68,7 +68,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
         file_id_list = self.options["file_id_list"]
 
-        if file_id_list: # If the list of Ids of files to be downloaded is specify, fetch only those files.
+        if file_id_list:  # If the list of Ids of files to be downloaded is specify, fetch only those files.
             items_list = [f"'{item.strip()}'" for item in file_id_list.split(",")]  
             query_condition = f"AND ContentDocumentId IN ({','.join(items_list)})"
 
@@ -114,7 +114,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
                     if not os.path.exists(local_filename):
                         break
                     count+=1
-            
+
             os.makedirs(os.path.dirname(local_filename), exist_ok=True)  # Create the folder if it doesn't exist
 
             with open(local_filename, 'wb') as f:
@@ -147,10 +147,10 @@ class UploadFiles(BaseSalesforceApiTask):
 
         if "path" not in self.options:
             self.options["path"] = "Files"
-        
+
         if "file_list" not in self.options:
             self.options["file_list"] = ""
-        
+
         self.return_values = []
 
     def _run_task(self):
@@ -206,5 +206,5 @@ class UploadFiles(BaseSalesforceApiTask):
                     except requests.RequestException as e:
                         self.logger.error(f"Error uploading file '{filename}': {e}")
                         self.logger.error(e.response.content)  # Print response content in case of error
-        
+
         return self.return_values # Returns a list containing all the files uplaoded.
