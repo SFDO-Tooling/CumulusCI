@@ -52,6 +52,8 @@ class UpgradeType(StrEnum):
     DEPRECATE_ONLY = "deprecate-only"
     MIXED = "mixed"
 
+class SkipHandlers(StrEnum):
+    FEATURE_ENFORCEMENT = "FeatureEnforcement"
 
 class PackageInstallOptions(CCIModel):
     """Options governing installation behavior for a managed or unlocked package."""
@@ -62,6 +64,7 @@ class PackageInstallOptions(CCIModel):
     security_type: SecurityType = SecurityType.FULL
     apex_compile_type: Optional[ApexCompileType] = None
     upgrade_type: Optional[UpgradeType] = None
+    skip_handlers: SkipHandlers = SkipHandlers.FEATURE_ENFORCEMENT
 
     @staticmethod
     def from_task_options(task_options: dict) -> "PackageInstallOptions":
@@ -86,6 +89,8 @@ class PackageInstallOptions(CCIModel):
                 )
             if "upgrade_type" in task_options:
                 options.upgrade_type = UpgradeType(task_options["upgrade_type"])
+            if "skip_handlers" in task_options:
+                options.skip_handlers = SkipHandlers(task_options["skip_handlers"])
         except ValueError as e:
             raise TaskOptionsError(f"Invalid task options: {e}")
 
@@ -110,6 +115,9 @@ PACKAGE_INSTALL_TASK_OPTIONS = {
     },
     "upgrade_type": {
         "description": "For Unlocked Package upgrades only, whether to deprecate removed components (`deprecate-only`), delete them (`delete-only`), or delete and deprecate based on safety (`mixed`). `mixed` is the default behavior."
+    },
+    "skip_handlers": {
+        "description": "Specifies the handlers that are skipped when the package is installed. There's only one valid value:`FeatureEnforcement`: For package installs in scratch orgs only. Available in API version 61.0 and later."
     },
 }
 
@@ -171,6 +179,7 @@ def _install_package_by_version_id(
             "SubscriberPackageVersionKey": version_id,
             "UpgradeType": options.upgrade_type,
             "ApexCompileType": options.apex_compile_type,
+            "SkipHandlers": options.skip_handlers,
         }
     )
     poll(functools.partial(_wait_for_package_install, tooling, request))
