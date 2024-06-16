@@ -359,7 +359,7 @@ class AbstractGitHubReleaseBranchResolver(
 
 class GitHubReleaseBranchCommitStatusResolver(AbstractGitHubReleaseBranchResolver):
     """Resolver that identifies a ref by finding a beta 2GP package version
-    in a commit status on a `feature/NNN` release branch."""
+    in a commit status on a `feature/NNN`  release branch."""
 
     name = "GitHub Release Branch Commit Status Resolver"
     commit_status_context = "2gp_context"
@@ -545,7 +545,6 @@ def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
     ignore_namespace = [d["namespace"] for d in ignore_deps if "namespace" in d]
 
     def should_include(some_dep: Dependency) -> bool:
-
         if isinstance(some_dep, PackageNamespaceVersionDependency):
             return some_dep.namespace not in ignore_namespace
         if isinstance(some_dep, BaseGitHubDependency):

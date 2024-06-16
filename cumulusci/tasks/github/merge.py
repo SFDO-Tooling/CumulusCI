@@ -7,6 +7,7 @@ from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils.git import is_release_branch
+from cumulusci.utils.version_strings import LooseVersion
 
 
 class MergeBranch(BaseGithubTask):
@@ -195,7 +196,7 @@ class MergeBranch(BaseGithubTask):
         return to_merge
 
     def _get_next_release(self, repo_branches):
-        """Returns the integer that corresponds to the lowest release number found on all release branches.
+        """Returns the version number that corresponds to the lowest release number found on all release branches.
         NOTE: We assume that once a release branch is merged that it will be deleted.
         """
         release_nums = [
@@ -231,12 +232,14 @@ class MergeBranch(BaseGithubTask):
         """A release branch begins with the given prefix"""
         return is_release_branch(branch_name, self.options["branch_prefix"])
 
-    def _get_release_number(self, branch_name) -> int:
+    def _get_release_number(self, branch_name) -> LooseVersion:
         """Get the release number from a release branch name.
 
         Assumes we already know it is a release branch.
         """
-        return int(branch_name.split(self.options["branch_prefix"])[1])
+        version = branch_name.split(self.options["branch_prefix"])[1]
+        version = LooseVersion(version)
+        return version
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""
@@ -305,4 +308,6 @@ class MergeBranch(BaseGithubTask):
     def _get_release_num(self, release_branch_name):
         """Given a release branch, returns an integer that
         corresponds to the release number for that branch"""
-        return int(release_branch_name.split(self.options["branch_prefix"])[1])
+        version = release_branch_name.split(self.options["branch_prefix"])[1]
+        version = LooseVersion(version)
+        return version
