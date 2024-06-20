@@ -7,7 +7,7 @@ on:
 
 jobs:
     check_api_versions:
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         outputs:
             hub_version: ${{ steps.devhub-api-version.outputs.hub_version }}
             cci_version: ${{ steps.cci-api-version.outputs.cci_version }}
@@ -30,7 +30,7 @@ jobs:
                   version=$(yq '.project.package.api_version' cumulusci/cumulusci.yml)
                   echo "::set-output name=cci_version::$version"
     update_api_versions:
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         needs: check_api_versions
         if: ${{ needs.check_api_versions.outputs.hub_version != needs.check_api_versions.outputs.cci_version }}
         env:

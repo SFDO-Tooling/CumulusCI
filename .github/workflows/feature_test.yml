@@ -16,7 +16,7 @@ jobs:
     docs:
         name: Build Docs
         if: ${{ github.event_name == 'pull_request' }}
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - name: "Checkout"
               uses: actions/checkout@v2
@@ -40,7 +40,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [macos-latest, sfdc-ubuntu-latest, sfdc-windows-latest]
+                os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
                 python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
                 exclude:
                     - os: macos-latest
@@ -63,7 +63,7 @@ jobs:
 
     robot_api:
         name: "Robot: No browser"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
