@@ -2,6 +2,21 @@
 
 <!-- latest-start -->
 
+## v3.89.0 (2024-06-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   @W-15946941: New task added to display files in the salesforce org by [@lakshmi2506](https://github.com/lakshmi2506) in [#3799](https://github.com/SFDO-Tooling/CumulusCI/pull/3799)
+-   W-15805907: assign_permission_set_licenses accepts the api_names in either developerName or the PermissionSetLicenseKey by [@lakshmi2506](https://github.com/lakshmi2506) in [#3798](https://github.com/SFDO-Tooling/CumulusCI/pull/3798)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.88.0...v3.89.0
+
+<!-- latest-stop -->
+
 ## v3.88.0 (2024-05-24)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -22,8 +37,6 @@
 -   @yippie made their first contribution in [#3566](https://github.com/SFDO-Tooling/CumulusCI/pull/3566)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.87.0...v3.88.0
-
-<!-- latest-stop -->
 
 ## v3.87.0 (2024-05-17)
 
