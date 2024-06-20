@@ -10,8 +10,8 @@
 
 ### Changes 🎉
 
--   @W-15946941: New task added to display files in the salesforce org by [@lakshmi2506](https://github.com/lakshmi2506) in [#3799](https://github.com/SFDO-Tooling/CumulusCI/pull/3799)
--   W-15805907: assign_permission_set_licenses accepts the api_names in either developerName or the PermissionSetLicenseKey by [@lakshmi2506](https://github.com/lakshmi2506) in [#3798](https://github.com/SFDO-Tooling/CumulusCI/pull/3798)
+-   Added the `list_files` task to display files in an org by [@lakshmi2506](https://github.com/lakshmi2506) in [#3799](https://github.com/SFDO-Tooling/CumulusCI/pull/3799)
+-   The `api_names` option of the `assign_permission_set_licenses` task now accepts either `DeveloperName` or `PermissionSetLicenseKey` by [@lakshmi2506](https://github.com/lakshmi2506) in [#3798](https://github.com/SFDO-Tooling/CumulusCI/pull/3798)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.88.0...v3.89.0
 
