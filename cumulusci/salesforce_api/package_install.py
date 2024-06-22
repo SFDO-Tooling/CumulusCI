@@ -64,7 +64,7 @@ class PackageInstallOptions(CCIModel):
     security_type: SecurityType = SecurityType.FULL
     apex_compile_type: Optional[ApexCompileType] = None
     upgrade_type: Optional[UpgradeType] = None
-    skip_handlers: SkipHandlers = SkipHandlers.FEATURE_ENFORCEMENT
+    skip_handlers: SkipHandlers = None
 
     @staticmethod
     def from_task_options(task_options: dict) -> "PackageInstallOptions":
@@ -90,7 +90,7 @@ class PackageInstallOptions(CCIModel):
             if "upgrade_type" in task_options:
                 options.upgrade_type = UpgradeType(task_options["upgrade_type"])
             if "skip_handlers" in task_options:
-                options.skip_handlers = SkipHandlers(task_options["skip_handlers"])
+                options.skip_handlers = SkipHandlers(task_options["skip_handlers"]) # allow for multiple values in the futute.
         except ValueError as e:
             raise TaskOptionsError(f"Invalid task options: {e}")
 
