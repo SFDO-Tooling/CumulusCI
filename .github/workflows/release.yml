@@ -12,7 +12,7 @@ concurrency: publishing
 jobs:
     publish-to-pypi:
         name: Publish new release to PyPI
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@main
             - name: Set up Python 3.8
