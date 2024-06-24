@@ -34,7 +34,7 @@ env:
 jobs:
     test_artifacts:
         name: "Test Package Artifacts"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v3
             - name: Set up Python 3.8
@@ -67,7 +67,7 @@ jobs:
 
     test_release:
         name: "Test Release Flows"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         concurrency: release
         steps:
             - uses: actions/checkout@v3
