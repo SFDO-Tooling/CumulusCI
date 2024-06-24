@@ -47,7 +47,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
             "required": False,
         },
         "file_list": {
-            "description": "Specify a comma-separated list of the names of the files to download, enclosed in double quotation marks. All the availables files are downloaded by default. Use list_files task to view files in the specified org.",
+            "description": "Specify a comma-separated list of the names of the files along with file extension to download, enclosed in double quotation marks. All the availables files are downloaded by default. Use list_files task to view files in the specified org.",
             "required": False,
         },
     }
@@ -75,8 +75,14 @@ class RetrieveFiles(BaseSalesforceApiTask):
         if (
             file_list
         ):  # If the list of names of files to be downloaded is specified, fetch only those files.
-            items_list = [f"'{item.strip()}'" for item in file_list.split(",")]
-            query_condition = f"AND Title IN ({','.join(items_list)})"
+            items_list = [item.strip() for item in file_list.split(",")]
+            conditions = []
+            for item in items_list:
+                file_name, file_extension = os.path.splitext(item)
+                conditions.append(
+                    f"(Title = '{file_name}' AND FileType = '{file_extension[1:]}')"
+                )
+            query_condition = f"AND ({' OR '.join(conditions)})"
 
         available_files = [
             {
