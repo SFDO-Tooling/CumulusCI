@@ -1,6 +1,5 @@
 from cumulusci.core.datasets import Dataset
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
@@ -18,17 +17,10 @@ class LoadDataSetCheck(BaseSalesforceApiTask):
             "description": "Dataset on which we need to perform the preflight checks",
             "required": False,
         },
-        "drop_missing_schema": {
-            "description": "Drop the missing fields or sobjects to have successful loading",
-            "required": False,
-        },
     }
 
     def _init_options(self, kwargs):
         super(BaseSalesforceApiTask, self)._init_options(kwargs)
-        self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema") or False
-        )
         self.options["dataset"] = self.options.get("dataset") or "default"
 
     def _run_task(self):
@@ -47,7 +39,7 @@ class LoadDataSetCheck(BaseSalesforceApiTask):
                 namespace=self.project_config.project__package__namespace,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=True,
-                drop_missing=self.options["drop_missing_schema"],
+                drop_missing=False,
             )
             self.return_values = True
         except BulkDataException as e:

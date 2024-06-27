@@ -478,7 +478,7 @@ class MappingStep(CCIDictModel):
 
         return True
 
-    def check_required(self, fields_describe, fields):
+    def check_required(self, fields_describe):
         required_fields = set()
         for field in fields_describe:
             defaulted = (
@@ -488,7 +488,9 @@ class MappingStep(CCIDictModel):
             )
             if fields_describe[field]["createable"] and not defaulted:
                 required_fields.add(field)
-        missing_fields = required_fields.difference(set(fields.values()))
+        missing_fields = required_fields.difference(
+            set(self.fields.keys()) | set(self.lookups)
+        )
         if len(missing_fields) > 0:
             logger.error(
                 f"One or more required fields are missing for loading on {self.sf_object} :{missing_fields}"
@@ -552,7 +554,7 @@ class MappingStep(CCIDictModel):
         )
 
         if is_load:
-            required_fields_correct = self.check_required(describe, self.fields)
+            required_fields_correct = self.check_required(describe)
             if not required_fields_correct:
                 return False
 

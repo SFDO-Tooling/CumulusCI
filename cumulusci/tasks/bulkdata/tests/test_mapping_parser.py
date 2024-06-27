@@ -930,7 +930,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    AccountId:\n      table: Account"
                 )
             )
         )
@@ -1027,7 +1027,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    Id:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    Id:\n      table: Account"
                 )
             )
         )
