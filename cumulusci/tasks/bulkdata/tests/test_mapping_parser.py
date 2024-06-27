@@ -1206,7 +1206,7 @@ class TestMappingLookup:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: account\n  table: account\n  fields:\n    - name\n"
-                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - fIRSTnAME\n  lookups:\n    accountid:\n      table: account"
+                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - LaSTnAME\n  lookups:\n    accountid:\n      table: account"
                 )
             )
         )
