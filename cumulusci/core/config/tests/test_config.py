@@ -1039,7 +1039,7 @@ class TestOrgConfig:
         with mock.patch.dict(
             os.environ,
             {
-                "SF_CUSTOM_URL_RE": "\\.test\\.url\\.dev:6101",
+                "SF_CUSTOM_URL_RE": "\\.test\\.url\\.dev",
                 "SF_CUSTOM_URL_BASE": ".api.url.dev",
             },
         ):
