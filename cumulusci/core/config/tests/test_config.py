@@ -1045,7 +1045,7 @@ class TestOrgConfig:
         ):
             config = OrgConfig(
                 {
-                    "instance_url": "https://special.custom.test.url.dev:6101",
+                    "instance_url": "https://special.custom.test.url.dev",
                 },
                 "test",
             )
