@@ -14,14 +14,15 @@ class LoadDataSetCheck(BaseSalesforceApiTask):
     """
     task_options = {
         "dataset": {
-            "description": "Dataset on which we need to perform the preflight checks",
+            "description": "Dataset on which preflight checks need to be performed",
             "required": False,
         },
     }
 
     def _init_options(self, kwargs):
         super(BaseSalesforceApiTask, self)._init_options(kwargs)
-        self.options["dataset"] = self.options.get("dataset") or "default"
+        if "dataset" not in self.options:
+            self.options["dataset"] = "default"
 
     def _run_task(self):
         mapping_file_path = Dataset(
