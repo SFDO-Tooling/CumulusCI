@@ -478,6 +478,27 @@ class MappingStep(CCIDictModel):
 
         return True
 
+    def check_required(self, fields_describe):
+        required_fields = set()
+        for field in fields_describe:
+            defaulted = (
+                fields_describe[field]["defaultValue"] is not None
+                or fields_describe[field]["nillable"]
+                or fields_describe[field]["defaultedOnCreate"]
+            )
+            if fields_describe[field]["createable"] and not defaulted:
+                required_fields.add(field)
+        missing_fields = required_fields.difference(
+            set(self.fields.keys()) | set(self.lookups)
+        )
+        if len(missing_fields) > 0:
+            logger.error(
+                f"One or more required fields are missing for loading on {self.sf_object} :{missing_fields}"
+            )
+            return False
+        else:
+            return True
+
     def validate_and_inject_namespace(
         self,
         sf: Salesforce,
@@ -485,6 +506,7 @@ class MappingStep(CCIDictModel):
         operation: DataOperationType,
         inject_namespaces: bool = False,
         drop_missing: bool = False,
+        is_load: bool = False,
     ):
         """Process the schema elements in this step.
 
@@ -516,7 +538,6 @@ class MappingStep(CCIDictModel):
         global_describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in sf.describe()["sobjects"]}
         )
-
         if not self._validate_sobject(global_describe, inject, strip, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
@@ -524,7 +545,6 @@ class MappingStep(CCIDictModel):
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
         describe = self.describe_data(sf)
-
         fields_correct = self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
         )
@@ -532,6 +552,11 @@ class MappingStep(CCIDictModel):
         lookups_correct = self._validate_field_dict(
             describe, self.lookups, inject, strip, drop_missing, operation
         )
+
+        if is_load:
+            required_fields_correct = self.check_required(describe)
+            if not required_fields_correct:
+                return False
 
         if not (fields_correct and lookups_correct):
             return False
@@ -687,7 +712,7 @@ def validate_and_inject_mapping(
 
     should_continue = [
         m.validate_and_inject_namespace(
-            sf, namespace, data_operation, inject_namespaces, drop_missing
+            sf, namespace, data_operation, inject_namespaces, drop_missing, is_load
         )
         for m in mapping.values()
     ]
@@ -696,7 +721,7 @@ def validate_and_inject_mapping(
         raise BulkDataException(
             "One or more schema or permissions errors blocked the operation.\n"
             "If you would like to attempt the load regardless, you can specify "
-            "'--drop_missing_schema True' on the command."
+            "'--drop_missing_schema True' on the command option and ensure all required fields are included in the mapping file."
         )
 
     if drop_missing:

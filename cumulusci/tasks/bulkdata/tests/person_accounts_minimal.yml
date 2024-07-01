@@ -8,6 +8,7 @@ Insert PersonContact:
     table: PersonContact
     fields:
         - IsPersonAccount
+        - LastName
     lookups:
         AccountId:
             table: Account

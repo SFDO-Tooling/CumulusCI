@@ -115,7 +115,7 @@ class TestExtractData:
                 sobject="Account",
                 api_options={},
                 context=task,
-                query="SELECT Id FROM Account",
+                query="SELECT Id, Name FROM Account",
             )
             mock_query_contacts = MockBulkQueryOperation(
                 sobject="Contact",
@@ -123,7 +123,7 @@ class TestExtractData:
                 context=task,
                 query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
             )
-            mock_query_households.results = [["1"]]
+            mock_query_households.results = [["1", "None"]]
             mock_query_contacts.results = [
                 ["2", "First", "Last", "test@example.com", "1"]
             ]
@@ -170,7 +170,7 @@ class TestExtractData:
                 sobject="Account",
                 api_options={},
                 context=task,
-                query="SELECT Id, IsPersonAccount FROM Account",
+                query="SELECT Id, Name IsPersonAccount FROM Account",
             )
             mock_query_contacts = MockBulkQueryOperation(
                 sobject="Contact",
@@ -178,7 +178,7 @@ class TestExtractData:
                 context=task,
                 query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
             )
-            mock_query_households.results = [["1", "false"]]
+            mock_query_households.results = [["1", "None", "false"]]
             mock_query_contacts.results = [
                 ["2", "First", "Last", "test@example.com", "true", "1"]
             ]
