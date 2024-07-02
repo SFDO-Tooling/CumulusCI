@@ -26,7 +26,6 @@ SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
 MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
 
-
 VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 
@@ -155,10 +154,20 @@ class OrgConfig(BaseConfig):
     @property
     def lightning_base_url(self):
         instance_url = self.instance_url.rstrip("/")
+        if "SF_CUSTOM_URL_RE" in os.environ and "SF_CUSTOM_URL_BASE" in os.environ:
+            checkCustom = True
+            SF_CUSTOM_URL_RE = re.compile(r"%s" % os.environ.get("SF_CUSTOM_URL_RE"))
+        else:
+            checkCustom = False
+
         if SANDBOX_MYDOMAIN_RE.search(instance_url):
             return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
         elif MYDOMAIN_RE.search(instance_url):
             return MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        elif checkCustom and SF_CUSTOM_URL_RE.search(instance_url):
+            return SF_CUSTOM_URL_RE.sub(
+                r"%s" % os.environ.get("SF_CUSTOM_URL_BASE"), instance_url
+            )
         else:
             return self.instance_url.split(".")[0] + ".lightning.force.com"
 
