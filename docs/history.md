@@ -2,6 +2,21 @@
 
 <!-- latest-start -->
 
+## v3.90.0 (2024-07-15)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Add tasks to extract and upload files (Salesforce Files) by [@mjawadtp](https://github.com/mjawadtp) in [#3801](https://github.com/SFDO-Tooling/CumulusCI/pull/3801)
+-   Update the validation for loading to check the required fields as well by [@lakshmi2506](https://github.com/lakshmi2506) in [#3807](https://github.com/SFDO-Tooling/CumulusCI/pull/3807)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.89.0...v3.90.0
+
+<!-- latest-stop -->
+
 ## v3.89.0 (2024-06-20)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -14,8 +29,6 @@
 -   The `api_names` option of the `assign_permission_set_licenses` task now accepts either `DeveloperName` or `PermissionSetLicenseKey` by [@lakshmi2506](https://github.com/lakshmi2506) in [#3798](https://github.com/SFDO-Tooling/CumulusCI/pull/3798)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.88.0...v3.89.0
-
-<!-- latest-stop -->
 
 ## v3.88.0 (2024-05-24)
 
