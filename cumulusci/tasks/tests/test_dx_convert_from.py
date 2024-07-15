@@ -13,7 +13,24 @@ from cumulusci.utils import temporary_dir
 
 
 @pytest.fixture
-def project_config():
+def sfdx_project_config():
+    dx_project_config = {
+        "packageDirectories": [
+            {"default": True, "path": "force-app"},
+            {"path": "libs/helper"},
+            {"path": "libs/mdapiservice"},
+        ]
+    }
+    with mock.patch.object(
+        BaseProjectConfig,
+        "sfdx_project_config",
+        new_callable=mock.PropertyMock(return_value=dx_project_config),
+    ) as sfdx_project_config:
+        yield sfdx_project_config
+
+
+@pytest.fixture
+def project_config(sfdx_project_config):
     universal_config = UniversalConfig()
     project_config = BaseProjectConfig(universal_config, config={"no_yaml": True})
     project_config.project__name = "TestProject"
@@ -22,7 +39,9 @@ def project_config():
 
 @pytest.fixture
 def task_config():
-    return TaskConfig({"options": {"src_dir": "src"}})
+    return TaskConfig(
+        {"options": {"src_dir": "src", "resolve_sfdx_package_dirs": True}}
+    )
 
 
 @pytest.fixture
@@ -41,7 +60,7 @@ def dx_convert_task(project_config, task_config):
 
 @mock.patch("cumulusci.tasks.command.sarge")
 def test_dx_convert_from(sarge, sarge_process, dx_convert_task):
-    """Ensure that we clear out the `src/`"""
+    """Ensure that we clear out the `src/` dir and that sfdx packageDirectories were resolved"""
     with temporary_dir():
         src_dir = Path("src")
         src_dir.mkdir(exist_ok=True)
@@ -51,7 +70,7 @@ def test_dx_convert_from(sarge, sarge_process, dx_convert_task):
 
         assert not src_dir.exists()
         sarge.Command.assert_called_once_with(
-            "sfdx force:source:convert -d src",
+            "sfdx force:source:convert -d src --sourcepath ./force-app,./libs/helper,./libs/mdapiservice",
             cwd=".",
             env=ANY,
             shell=True,
