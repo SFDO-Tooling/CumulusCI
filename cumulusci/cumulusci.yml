@@ -81,6 +81,10 @@ tasks:
         description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    check_dataset_load:
+        description: Runs as a preflight check to determine whether dataset can be loaded successfully.
+        class_path: cumulusci.tasks.preflight.dataset_load.LoadDataSetCheck
+        group: Salesforce Preflight Checks
     check_my_domain_active:
         description: Runs as a preflight check to determine whether My Domain is active.
         class_path: cumulusci.tasks.preflight.settings.CheckMyDomainActive
@@ -543,6 +547,10 @@ tasks:
         group: Data Operations
         options:
             recipe: datasets/recipe.yml
+    retrieve_files:
+        description: Retrieve documents that have been uploaded to a library in Salesforce CRM Content or Salesforce Files.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.RetrieveFiles
+        group: Salesforce Metadata
     revert_managed_src:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
@@ -666,6 +674,10 @@ tasks:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         group: Release Operations
+    upload_files:
+        description: Upload documents (files) to a Salesforce org.
+        class_path: cumulusci.tasks.salesforce.salesforce_files.UploadFiles
+        group: Salesforce Metadata
     upload_production:
         description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
