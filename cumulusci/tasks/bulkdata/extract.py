@@ -7,7 +7,6 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.core.exceptions import (
     BulkDataException,
-    ConfigError,
     CumulusCIException,
     TaskOptionsError,
 )
@@ -321,6 +320,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         def throw(string):  # pragma: no cover
             raise BulkDataException(string)
 
+        has_logged_delete_warning = False
         for lookup_key in lookup_keys:
             lookup_info = mapping.lookups.get(lookup_key) or throw(
                 f"Cannot find lookup info {lookup_key}"
@@ -336,19 +336,30 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             key_attr = getattr(model, key_field, None) or throw(
                 f"key_field {key_field} not found in table {mapping.table}"
             )
-
-            # Keep track of total mapping operations
-            total_mapping_operations = 0
-
+            valid_sf_ids = set()  # Initialize an empty set to store valid SF IDs
+            valid_local_ids = set()  # Initialize an empty set to store local IDs
             for lookup_mapping in lookup_mappings:
                 lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
+                # Get the sf ids corresponding to the lookup
+                sf_ids_tuples = (
+                    self.session.query(lookup_model.sf_id)
+                    .filter(lookup_model.sf_id.isnot(None))
+                    .distinct()
+                )  # Get unique SF IDs
+                valid_sf_ids.update(sf_id[0] for sf_id in sf_ids_tuples)
+                # Get the local ids corresponding to Salesforce Ids
+                local_ids_tuples = (
+                    self.session.query(lookup_model.id)
+                    .filter(lookup_model.sf_id.in_(valid_sf_ids))
+                    .distinct()
+                )  # Get unique local IDs
+                valid_local_ids.update(local_id[0] for local_id in local_ids_tuples)
                 try:
-                    update_query = (
+                    (
                         self.session.query(model)
                         .filter(key_attr.isnot(None), key_attr == lookup_model.sf_id)
                         .update({key_attr: lookup_model.id}, synchronize_session=False)
                     )
-                    total_mapping_operations += update_query.rowcount
                 except NotImplementedError:
                     # Some databases such as sqlite don't support multitable update
                     mappings = []
@@ -356,22 +367,48 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         model, lookup_model.id
                     ).join(lookup_model, key_attr == lookup_model.sf_id):
                         mappings.append({"id": row.id, key_field: lookup_id})
-                    total_mapping_operations += len(mappings)
                     self.session.bulk_update_mappings(model, mappings)
-            # Count the total number of rows excluding those with no entry for that field
-            total_rows = (
+            # Get the rows which will be deleted
+            rows_to_delete = (
                 self.session.query(model)
                 .filter(
-                    key_attr.isnot(None),  # Ensure key_attr is not None
-                    key_attr.isnot(""),  # Ensure key_attr is not an empty string
+                    key_attr.isnot(None),
+                    ~key_attr.in_(valid_sf_ids),
+                    ~key_attr.in_(valid_local_ids),
                 )
-                .count()
+                .all()
             )
 
-            if total_mapping_operations != total_rows:
-                raise ConfigError(
-                    f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}. Mention all related tables for lookup: {lookup_key}"
+            # Log a warning before deleting rows, but only once
+            if rows_to_delete and not has_logged_delete_warning:
+                self.logger.warning(
+                    "Some rows were not extracted because their lookups point to the default record in Salesforce. "
+                    "If you want to extract these records, ensure they don't have lookups to default records."
                 )
+                has_logged_delete_warning = (
+                    True  # Set the flag so the warning isn't logged again
+                )
+
+            # Log details of rows to be deleted
+            if rows_to_delete:
+                self.logger.warning(
+                    f"{len(rows_to_delete)} rows from '{mapping.table}' where lookup '{lookup_key}' was not found were not extracted."
+                )
+                # Delete the rows from get_sf_id_table()
+                delete_ids = [row.id for row in rows_to_delete]
+                sf_id_table_model = self.models.get(mapping.get_sf_id_table())
+                self.session.query(sf_id_table_model).filter(
+                    sf_id_table_model.id.in_(delete_ids)
+                ).delete(synchronize_session=False)
+
+            # Delete the rows
+            (
+                self.session.query(model)
+                .filter(
+                    model.id.in_([row.id for row in rows_to_delete])
+                )  # Filter by ID
+                .delete(synchronize_session=False)
+            )
         self.session.commit()
 
     def _create_tables(self):

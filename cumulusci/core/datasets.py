@@ -132,6 +132,7 @@ class Dataset:
         schema,
         extraction_definition: T.Optional[Path],
         opt_in_only: T.Sequence[str],
+        loading_rules: T.Sequence[SObjectRuleDeclaration] = (),
     ):
         with TemporaryDirectory() as t:
             t = Path(t)
@@ -149,9 +150,10 @@ class Dataset:
             with extract_mapping.open("w") as f:
                 yaml.safe_dump(
                     create_extract_mapping_file_from_declarations(
-                        list(decls.values()), schema, opt_in_only
+                        list(decls.values()), schema, opt_in_only, loading_rules
                     ),
                     f,
+                    sort_keys=False,
                 )
             yield extract_mapping, decls
 
@@ -165,8 +167,9 @@ class Dataset:
     ):
         options = options or {}
         logger = logger or DEFAULT_LOGGER
+        loading_rules = self._parse_loading_rules_file(loading_rules_file)
         with self.temp_extract_mapping(
-            self.schema, extraction_definition, opt_in_only
+            self.schema, extraction_definition, opt_in_only, loading_rules
         ) as (
             extract_mapping,
             decls,
@@ -179,7 +182,6 @@ class Dataset:
                 mapping=str(extract_mapping),
             )
             task()
-        loading_rules = self._parse_loading_rules_file(loading_rules_file)
 
         self._save_load_mapping(list(decls.values()), opt_in_only, loading_rules)
         return task.return_values
