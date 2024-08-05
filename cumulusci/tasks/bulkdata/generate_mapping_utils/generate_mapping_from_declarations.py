@@ -30,7 +30,7 @@ def create_load_mapping_file_from_extract_declarations(
     """Create a mapping file from Extract declarations"""
     simplified_decls = flatten_declarations(decls, schema, opt_in_only)  # FIXME
     simplified_decls_w_lookups = classify_and_filter_lookups(simplified_decls, schema)
-    intertable_dependencies = _discover_dependendencies(simplified_decls_w_lookups)
+    intertable_dependencies = discover_dependendencies(simplified_decls_w_lookups)
 
     def _mapping_step(decl):
         fields = tuple(chain(decl.fields, decl.lookups.keys()))
@@ -48,7 +48,7 @@ def create_load_mapping_file_from_extract_declarations(
     return mappings
 
 
-def _discover_dependendencies(simplified_decls: T.Sequence):
+def discover_dependendencies(simplified_decls: T.Sequence[SimplifiedExtractDeclarationWithLookups]) -> OrderedSet:
     """Look at all of the lookups in a set of declarations to determine
     what depends on what"""
     intertable_dependencies = OrderedSet()

@@ -30,9 +30,9 @@ class TestGenerateLoadMappingFromDeclarations:
         ) as schema:
             mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
             assert mf == {
-                "Extract Account": {
-                    "api": "smart",
+                "Insert Account": {
                     "sf_object": "Account",
+                    "table": "Account",
                     "fields": ["Name", "Description"],
                     "soql_filter": "Name != 'Sample Account for " "Entitlements'",
                 }
@@ -57,19 +57,20 @@ class TestGenerateLoadMappingFromDeclarations:
             include_counts=True,
         ) as schema:
             mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
-            print(mf)
             assert mf == {
-                "Extract Account": {
-                    "api": "smart",
+                "Insert Account": {
                     "sf_object": "Account",
+                    "table": "Account",
                     "soql_filter": "Name != 'Sample Account for Entitlements'",
                     "fields": ["Name", "Description"],
                 },
-                "Extract Contact": {
-                    "api": "smart",
+                "Insert Contact": {
                     "sf_object": "Contact",
+                    "table": "Contact",
                     "fields": ["LastName"],
-                    "lookups": {"AccountId": {"table": ("Account",)}},
+                    "lookups": {
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
+                    },
                 },
             }
 
@@ -99,33 +100,36 @@ class TestGenerateLoadMappingFromDeclarations:
             mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
             print(mf)
             assert mf == {
-                "Extract Account": {
-                    "api": "smart",
+                "Insert Account": {
                     "sf_object": "Account",
+                    "table": "Account",
                     "soql_filter": "Name != 'Sample Account for Entitlements'",
                     "fields": ["Name", "Description"],
                 },
-                "Extract Contact": {
-                    "api": "smart",
+                "Insert Contact": {
                     "sf_object": "Contact",
+                    "table": "Contact",
                     "fields": ["LastName"],
-                    "lookups": {"AccountId": {"table": ("Account",)}},
+                    "lookups": {
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
+                    },
                 },
-                "Extract Lead": {
-                    "api": "smart",
+                "Insert Lead": {
                     "sf_object": "Lead",
+                    "table": "Lead",
                     "fields": ["LastName", "Company"],
                 },
-                "Extract Event": {
-                    "api": "smart",
+                "Insert Event": {
                     "sf_object": "Event",
+                    "table": "Event",
                     "fields": ["Subject"],
                     "lookups": {
                         "WhoId": {
-                            "table": (
+                            "table": [
                                 "Contact",
                                 "Lead",
-                            )
+                            ],
+                            "key_field": "WhoId",
                         }
                     },
                 },

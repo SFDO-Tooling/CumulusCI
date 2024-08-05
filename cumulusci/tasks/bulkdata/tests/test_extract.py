@@ -10,7 +10,6 @@ from sqlalchemy import create_engine
 
 from cumulusci.core.exceptions import (
     BulkDataException,
-    ConfigError,
     CumulusCIException,
     TaskOptionsError,
 )
@@ -519,11 +518,14 @@ class TestExtractData:
             ]
 
             query_op_mock.side_effect = [mock_query_households, mock_query_events]
-            with pytest.raises(ConfigError) as e:
-                task()
+            task()
+            with create_engine(task.options["database_url"]).connect() as conn:
+                events = next(conn.execute("select * from events"))
+                assert events.subject == "Last1"
 
-            assert "Total mapping operations" in str(e.value)
-            assert "do not match total non-empty rows" in str(e.value)
+                result = conn.execute("select count(*) from events")
+                event_count = result.scalar()
+                assert event_count == 1, f"Expected 1 event, found {event_count}"
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
@@ -744,12 +746,32 @@ class TestExtractData:
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
 
-        task.session = mock.Mock()
+        task.session = mock.MagicMock()
+        account_sf_ids = mock.MagicMock()
+        account_sf_ids.sf_id = mock.MagicMock(spec=list)
+        account_sf_ids.sf_id.__iter__.return_value = iter([("abc",), ("def",), (None,)])
+        account_sf_ids.sf_id.isnot = lambda other: account_sf_ids.sf_id.__ne__(other)
+        account_sf_ids.sf_id.in_ = lambda values: any(
+            sf_id in values for sf_id in account_sf_ids.sf_id
+        )
+
+        opportunity_sf_ids = mock.MagicMock()
+        opportunity_sf_ids.sf_id = mock.MagicMock(spec=list)
+        opportunity_sf_ids.sf_id.__iter__.return_value = iter(
+            [("ghi",), ("jkl",), (None,)]
+        )
+        opportunity_sf_ids.sf_id.isnot = lambda other: opportunity_sf_ids.sf_id.__ne__(
+            other
+        )
+        opportunity_sf_ids.sf_id.in_ = lambda values: any(
+            sf_id in values for sf_id in opportunity_sf_ids.sf_id
+        )
+
         task.models = {
-            "Account": mock.Mock(),
-            "Account_sf_ids": mock.Mock(),
-            "Opportunity": mock.Mock(),
-            "Opportunity_sf_ids": mock.Mock(),
+            "Account": mock.MagicMock(),
+            "Account_sf_ids": account_sf_ids,
+            "Opportunity": mock.MagicMock(),
+            "Opportunity_sf_ids": opportunity_sf_ids,
         }
         task.mapping = {
             "Account": MappingStep(sf_object="Account"),
@@ -779,12 +801,32 @@ class TestExtractData:
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
 
-        task.session = mock.Mock()
+        task.session = mock.MagicMock()
+        account_sf_ids = mock.MagicMock()
+        account_sf_ids.sf_id = mock.MagicMock(spec=list)
+        account_sf_ids.sf_id.__iter__.return_value = iter([("abc",), ("def",), (None,)])
+        account_sf_ids.sf_id.isnot = lambda other: account_sf_ids.sf_id.__ne__(other)
+        account_sf_ids.sf_id.in_ = lambda values: any(
+            sf_id in values for sf_id in account_sf_ids.sf_id
+        )
+
+        opportunity_sf_ids = mock.MagicMock()
+        opportunity_sf_ids.sf_id = mock.MagicMock(spec=list)
+        opportunity_sf_ids.sf_id.__iter__.return_value = iter(
+            [("ghi",), ("jkl",), (None,)]
+        )
+        opportunity_sf_ids.sf_id.isnot = lambda other: opportunity_sf_ids.sf_id.__ne__(
+            other
+        )
+        opportunity_sf_ids.sf_id.in_ = lambda values: any(
+            sf_id in values for sf_id in opportunity_sf_ids.sf_id
+        )
+
         task.models = {
-            "Account": mock.Mock(),
-            "Account_sf_ids": mock.Mock(),
-            "Opportunity": mock.Mock(),
-            "Opportunity_sf_ids": mock.Mock(),
+            "Account": mock.MagicMock(),
+            "Account_sf_ids": account_sf_ids,
+            "Opportunity": mock.MagicMock(),
+            "Opportunity_sf_ids": opportunity_sf_ids,
         }
         task.mapping = {
             "Account": MappingStep(sf_object="Account"),
