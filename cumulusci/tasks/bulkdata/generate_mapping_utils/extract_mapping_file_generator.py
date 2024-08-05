@@ -7,8 +7,8 @@ from snowfakery.cci_mapping_files.declaration_parser import SObjectRuleDeclarati
 
 from cumulusci.salesforce_api.org_schema import Schema
 from cumulusci.tasks.bulkdata.generate_mapping_utils.generate_mapping_from_declarations import (
-    _discover_dependendencies,
     classify_and_filter_lookups,
+    discover_dependendencies,
 )
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 
@@ -30,7 +30,7 @@ def create_extract_mapping_file_from_declarations(
     assert decls is not None
     simplified_decls = flatten_declarations(decls, schema, opt_in_only)
     simplified_decls_w_lookups = classify_and_filter_lookups(simplified_decls, schema)
-    intertable_dependencies = _discover_dependendencies(simplified_decls_w_lookups)
+    intertable_dependencies = discover_dependendencies(simplified_decls_w_lookups)
 
     def _mapping_step(decl):
         fields = tuple(chain(decl.fields, decl.lookups.keys()))

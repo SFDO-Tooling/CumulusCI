@@ -75,6 +75,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("drop_missing_schema") or False
         )
         self._id_generators = {}
+        self.has_logged_missing_lookups_warning = False
 
     def _run_task(self):
         self._init_mapping()
@@ -320,7 +321,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         def throw(string):  # pragma: no cover
             raise BulkDataException(string)
 
-        has_logged_delete_warning = False
         for lookup_key in lookup_keys:
             lookup_info = mapping.lookups.get(lookup_key) or throw(
                 f"Cannot find lookup info {lookup_key}"
@@ -373,6 +373,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.session.query(model)
                 .filter(
                     key_attr.isnot(None),
+                    key_attr.isnot(""),
                     ~key_attr.in_(valid_sf_ids),
                     ~key_attr.in_(valid_local_ids),
                 )
@@ -380,12 +381,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
 
             # Log a warning before deleting rows, but only once
-            if rows_to_delete and not has_logged_delete_warning:
+            if rows_to_delete and not self.has_logged_missing_lookups_warning:
                 self.logger.warning(
-                    "Some rows were not extracted because their lookups point to the default record in Salesforce. "
-                    "If you want to extract these records, ensure they don't have lookups to default records."
+                    "Some rows were skipped due to referencing default records or missing lookup tables. "
+                    "Ensure data completeness and include all relevant tables for extraction."
                 )
-                has_logged_delete_warning = (
+                self.has_logged_missing_lookups_warning = (
                     True  # Set the flag so the warning isn't logged again
                 )
 
