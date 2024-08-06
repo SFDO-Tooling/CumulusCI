@@ -7,6 +7,7 @@ from snowfakery.cci_mapping_files.declaration_parser import SObjectRuleDeclarati
 
 from cumulusci.salesforce_api.org_schema import Schema
 from cumulusci.tasks.bulkdata.generate_mapping_utils.generate_mapping_from_declarations import (
+    SimplifiedExtractDeclarationWithLookups,
     classify_and_filter_lookups,
     discover_dependendencies,
 )
@@ -32,13 +33,13 @@ def create_extract_mapping_file_from_declarations(
     simplified_decls_w_lookups = classify_and_filter_lookups(simplified_decls, schema)
     intertable_dependencies = discover_dependendencies(simplified_decls_w_lookups)
 
-    def _mapping_step(decl):
+    def _mapping_step(decl: SimplifiedExtractDeclarationWithLookups):
         fields = tuple(chain(decl.fields, decl.lookups.keys()))
         return MappingStep(
             sf_object=decl.sf_object,
             fields=dict(zip(fields, fields)),
             soql_filter=decl.where if decl.where else None,
-            api=decl.api.value if decl.api else None
+            api=decl.api
             # lookups=lookups,      # lookups can be re-created later, for simplicity
         )
 

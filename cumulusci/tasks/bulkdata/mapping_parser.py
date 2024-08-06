@@ -91,7 +91,7 @@ ENUM_VALUES = {
 
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
-    sf_object: str
+    sf_object: T.Union[str, None]
     table: Optional[str] = None
     fields_: Dict[str, str] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
