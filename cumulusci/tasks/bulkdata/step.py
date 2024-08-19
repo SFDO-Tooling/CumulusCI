@@ -15,6 +15,9 @@ import salesforce_bulk
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
+    DEFAULT_DECLARATIONS,
+)
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
 from cumulusci.utils.xml import lxml_parse_string
@@ -36,6 +39,7 @@ class DataOperationType(StrEnum):
     UPSERT = "upsert"
     ETL_UPSERT = "etl_upsert"
     SMART_UPSERT = "smart_upsert"  # currently undocumented
+    SELECT = "select"
 
 
 class DataApi(StrEnum):
@@ -321,6 +325,11 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def select_records(self, records):
+        """Perform the requested DML operation on the supplied row iterator."""
+        pass
+
+    @abstractmethod
     def load_records(self, records):
         """Perform the requested DML operation on the supplied row iterator."""
         pass
@@ -423,6 +432,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         for count, csv_batch in enumerate(self._batch(records, batch_size)):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
+
+    def select_records(self, records):
+        return super().select_records(records)
 
     def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
@@ -631,6 +643,64 @@ class RestApiDmlOperation(BaseDmlOperation):
             row_errors,
         )
 
+    def select_records(self, records):
+        """Executes a SOQL query to select records and adds them to results"""
+        self.results = []
+        num_records = sum(1 for _ in records)
+        selected_records = self.random_selection(num_records)
+        self.results.extend(selected_records)
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS
+            if not len(selected_records)
+            else DataOperationStatus.JOB_FAILURE,
+            [],
+            len(self.results),
+            0,
+        )
+
+    def random_selection(self, num_records):
+        try:
+            # Get the WHERE clause from DEFAULT_DECLARATIONS if available
+            declaration = DEFAULT_DECLARATIONS.get(self.sobject)
+            if declaration:
+                where_clause = declaration.where
+            else:
+                where_clause = None  # Explicitly set to None if not found
+            # Construct the query with the WHERE clause (if it exists)
+            query = f"SELECT Id FROM {self.sobject}"
+            if where_clause:
+                query += f" WHERE {where_clause}"
+            query += f" LIMIT {num_records}"
+            query_results = self.sf.query(query)
+
+            # Handle case where query returns 0 records
+            if not query_results["records"]:
+                error_message = (
+                    f"No records found for {self.sobject} in the target org."
+                )
+                self.logger.error(error_message)
+                return [], error_message
+
+            # Add 'success: True' to each record to emulate records have been inserted
+            selected_records = [
+                {"success": True, "id": record["Id"]}
+                for record in query_results["records"]
+            ]
+
+            # If fewer records than requested, repeat existing records to match num_records
+            if len(selected_records) < num_records:
+                original_records = selected_records.copy()
+                while len(selected_records) < num_records:
+                    selected_records.extend(original_records)
+                selected_records = selected_records[:num_records]
+
+            return selected_records
+
+        except Exception as e:
+            error_message = f"Error executing SOQL query for {self.sobject}: {e}"
+            self.logger.error(error_message)
+            return [], error_message
+
     def get_results(self):
         """Return a generator of DataOperationResult objects."""
 
@@ -646,7 +716,7 @@ class RestApiDmlOperation(BaseDmlOperation):
 
             if self.operation == DataOperationType.INSERT:
                 created = True
-            elif self.operation == DataOperationType.UPDATE:
+            elif self.operation in [DataOperationType.UPDATE, DataOperationType.SELECT]:
                 created = False
             else:
                 created = res.get("created")
