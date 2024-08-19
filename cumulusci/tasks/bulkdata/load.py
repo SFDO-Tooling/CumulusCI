@@ -341,6 +341,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.check_simple_upsert(mapping)
             api_options["update_key"] = mapping.update_key[0]
             action = DataOperationType.UPSERT
+        elif mapping.action == DataOperationType.SELECT:
+            action = DataOperationType.QUERY
         else:
             action = mapping.action
 

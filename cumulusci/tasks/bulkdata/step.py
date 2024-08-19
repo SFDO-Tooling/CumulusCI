@@ -434,7 +434,60 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
     def select_records(self, records):
-        return super().select_records(records)
+        """Executes a SOQL query to select records and adds them to results"""
+
+        self.select_results = []  # Store selected records
+
+        # Count total number of records to fetch
+        total_num_records = sum(1 for _ in records)
+
+        # Process in batches based on batch_size from api_options
+        for offset in range(
+            0, total_num_records, self.api_options.get("batch_size", 500)
+        ):
+            # Calculate number of records to fetch in this batch
+            num_records = min(
+                self.api_options.get("batch_size", 500), total_num_records - offset
+            )
+
+            # Generate and execute SOQL query
+            query = random_generate_query(self.sobject, num_records)
+            self.batch_id = self.bulk.query(self.job_id, query)
+            self._wait_for_job(self.job_id)
+
+            # Get and process query results
+            result_ids = self.bulk.get_query_batch_result_ids(
+                self.batch_id, job_id=self.job_id
+            )
+            query_records = []
+            for result_id in result_ids:
+                uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
+                with download_file(uri, self.bulk) as f:
+                    reader = csv.reader(f)
+                    self.headers = next(reader)
+                    if "Records not found for this query" in self.headers:
+                        break  # Stop if no records found
+                    for row in reader:
+                        query_records.append([row[0]])
+
+            # Post-process the query results
+            selected_records, error_message = random_post_process(
+                query_records, num_records, self.sobject
+            )
+            if error_message:
+                break  # Stop if there's an error during post-processing
+
+            self.select_results.extend(selected_records)
+
+        # Update job result based on selection outcome
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS
+            if len(self.select_results)
+            else DataOperationStatus.JOB_FAILURE,
+            [error_message] if error_message else [],
+            len(self.select_results),
+            0,
+        )
 
     def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
@@ -484,6 +537,29 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         return serialized
 
     def get_results(self):
+        """
+        Retrieves and processes the results of a Bulk API operation.
+        """
+
+        if self.operation is DataOperationType.QUERY:
+            yield from self._get_query_results()
+        else:
+            yield from self._get_batch_results()
+
+    def _get_query_results(self):
+        """Handles results for QUERY (select) operations"""
+        for row in self.select_results:
+            success = process_bool_arg(row["success"])
+            created = process_bool_arg(row["created"])
+            yield DataOperationResult(
+                row["id"] if success else None,
+                success,
+                None,
+                created,
+            )
+
+    def _get_batch_results(self):
+        """Handles results for other DataOperationTypes (insert, update, etc.)"""
         for batch_id in self.batch_ids:
             try:
                 results_url = (
@@ -493,23 +569,27 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 # to avoid the server dropping connections
                 with download_file(results_url, self.bulk) as f:
                     self.logger.info(f"Downloaded results for batch {batch_id}")
+                    yield from self._parse_batch_results(f)
 
-                    reader = csv.reader(f)
-                    next(reader)  # skip header
-
-                    for row in reader:
-                        success = process_bool_arg(row[1])
-                        created = process_bool_arg(row[2])
-                        yield DataOperationResult(
-                            row[0] if success else None,
-                            success,
-                            row[3] if not success else None,
-                            created,
-                        )
             except Exception as e:
                 raise BulkDataException(
                     f"Failed to download results for batch {batch_id} ({str(e)})"
                 )
+
+    def _parse_batch_results(self, f):
+        """Parses batch results from the downloaded file"""
+        reader = csv.reader(f)
+        next(reader)  # Skip header row
+
+        for row in reader:
+            success = process_bool_arg(row[1])
+            created = process_bool_arg(row[2])
+            yield DataOperationResult(
+                row[0] if success else None,
+                success,
+                row[3] if not success else None,
+                created,
+            )
 
 
 class RestApiDmlOperation(BaseDmlOperation):
@@ -645,61 +725,54 @@ class RestApiDmlOperation(BaseDmlOperation):
 
     def select_records(self, records):
         """Executes a SOQL query to select records and adds them to results"""
+
+        def convert(rec, fields):
+            """Helper function to convert record values to strings, handling None values"""
+            return [str(rec[f]) if rec[f] is not None else "" for f in fields]
+
         self.results = []
-        num_records = sum(1 for _ in records)
-        selected_records = self.random_selection(num_records)
-        self.results.extend(selected_records)
+        # Count the number of records to fetch
+        total_num_records = sum(1 for _ in records)
+
+        # Process in batches
+        for offset in range(0, total_num_records, self.api_options.get("batch_size")):
+            num_records = min(
+                self.api_options.get("batch_size"), total_num_records - offset
+            )
+            # Generate the SOQL query with and LIMIT
+            query = random_generate_query(self.sobject, num_records)
+
+            # Execute the query and extract results
+            response = self.sf.query(query)
+            # Extract and convert 'Id' fields from the query results
+            query_records = list(convert(rec, ["Id"]) for rec in response["records"])
+            # Handle pagination if there are more records within this batch
+            while not response["done"]:
+                response = self.sf.query_more(
+                    response["nextRecordsUrl"], identifier_is_url=True
+                )
+                query_records.extend(
+                    list(convert(rec, ["Id"]) for rec in response["records"])
+                )
+
+            # Post-process the query results for this batch
+            selected_records, error_message = random_post_process(
+                query_records, num_records, self.sobject
+            )
+            if error_message:
+                break
+            # Add selected records from this batch to the overall results
+            self.results.extend(selected_records)
+
+        # Update the job result based on the overall selection outcome
         self.job_result = DataOperationJobResult(
             DataOperationStatus.SUCCESS
-            if not len(selected_records)
+            if len(self.results)  # Check the overall results length
             else DataOperationStatus.JOB_FAILURE,
-            [],
+            [error_message] if error_message else [],
             len(self.results),
             0,
         )
-
-    def random_selection(self, num_records):
-        try:
-            # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-            declaration = DEFAULT_DECLARATIONS.get(self.sobject)
-            if declaration:
-                where_clause = declaration.where
-            else:
-                where_clause = None  # Explicitly set to None if not found
-            # Construct the query with the WHERE clause (if it exists)
-            query = f"SELECT Id FROM {self.sobject}"
-            if where_clause:
-                query += f" WHERE {where_clause}"
-            query += f" LIMIT {num_records}"
-            query_results = self.sf.query(query)
-
-            # Handle case where query returns 0 records
-            if not query_results["records"]:
-                error_message = (
-                    f"No records found for {self.sobject} in the target org."
-                )
-                self.logger.error(error_message)
-                return [], error_message
-
-            # Add 'success: True' to each record to emulate records have been inserted
-            selected_records = [
-                {"success": True, "id": record["Id"]}
-                for record in query_results["records"]
-            ]
-
-            # If fewer records than requested, repeat existing records to match num_records
-            if len(selected_records) < num_records:
-                original_records = selected_records.copy()
-                while len(selected_records) < num_records:
-                    selected_records.extend(original_records)
-                selected_records = selected_records[:num_records]
-
-            return selected_records
-
-        except Exception as e:
-            error_message = f"Error executing SOQL query for {self.sobject}: {e}"
-            self.logger.error(error_message)
-            return [], error_message
 
     def get_results(self):
         """Return a generator of DataOperationResult objects."""
@@ -716,7 +789,7 @@ class RestApiDmlOperation(BaseDmlOperation):
 
             if self.operation == DataOperationType.INSERT:
                 created = True
-            elif self.operation in [DataOperationType.UPDATE, DataOperationType.SELECT]:
+            elif self.operation == DataOperationType.UPDATE:
                 created = False
             else:
                 created = res.get("created")
@@ -816,3 +889,47 @@ def get_dml_operation(
         context=context,
         fields=fields,
     )
+
+
+def random_generate_query(sobject: str, num_records: float) -> str:
+    """Generates the SOQL query for the random selection strategy"""
+    # Get the WHERE clause from DEFAULT_DECLARATIONS if available
+    declaration = DEFAULT_DECLARATIONS.get(sobject)
+    if declaration:
+        where_clause = declaration.where
+    else:
+        where_clause = None
+    # Construct the query with the WHERE clause (if it exists)
+    query = f"SELECT Id FROM {sobject}"
+    if where_clause:
+        query += f" WHERE {where_clause}"
+    query += f" LIMIT {num_records}"
+
+    return query
+
+
+def random_post_process(records, num_records: float, sobject: str):
+    """Processes the query results for the random selection strategy"""
+    try:
+        # Handle case where query returns 0 records
+        if not records:
+            error_message = f"No records found for {sobject} in the target org."
+            return [], error_message
+
+        # Add 'success: True' to each record to emulate records have been inserted
+        selected_records = [
+            {"id": record[0], "success": True, "created": False} for record in records
+        ]
+
+        # If fewer records than requested, repeat existing records to match num_records
+        if len(selected_records) < num_records:
+            original_records = selected_records.copy()
+            while len(selected_records) < num_records:
+                selected_records.extend(original_records)
+            selected_records = selected_records[:num_records]
+
+        return selected_records, None  # Return selected records and None for error
+
+    except Exception as e:
+        error_message = f"Error processing query results for {sobject}: {e}"
+        return [], error_message
