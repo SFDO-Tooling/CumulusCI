@@ -555,7 +555,7 @@ class MappingStep(CCIDictModel):
 
         if is_load:
             required_fields_correct = self.check_required(describe)
-            if not required_fields_correct:
+            if not required_fields_correct and self.action == DataOperationType.INSERT:
                 return False
 
         if not (fields_correct and lookups_correct):
