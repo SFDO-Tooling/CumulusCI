@@ -1,6 +1,7 @@
 Account:
     sf_object: Account
     api: bulk
+    action: select
     fields:
         - Name
         - Description

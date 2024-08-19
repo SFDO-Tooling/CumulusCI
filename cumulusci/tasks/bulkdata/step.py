@@ -15,8 +15,10 @@ import salesforce_bulk
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
-    DEFAULT_DECLARATIONS,
+from cumulusci.tasks.bulkdata.select_utils import (
+    SelectStrategy,
+    random_generate_query,
+    random_post_process,
 )
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
@@ -347,7 +349,16 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
 class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     """Operation class for all DML operations run using the Bulk API."""
 
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self,
+        *,
+        sobject,
+        operation,
+        api_options,
+        context,
+        fields,
+        selection_strategy=SelectStrategy.RANDOM,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -361,6 +372,10 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         )
         self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff, quoting=csv.QUOTE_ALL)
+
+        if selection_strategy is SelectStrategy.RANDOM:
+            self.select_generate_query = random_generate_query
+            self.select_post_process = random_post_process
 
     def start(self):
         self.job_id = self.bulk.create_job(
@@ -451,7 +466,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             )
 
             # Generate and execute SOQL query
-            query = random_generate_query(self.sobject, num_records)
+            query, query_fields = self.select_generate_query(self.sobject, num_records)
             self.batch_id = self.bulk.query(self.job_id, query)
             self._wait_for_job(self.job_id)
 
@@ -468,10 +483,10 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                     if "Records not found for this query" in self.headers:
                         break  # Stop if no records found
                     for row in reader:
-                        query_records.append([row[0]])
+                        query_records.append([row[: len(query_fields)]])
 
             # Post-process the query results
-            selected_records, error_message = random_post_process(
+            selected_records, error_message = self.select_post_process(
                 query_records, num_records, self.sobject
             )
             if error_message:
@@ -595,7 +610,16 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 class RestApiDmlOperation(BaseDmlOperation):
     """Operation class for all DML operations run using the REST API."""
 
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self,
+        *,
+        sobject,
+        operation,
+        api_options,
+        context,
+        fields,
+        selection_strategy=SelectStrategy.RANDOM,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -617,6 +641,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         self.api_options["batch_size"] = min(
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
+        if selection_strategy is SelectStrategy.RANDOM:
+            self.select_generate_query = random_generate_query
+            self.select_post_process = random_post_process
 
     def _record_to_json(self, rec):
         result = dict(zip(self.fields, rec))
@@ -740,23 +767,25 @@ class RestApiDmlOperation(BaseDmlOperation):
                 self.api_options.get("batch_size"), total_num_records - offset
             )
             # Generate the SOQL query with and LIMIT
-            query = random_generate_query(self.sobject, num_records)
+            query, query_fields = self.select_generate_query(self.sobject, num_records)
 
             # Execute the query and extract results
             response = self.sf.query(query)
             # Extract and convert 'Id' fields from the query results
-            query_records = list(convert(rec, ["Id"]) for rec in response["records"])
+            query_records = list(
+                convert(rec, query_fields) for rec in response["records"]
+            )
             # Handle pagination if there are more records within this batch
             while not response["done"]:
                 response = self.sf.query_more(
                     response["nextRecordsUrl"], identifier_is_url=True
                 )
                 query_records.extend(
-                    list(convert(rec, ["Id"]) for rec in response["records"])
+                    list(convert(rec, query_fields) for rec in response["records"])
                 )
 
             # Post-process the query results for this batch
-            selected_records, error_message = random_post_process(
+            selected_records, error_message = self.select_post_process(
                 query_records, num_records, self.sobject
             )
             if error_message:
@@ -889,47 +918,3 @@ def get_dml_operation(
         context=context,
         fields=fields,
     )
-
-
-def random_generate_query(sobject: str, num_records: float) -> str:
-    """Generates the SOQL query for the random selection strategy"""
-    # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-    declaration = DEFAULT_DECLARATIONS.get(sobject)
-    if declaration:
-        where_clause = declaration.where
-    else:
-        where_clause = None
-    # Construct the query with the WHERE clause (if it exists)
-    query = f"SELECT Id FROM {sobject}"
-    if where_clause:
-        query += f" WHERE {where_clause}"
-    query += f" LIMIT {num_records}"
-
-    return query
-
-
-def random_post_process(records, num_records: float, sobject: str):
-    """Processes the query results for the random selection strategy"""
-    try:
-        # Handle case where query returns 0 records
-        if not records:
-            error_message = f"No records found for {sobject} in the target org."
-            return [], error_message
-
-        # Add 'success: True' to each record to emulate records have been inserted
-        selected_records = [
-            {"id": record[0], "success": True, "created": False} for record in records
-        ]
-
-        # If fewer records than requested, repeat existing records to match num_records
-        if len(selected_records) < num_records:
-            original_records = selected_records.copy()
-            while len(selected_records) < num_records:
-                selected_records.extend(original_records)
-            selected_records = selected_records[:num_records]
-
-        return selected_records, None  # Return selected records and None for error
-
-    except Exception as e:
-        error_message = f"Error processing query results for {sobject}: {e}"
-        return [], error_message
