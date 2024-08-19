@@ -29,26 +29,21 @@ def random_generate_query(sobject: str, num_records: float):
 
 def random_post_process(records, num_records: float, sobject: str):
     """Processes the query results for the random selection strategy"""
-    try:
-        # Handle case where query returns 0 records
-        if not records:
-            error_message = f"No records found for {sobject} in the target org."
-            return [], error_message
-
-        # Add 'success: True' to each record to emulate records have been inserted
-        selected_records = [
-            {"id": record[0], "success": True, "created": False} for record in records
-        ]
-
-        # If fewer records than requested, repeat existing records to match num_records
-        if len(selected_records) < num_records:
-            original_records = selected_records.copy()
-            while len(selected_records) < num_records:
-                selected_records.extend(original_records)
-            selected_records = selected_records[:num_records]
-
-        return selected_records, None  # Return selected records and None for error
-
-    except Exception as e:
-        error_message = f"Error processing query results for {sobject}: {e}"
+    # Handle case where query returns 0 records
+    if not records:
+        error_message = f"No records found for {sobject} in the target org."
         return [], error_message
+
+    # Add 'success: True' to each record to emulate records have been inserted
+    selected_records = [
+        {"id": record[0], "success": True, "created": False} for record in records
+    ]
+
+    # If fewer records than requested, repeat existing records to match num_records
+    if len(selected_records) < num_records:
+        original_records = selected_records.copy()
+        while len(selected_records) < num_records:
+            selected_records.extend(original_records)
+        selected_records = selected_records[:num_records]
+
+    return selected_records, None  # Return selected records and None for error

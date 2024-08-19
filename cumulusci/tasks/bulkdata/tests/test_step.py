@@ -7,6 +7,7 @@ import responses
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.load import LoadData
+from cumulusci.tasks.bulkdata.select_utils import SelectStrategy
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     BulkApiQueryOperation,
@@ -534,6 +535,104 @@ class TestBulkApiDmlOperation:
         )
         step.bulk.get_all_results_for_query_batch.assert_called_once_with("BATCH_ID")
 
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_random_strategy_success(self, download_mock):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.RANDOM,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content with a single record
+        download_mock.return_value = io.StringIO(
+            """Id
+003000000000001"""
+        )
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        # Prepare input records
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+
+        # Execute the select_records operation
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id=["003000000000001"], success=True, error=None, created=False
+                )
+            )
+            == 3
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_random_strategy_failure__no_records(self, download_mock):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.RANDOM,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content indicating no records found
+        download_mock.return_value = io.StringIO("""Records not found for this query""")
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        # Prepare input records
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+
+        # Execute the select_records operation
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the job result and assert its properties for failure scenario
+        job_result = step.job_result
+        assert job_result.status == DataOperationStatus.JOB_FAILURE
+        assert (
+            job_result.job_errors[0]
+            == "No records found for Contact in the target org."
+        )
+        assert job_result.records_processed == 0
+        assert job_result.total_row_errors == 0
+
     def test_batch(self):
         context = mock.Mock()
 
@@ -878,6 +977,216 @@ class TestRestApiDmlOperation:
             map(sorted, expected_record_values)
         )
         assert set(relevant_fields) == set(expected_relevant_fields)
+
+    @responses.activate
+    def test_select_records_random_strategy_success(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+        )
+
+        results = {
+            "records": [
+                {"Id": "003000000000001"},
+            ],
+            "done": True,
+        }
+        step.sf.query = mock.Mock()
+        step.sf.query.return_value = results
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 3
+        )
+
+    @responses.activate
+    def test_select_records_random_strategy_success__pagination(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+        )
+
+        results = {
+            "records": [
+                {"Id": "003000000000001"},
+            ],
+            "done": False,
+            "nextRecordsUrl": "https://example.com",
+        }
+        results_more = {
+            "records": [
+                {"Id": "003000000000002"},
+                {"Id": "003000000000003"},
+            ],
+            "done": True,
+        }
+        step.sf.query = mock.Mock()
+        step.sf.query.return_value = results
+        step.sf.query_more = mock.Mock()
+        step.sf.query_more.return_value = results_more
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+
+    @responses.activate
+    def test_select_records_random_strategy_failure__no_records(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+        )
+
+        results = {"records": [], "done": True}
+        step.sf.query = mock.Mock()
+        step.sf.query.return_value = results
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the job result and assert its properties for failure scenario
+        job_result = step.job_result
+        assert job_result.status == DataOperationStatus.JOB_FAILURE
+        assert (
+            job_result.job_errors[0]
+            == "No records found for Contact in the target org."
+        )
+        assert job_result.records_processed == 0
+        assert job_result.total_row_errors == 0
 
     @responses.activate
     def test_insert_dml_operation__boolean_conversion(self):

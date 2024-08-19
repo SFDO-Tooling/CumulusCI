@@ -388,7 +388,8 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
     def end(self):
         self.bulk.close_job(self.job_id)
-        self.job_result = self._wait_for_job(self.job_id)
+        if not self.job_result:
+            self.job_result = self._wait_for_job(self.job_id)
 
     def get_prev_record_values(self, records):
         """Get the previous values of the records based on the update key
