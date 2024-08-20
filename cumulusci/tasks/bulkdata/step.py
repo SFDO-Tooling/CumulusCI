@@ -21,7 +21,7 @@ from cumulusci.tasks.bulkdata.select_utils import (
     random_generate_query,
     random_post_process,
 )
-from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
+from cumulusci.tasks.bulkdata.utils import DataApi, iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
 from cumulusci.utils.xml import lxml_parse_string
 
@@ -43,14 +43,6 @@ class DataOperationType(StrEnum):
     ETL_UPSERT = "etl_upsert"
     SMART_UPSERT = "smart_upsert"  # currently undocumented
     SELECT = "select"
-
-
-class DataApi(StrEnum):
-    """Enum defining requested Salesforce data API for an operation."""
-
-    BULK = "bulk"
-    REST = "rest"
-    SMART = "smart"
 
 
 class DataOperationStatus(StrEnum):

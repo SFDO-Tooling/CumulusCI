@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic import Field, validator
 
 from cumulusci.core.enums import StrEnum
+from cumulusci.tasks.bulkdata.utils import DataApi
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 
 object_decl = re.compile(r"objects\((\w+)\)", re.IGNORECASE)
@@ -22,14 +23,6 @@ class SFFieldGroupTypes(StrEnum):
     custom = "custom"
     standard = "standard"
     required = "required"
-
-
-class DataApi(StrEnum):
-    """Enum defining requested Salesforce data API for an operation."""
-
-    BULK = "bulk"
-    REST = "rest"
-    SMART = "smart"
 
 
 class ExtractDeclaration(HashableBaseModel):
