@@ -2,6 +2,20 @@
 
 <!-- latest-start -->
 
+## v3.90.1 (2024-08-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix to Suppress the required field check for the upsert action at mapping step  by [@lakshmi2506](https://github.com/lakshmi2506) in [#3817](https://github.com/SFDO-Tooling/CumulusCI/pull/3817)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.0...v3.90.1
+
+<!-- latest-stop -->
+
 ## v3.90.0 (2024-07-15)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -14,8 +28,6 @@
 -   Update the validation for loading to check the required fields as well by [@lakshmi2506](https://github.com/lakshmi2506) in [#3807](https://github.com/SFDO-Tooling/CumulusCI/pull/3807)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.89.0...v3.90.0
-
-<!-- latest-stop -->
 
 ## v3.89.0 (2024-06-20)
 
