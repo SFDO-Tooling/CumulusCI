@@ -10,7 +10,7 @@
 
 ### Changes 🎉
 
--   Fix the required fields error for the Upsert action by [@lakshmi2506](https://github.com/lakshmi2506) in [#3817](https://github.com/SFDO-Tooling/CumulusCI/pull/3817)
+-   Fix to Suppress the required field check for the upsert action at mapping step  by [@lakshmi2506](https://github.com/lakshmi2506) in [#3817](https://github.com/SFDO-Tooling/CumulusCI/pull/3817)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.0...v3.90.1
 
