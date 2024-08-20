@@ -7,6 +7,7 @@ import tempfile
 import time
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
+from itertools import tee
 from typing import Any, Dict, List, NamedTuple, Optional
 
 import requests
@@ -454,8 +455,10 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         self.select_results = []  # Store selected records
 
-        # Count total number of records to fetch
-        total_num_records = sum(1 for _ in records)
+        # Create a copy of the generator using tee
+        records, records_copy = tee(records)
+        # Count total number of records to fetch using the copy
+        total_num_records = sum(1 for _ in records_copy)
 
         # Process in batches based on batch_size from api_options
         for offset in range(
@@ -488,7 +491,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
             # Post-process the query results
             selected_records, error_message = self.select_post_process(
-                query_records, num_records, self.sobject
+                records, query_records, num_records, self.sobject
             )
             if error_message:
                 break  # Stop if there's an error during post-processing
@@ -759,8 +762,10 @@ class RestApiDmlOperation(BaseDmlOperation):
             return [str(rec[f]) if rec[f] is not None else "" for f in fields]
 
         self.results = []
-        # Count the number of records to fetch
-        total_num_records = sum(1 for _ in records)
+        # Create a copy of the generator using tee
+        records, records_copy = tee(records)
+        # Count total number of records to fetch using the copy
+        total_num_records = sum(1 for _ in records_copy)
 
         # Process in batches
         for offset in range(0, total_num_records, self.api_options.get("batch_size")):
@@ -787,7 +792,7 @@ class RestApiDmlOperation(BaseDmlOperation):
 
             # Post-process the query results for this batch
             selected_records, error_message = self.select_post_process(
-                query_records, num_records, self.sobject
+                records, query_records, num_records, self.sobject
             )
             if error_message:
                 break

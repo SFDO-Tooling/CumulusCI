@@ -30,7 +30,9 @@ def test_random_post_process_with_records():
     records = [["001"], ["002"], ["003"]]
     num_records = 3
     sobject = "Contact"
-    selected_records, error_message = random_post_process(records, num_records, sobject)
+    selected_records, error_message = random_post_process(
+        None, records, num_records, sobject
+    )
 
     assert error_message is None
     assert len(selected_records) == num_records
@@ -43,7 +45,9 @@ def test_random_post_process_with_fewer_records():
     records = [["001"]]
     num_records = 3
     sobject = "Opportunity"
-    selected_records, error_message = random_post_process(records, num_records, sobject)
+    selected_records, error_message = random_post_process(
+        None, records, num_records, sobject
+    )
 
     assert error_message is None
     assert len(selected_records) == num_records
@@ -57,7 +61,9 @@ def test_random_post_process_with_no_records():
     records = []
     num_records = 2
     sobject = "Lead"
-    selected_records, error_message = random_post_process(records, num_records, sobject)
+    selected_records, error_message = random_post_process(
+        None, records, num_records, sobject
+    )
 
     assert selected_records == []
     assert error_message == f"No records found for {sobject} in the target org."

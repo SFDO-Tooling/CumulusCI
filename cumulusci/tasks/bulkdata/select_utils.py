@@ -1,3 +1,5 @@
+import typing as T
+
 from cumulusci.core.enums import StrEnum
 from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
     DEFAULT_DECLARATIONS,
@@ -10,7 +12,9 @@ class SelectStrategy(StrEnum):
     RANDOM = "random"
 
 
-def random_generate_query(sobject: str, num_records: float):
+def random_generate_query(
+    sobject: str, num_records: float
+) -> T.Tuple[str, T.List[str]]:
     """Generates the SOQL query for the random selection strategy"""
     # Get the WHERE clause from DEFAULT_DECLARATIONS if available
     declaration = DEFAULT_DECLARATIONS.get(sobject)
@@ -27,16 +31,18 @@ def random_generate_query(sobject: str, num_records: float):
     return query, ["Id"]
 
 
-def random_post_process(records, num_records: float, sobject: str):
+def random_post_process(
+    load_records, query_records: list, num_records: float, sobject: str
+) -> T.Tuple[T.List[dict], T.Union[str, None]]:
     """Processes the query results for the random selection strategy"""
     # Handle case where query returns 0 records
-    if not records:
+    if not query_records:
         error_message = f"No records found for {sobject} in the target org."
         return [], error_message
 
     # Add 'success: True' to each record to emulate records have been inserted
     selected_records = [
-        {"id": record[0], "success": True, "created": False} for record in records
+        {"id": record[0], "success": True, "created": False} for record in query_records
     ]
 
     # If fewer records than requested, repeat existing records to match num_records
