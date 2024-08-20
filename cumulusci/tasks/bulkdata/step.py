@@ -470,7 +470,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             )
 
             # Generate and execute SOQL query
-            query, query_fields = self.select_generate_query(self.sobject, num_records)
+            query, query_fields = self.select_generate_query(
+                self.sobject, self.fields, num_records
+            )
             self.batch_id = self.bulk.query(self.job_id, query)
             self._wait_for_job(self.job_id)
 
@@ -487,7 +489,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                     if "Records not found for this query" in self.headers:
                         break  # Stop if no records found
                     for row in reader:
-                        query_records.append([row[: len(query_fields)]])
+                        query_records.append(row[: len(query_fields)])
 
             # Post-process the query results
             selected_records, error_message = self.select_post_process(
@@ -571,9 +573,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             success = process_bool_arg(row["success"])
             created = process_bool_arg(row["created"])
             yield DataOperationResult(
-                row["id"] if success else None,
+                row["id"] if success else "",
                 success,
-                None,
+                "",
                 created,
             )
 
@@ -773,7 +775,9 @@ class RestApiDmlOperation(BaseDmlOperation):
                 self.api_options.get("batch_size"), total_num_records - offset
             )
             # Generate the SOQL query with and LIMIT
-            query, query_fields = self.select_generate_query(self.sobject, num_records)
+            query, query_fields = self.select_generate_query(
+                self.sobject, self.fields, num_records
+            )
 
             # Execute the query and extract results
             response = self.sf.query(query)

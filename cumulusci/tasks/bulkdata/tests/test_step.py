@@ -581,7 +581,7 @@ class TestBulkApiDmlOperation:
         assert (
             results.count(
                 DataOperationResult(
-                    id=["003000000000001"], success=True, error=None, created=False
+                    id="003000000000001", success=True, error="", created=False
                 )
             )
             == 3

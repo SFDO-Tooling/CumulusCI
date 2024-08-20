@@ -13,7 +13,7 @@ class SelectStrategy(StrEnum):
 
 
 def random_generate_query(
-    sobject: str, num_records: float
+    sobject: str, fields: T.List[str], num_records: float
 ) -> T.Tuple[str, T.List[str]]:
     """Generates the SOQL query for the random selection strategy"""
     # Get the WHERE clause from DEFAULT_DECLARATIONS if available

@@ -8,7 +8,7 @@ from cumulusci.tasks.bulkdata.select_utils import (
 def test_random_generate_query_with_default_record_declaration():
     sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
     num_records = 5
-    query, fields = random_generate_query(sobject, num_records)
+    query, fields = random_generate_query(sobject, [], num_records)
 
     assert "WHERE" in query  # Ensure WHERE clause is included
     assert f"LIMIT {num_records}" in query
@@ -18,7 +18,7 @@ def test_random_generate_query_with_default_record_declaration():
 def test_random_generate_query_without_default_record_declaration():
     sobject = "Contact"  # Assuming no declaration for this object
     num_records = 3
-    query, fields = random_generate_query(sobject, num_records)
+    query, fields = random_generate_query(sobject, [], num_records)
 
     assert "WHERE" not in query  # No WHERE clause should be present
     assert f"LIMIT {num_records}" in query
