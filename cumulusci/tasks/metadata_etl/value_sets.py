@@ -98,9 +98,9 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                     elem.append("forecastCategory", entry["forecastCategory"])
 
                 elif api_name == "LeadStatus":
-                    elem.append("converted", str(entry["converted"]).lower())             
+                    elem.append("converted", str(entry["converted"]).lower())
                 else:
                     for entry_key in entry:
-                        if entry_key not in ['fullName', 'label', 'default']:
+                        if entry_key not in ["fullName", "label", "default"]:
                             elem.append(entry_key, str(entry[entry_key]))
         return metadata
