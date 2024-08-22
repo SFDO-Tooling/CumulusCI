@@ -10,7 +10,7 @@
 
 ### Changes 🎉
 
--   Include All Keys in standardValue XML for add_standard_value_set_entries Task from Entries Option with Backward Compatibility by [@lakshmi2506](https://github.com/lakshmi2506) in [#3820](https://github.com/SFDO-Tooling/CumulusCI/pull/3820)
+-   Fix to Include All Keys in standardValue XML for add_standard_value_set_entries Task from Entries Option with Backward Compatibility by [@lakshmi2506](https://github.com/lakshmi2506) in [#3820](https://github.com/SFDO-Tooling/CumulusCI/pull/3820)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.1...v3.91.0
 
