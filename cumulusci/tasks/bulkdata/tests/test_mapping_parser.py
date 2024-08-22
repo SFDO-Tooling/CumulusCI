@@ -1104,7 +1104,10 @@ class TestMappingParser:
             )
 
     @responses.activate
-    def test_validate_and_inject_mapping_throws_exception_required_fields_missing(self):
+    def test_validate_and_inject_mapping_throws_exception_required_fields_missing(
+        self, caplog
+    ):
+        caplog.set_level(logging.ERROR)
         mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
@@ -1117,15 +1120,22 @@ class TestMappingParser:
             {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
 
-        with pytest.raises(BulkDataException):
-            validate_and_inject_mapping(
-                mapping=mapping,
-                sf=org_config.salesforce_client,
-                namespace=None,
-                data_operation=DataOperationType.INSERT,
-                inject_namespaces=False,
-                drop_missing=False,
-            )
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace="",
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=False,
+        )
+
+        expected_error_message = (
+            "One or more required fields are missing for loading on Account :{'Name'}"
+        )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
 
     @responses.activate
     def test_validate_and_inject_mapping_injects_namespaces(self):
