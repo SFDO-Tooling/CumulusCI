@@ -20,6 +20,8 @@ from cumulusci.tasks.bulkdata.select_utils import (
     SelectStrategy,
     random_generate_query,
     random_post_process,
+    similarity_generate_query,
+    similarity_post_process,
 )
 from cumulusci.tasks.bulkdata.utils import DataApi, iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
@@ -369,6 +371,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         if selection_strategy is SelectStrategy.RANDOM:
             self.select_generate_query = random_generate_query
             self.select_post_process = random_post_process
+        elif selection_strategy is SelectStrategy.SIMILARITY:
+            self.select_generate_query = similarity_generate_query
+            self.select_post_process = similarity_post_process
 
     def start(self):
         self.job_id = self.bulk.create_job(
@@ -616,7 +621,7 @@ class RestApiDmlOperation(BaseDmlOperation):
         api_options,
         context,
         fields,
-        selection_strategy=SelectStrategy.RANDOM,
+        selection_strategy=SelectStrategy.SIMILARITY,
     ):
         super().__init__(
             sobject=sobject,
@@ -642,6 +647,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         if selection_strategy is SelectStrategy.RANDOM:
             self.select_generate_query = random_generate_query
             self.select_post_process = random_post_process
+        elif selection_strategy is SelectStrategy.SIMILARITY:
+            self.select_generate_query = similarity_generate_query
+            self.select_post_process = similarity_post_process
 
     def _record_to_json(self, rec):
         result = dict(zip(self.fields, rec))
