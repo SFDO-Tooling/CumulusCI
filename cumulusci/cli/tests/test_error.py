@@ -117,7 +117,7 @@ Environment Info: Rossian / x68_46
 
         class ExceptionWithResponse(Exception, mock.Mock):
             def __init__(self, status_code):
-                super().__init__()
+                super(ExceptionWithResponse, self).__init__() 
                 self.response = mock.Mock(status_code=status_code)
 
         create_gist.side_effect = ExceptionWithResponse(503)
