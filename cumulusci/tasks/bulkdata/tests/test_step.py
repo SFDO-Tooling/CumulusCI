@@ -1387,7 +1387,7 @@ class TestRestApiDmlOperation:
             [
                 ["Id: 1", "Jawad", "mjawadtp@example.com"],
                 ["Id: 2", "Aditya", "aditya@example.com"],
-                ["Id: 2", "Tom", "tom@example.com"],
+                ["Id: 3", "Tom Cruise", "tom@example.com"],
             ]
         )
         step.start()
@@ -1402,6 +1402,22 @@ class TestRestApiDmlOperation:
             results.count(
                 DataOperationResult(
                     id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=False
                 )
             )
             == 1
@@ -1480,7 +1496,7 @@ class TestRestApiDmlOperation:
             [
                 ["Id: 1", "Jawad", "mjawadtp@example.com"],
                 ["Id: 2", "Aditya", "aditya@example.com"],
-                ["Id: 2", "Tom", "tom@example.com"],
+                ["Id: 3", "Tom Cruise", "tom@example.com"],
             ]
         )
         step.start()
@@ -1491,6 +1507,30 @@ class TestRestApiDmlOperation:
         results = list(step.get_results())
         assert len(results) == 3  # Expect 3 results (matching the input records count)
         # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
 
     @responses.activate
     def test_select_records_similarity_strategy_failure__no_records(self):

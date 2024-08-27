@@ -81,7 +81,7 @@ def similarity_generate_query(
 
 
 def similarity_post_process(
-    load_records: list, query_records: list, num_records: float, sobject: str
+    load_records, query_records: list, num_records: float, sobject: str
 ) -> T.Tuple[T.List[dict], T.Union[str, None]]:
     """Processes the query results for the similarity selection strategy"""
     # Handle case where query returns 0 records
