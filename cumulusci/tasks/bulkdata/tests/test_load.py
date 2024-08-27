@@ -122,9 +122,8 @@ class TestLoadData:
 
             mock_describe_calls()
             task()
-
             assert step.records == [
-                ["TestHousehold", "1"],
+                ["TestHousehold", "TestHousehold", "1"],
                 ["Test", "User", "test@example.com", "001000000000000"],
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
@@ -387,9 +386,8 @@ class TestLoadData:
         ]
         mock_describe_calls()
         task()
-
         assert step.records == [
-            ["TestHousehold", "1"],
+            [None, "TestHousehold", "1"],
             ["Test☃", "User", "test@example.com", "001000000000000"],
             ["Error", "User", "error@example.com", "001000000000000"],
         ]

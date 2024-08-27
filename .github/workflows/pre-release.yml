@@ -19,7 +19,7 @@ on:
 jobs:
     generate-changelog:
         name: Create a PR to update version and release notes
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@main
             - name: Set up Python 3.8

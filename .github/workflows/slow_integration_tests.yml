@@ -22,7 +22,7 @@ env:
 jobs:
     org_backed_tests:
         name: "Org-connected Tests"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
@@ -57,7 +57,7 @@ jobs:
                   cci org scratch_delete pytest
     robot_ui:
         name: "Robot: ${{ matrix.job-name }}"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         strategy:
             fail-fast: false
             matrix:
