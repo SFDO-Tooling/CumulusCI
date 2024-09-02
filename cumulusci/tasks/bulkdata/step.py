@@ -3,25 +3,23 @@ import io
 import json
 import os
 import pathlib
+import re
 import tempfile
 import time
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from itertools import tee
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import requests
 import salesforce_bulk
 
 from cumulusci.core.enums import StrEnum
-from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import BulkDataException, SOQLQueryException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.select_utils import (
+    SelectOperationExecutor,
     SelectStrategy,
-    random_generate_query,
-    random_post_process,
-    similarity_generate_query,
-    similarity_post_process,
 )
 from cumulusci.tasks.bulkdata.utils import DataApi, iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
@@ -352,7 +350,8 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         api_options,
         context,
         fields,
-        selection_strategy=SelectStrategy.RANDOM,
+        selection_strategy=SelectStrategy.STANDARD,
+        selection_filter=None,
     ):
         super().__init__(
             sobject=sobject,
@@ -368,12 +367,8 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff, quoting=csv.QUOTE_ALL)
 
-        if selection_strategy is SelectStrategy.RANDOM:
-            self.select_generate_query = random_generate_query
-            self.select_post_process = random_post_process
-        elif selection_strategy is SelectStrategy.SIMILARITY:
-            self.select_generate_query = similarity_generate_query
-            self.select_post_process = similarity_post_process
+        self.select_operation_executor = SelectOperationExecutor(selection_strategy)
+        self.selection_filter = selection_filter
 
     def start(self):
         self.job_id = self.bulk.create_job(
@@ -451,7 +446,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         """Executes a SOQL query to select records and adds them to results"""
 
         self.select_results = []  # Store selected records
-
+        query_records = []
         # Create a copy of the generator using tee
         records, records_copy = tee(records)
         # Count total number of records to fetch using the copy
@@ -467,34 +462,55 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             )
 
             # Generate and execute SOQL query
-            query, query_fields = self.select_generate_query(
+            (
+                select_query,
+                query_fields,
+            ) = self.select_operation_executor.select_generate_query(
                 self.sobject, self.fields, num_records
             )
-            self.batch_id = self.bulk.query(self.job_id, query)
-            self._wait_for_job(self.job_id)
+            if self.selection_filter:
+                # Generate user filter query if selection_filter is present (offset clause not supported)
+                user_query = generate_user_filter_query(
+                    self.selection_filter, self.sobject, ["Id"], num_records, None
+                )
+                # Execute the user query using Bulk API
+                user_query_executor = get_query_operation(
+                    sobject=self.sobject,
+                    fields=["Id"],
+                    api_options=self.api_options,
+                    context=self,
+                    query=user_query,
+                    api=DataApi.BULK,
+                )
+                user_query_executor.query()
+                user_query_records = user_query_executor.get_results()
 
-            # Get and process query results
-            result_ids = self.bulk.get_query_batch_result_ids(
-                self.batch_id, job_id=self.job_id
+                # Find intersection based on 'Id'
+                user_query_ids = set(record[0] for record in user_query_records)
+
+            # Execute the main select query using Bulk API
+            select_query_records = self._execute_select_query(
+                select_query=select_query, query_fields=query_fields
             )
-            query_records = []
-            for result_id in result_ids:
-                uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
-                with download_file(uri, self.bulk) as f:
-                    reader = csv.reader(f)
-                    self.headers = next(reader)
-                    if "Records not found for this query" in self.headers:
-                        break  # Stop if no records found
-                    for row in reader:
-                        query_records.append(row[: len(query_fields)])
 
-            # Post-process the query results
-            selected_records, error_message = self.select_post_process(
-                records, query_records, num_records, self.sobject
-            )
-            if error_message:
-                break  # Stop if there's an error during post-processing
+            # If user_query_ids exist, filter select_query_records based on the intersection of Ids
+            if self.selection_filter:
+                query_records.extend(
+                    record
+                    for record in select_query_records
+                    if record[query_fields.index("Id")] in user_query_ids
+                )
+            else:
+                query_records.extend(select_query_records)
 
+        # Post-process the query results
+        (
+            selected_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            records, query_records, num_records, self.sobject
+        )
+        if not error_message:
             self.select_results.extend(selected_records)
 
         # Update job result based on selection outcome
@@ -506,6 +522,25 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             len(self.select_results),
             0,
         )
+
+    def _execute_select_query(self, select_query: str, query_fields: List[str]):
+        """Executes the select Bulk API query and retrieves the results."""
+        self.batch_id = self.bulk.query(self.job_id, select_query)
+        self._wait_for_job(self.job_id)
+        result_ids = self.bulk.get_query_batch_result_ids(
+            self.batch_id, job_id=self.job_id
+        )
+        select_query_records = []
+        for result_id in result_ids:
+            uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
+            with download_file(uri, self.bulk) as f:
+                reader = csv.reader(f)
+                self.headers = next(reader)
+                if "Records not found for this query" in self.headers:
+                    break
+                for row in reader:
+                    select_query_records.append(row[: len(query_fields)])
+        return select_query_records
 
     def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
@@ -622,6 +657,7 @@ class RestApiDmlOperation(BaseDmlOperation):
         context,
         fields,
         selection_strategy=SelectStrategy.SIMILARITY,
+        selection_filter=None,
     ):
         super().__init__(
             sobject=sobject,
@@ -644,12 +680,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         self.api_options["batch_size"] = min(
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
-        if selection_strategy is SelectStrategy.RANDOM:
-            self.select_generate_query = random_generate_query
-            self.select_post_process = random_post_process
-        elif selection_strategy is SelectStrategy.SIMILARITY:
-            self.select_generate_query = similarity_generate_query
-            self.select_post_process = similarity_post_process
+
+        self.select_operation_executor = SelectOperationExecutor(selection_strategy)
+        self.selection_filter = selection_filter
 
     def _record_to_json(self, rec):
         result = dict(zip(self.fields, rec))
@@ -764,6 +797,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             return [str(rec[f]) if rec[f] is not None else "" for f in fields]
 
         self.results = []
+        query_records = []
         # Create a copy of the generator using tee
         records, records_copy = tee(records)
         # Count total number of records to fetch using the copy
@@ -774,32 +808,44 @@ class RestApiDmlOperation(BaseDmlOperation):
             num_records = min(
                 self.api_options.get("batch_size"), total_num_records - offset
             )
-            # Generate the SOQL query with and LIMIT
-            query, query_fields = self.select_generate_query(
+
+            # Generate the SOQL query based on the selection strategy
+            (
+                select_query,
+                query_fields,
+            ) = self.select_operation_executor.select_generate_query(
                 self.sobject, self.fields, num_records
             )
 
-            # Execute the query and extract results
-            response = self.sf.query(query)
-            # Extract and convert 'Id' fields from the query results
-            query_records = list(
-                convert(rec, query_fields) for rec in response["records"]
-            )
-            # Handle pagination if there are more records within this batch
-            while not response["done"]:
-                response = self.sf.query_more(
-                    response["nextRecordsUrl"], identifier_is_url=True
+            # If user given selection filter present, create composite request
+            if self.selection_filter:
+                user_query = generate_user_filter_query(
+                    self.selection_filter, self.sobject, ["Id"], num_records, offset
+                )
+                query_records.extend(
+                    self._execute_composite_query(
+                        select_query=select_query,
+                        user_query=user_query,
+                        query_fields=query_fields,
+                    )
+                )
+            else:
+                # Handle the case where self.selection_query is None (and hence user_query is also None)
+                response = self.sf.restful(
+                    requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
                 )
                 query_records.extend(
                     list(convert(rec, query_fields) for rec in response["records"])
                 )
 
-            # Post-process the query results for this batch
-            selected_records, error_message = self.select_post_process(
-                records, query_records, num_records, self.sobject
-            )
-            if error_message:
-                break
+        # Post-process the query results for this batch
+        (
+            selected_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            records, query_records, total_num_records, self.sobject
+        )
+        if not error_message:
             # Add selected records from this batch to the overall results
             self.results.extend(selected_records)
 
@@ -812,6 +858,65 @@ class RestApiDmlOperation(BaseDmlOperation):
             len(self.results),
             0,
         )
+
+    def _execute_composite_query(self, select_query, user_query, query_fields):
+        """Executes a composite request with two queries and returns the intersected results."""
+
+        def convert(rec, fields):
+            """Helper function to convert record values to strings, handling None values"""
+            return [str(rec[f]) if rec[f] is not None else "" for f in fields]
+
+        composite_request_json = {
+            "compositeRequest": [
+                {
+                    "method": "GET",
+                    "url": requests.utils.requote_uri(
+                        f"/services/data/v{self.sf.sf_version}/query/?q={select_query}"
+                    ),
+                    "referenceId": "select_query",
+                },
+                {
+                    "method": "GET",
+                    "url": requests.utils.requote_uri(
+                        f"/services/data/v{self.sf.sf_version}/query/?q={user_query}"
+                    ),
+                    "referenceId": "user_query",
+                },
+            ]
+        }
+        response = self.sf.restful(
+            "composite", method="POST", json=composite_request_json
+        )
+
+        # Extract results based on referenceId
+        for sub_response in response["compositeResponse"]:
+            if (
+                sub_response["referenceId"] == "select_query"
+                and sub_response["httpStatusCode"] == 200
+            ):
+                select_query_records = list(
+                    convert(rec, query_fields)
+                    for rec in sub_response["body"]["records"]
+                )
+            elif (
+                sub_response["referenceId"] == "user_query"
+                and sub_response["httpStatusCode"] == 200
+            ):
+                user_query_records = list(
+                    convert(rec, ["Id"]) for rec in sub_response["body"]["records"]
+                )
+            else:
+                raise SOQLQueryException(
+                    f"{sub_response['body'][0]['errorCode']}: {sub_response['body'][0]['message']}"
+                )
+        # Find intersection based on 'Id'
+        user_query_ids = set(record[0] for record in user_query_records)
+
+        return [
+            record
+            for record in select_query_records
+            if record[query_fields.index("Id")] in user_query_ids
+        ]
 
     def get_results(self):
         """Return a generator of DataOperationResult objects."""
@@ -894,6 +999,8 @@ def get_dml_operation(
     context: Any,
     volume: int,
     api: Optional[DataApi] = DataApi.SMART,
+    selection_strategy: SelectStrategy = SelectStrategy.STANDARD,
+    selection_filter: Union[str, None] = None,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
@@ -927,4 +1034,56 @@ def get_dml_operation(
         api_options=api_options,
         context=context,
         fields=fields,
+        selection_strategy=selection_strategy,
+        selection_filter=selection_filter,
     )
+
+
+def generate_user_filter_query(
+    filter_clause: str,
+    sobject: str,
+    fields: list,
+    limit_clause: Union[int, None] = None,
+    offset_clause: Union[int, None] = None,
+) -> str:
+    """
+    Generates a SOQL query with the provided filter, object, fields, limit, and offset clauses.
+    Handles cases where the filter clause already contains LIMIT or OFFSET, and avoids multiple spaces.
+    """
+
+    # Extract existing LIMIT and OFFSET from filter_clause if present
+    existing_limit_match = re.search(r"LIMIT\s+(\d+)", filter_clause, re.IGNORECASE)
+    existing_offset_match = re.search(r"OFFSET\s+(\d+)", filter_clause, re.IGNORECASE)
+
+    if existing_limit_match:
+        existing_limit = int(existing_limit_match.group(1))
+        if limit_clause is not None:  # Only apply limit_clause if it's provided
+            limit_clause = min(existing_limit, limit_clause)
+        else:
+            limit_clause = existing_limit
+
+    if existing_offset_match:
+        existing_offset = int(existing_offset_match.group(1))
+        if offset_clause is not None:
+            offset_clause = existing_offset + offset_clause
+        else:
+            offset_clause = existing_offset
+
+    # Remove existing LIMIT and OFFSET from filter_clause, handling potential extra spaces
+    filter_clause = re.sub(
+        r"\s+OFFSET\s+\d+\s*", " ", filter_clause, flags=re.IGNORECASE
+    ).strip()
+    filter_clause = re.sub(
+        r"\s+LIMIT\s+\d+\s*", " ", filter_clause, flags=re.IGNORECASE
+    ).strip()
+
+    # Construct the SOQL query
+    fields_str = ", ".join(fields)
+    query = f"SELECT {fields_str} FROM {sobject} {filter_clause}"
+
+    if limit_clause is not None:
+        query += f" LIMIT {limit_clause}"
+    if offset_clause is not None:
+        query += f" OFFSET {offset_clause}"
+
+    return query

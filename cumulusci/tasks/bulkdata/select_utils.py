@@ -1,3 +1,4 @@
+import random
 import typing as T
 
 from cumulusci.core.enums import StrEnum
@@ -9,14 +10,52 @@ from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declaratio
 class SelectStrategy(StrEnum):
     """Enum defining the different selection strategies requested."""
 
-    RANDOM = "random"
+    STANDARD = "standard"
     SIMILARITY = "similarity"
+    RANDOM = "random"
 
 
-def random_generate_query(
-    sobject: str, fields: T.List[str], num_records: float
+class SelectOperationExecutor:
+    def __init__(self, strategy: SelectStrategy):
+        self.strategy = strategy
+
+    def select_generate_query(
+        self, sobject: str, fields: T.List[str], num_records: int
+    ):
+        # For STANDARD strategy
+        if self.strategy == SelectStrategy.STANDARD:
+            return standard_generate_query(sobject=sobject, num_records=num_records)
+        # For SIMILARITY strategy
+        elif self.strategy == SelectStrategy.SIMILARITY:
+            return similarity_generate_query(sobject=sobject, fields=fields)
+        # For RANDOM strategy
+        elif self.strategy == SelectStrategy.RANDOM:
+            return standard_generate_query(sobject=sobject, num_records=num_records)
+
+    def select_post_process(
+        self, load_records, query_records: list, num_records: int, sobject: str
+    ):
+        # For STANDARD strategy
+        if self.strategy == SelectStrategy.STANDARD:
+            return standard_post_process(
+                query_records=query_records, num_records=num_records, sobject=sobject
+            )
+        # For SIMILARITY strategy
+        elif self.strategy == SelectStrategy.SIMILARITY:
+            return similarity_post_process(
+                load_records=load_records, query_records=query_records, sobject=sobject
+            )
+        # For RANDOM strategy
+        elif self.strategy == SelectStrategy.RANDOM:
+            return random_post_process(
+                query_records=query_records, num_records=num_records, sobject=sobject
+            )
+
+
+def standard_generate_query(
+    sobject: str, num_records: int
 ) -> T.Tuple[str, T.List[str]]:
-    """Generates the SOQL query for the random selection strategy"""
+    """Generates the SOQL query for the standard (as well as random) selection strategy"""
     # Get the WHERE clause from DEFAULT_DECLARATIONS if available
     declaration = DEFAULT_DECLARATIONS.get(sobject)
     if declaration:
@@ -32,10 +71,10 @@ def random_generate_query(
     return query, ["Id"]
 
 
-def random_post_process(
-    load_records, query_records: list, num_records: float, sobject: str
+def standard_post_process(
+    query_records: list, num_records: int, sobject: str
 ) -> T.Tuple[T.List[dict], T.Union[str, None]]:
-    """Processes the query results for the random selection strategy"""
+    """Processes the query results for the standard selection strategy"""
     # Handle case where query returns 0 records
     if not query_records:
         error_message = f"No records found for {sobject} in the target org."
@@ -59,9 +98,8 @@ def random_post_process(
 def similarity_generate_query(
     sobject: str,
     fields: T.List[str],
-    num_records: float,
 ) -> T.Tuple[str, T.List[str]]:
-    """Generates the SOQL query for the random selection strategy"""
+    """Generates the SOQL query for the similarity selection strategy"""
     # Get the WHERE clause from DEFAULT_DECLARATIONS if available
     declaration = DEFAULT_DECLARATIONS.get(sobject)
     if declaration:
@@ -81,7 +119,7 @@ def similarity_generate_query(
 
 
 def similarity_post_process(
-    load_records, query_records: list, num_records: float, sobject: str
+    load_records: list, query_records: list, sobject: str
 ) -> T.Tuple[T.List[dict], T.Union[str, None]]:
     """Processes the query results for the similarity selection strategy"""
     # Handle case where query returns 0 records
@@ -98,6 +136,26 @@ def similarity_post_process(
         )
 
     return closest_records, None
+
+
+def random_post_process(
+    query_records: list, num_records: int, sobject: str
+) -> T.Tuple[T.List[dict], T.Union[str, None]]:
+    """Processes the query results for the random selection strategy"""
+
+    if not query_records:
+        error_message = f"No records found for {sobject} in the target org."
+        return [], error_message
+
+    selected_records = []
+    for _ in range(num_records):  # Loop 'num_records' times
+        # Randomly select one record from query_records
+        random_record = random.choice(query_records)
+        selected_records.append(
+            {"id": random_record[0], "success": True, "created": False}
+        )
+
+    return selected_records, None
 
 
 def find_closest_record(load_record: list, query_records: list):

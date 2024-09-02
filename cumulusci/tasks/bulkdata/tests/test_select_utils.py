@@ -1,19 +1,47 @@
 from cumulusci.tasks.bulkdata.select_utils import (
+    SelectOperationExecutor,
+    SelectStrategy,
     calculate_levenshtein_distance,
     find_closest_record,
     levenshtein_distance,
-    random_generate_query,
-    random_post_process,
-    similarity_generate_query,
-    similarity_post_process,
 )
 
 
-# Test Cases for random_generate_query
-def test_random_generate_query_with_default_record_declaration():
+# Test Cases for standard_generate_query
+def test_standard_generate_query_with_default_record_declaration():
+    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
     num_records = 5
-    query, fields = random_generate_query(sobject, [], num_records)
+    query, fields = select_operator.select_generate_query(
+        sobject=sobject, fields=[], num_records=num_records
+    )
+
+    assert "WHERE" in query  # Ensure WHERE clause is included
+    assert f"LIMIT {num_records}" in query
+    assert fields == ["Id"]
+
+
+def test_standard_generate_query_without_default_record_declaration():
+    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
+    sobject = "Contact"  # Assuming no declaration for this object
+    num_records = 3
+    query, fields = select_operator.select_generate_query(
+        sobject=sobject, fields=[], num_records=num_records
+    )
+
+    assert "WHERE" not in query  # No WHERE clause should be present
+    assert f"LIMIT {num_records}" in query
+    assert fields == ["Id"]
+
+
+# Test Cases for random generate query
+def test_random_generate_query_with_default_record_declaration():
+    select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
+    sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
+    num_records = 5
+    query, fields = select_operator.select_generate_query(
+        sobject=sobject, fields=[], num_records=num_records
+    )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
     assert f"LIMIT {num_records}" in query
@@ -21,21 +49,25 @@ def test_random_generate_query_with_default_record_declaration():
 
 
 def test_random_generate_query_without_default_record_declaration():
+    select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
     sobject = "Contact"  # Assuming no declaration for this object
     num_records = 3
-    query, fields = random_generate_query(sobject, [], num_records)
+    query, fields = select_operator.select_generate_query(
+        sobject=sobject, fields=[], num_records=num_records
+    )
 
     assert "WHERE" not in query  # No WHERE clause should be present
     assert f"LIMIT {num_records}" in query
     assert fields == ["Id"]
 
 
-# Test Cases for random_post_process
-def test_random_post_process_with_records():
+# Test Cases for standard_post_process
+def test_standard_post_process_with_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     records = [["001"], ["002"], ["003"]]
     num_records = 3
     sobject = "Contact"
-    selected_records, error_message = random_post_process(
+    selected_records, error_message = select_operator.select_post_process(
         None, records, num_records, sobject
     )
 
@@ -46,11 +78,12 @@ def test_random_post_process_with_records():
     assert all(record["id"] in ["001", "002", "003"] for record in selected_records)
 
 
-def test_random_post_process_with_fewer_records():
+def test_standard_post_process_with_fewer_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     records = [["001"]]
     num_records = 3
     sobject = "Opportunity"
-    selected_records, error_message = random_post_process(
+    selected_records, error_message = select_operator.select_post_process(
         None, records, num_records, sobject
     )
 
@@ -62,11 +95,12 @@ def test_random_post_process_with_fewer_records():
     assert selected_records.count({"id": "001", "success": True, "created": False}) == 3
 
 
-def test_random_post_process_with_no_records():
+def test_standard_post_process_with_no_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     records = []
     num_records = 2
     sobject = "Lead"
-    selected_records, error_message = random_post_process(
+    selected_records, error_message = select_operator.select_post_process(
         None, records, num_records, sobject
     )
 
@@ -74,20 +108,55 @@ def test_random_post_process_with_no_records():
     assert error_message == f"No records found for {sobject} in the target org."
 
 
-# Test Cases for random_generate_query
+# Test cases for Random Post Process
+def test_random_post_process_with_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
+    records = [["001"], ["002"], ["003"]]
+    num_records = 3
+    sobject = "Contact"
+    selected_records, error_message = select_operator.select_post_process(
+        None, records, num_records, sobject
+    )
+
+    assert error_message is None
+    assert len(selected_records) == num_records
+    assert all(record["success"] for record in selected_records)
+    assert all(record["created"] is False for record in selected_records)
+
+
+def test_random_post_process_with_no_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
+    records = []
+    num_records = 2
+    sobject = "Lead"
+    selected_records, error_message = select_operator.select_post_process(
+        None, records, num_records, sobject
+    )
+
+    assert selected_records == []
+    assert error_message == f"No records found for {sobject} in the target org."
+
+
+# Test Cases for Similarity Generate Query
 def test_similarity_generate_query_with_default_record_declaration():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
     num_records = 5
-    query, fields = similarity_generate_query(sobject, ["Name"], num_records)
+    query, fields = select_operator.select_generate_query(
+        sobject, ["Name"], num_records
+    )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
     assert fields == ["Id", "Name"]
 
 
 def test_similarity_generate_query_without_default_record_declaration():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     sobject = "Contact"  # Assuming no declaration for this object
     num_records = 3
-    query, fields = similarity_generate_query(sobject, ["Name"], num_records)
+    query, fields = select_operator.select_generate_query(
+        sobject, ["Name"], num_records
+    )
 
     assert "WHERE" not in query  # No WHERE clause should be present
     assert fields == ["Id", "Name"]
@@ -198,6 +267,7 @@ def test_find_closest_record():
 
 
 def test_similarity_post_process_with_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     num_records = 1
     sobject = "Contact"
     load_records = [["Tom Cruise", "62", "Actor"]]
@@ -207,7 +277,7 @@ def test_similarity_post_process_with_records():
         ["003", "Jennifer Aniston", "30", "Actress"],
     ]
 
-    selected_records, error_message = similarity_post_process(
+    selected_records, error_message = select_operator.select_post_process(
         load_records, query_records, num_records, sobject
     )
 
@@ -219,10 +289,11 @@ def test_similarity_post_process_with_records():
 
 
 def test_similarity_post_process_with_no_records():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     records = []
     num_records = 2
     sobject = "Lead"
-    selected_records, error_message = similarity_post_process(
+    selected_records, error_message = select_operator.select_post_process(
         None, records, num_records, sobject
     )
 

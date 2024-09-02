@@ -289,7 +289,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     self, step, self._stream_queried_data(mapping, local_ids, query)
                 )
             step.start()
-            step.load_records(self._stream_queried_data(mapping, local_ids, query))
+            if mapping.action == DataOperationType.SELECT:
+                step.select_records(
+                    self._stream_queried_data(mapping, local_ids, query)
+                )
+            else:
+                step.load_records(self._stream_queried_data(mapping, local_ids, query))
             step.end()
 
             # Process Job Results
@@ -336,6 +341,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.check_simple_upsert(mapping)
             api_options["update_key"] = mapping.update_key[0]
             action = DataOperationType.UPSERT
+        elif mapping.action == DataOperationType.SELECT:
+            action = DataOperationType.QUERY
         else:
             action = mapping.action
 
@@ -349,6 +356,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             fields=fields,
             api=mapping.api,
             volume=query.count(),
+            selection_strategy=mapping.selection_strategy,
+            selection_filter=mapping.selection_filter,
         )
         return step, query
 
@@ -481,10 +490,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
 
-        is_insert_or_upsert = mapping.action in (
+        is_insert_upsert_or_select = mapping.action in (
             DataOperationType.INSERT,
             DataOperationType.UPSERT,
             DataOperationType.ETL_UPSERT,
+            DataOperationType.SELECT,
         )
 
         conn = self.session.connection()
@@ -500,7 +510,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 break
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
-        if is_insert_or_upsert and (
+        if is_insert_upsert_or_select and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
             table = self.metadata.tables[self.ID_TABLE_NAME]
@@ -516,7 +526,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # person account Contact records so lookups to
         # person account Contact records get populated downstream as expected.
         if (
-            is_insert_or_upsert
+            is_insert_upsert_or_select
             and mapping.sf_object == "Contact"
             and self._can_load_person_accounts(mapping)
         ):
@@ -531,7 +541,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     ),
                 )
 
-        if is_insert_or_upsert:
+        if is_insert_upsert_or_select:
             self.session.commit()
 
     def _generate_results_id_map(self, step, local_ids):
