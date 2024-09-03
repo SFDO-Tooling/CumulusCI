@@ -1,3 +1,5 @@
+import pytest
+
 from cumulusci.tasks.bulkdata.select_utils import (
     SelectOperationExecutor,
     SelectStrategy,
@@ -213,6 +215,20 @@ def test_calculate_levenshtein_distance():
     record1 = ["", "", ""]
     record2 = ["", "", ""]
     assert calculate_levenshtein_distance(record1, record2) == 0  # Distance should be 0
+
+
+def test_calculate_levenshtein_distance_error():
+    # Identical records
+    record1 = ["Tom Cruise", "24", "Actor"]
+    record2 = [
+        "Tom Cruise",
+        "24",
+        "Actor",
+        "SomethingElse",
+    ]  # Record Length does not match
+    with pytest.raises(ValueError) as e:
+        calculate_levenshtein_distance(record1, record2)
+    assert "Records must have the same number of fields" in str(e.value)
 
 
 def test_find_closest_record():

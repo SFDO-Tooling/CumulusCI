@@ -342,6 +342,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             api_options["update_key"] = mapping.update_key[0]
             action = DataOperationType.UPSERT
         elif mapping.action == DataOperationType.SELECT:
+            # Bulk process expects DataOpertionType to be QUERY
             action = DataOperationType.QUERY
         else:
             action = mapping.action
