@@ -20,17 +20,23 @@ class SelectOperationExecutor:
         self.strategy = strategy
 
     def select_generate_query(
-        self, sobject: str, fields: T.List[str], num_records: int
+        self,
+        sobject: str,
+        fields: T.List[str],
+        limit: T.Union[int, None],
+        offset: T.Union[int, None],
     ):
         # For STANDARD strategy
         if self.strategy == SelectStrategy.STANDARD:
-            return standard_generate_query(sobject=sobject, num_records=num_records)
+            return standard_generate_query(sobject=sobject, limit=limit, offset=offset)
         # For SIMILARITY strategy
         elif self.strategy == SelectStrategy.SIMILARITY:
-            return similarity_generate_query(sobject=sobject, fields=fields)
+            return similarity_generate_query(
+                sobject=sobject, fields=fields, limit=limit, offset=offset
+            )
         # For RANDOM strategy
         elif self.strategy == SelectStrategy.RANDOM:
-            return standard_generate_query(sobject=sobject, num_records=num_records)
+            return standard_generate_query(sobject=sobject, limit=limit, offset=offset)
 
     def select_post_process(
         self, load_records, query_records: list, num_records: int, sobject: str
@@ -53,7 +59,7 @@ class SelectOperationExecutor:
 
 
 def standard_generate_query(
-    sobject: str, num_records: int
+    sobject: str, limit: T.Union[int, None], offset: T.Union[int, None]
 ) -> T.Tuple[str, T.List[str]]:
     """Generates the SOQL query for the standard (as well as random) selection strategy"""
     # Get the WHERE clause from DEFAULT_DECLARATIONS if available
@@ -66,8 +72,8 @@ def standard_generate_query(
     query = f"SELECT Id FROM {sobject}"
     if where_clause:
         query += f" WHERE {where_clause}"
-    query += f" LIMIT {num_records}"
-
+    query += f" LIMIT {limit}" if limit else ""
+    query += f" OFFSET {offset}" if offset else ""
     return query, ["Id"]
 
 
@@ -98,6 +104,8 @@ def standard_post_process(
 def similarity_generate_query(
     sobject: str,
     fields: T.List[str],
+    limit: T.Union[int, None],
+    offset: T.Union[int, None],
 ) -> T.Tuple[str, T.List[str]]:
     """Generates the SOQL query for the similarity selection strategy"""
     # Get the WHERE clause from DEFAULT_DECLARATIONS if available
@@ -114,7 +122,8 @@ def similarity_generate_query(
     query = f"SELECT {fields_to_query} FROM {sobject}"
     if where_clause:
         query += f" WHERE {where_clause}"
-
+    query += f" LIMIT {limit}" if limit else ""
+    query += f" OFFSET {offset}" if offset else ""
     return query, fields
 
 

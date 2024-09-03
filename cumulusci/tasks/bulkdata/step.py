@@ -462,16 +462,21 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             )
 
             # Generate and execute SOQL query
+            # (not passing offset as it is not supported in Bulk)
             (
                 select_query,
                 query_fields,
             ) = self.select_operation_executor.select_generate_query(
-                self.sobject, self.fields, num_records
+                sobject=self.sobject, fields=self.fields, limit=num_records, offset=None
             )
             if self.selection_filter:
                 # Generate user filter query if selection_filter is present (offset clause not supported)
                 user_query = generate_user_filter_query(
-                    self.selection_filter, self.sobject, ["Id"], num_records, None
+                    filter_clause=self.selection_filter,
+                    sobject=self.sobject,
+                    fields=["Id"],
+                    limit_clause=num_records,
+                    offset_clause=None,
                 )
                 # Execute the user query using Bulk API
                 user_query_executor = get_query_operation(
@@ -508,19 +513,22 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             selected_records,
             error_message,
         ) = self.select_operation_executor.select_post_process(
-            records, query_records, num_records, self.sobject
+            load_records=records,
+            query_records=query_records,
+            num_records=num_records,
+            sobject=self.sobject,
         )
         if not error_message:
             self.select_results.extend(selected_records)
 
         # Update job result based on selection outcome
         self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS
+            status=DataOperationStatus.SUCCESS
             if len(self.select_results)
             else DataOperationStatus.JOB_FAILURE,
-            [error_message] if error_message else [],
-            len(self.select_results),
-            0,
+            job_errors=[error_message] if error_message else [],
+            records_processed=len(self.select_results),
+            total_row_errors=0,
         )
 
     def _execute_select_query(self, select_query: str, query_fields: List[str]):
@@ -814,13 +822,20 @@ class RestApiDmlOperation(BaseDmlOperation):
                 select_query,
                 query_fields,
             ) = self.select_operation_executor.select_generate_query(
-                self.sobject, self.fields, num_records
+                sobject=self.sobject,
+                fields=self.fields,
+                limit=num_records,
+                offset=offset,
             )
 
             # If user given selection filter present, create composite request
             if self.selection_filter:
                 user_query = generate_user_filter_query(
-                    self.selection_filter, self.sobject, ["Id"], num_records, offset
+                    filter_clause=self.selection_filter,
+                    sobject=self.sobject,
+                    fields=["Id"],
+                    limit_clause=num_records,
+                    offset_clause=offset,
                 )
                 query_records.extend(
                     self._execute_composite_query(
@@ -843,7 +858,10 @@ class RestApiDmlOperation(BaseDmlOperation):
             selected_records,
             error_message,
         ) = self.select_operation_executor.select_post_process(
-            records, query_records, total_num_records, self.sobject
+            load_records=records,
+            query_records=query_records,
+            num_records=total_num_records,
+            sobject=self.sobject,
         )
         if not error_message:
             # Add selected records from this batch to the overall results
@@ -851,12 +869,12 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         # Update the job result based on the overall selection outcome
         self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS
+            status=DataOperationStatus.SUCCESS
             if len(self.results)  # Check the overall results length
             else DataOperationStatus.JOB_FAILURE,
-            [error_message] if error_message else [],
-            len(self.results),
-            0,
+            job_errors=[error_message] if error_message else [],
+            records_processed=len(self.results),
+            total_row_errors=0,
         )
 
     def _execute_composite_query(self, select_query, user_query, query_fields):

@@ -11,26 +11,30 @@ from cumulusci.tasks.bulkdata.select_utils import (
 def test_standard_generate_query_with_default_record_declaration():
     select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
-    num_records = 5
+    limit = 5
+    offset = 2
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], num_records=num_records
+        sobject=sobject, fields=[], limit=limit, offset=offset
     )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
-    assert f"LIMIT {num_records}" in query
+    assert f"LIMIT {limit}" in query
+    assert f"OFFSET {offset}" in query
     assert fields == ["Id"]
 
 
 def test_standard_generate_query_without_default_record_declaration():
     select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     sobject = "Contact"  # Assuming no declaration for this object
-    num_records = 3
+    limit = 3
+    offset = None
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], num_records=num_records
+        sobject=sobject, fields=[], limit=limit, offset=offset
     )
 
     assert "WHERE" not in query  # No WHERE clause should be present
-    assert f"LIMIT {num_records}" in query
+    assert f"LIMIT {limit}" in query
+    assert "OFFSET" not in query
     assert fields == ["Id"]
 
 
@@ -38,26 +42,30 @@ def test_standard_generate_query_without_default_record_declaration():
 def test_random_generate_query_with_default_record_declaration():
     select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
     sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
-    num_records = 5
+    limit = 5
+    offset = 2
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], num_records=num_records
+        sobject=sobject, fields=[], limit=limit, offset=offset
     )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
-    assert f"LIMIT {num_records}" in query
+    assert f"LIMIT {limit}" in query
+    assert f"OFFSET {offset}" in query
     assert fields == ["Id"]
 
 
 def test_random_generate_query_without_default_record_declaration():
     select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
     sobject = "Contact"  # Assuming no declaration for this object
-    num_records = 3
+    limit = 3
+    offset = None
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], num_records=num_records
+        sobject=sobject, fields=[], limit=limit, offset=offset
     )
 
     assert "WHERE" not in query  # No WHERE clause should be present
-    assert f"LIMIT {num_records}" in query
+    assert f"LIMIT {limit}" in query
+    assert "OFFSET" not in query
     assert fields == ["Id"]
 
 
@@ -141,25 +149,31 @@ def test_random_post_process_with_no_records():
 def test_similarity_generate_query_with_default_record_declaration():
     select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
-    num_records = 5
+    limit = 5
+    offset = 2
     query, fields = select_operator.select_generate_query(
-        sobject, ["Name"], num_records
+        sobject, ["Name"], limit, offset
     )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
     assert fields == ["Id", "Name"]
+    assert f"LIMIT {limit}" in query
+    assert f"OFFSET {offset}" in query
 
 
 def test_similarity_generate_query_without_default_record_declaration():
     select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     sobject = "Contact"  # Assuming no declaration for this object
-    num_records = 3
+    limit = 3
+    offset = None
     query, fields = select_operator.select_generate_query(
-        sobject, ["Name"], num_records
+        sobject, ["Name"], limit, offset
     )
 
     assert "WHERE" not in query  # No WHERE clause should be present
     assert fields == ["Id", "Name"]
+    assert f"LIMIT {limit}" in query
+    assert "OFFSET" not in query
 
 
 def test_levenshtein_distance():
