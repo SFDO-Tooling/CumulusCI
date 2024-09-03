@@ -3,7 +3,7 @@ import io
 import zipfile
 
 
-def zip_subfolder(zip_src, path):
+def zip_subfolder(zip_src: zipfile.ZipFile, path):
     if not path.endswith("/"):
         path = path + "/"
 
