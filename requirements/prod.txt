@@ -22,7 +22,7 @@ click==8.1.7
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
-cryptography==42.0.8
+cryptography==43.0.1
     # via
     #   authlib
     #   cumulusci (pyproject.toml)
