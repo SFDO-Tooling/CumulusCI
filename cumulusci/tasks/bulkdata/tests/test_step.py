@@ -702,6 +702,70 @@ class TestBulkApiDmlOperation:
             )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_user_selection_filter_order_success(self, download_mock):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.STANDARD,
+            selection_filter="ORDER BY CreatedDate",
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content with a single record
+        download_mock.return_value = io.StringIO(
+            """Id
+003000000000001
+003000000000002
+003000000000003"""
+        )
+        # Mock the query operation
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.get_query_operation"
+        ) as query_operation_mock:
+            query_operation_mock.return_value = mock.Mock()
+            query_operation_mock.return_value.query = mock.Mock()
+            query_operation_mock.return_value.get_results = mock.Mock()
+            query_operation_mock.return_value.get_results.return_value = [
+                ["003000000000003"],
+                ["003000000000001"],
+                ["003000000000002"],
+            ]
+
+            # Mock the _wait_for_job method to simulate a successful job
+            step._wait_for_job = mock.Mock()
+            step._wait_for_job.return_value = DataOperationJobResult(
+                DataOperationStatus.SUCCESS, [], 0, 0
+            )
+
+            # Prepare input records
+            records = iter([["Test1"], ["Test2"], ["Test3"]])
+
+            # Execute the select_records operation
+            step.start()
+            step.select_records(records)
+            step.end()
+
+            # Get the results and assert their properties
+            results = list(step.get_results())
+            assert (
+                len(results) == 3
+            )  # Expect 3 results (matching the input records count)
+            # Assert that all results are in the order given by user query
+            assert results[0].id == "003000000000003"
+            assert results[1].id == "003000000000001"
+            assert results[2].id == "003000000000002"
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_select_records_user_selection_filter_failure(self, download_mock):
         # Set up mock context and BulkApiDmlOperation
         context = mock.Mock()
@@ -1427,6 +1491,87 @@ class TestRestApiDmlOperation:
             )
             == 3
         )
+
+    @responses.activate
+    def test_select_records_user_selection_filter_order_success(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.STANDARD,
+            selection_filter="ORDER BY CreatedDate",
+        )
+
+        results = {
+            "compositeResponse": [
+                {
+                    "body": {
+                        "records": [
+                            {"Id": "003000000000001"},
+                            {"Id": "003000000000002"},
+                            {"Id": "003000000000003"},
+                        ]
+                    },
+                    "referenceId": "select_query",
+                    "httpStatusCode": 200,
+                },
+                {
+                    "body": {
+                        "records": [
+                            {"Id": "003000000000003"},
+                            {"Id": "003000000000001"},
+                            {"Id": "003000000000002"},
+                        ]
+                    },
+                    "referenceId": "user_query",
+                    "httpStatusCode": 200,
+                },
+            ]
+        }
+        step.sf.restful = mock.Mock()
+        step.sf.restful.return_value = results
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results are in the order of user_query
+        assert results[0].id == "003000000000003"
+        assert results[1].id == "003000000000001"
+        assert results[2].id == "003000000000002"
 
     @responses.activate
     def test_select_records_user_selection_filter_failure(self):

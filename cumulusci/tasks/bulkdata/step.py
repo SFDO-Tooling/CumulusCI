@@ -491,7 +491,11 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 user_query_records = user_query_executor.get_results()
 
                 # Find intersection based on 'Id'
-                user_query_ids = set(record[0] for record in user_query_records)
+                user_query_ids = (
+                    list(record[0] for record in user_query_records)
+                    if user_query_records
+                    else []
+                )
 
             # Execute the main select query using Bulk API
             select_query_records = self._execute_select_query(
@@ -500,10 +504,16 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
             # If user_query_ids exist, filter select_query_records based on the intersection of Ids
             if self.selection_filter:
+                # Create a dictionary to map IDs to their corresponding records
+                id_to_record_map = {
+                    record[query_fields.index("Id")]: record
+                    for record in select_query_records
+                }
+                # Extend query_records in the order of user_query_ids
                 query_records.extend(
                     record
-                    for record in select_query_records
-                    if record[query_fields.index("Id")] in user_query_ids
+                    for id in user_query_ids
+                    if (record := id_to_record_map.get(id)) is not None
                 )
             else:
                 query_records.extend(select_query_records)
@@ -928,12 +938,17 @@ class RestApiDmlOperation(BaseDmlOperation):
                     f"{sub_response['body'][0]['errorCode']}: {sub_response['body'][0]['message']}"
                 )
         # Find intersection based on 'Id'
-        user_query_ids = set(record[0] for record in user_query_records)
+        user_query_ids = list(record[0] for record in user_query_records)
+        # Create a dictionary to map IDs to their corresponding records
+        id_to_record_map = {
+            record[query_fields.index("Id")]: record for record in select_query_records
+        }
 
+        # Extend query_records in the order of user_query_ids
         return [
             record
-            for record in select_query_records
-            if record[query_fields.index("Id")] in user_query_ids
+            for id in user_query_ids
+            if (record := id_to_record_map.get(id)) is not None
         ]
 
     def get_results(self):
