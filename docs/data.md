@@ -250,6 +250,43 @@ Insert Accounts:
 Whenever `update_key` is supplied, the action must be `upsert` and vice
 versa.
 
+### Selects
+
+The "select" functionality enhances the mapping process by enabling direct record selection from the target Salesforce org for lookups. This is achieved by specifying the `select` action in the mapping file, particularly useful when dealing with objects dependent on non-insertable Salesforce objects.
+
+```yaml
+Select Accounts:
+    sf_object: Account
+    action: select
+    selection_strategy: standard
+    selection_filter: WHERE Name IN ('Bluth Company', 'Camacho PLC')
+    fields:
+        - Name
+        - AccountNumber
+Insert Contacts:
+    sf_object: Contact
+    action: insert
+    fields:
+        - LastName
+    lookups:
+        AccountId:
+            table: Account
+```
+
+The `Select Accounts` section in this YAML demonstrates how to fetch specific records from your Salesforce org. These selected Account records will then be referenced by the subsequent `Insert Contacts` section via lookups, ensuring that new Contacts are linked to the pre-existing Accounts chosen in the `select` step rather than relying on any newly inserted Account records.
+
+#### Selection Strategy
+
+The `selection_strategy` dictates how these records are chosen:
+
+-   `standard`: This strategy fetches records from the org in the same order as they appear, respecting any filtering applied via `selection_filter`.
+-   `similarity`: This strategy is employed when you want to find records in the org that closely resemble those defined in your SQL file.
+-   `random`: As the name suggests, this strategy randomly selects records from the org.
+
+#### Selection Filter
+
+The `selection_filter` acts as a versatile SOQL clause, providing fine-grained control over record selection. It allows filtering with `WHERE`, sorting with `ORDER BY`, limiting with `LIMIT`, and potentially utilizing other SOQL capabilities, ensuring you select the precise records needed for your chosen `selection_strategy`.
+
 ### Database Mapping
 
 CumulusCI's definition format includes considerable flexibility for use
