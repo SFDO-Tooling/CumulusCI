@@ -1570,6 +1570,6 @@ orgs:
             config_file: orgs/beta.json
         release:
             config_file: orgs/release.json
-health_checks:
-    class_path: commands.health_checks:health_checks
-    description: "Health checks on the Salesforce org"
+# checks:
+#     class_path: commands.check:check
+#     description: "Health checks on the Salesforce org"

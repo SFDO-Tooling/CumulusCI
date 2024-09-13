@@ -23,6 +23,7 @@ from .flow import flow
 from .logger import get_tempfile_logger, init_logger
 from .org import org
 from .plan import plan
+from .check import check
 from .project import project
 from .robot import robot
 from .runtime import CliRuntime, pass_runtime
@@ -242,3 +243,4 @@ cli.add_command(task)
 cli.add_command(flow)
 cli.add_command(plan)
 cli.add_command(robot)
+cli.add_command(check)

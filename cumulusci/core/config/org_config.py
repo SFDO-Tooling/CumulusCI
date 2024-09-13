@@ -416,6 +416,7 @@ class OrgConfig(BaseConfig):
                 for field in self.salesforce_client.Account.describe()["fields"]
             )
         return self._is_person_accounts_enabled
+    
 
     @property
     def is_multiple_currencies_enabled(self):

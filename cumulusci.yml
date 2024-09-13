@@ -243,3 +243,12 @@ orgs:
 
         omni:
             config_file: orgs/omni.json
+
+check:
+    sobjects:
+      - object: PermissionSet
+        values:
+          - HealthCloudPlatformPsl
+      - object: PermissionSetAssignment
+        values:
+          - HealthCloudPlatformPsl
