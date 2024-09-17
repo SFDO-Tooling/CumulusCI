@@ -323,6 +323,64 @@ class TestMappingParser:
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
 
+    def test_validate_fields_required(self):
+        ms = MappingStep(
+            sf_object="Account",
+            fields=["Id", "Name", "Test__c"],
+            action=DataOperationType.INSERT,
+        )
+        fields_describe = CaseInsensitiveDict(
+            {
+                "Name": {
+                    "createable": True,
+                    "nillable": False,
+                    "defaultedOnCreate": False,
+                    "defaultValue": None,
+                },
+                "npsp__Test__c": {
+                    "createable": True,
+                    "nillable": False,
+                    "defaultedOnCreate": False,
+                    "defaultValue": None,
+                },
+            }
+        )
+        ms._validate_field_dict(
+            describe=fields_describe,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
+        )
+        assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
+        assert ms.check_required(fields_describe)
+
+        def test_validate_fields_required_missing(self):
+            ms = MappingStep(
+                sf_object="Account",
+                fields=["Test__c"],
+                action=DataOperationType.INSERT,
+            )
+            fields_describe = CaseInsensitiveDict(
+                {
+                    "Name": {
+                        "createable": True,
+                        "nillable": False,
+                        "defaultedOnCreate": False,
+                        "defaultValue": None,
+                    },
+                    "Test__c": {
+                        "createable": True,
+                        "nillable": False,
+                        "defaultedOnCreate": False,
+                        "defaultValue": None,
+                    },
+                }
+            )
+            assert ms.fields_ == {"Test__c": "Test__c"}
+            assert not ms.check_required(fields_describe)
+
     def test_validate_field_dict__injection_duplicate_fields(self):
         ms = MappingStep(
             sf_object="Account",
@@ -930,7 +988,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    AccountId:\n      table: Account"
                 )
             )
         )
@@ -1027,7 +1085,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    Id:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    Id:\n      table: Account"
                 )
             )
         )
@@ -1044,6 +1102,40 @@ class TestMappingParser:
                 inject_namespaces=False,
                 drop_missing=True,
             )
+
+    @responses.activate
+    def test_validate_and_inject_mapping_throws_exception_required_fields_missing(
+        self, caplog
+    ):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - ns__Description__c\n"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace="",
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=False,
+        )
+
+        expected_error_message = (
+            "One or more required fields are missing for loading on Account :{'Name'}"
+        )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
 
     @responses.activate
     def test_validate_and_inject_mapping_injects_namespaces(self):
@@ -1206,7 +1298,7 @@ class TestMappingLookup:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: account\n  table: account\n  fields:\n    - name\n"
-                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - fIRSTnAME\n  lookups:\n    accountid:\n      table: account"
+                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - LaSTnAME\n  lookups:\n    accountid:\n      table: account"
                 )
             )
         )

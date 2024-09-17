@@ -2,6 +2,56 @@
 
 <!-- latest-start -->
 
+## v3.91.0 (2024-08-22)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix to Include All Keys in standardValue XML for add_standard_value_set_entries Task from Entries Option with Backward Compatibility by [@lakshmi2506](https://github.com/lakshmi2506) in [#3820](https://github.com/SFDO-Tooling/CumulusCI/pull/3820)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.1...v3.91.0
+
+<!-- latest-stop -->
+
+## v3.90.1 (2024-08-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix to Suppress the required field check for the upsert action at mapping step by [@lakshmi2506](https://github.com/lakshmi2506) in [#3817](https://github.com/SFDO-Tooling/CumulusCI/pull/3817)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.0...v3.90.1
+
+## v3.90.0 (2024-07-15)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Add tasks to extract and upload files (Salesforce Files) by [@mjawadtp](https://github.com/mjawadtp) in [#3801](https://github.com/SFDO-Tooling/CumulusCI/pull/3801)
+-   Update the validation for loading to check the required fields as well by [@lakshmi2506](https://github.com/lakshmi2506) in [#3807](https://github.com/SFDO-Tooling/CumulusCI/pull/3807)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.89.0...v3.90.0
+
+## v3.89.0 (2024-06-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added the `list_files` task to display files in an org by [@lakshmi2506](https://github.com/lakshmi2506) in [#3799](https://github.com/SFDO-Tooling/CumulusCI/pull/3799)
+-   The `api_names` option of the `assign_permission_set_licenses` task now accepts either `DeveloperName` or `PermissionSetLicenseKey` by [@lakshmi2506](https://github.com/lakshmi2506) in [#3798](https://github.com/SFDO-Tooling/CumulusCI/pull/3798)
+
 ## v3.88.0 (2024-05-24)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -22,8 +72,6 @@
 -   @yippie made their first contribution in [#3566](https://github.com/SFDO-Tooling/CumulusCI/pull/3566)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.87.0...v3.88.0
-
-<!-- latest-stop -->
 
 ## v3.87.0 (2024-05-17)
 

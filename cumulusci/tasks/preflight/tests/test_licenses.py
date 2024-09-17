@@ -34,14 +34,14 @@ class TestLicensePreflights:
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
             "records": [
-                {"DeveloperName": "TEST1"},
-                {"DeveloperName": "TEST2"},
+                {"PermissionSetLicenseKey": "TEST1"},
+                {"PermissionSetLicenseKey": "TEST2"},
             ],
         }
         task()
 
         task._init_api.return_value.query.assert_called_once_with(
-            "SELECT DeveloperName FROM PermissionSetLicense"
+            "SELECT PermissionSetLicenseKey FROM PermissionSetLicense"
         )
         assert task.return_values == ["TEST1", "TEST2"]
 
