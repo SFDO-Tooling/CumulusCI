@@ -97,9 +97,7 @@ class BaseProjectKeychain(BaseConfig):
         org.save()
         if org.created:
             sfdx(
-                sarge.shell_format(
-                    "force:config:set defaultusername={}", org.sfdx_alias
-                )
+                sarge.shell_format("force config set target-dev-hub={}", org.sfdx_alias)
             )
 
     def unset_default_org(self):
@@ -110,7 +108,7 @@ class BaseProjectKeychain(BaseConfig):
             if org_config.default:
                 del org_config.config["default"]
                 org_config.save()
-        sfdx("force:config:set defaultusername=")
+        sfdx("force config set target-dev-hub=")
 
     # This implementation of get_default_org, set_default_org, and unset_default_org
     # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
