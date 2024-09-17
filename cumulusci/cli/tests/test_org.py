@@ -714,7 +714,7 @@ class TestOrgCommands:
             [
                 ["Default", "Name", "Days", "Expired", "Config", "Domain"],
                 [True, "test0", "7", True, "dev", ""],
-                [False, "test1", "7", False, "dev", "sneaky-master-2330-dev-ed.cs22"],
+                [False, "test1", "1/7", False, "dev", "sneaky-master-2330-dev-ed.cs22"],
             ],
             title="Scratch Orgs",
             dim_rows=[0, 1],
@@ -809,7 +809,7 @@ class TestOrgCommands:
             "test1": {
                 "is_default": False,
                 "name": "test1",
-                "days": "7",
+                "days": "1/7",
                 "expired": False,
                 "config": "dev",
                 "domain": "sneaky-master-2330-dev-ed.cs22",

@@ -530,7 +530,7 @@ class TestScratchOrgConfig:
         assert config.format_org_days() == "2"
         now = datetime.now()
         config.date_created = now
-        assert config.format_org_days() == "2"
+        assert config.format_org_days() == "1/2"
         config.date_created = now - timedelta(days=3)
         assert config.format_org_days() == "2"
 
@@ -555,7 +555,7 @@ class TestScratchOrgConfig:
     def test_days_alive(self, Command):
         config = ScratchOrgConfig({}, "test")
         config.date_created = datetime.now()
-        assert config.days_alive == 0
+        assert config.days_alive == 1
 
     def test_active(self, Command):
         config = ScratchOrgConfig({}, "test")
