@@ -2,6 +2,24 @@
 
 <!-- latest-start -->
 
+## v3.92.0 (2024-09-18)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   fix: Update input handlers with new Salesforce lightning-primitive tags by [@chanyahn-st](https://github.com/chanyahn-st) in [#3822](https://github.com/SFDO-Tooling/CumulusCI/pull/3822)
+
+## New Contributors
+
+-   @chanyahn-st made their first contribution in [#3822](https://github.com/SFDO-Tooling/CumulusCI/pull/3822)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.91.0...v3.92.0
+
+<!-- latest-stop -->
+
 ## v3.91.0 (2024-08-22)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +31,6 @@
 -   Fix to Include All Keys in standardValue XML for add_standard_value_set_entries Task from Entries Option with Backward Compatibility by [@lakshmi2506](https://github.com/lakshmi2506) in [#3820](https://github.com/SFDO-Tooling/CumulusCI/pull/3820)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.1...v3.91.0
-
-<!-- latest-stop -->
 
 ## v3.90.1 (2024-08-20)
 
