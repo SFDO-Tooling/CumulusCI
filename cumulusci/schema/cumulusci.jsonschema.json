@@ -324,6 +324,10 @@
                 "unlocked_context": {
                     "title": "Unlocked Context",
                     "type": "string"
+                },
+                "snapshot_context": {
+                    "title": "Snapshot Context",
+                    "type": "string"
                 }
             },
             "additionalProperties": false
