@@ -23,7 +23,7 @@ black==24.8.0
     # via cumulusci (pyproject.toml)
 cachetools==5.5.0
     # via tox
-certifi==2024.2.2
+certifi==2024.7.4
     # via
     #   requests
     #   snowfakery
