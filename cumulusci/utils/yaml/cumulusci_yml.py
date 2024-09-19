@@ -74,6 +74,9 @@ class Flow(CCIDictModel):
     description: str = None
     steps: Dict[str, Step] = None
     group: str = None
+    skip_steps: Optional[List[str]] = None
+    skip_from: Optional[str] = None
+    start_from: Optional[str] = None
 
 
 class Package(CCIDictModel):

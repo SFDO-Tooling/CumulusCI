@@ -109,6 +109,9 @@ class StepSpec:
         "allow_failure",
         "path",
         "skip",
+        "skip_steps",
+        "skip_from",
+        "start_from",
         "when",
     )
 
@@ -122,6 +125,9 @@ class StepSpec:
     allow_failure: bool
     path: str
     skip: bool
+    skip_steps: List[str]
+    skip_from: str
+    start_from: str
     when: Optional[str]
 
     def __init__(
@@ -134,6 +140,9 @@ class StepSpec:
         allow_failure: bool = False,
         from_flow: Optional[str] = None,
         skip: bool = False,
+        skip_from: Optional[str] = None,
+        skip_steps: Optional[List[str]] = None,
+        start_from: Optional[str] = None,
         when: Optional[str] = None,
     ):
         self.step_num = step_num
@@ -143,6 +152,9 @@ class StepSpec:
         self.project_config = project_config
         self.allow_failure = allow_failure
         self.skip = skip
+        self.skip_from = skip_from
+        self.skip_steps = skip_steps or []
+        self.start_from = start_from
         self.when = when
 
         # Store the dotted path to this step.
@@ -326,6 +338,7 @@ class FlowCoordinator:
     callbacks: FlowCallback
     logger: logging.Logger
     skip: List[str]
+    skip_from: List[str]
     flow_config: FlowConfig
     runtime_options: dict
     name: Optional[str]
@@ -338,6 +351,8 @@ class FlowCoordinator:
         name: Optional[str] = None,
         options: Optional[dict] = None,
         skip: Optional[List[str]] = None,
+        skip_from: Optional[List[str]] = None,
+        start_from: Optional[str] = None,
         callbacks: Optional[FlowCallback] = None,
     ):
         self.project_config = project_config
@@ -352,6 +367,10 @@ class FlowCoordinator:
         self.runtime_options = options or {}
 
         self.skip = skip or []
+        self.skip_from = skip_from or None
+        self.start_from = start_from
+        self.skip_beginning = start_from is not None
+        self.skip_remaining = False
         self.results = []
 
         self.logger = self._init_logger()
@@ -426,7 +445,11 @@ class FlowCoordinator:
                     if for_docs:
                         source = ""
 
-                    lines.append(f"{'    ' * i}{steps[i]}) flow: {flow_name}{source}")
+                    line = f"{'    ' * i}{steps[i]}) flow: {flow_name}{source}"
+                    if step.skip:
+                        line += " [skip]"
+                        line = f"\033[90m{line}\033[0m"  # Gray color
+                    lines.append(line)
                     if source:
                         new_source = ""
 
@@ -444,9 +467,11 @@ class FlowCoordinator:
                     for option, value in options.items():
                         options_info += f"\n{padding}      {option}: {value}"
 
-            lines.append(
-                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}"
-            )
+            line = f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}"
+            if step.skip:
+                line += " [skip]"
+                line = f"\033[90m{line}\033[0m"  # Gray color
+            lines.append(line)
 
             if when:
                 lines.append(when)
@@ -600,13 +625,20 @@ class FlowCoordinator:
         assert step_config.keys() != {"task", "flow"}
 
         # Skips
-        # - either in YAML (with the None string)
+        # - either in YAML (with the None string for task or flow on a step) or in the skip list on a flow step
         # - or by providing a skip list to the FlowRunner at initialization.
+        task_or_flow = step_config.get("task", step_config.get("flow"))
+        if task_or_flow and task_or_flow == self.start_from:
+            self.skip_beginning = False
         if (
-            ("flow" in step_config and step_config["flow"] == "None")
-            or ("task" in step_config and step_config["task"] == "None")
-            or ("task" in step_config and step_config["task"] in self.skip)
+            task_or_flow == "None"
+            or task_or_flow in self.skip
+            or task_or_flow == self.skip_from
+            or self.skip_remaining
+            or self.skip_beginning
         ):
+            if task_or_flow == self.skip_from:
+                self.skip_remaining = True
             visited_steps.append(
                 StepSpec(
                     step_num=step_number,

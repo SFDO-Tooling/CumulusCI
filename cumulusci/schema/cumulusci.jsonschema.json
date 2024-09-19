@@ -200,6 +200,21 @@
                 "group": {
                     "title": "Group",
                     "type": "string"
+                },
+                "skip_steps": {
+                    "title": "Skip Steps",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "skip_from": {
+                    "title": "Skip From",
+                    "type": "string"
+                },
+                "start_from": {
+                    "title": "Start From",
+                    "type": "string"
                 }
             },
             "additionalProperties": false

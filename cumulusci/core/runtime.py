@@ -1,6 +1,6 @@
 import sys
 from abc import abstractmethod
-from typing import Optional, Type
+from typing import List, Optional, Type
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.debug import DebugMode, get_debug_mode
@@ -98,7 +98,14 @@ class BaseCumulusCI:
             self.keychain = self.keychain_cls(self.project_config, keychain_key)
             self.project_config.keychain = self.keychain
 
-    def get_flow(self, name: str, options: Optional[dict] = None) -> FlowCoordinator:
+    def get_flow(
+        self,
+        name: str,
+        options: Optional[dict] = None,
+        skip: Optional[List[str]] = None,
+        skip_from: Optional[str] = None,
+        start_from: Optional[str] = None,
+    ) -> FlowCoordinator:
         """Get a primed and ready-to-go flow coordinator."""
         if not self.project_config:
             raise ProjectConfigNotFound
@@ -109,7 +116,9 @@ class BaseCumulusCI:
             flow_config,
             name=flow_config.name,
             options=options,
-            skip=None,
+            skip=skip or flow_config.skip,
+            skip_from=skip_from or flow_config.skip_from,
+            start_from=start_from or flow_config.start_from,
             callbacks=callbacks,
         )
         return coordinator

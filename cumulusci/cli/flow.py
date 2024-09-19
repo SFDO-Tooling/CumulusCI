@@ -44,9 +44,9 @@ def flow_doc(runtime, project=False):
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),
-        key=lambda group: flow_info_groups.index(group)
-        if group in flow_info_groups
-        else 100,
+        key=lambda group: (
+            flow_info_groups.index(group) if group in flow_info_groups else 100
+        ),
     )
 
     for group in flow_groups:
@@ -106,10 +106,39 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
+@click.option(
+    "--skip", help="Specify a comma separated list of task and flow names to skip."
+)
+@click.option(
+    "--skip-from",
+    help="Specify a task or flow name to skip and all steps that follow it.",
+)
+@click.option(
+    "--start-from",
+    help="Specify a task or flow name to start from. All prior steps will be skippped.",
+)
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_keychain=True)
-def flow_info(runtime, flow_name):
+def flow_info(
+    runtime,
+    flow_name,
+    skip=None,
+    skip_from=None,
+    start_from=None,
+    load_yml=None,
+):
+    if skip:
+        skip = skip.split(",")
     try:
-        coordinator = runtime.get_flow(flow_name)
+        coordinator = runtime.get_flow(
+            flow_name,
+            skip=skip,
+            skip_from=skip_from,
+            start_from=start_from,
+        )
         output = coordinator.get_summary(verbose=True)
         click.echo(output)
     except FlowNotFoundError as e:
@@ -141,9 +170,37 @@ def flow_info(runtime, flow_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
+@click.option(
+    "--skip", help="Specify a comma separated list of task and flow names to skip."
+)
+@click.option(
+    "--skip-from",
+    help="Specify a task or flow name to skip and all steps that follow it.",
+)
+@click.option(
+    "--start-from",
+    help="Specify a task or flow name to start from. All prior steps will be skippped.",
+)
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_keychain=True)
-def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
-
+def flow_run(
+    runtime,
+    flow_name,
+    org,
+    delete_org,
+    debug,
+    o,
+    no_prompt,
+    skip=None,
+    skip_from=None,
+    start_from=None,
+    load_yml=None,
+):
+    if skip:
+        skip = skip.split(",")
     # Get necessary configs
     org, org_config = runtime.get_org(org)
     if delete_org and not org_config.scratch:
@@ -163,7 +220,13 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
 
     # Create the flow and handle initialization exceptions
     try:
-        coordinator = runtime.get_flow(flow_name, options=options)
+        coordinator = runtime.get_flow(
+            flow_name,
+            options=options,
+            skip=skip,
+            skip_from=skip_from,
+            start_from=start_from,
+        )
         start_time = datetime.now()
         coordinator.run(org_config)
         duration = datetime.now() - start_time
