@@ -193,6 +193,10 @@ tasks:
             user_permissions:
                 - PermissionsBulkApiHardDelete
                 - PermissionsCreateAuditFields
+    create_snapshot:
+        group: Org Snapshots
+        description: Create a Scratch Org Snapshot of the current scratch org in the default SF CLI devhub
+        class_path: cumulusci.tasks.snapshot.CreateScratchOrgSnapshot
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
         class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
@@ -375,6 +379,19 @@ tasks:
         description: Look up 2gp package dependencies for a version id recorded in a commit status.
         class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
         group: GitHub
+    github_pull_request_snapshot:
+        description: Automate management of named Scratch Org Snapshots for feature branches with pull requests and additional conditions
+        class_path: cumulusci.tasks.snapshot.GithubPullRequestSnapshot
+        group: Org Snapshots
+        options:
+            snapshot_is_packaged: False
+            snapshot_pr: True
+            snapshot_pr_label: snapshot
+            snapshot_pr_draft: False
+            snapshot_fail_pr: False
+            snapshot_fail_pr_label: snapshot-fail
+            snapshot_fail_pr_draft: False
+            wait: True
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
@@ -1506,6 +1523,7 @@ project:
         push_prefix_production: "Production orgs: "
         2gp_context: "Build Feature Test Package"
         unlocked_context: "Build Unlocked Test Package"
+        snapshot_context: Snapshot
         release_notes:
             parsers:
                 1:
@@ -1534,12 +1552,14 @@ project:
         resolution_strategies:
             unlocked:
                 - unlocked_exact_branch
+                - unlocked_parent_branch
                 - unlocked_release_branch
                 - unlocked_previous_release_branch
                 - unlocked_default_branch
             commit_status:
                 - tag
                 - commit_status_exact_branch
+                - commit_status_parent_branch
                 - commit_status_release_branch
                 - commit_status_previous_release_branch
                 - commit_status_default_branch

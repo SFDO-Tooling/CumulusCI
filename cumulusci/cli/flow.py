@@ -24,8 +24,12 @@ def flow():
 @click.option(
     "--project", "project", is_flag=True, help="Include project-specific flows only"
 )
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def flow_doc(runtime, project=False):
+def flow_doc(runtime, project=False, load_yml=None):
     flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
     with open(flow_info_path, "r", encoding="utf-8") as f:
         flow_info = load_yaml_data(f)
@@ -79,8 +83,12 @@ def flow_doc(runtime, project=False):
 @flow.command(name="list", help="List available flows for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
+@click.option(
+    "--load-yml",
+    help="If set, loads the specified yml file into the the project config as additional config",
+)
 @pass_runtime(require_project=False)
-def flow_list(runtime, plain, print_json):
+def flow_list(runtime, plain, print_json, load_yml=None):
     plain = plain or runtime.universal_config.cli__plain_output
     flows = runtime.get_available_flows()
     if print_json:
@@ -132,6 +140,7 @@ def flow_info(
 ):
     if skip:
         skip = skip.split(",")
+
     try:
         coordinator = runtime.get_flow(
             flow_name,
@@ -182,6 +191,7 @@ def flow_info(
     help="Specify a task or flow name to start from. All prior steps will be skippped.",
 )
 @click.option(
+
     "--load-yml",
     help="If set, loads the specified yml file into the the project config as additional config",
 )
@@ -201,6 +211,7 @@ def flow_run(
 ):
     if skip:
         skip = skip.split(",")
+
     # Get necessary configs
     org, org_config = runtime.get_org(org)
     if delete_org and not org_config.scratch:

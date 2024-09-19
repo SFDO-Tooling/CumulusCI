@@ -3,6 +3,7 @@
 import html
 import io
 import json
+import os
 import re
 
 from cumulusci.core.exceptions import (
@@ -150,6 +151,11 @@ class RunApexTests(BaseSalesforceApiTask):
         "json_output": {
             "description": "File name for json output.  Defaults to test_results.json"
         },
+        "markdown_output": {
+            "description": ("If set, outputs GitHub flavored markdown output for test"
+                            "results that can be included as GitHub Actions job summaries."
+                            " By default, uses $GITHUB_STEP_SUMMARY if available in environment"),
+        },
         "retry_failures": {
             "description": "A list of regular expression patterns to match against "
             "test failures. If failures match, the failing tests are retried in "
@@ -205,6 +211,12 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["json_output"] = self.options.get(
             "json_output", "test_results.json"
         )
+
+        if (
+            self.options.get("markdown_output") is None
+            and "GITHUB_STEP_SUMMARY" in os.environ
+        ):
+            self.options["markdown_output"] = os.environ["GITHUB_STEP_SUMMARY"]
 
         self.options["retry_failures"] = process_list_arg(
             self.options.get("retry_failures", [])
@@ -837,3 +849,57 @@ class RunApexTests(BaseSalesforceApiTask):
         if json_output:
             with io.open(json_output, mode="w", encoding="utf-8") as f:
                 f.write(str(json.dumps(test_results, indent=4)))
+                markdown_output = self.options.get("markdown_output")
+        if markdown_output:
+            with io.open(markdown_output, mode="w+", encoding="utf-8") as f:
+
+                # Test Results
+                f.write("# Test Results\n")
+                f.write("| Status | Count |\n")
+                f.write("| :--- | ---: |\n")
+                if self.counts["Pass"]:
+                    f.write(f"| 🟢 **Passed** | {self.counts['Pass']}|\n")
+                if self.counts["Fail"]:
+                    f.write(f"| ❌ **Failed** | {self.counts['Fail']}|\n")
+                if self.counts["CompileFail"]:
+                    f.write(f"| ❗ **Compile Failed** | {self.counts['CompileFail']}|\n")
+                if self.counts["Retriable"]:
+                    f.write(f"| ♻ **Retriable** | {self.counts['Retriable']}|\n")
+                if self.counts["Skip"]:
+                    f.write(f"| 🚫 **Skipped** | {self.counts['Skip']}|\n")
+                f.write("\n")
+
+                results_failed = []
+                results = []
+                for result in test_results:
+                    duration = result.get("Stats", {}).get("duration")
+                    if duration:
+                        duration = str(duration)
+                    test_class = result.get("ClassName")
+                    test_method = result.get("Method")
+                    outcome = result.get("Outcome")
+                    results.append(
+                        f"| {test_class} | {test_method} | {outcome} | {duration} |"
+                    )
+                    if outcome in ["Fail", "CompileFail"]:
+                        results_failed.append(result)
+
+                if results_failed:
+                    f.write("\n## Test Failures\n")
+                    for result in results_failed:
+                        message = result.get("Message")
+                        stacktrace = result.get("StackTrace")
+                        f.write(f"**{result['ClassName']}.{result['Method']}**\n")
+                        f.write("```")
+                        if message:
+                            f.write(f"Message: {message}\n")
+                        if result["StackTrace"]:
+                            f.write(f"\nStack Trace: {stacktrace}")
+                            f.write(f"{result['StackTrace']}\n")
+                        f.write("```\n\n")
+
+                if results:
+                    f.write("\n## Individual Test Results\n")
+                    f.write("| Class | Method | Outcome | Duration |\n")
+                    f.write("| :--- | :--- | ---: | ---: |\n")
+                    f.write("\n".join(results))
