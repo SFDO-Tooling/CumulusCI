@@ -295,3 +295,9 @@ class PackageInstallError(Exception):
 
 class YAMLParseException(CumulusCIException):
     """Error parsing a YAML File"""
+
+
+class OrgActionNotFound(CumulusCIUsageError):
+    """Raised when an org action is not found in the project configuration"""
+
+    pass

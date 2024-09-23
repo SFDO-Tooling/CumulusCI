@@ -220,6 +220,8 @@ class UpdateDependencies(BaseSalesforceTask):
             if not click.confirm("Continue to install dependencies?", default=True):
                 raise CumulusCIException("Dependency installation was canceled.")
 
+        self.return_values["dependencies"] = dependencies
+
         for d in dependencies:
             self._install_dependency(d)
 

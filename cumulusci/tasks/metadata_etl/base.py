@@ -141,18 +141,21 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         from cumulusci.tasks.salesforce import Deploy
 
         api = Deploy(
-            self.project_config,
-            TaskConfig(
+            name=f"{self.name}__deploy",
+            project_config=self.project_config,
+            task_config=TaskConfig(
                 {
+                    "name": f"{self.name}__deploy",
+                    "class_path": "cumulusci.tasks.salesforce.Deploy",
                     "options": {
                         "path": self.deploy_dir,
                         "namespace_inject": self.options.get("namespace_inject"),
                         "unmanaged": not self.options["managed"],
                         "namespaced_org": self.options["namespaced_org"],
-                    }
-                }
+                    },
+                },
             ),
-            self.org_config,
+            org_config=self.org_config,
         )
         result = api()
 
@@ -242,7 +245,8 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
 class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABCMeta):
     """Base class for a Metadata ETL task that affects one or more
     instances of a specific metadata entity. Concrete subclasses must set
-    `entity` to the Metadata API entity transformed, and implement _transform_entity()."""
+    `entity` to the Metadata API entity transformed, and implement _transform_entity().
+    """
 
     entity = None
 

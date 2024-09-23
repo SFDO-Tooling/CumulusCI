@@ -44,9 +44,9 @@ def flow_doc(runtime, project=False):
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),
-        key=lambda group: flow_info_groups.index(group)
-        if group in flow_info_groups
-        else 100,
+        key=lambda group: (
+            flow_info_groups.index(group) if group in flow_info_groups else 100
+        ),
     )
 
     for group in flow_groups:
@@ -168,7 +168,10 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
         coordinator.run(org_config)
         duration = datetime.now() - start_time
         click.echo(f"Ran {flow_name} in {format_duration(duration)}")
-    except Exception:
+        org_config.add_action_to_history(coordinator.action)
+    except Exception as e:
+        if coordinator.action:
+            org_config.add_action_to_history(coordinator.action)
         runtime.alert(f"Flow error: {flow_name}")
         raise
     finally:

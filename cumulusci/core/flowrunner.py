@@ -54,6 +54,7 @@ Option values/overrides can be passed in at a number of levels, in increasing or
 import copy
 import logging
 from collections import defaultdict
+from datetime import datetime
 from operator import attrgetter
 from typing import (
     TYPE_CHECKING,
@@ -72,8 +73,18 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
+from cumulusci.core.config.org_history import (
+    OrgActionStatus,
+    FlowOrgAction,
+    FlowActionStep,
+    FlowActionStepTracker,
+    FlowActionTracker,
+    TaskOrgAction,
+)
+
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import (
+    CumulusCIFailure,
     FlowConfigError,
     FlowInfiniteLoopError,
     TaskImportError,
@@ -171,6 +182,7 @@ class StepResult(NamedTuple):
     result: Any
     return_values: Any
     exception: Optional[Exception]
+    action: TaskOrgAction | FlowOrgAction | None
 
 
 class FlowCallback:
@@ -295,6 +307,7 @@ class TaskRunner:
             task.result,
             task.return_values,
             exc,
+            FlowActionStep(task=task.action),
         )
 
     def _log_options(self, task: "BaseTask"):
@@ -330,6 +343,8 @@ class FlowCoordinator:
     runtime_options: dict
     name: Optional[str]
     results: List[StepResult]
+    tracker: FlowActionTracker
+    action: FlowOrgAction | None
 
     def __init__(
         self,
@@ -356,6 +371,18 @@ class FlowCoordinator:
 
         self.logger = self._init_logger()
         self.steps = self._init_steps()
+
+        self.tracker = FlowActionTracker(
+            name=self.name,
+            description=self.flow_config.description,
+            group=self.flow_config.group,
+            config_steps=self.flow_config.config.get("steps"),
+            steps=[],
+            repo=self.project_config.repo_url,
+            branch=self.project_config.repo_branch,
+            commit=self.project_config.repo_commit,
+        )
+        self.action = None
 
     @classmethod
     def from_steps(
@@ -497,6 +524,10 @@ class FlowCoordinator:
             self.logger.info(
                 f"Completed flow {flow_name}on org {org_config.name} successfully!"
             )
+            self._record_result()
+        except Exception as e:
+            self._record_result(e)
+            raise e from e
         finally:
             self.callbacks.post_flow(self)
 
@@ -527,7 +558,6 @@ class FlowCoordinator:
         self.callbacks.pre_task(step)
         result = TaskRunner.from_flow(self, step).run_step()
         self.callbacks.post_task(step, result)
-
         self.results.append(
             result
         )  # add even a failed result to the result set for the post flow
@@ -761,6 +791,22 @@ class FlowCoordinator:
             if result.path[-len(path) :] == path:
                 return result
         raise NameError(f"Path not found: {path}")
+
+    def _record_result(self, exception=None) -> None:
+        data = self.tracker.dict()
+        if exception:
+            if isinstance(exception, CumulusCIFailure):
+                status = OrgActionStatus.FAILURE
+            else:
+                status = OrgActionStatus.ERROR
+        else:
+            status = OrgActionStatus.SUCCESS
+        data["action_type"] = "Flow"
+        data["log"] = ""
+        data["exception"] = str(exception)
+        data["status"] = status
+        data["steps"] = [result.action for result in self.results if result.action]
+        self.action = FlowOrgAction.parse_obj(data)
 
 
 class PreflightFlowCoordinator(FlowCoordinator):

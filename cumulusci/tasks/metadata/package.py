@@ -72,9 +72,16 @@ class PackageXmlGenerator(object):
         self.logger = logger
 
     def __call__(self):
-        if not self.types:
-            self.parse_types()
-        return self.render_xml()
+        try:
+            if not self.types:
+                self.parse_types()
+
+            xml = self.render_xml()
+            self._record_result(xml)
+            return xml
+        except Exception as e:
+            self._record_result(e)
+            raise e from e
 
     def parse_types(self):
         for item in sorted(os.listdir(self.directory)):

@@ -2,6 +2,7 @@
 
 Subclass BaseTask or a descendant to define custom task logic
 """
+
 import contextlib
 import logging
 import os
@@ -9,6 +10,8 @@ import re
 import threading
 import time
 from contextlib import nullcontext
+from datetime import datetime
+from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from pydantic.error_wrappers import ValidationError
@@ -16,9 +19,19 @@ from pydantic.error_wrappers import ValidationError
 from cumulusci import __version__
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
+from cumulusci.core.config.org_history import (
+    ActionCommandExecution,
+    ActionDirectoryReference,
+    ActionFileReference,
+    ActionMetadataDeployment,
+    OrgActionStatus,
+    TaskActionTracker,
+    TaskOrgAction,
+)
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.debug import DebugMode, get_debug_mode
 from cumulusci.core.exceptions import (
+    CumulusCIFailure,
     ServiceNotConfigured,
     ServiceNotValid,
     TaskOptionsError,
@@ -64,6 +77,8 @@ class BaseTask:
     debug_mode: DebugMode
     logger: logging.Logger
     options: dict
+    tracker: TaskActionTracker
+    action: TaskOrgAction | None
 
     poll_complete: bool
     poll_count: int
@@ -106,6 +121,26 @@ class BaseTask:
 
         self._init_options(kwargs)
         self._validate_options()
+        self._track_options()
+
+        self.action = None
+        self.tracker = TaskActionTracker(
+            name=self.task_config.name or self.name,
+            config=self.task_config.config,
+            class_path=self.task_config.class_path,
+            options=(
+                self.parsed_options.to_dict()
+                if self.Options
+                else getattr(self, "options", {})
+            ),
+            files=[],
+            directories=[],
+            commands=[],
+            deploys=[],
+            repo=self.project_config.repo_url,
+            branch=self.project_config.repo_branch,
+            commit=self.project_config.repo_commit,
+        )
 
     def _init_logger(self):
         """Initializes self.logger"""
@@ -113,6 +148,10 @@ class BaseTask:
             self.logger = self.flow.logger.getChild(self.__class__.__name__)
         else:
             self.logger = logging.getLogger(__name__)
+
+        log_stream = StringIO()
+        handler = logging.StreamHandler(log_stream)
+        self.logger.addHandler(handler)
 
     @classproperty
     def task_options(cls):  # type: ignore  -- doesn't like the signature override below
@@ -195,6 +234,10 @@ class BaseTask:
                 f"{self.__class__.__name__} requires the options ({required_opts}) and no values were provided"
             )
 
+    def _track_options(self):
+        """Override with to track actions based on the initialized task options"""
+        pass
+
     def _update_credentials(self):
         """Override to do any logic to refresh credentials"""
         pass
@@ -214,17 +257,22 @@ class BaseTask:
         self._init_task()
 
         with stacked_task(self):
-            self.working_path = os.getcwd()
-            path = self.project_config.repo_root if self.project_config else None
-            with cd(path):
-                with (
-                    redirect_output_to_logger(self.logger)
-                    if CAPTURE_TASK_OUTPUT
-                    else nullcontext()
-                ):
-                    self._log_begin()
-                    self.result = self._run_task()
-                    return self.return_values
+            try:
+                self.working_path = os.getcwd()
+                path = self.project_config.repo_root if self.project_config else None
+                with cd(path):
+                    with (
+                        redirect_output_to_logger(self.logger)
+                        if CAPTURE_TASK_OUTPUT
+                        else nullcontext()
+                    ):
+                        self._log_begin()
+                        self.result = self._run_task()
+                        self._record_result()
+                        return self.return_values
+            except Exception as e:
+                self._record_result(e)
+                raise e from e
 
     def _run_task(self) -> Any:
         """Subclasses should override to provide their implementation"""
@@ -321,6 +369,44 @@ class BaseTask:
         )
         return [ui_step]
 
+    def _track_command(self, command: str, return_code: int, output: str) -> None:
+        self.tracker.commands.append(
+            ActionCommandExecution(
+                command=command, return_code=return_code, output=output
+            )
+        )
+
+    def _track_file_reference(self, path: str, name: str) -> None:
+        self.tracker.files.append(ActionFileReference(path=path, name=name))
+
+    def _track_directory_reference(self, path: str, name: str) -> None:
+        self.tracker.directories.append(ActionDirectoryReference(path=path, name=name))
+
+    def _track_metadata_deployment(self, path: str, name: str) -> None:
+        self.tracker.deploys.append(ActionMetadataDeployment(path=path, name=name))
+
+    def _record_result(self, exception=None) -> None:
+        data = self.tracker.dict()
+        if exception:
+            if isinstance(exception, CumulusCIFailure):
+                status = OrgActionStatus.FAILURE.value
+            else:
+                status = OrgActionStatus.ERROR.value
+        else:
+            status = OrgActionStatus.SUCCESS.value
+        data["action_type"] = "Task"
+        data["status"] = status
+        data["log"] = self.logger.handlers[0].stream.getvalue()
+        data["duration"] = datetime.now().timestamp() - self.tracker.timestamp
+        data["exception"] = str(exception) if exception else None
+        return_values = self.return_values
+        if isinstance(self.return_values, str):
+            return_values = {"result": self.return_values}
+        data["return_values"] = return_values
+        self.action = TaskOrgAction.parse_obj(data)
+        self.action.hash_action = self.action.calculate_action_hash()
+        self.action.hash_config = self.action.calculate_config_hash()
+
 
 class BaseSalesforceTask(BaseTask):
     """Base for tasks that need a Salesforce org"""
@@ -402,3 +488,14 @@ class BaseSalesforceTask(BaseTask):
             return injected
         else:
             return sobject
+
+
+class BaseSalesforceActionTask(BaseSalesforceTask):
+    """Base class for tasks that perform actions on a Salesforce org"""
+
+    modifies_data = False
+    modifies_metadata = False
+    modifies_security = False
+    references_directories = False
+    references_files = False
+    runs_commands = False

@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "aiofiles",
     "click",
     "cryptography",
     "python-dateutil",
