@@ -301,6 +301,7 @@ def retrieve_components(
                     os.path.join(package_xml_path, "package.xml"),
                     "-w",
                     "5",
+                    "--ignore-conflicts",
                 ],
                 capture_output=capture_output,
                 check_return=True,

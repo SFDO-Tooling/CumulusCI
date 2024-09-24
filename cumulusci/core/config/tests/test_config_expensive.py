@@ -805,7 +805,7 @@ class TestScratchOrgConfigPytest:
             "120",
             "--target-dev-hub",
             "fake@fake.devhub",
-            "-m",
+            "--no-namespace",
             "--no-ancestors",
             "--duration-days",
             "1",
@@ -813,7 +813,7 @@ class TestScratchOrgConfigPytest:
             "-a",
             "project__org",
             "--admin-email=test@example.com",
-            "-d",
+            "--set-default",
         ]
 
     def test_build_org_create_args__email_in_scratch_def(self):
