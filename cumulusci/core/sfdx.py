@@ -86,7 +86,7 @@ def shell_quote(s: str):
 
 def get_default_devhub_username():
     p = sfdx(
-        "config get target-org --json",
+        "config get target-dev-hub --json",
         log_note="Getting default Dev Hub username from sfdx",
         check_return=True,
     )
