@@ -286,13 +286,13 @@ tasks:
         description: Uses sfdx to pull from a scratch org into the force-app directory
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         options:
-            command: "project retrieve start -c"
+            command: "project retrieve start"
         group: Salesforce DX
     dx_push:
         description: Uses sfdx to push the force-app directory metadata into a scratch org
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         options:
-            command: "project deploy start -c"
+            command: "project deploy start"
         group: Salesforce DX
     enable_einstein_prediction:
         description: Enable an Einstein Prediction Builder prediction.

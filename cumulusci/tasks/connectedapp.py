@@ -47,7 +47,7 @@ class CreateConnectedApp(SFDXBaseTask):
             "description": "The email address to associate with the connected app.  Defaults to email address from the github service if configured."
         },
         "username": {
-            "description": "Create the connected app in a different org.  Defaults to the target-dev-hub configured in sfdx.",
+            "description": "Create the connected app in a different org.  Defaults to the target-org configured in sfdx.",
             "required": False,
         },
         "connect": {
@@ -91,7 +91,7 @@ class CreateConnectedApp(SFDXBaseTask):
         self.logger.info("Getting username for the default devhub from sfdx")
         output = []
         self._run_command(
-            command="{} force config get target-dev-hub --json".format(SFDX_CLI),
+            command="{} force config get target-org --json".format(SFDX_CLI),
             env=self._get_env(),
             output_handler=output.append,
         )
@@ -166,11 +166,11 @@ class CreateConnectedApp(SFDXBaseTask):
 
     def _get_command(self):
         command = super()._get_command()
-        # Default to sf target-dev-hub
+        # Default to sf target-org
         if "username" not in self.options:
             self._set_default_username()
         command += " -o {}".format(self.options.get("username"))
-        command += " -d {}".format(self.tempdir)
+        command += " --metadata-dir {}".format(self.tempdir)
         return command
 
     def _run_task(self):

@@ -141,7 +141,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         if devhub_username:
             args += ["--target-dev-hub", devhub_username]
         if not self.namespaced:
-            args += ["-m"]
+            args += ["--no-namespace"]
         if self.noancestors:
             args += ["--no-ancestors"]
         if self.days:
@@ -156,10 +156,8 @@ class ScratchOrgConfig(SfdxOrgConfig):
         if self.email_address and not org_def_has_email:
             args += [f"--admin-email={self.email_address}"]
         if self.default:
-            args += ["-d"]
-            # set-default (Set the scratch org as your default org)
-        # if instance := self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE"):
-        #     args += [f"instance={instance}"]
+            args += ["--set-default"]
+
         return args
 
     def _choose_devhub_username(self) -> Optional[str]:

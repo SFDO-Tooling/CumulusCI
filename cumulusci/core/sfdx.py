@@ -86,15 +86,15 @@ def shell_quote(s: str):
 
 def get_default_devhub_username():
     p = sfdx(
-        "force config get target-dev-hub --json",
+        "config get target-org --json",
         log_note="Getting default Dev Hub username from sfdx",
         check_return=True,
     )
     result = json.load(p.stdout_text)
     if "result" not in result or "value" not in result["result"][0]:
         raise SfdxOrgException(
-            "No sfdx config found for target-dev-hub. "
-            "Please use the sfdx force config set to set the target-dev-hub and run again."
+            "No sf config found for target-dev-hub. "
+            "Please use the sf config set to set the target-dev-hub and run again."
         )
     username = result["result"][0]["value"]
     return username

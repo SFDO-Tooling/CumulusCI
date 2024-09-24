@@ -188,7 +188,6 @@ class TestRetrieveChanges:
                 pathlib.Path, "is_dir", return_value=True
             ):
                 task._run_task()
-                print(sfdx_calls)
                 assert sfdx_calls == [
                     "project convert mdapi",
                     "project retrieve start",

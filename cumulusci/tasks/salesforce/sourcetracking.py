@@ -240,7 +240,6 @@ def retrieve_components(
 
     target = os.path.realpath(target)
     profiles = []
-    # os.environ["SF_USE_PROGRESS_BAR"]=True
     # If retrieve_complete_profile and project_config is None, raise error
     # This is because project_config is only required if retrieve_complete_profile is True
     if retrieve_complete_profile and project_config is None:
@@ -302,7 +301,6 @@ def retrieve_components(
                     os.path.join(package_xml_path, "package.xml"),
                     "-w",
                     "5",
-                    "-c",
                 ],
                 capture_output=capture_output,
                 check_return=True,
