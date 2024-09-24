@@ -7,7 +7,7 @@ import sarge
 
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
-from cumulusci.core.config.org_history import OrgCreateAction, OrgDeleteAction
+from cumulusci.core.org_history import OrgCreateAction, OrgDeleteAction
 from cumulusci.core.exceptions import (
     CumulusCIException,
     ScratchOrgException,
@@ -287,7 +287,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         org_action_info["sf_command"] = {
             "command": f"sf {command}",
         }
-        p: sarge.Command = sfdx("command", self.username, "Deleting scratch org")
+        p: sarge.Command = sfdx(command, self.username, "Deleting scratch org")
         stdout = p.stdout_text.readlines()
         stderr = p.stderr_text.readlines()
         sfdx_output: List[str] = stdout + stderr

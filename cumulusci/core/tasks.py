@@ -19,7 +19,7 @@ from pydantic.error_wrappers import ValidationError
 from cumulusci import __version__
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
-from cumulusci.core.config.org_history import (
+from cumulusci.core.org_history import (
     ActionCommandExecution,
     ActionDirectoryReference,
     ActionFileReference,

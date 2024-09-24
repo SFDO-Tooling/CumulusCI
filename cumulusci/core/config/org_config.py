@@ -10,7 +10,7 @@ from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.config.org_history import OrgHistory, actions_from_dict
+from cumulusci.core.org_history import OrgHistory, actions_from_dict
 from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyResolutionError,
@@ -599,22 +599,34 @@ class OrgConfig(BaseConfig):
         self.config["history"] = self.history.dict()
         self.save()
 
-    def clear_history(self, since: int = None, before: int = None, hash: str = None):
+    def clear_history(self, after: str = None, before: str = None, hash: str = None):
         """Clear the org's history"""
         print(f"Starting length: {len(self.history.actions)}")
-        if since or before:
-            self.history.actions = [
-                action
-                for action in self.history.actions
-                if (since and action.timestamp >= since)
-                or (before and action.timestamp < before)
-            ]
-        elif hash:
-            self.history.actions = [
-                action for action in self.history.actions if action.hash_action != hash
-            ]
+
+        if hash:
+            # Find the index of the action with the matching hash
+            index = next(
+                (
+                    i
+                    for i, action in enumerate(self.history.actions)
+                    if action.hash_action == hash
+                ),
+                None,
+            )
+            if index is not None:
+                if after:
+                    # Exclude everything before the matching hash
+                    self.history.actions = self.history.actions[index:]
+                elif before:
+                    # Exclude everything after the matching hash
+                    self.history.actions = self.history.actions[:index]
+            else:
+                print(f"No action found with hash: {hash}")
         else:
             self.history.actions = []
+
+        self.history.hash_config = self.history.calculate_config_hash()
+
         print(f"Ending length: {len(self.history.actions)}")
         self.config["history"] = self.history.dict()
         self.save()

@@ -54,7 +54,6 @@ Option values/overrides can be passed in at a number of levels, in increasing or
 import copy
 import logging
 from collections import defaultdict
-from datetime import datetime
 from operator import attrgetter
 from typing import (
     TYPE_CHECKING,
@@ -73,11 +72,10 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
-from cumulusci.core.config.org_history import (
+from cumulusci.core.org_history import (
     OrgActionStatus,
     FlowOrgAction,
     FlowActionStep,
-    FlowActionStepTracker,
     FlowActionTracker,
     TaskOrgAction,
 )
@@ -929,3 +927,79 @@ class CachedTaskRunner:
 
         self.cache.results[cache_key] = result
         return result.return_values
+
+
+def flow_from_org_actions(
+    name: str,
+    description: str,
+    group: str,
+    project_config: BaseProjectConfig,
+    org_actions: List[Union[TaskOrgAction, FlowOrgAction]],
+) -> FlowCoordinator:
+
+    steps = []
+    step_counter = 1
+
+    flow_step_name = None
+
+    for org_action in org_actions:
+        if isinstance(org_action, TaskOrgAction):
+            flow_step_name = org_action.name
+            # Handle single task
+            steps.append(
+                stepspec_from_task_action(project_config, org_action, step_counter)
+            )
+            step_counter += 1
+        elif isinstance(org_action, FlowOrgAction):
+            flow_step_name = f"{org_action.name}@{org_action.hash_action}"
+            # Handle flow (multiple tasks)
+            for step_action in org_action.steps:
+                steps.append(
+                    stepspec_from_task_action(
+                        project_config,
+                        step_action.task,
+                        step_counter,
+                        from_flow=flow_step_name,
+                    )
+                )
+                step_counter += 1
+
+    return FlowCoordinator.from_steps(
+        project_config,
+        steps,
+        name="Composite Replay Flow",
+    )
+
+
+def stepspec_from_task_action(
+    project_config: BaseProjectConfig,
+    task_action: TaskOrgAction,
+    step_num: int,
+    from_flow: Optional[str] = None,
+) -> StepSpec:
+    task_config = {
+        "class_path": task_action.class_path,
+        "options": task_action.options.copy(),
+    }
+
+    # Handle special case of mapping resolved dependencies back to runnable ones
+    runnable_dependencies = task_action.get_runnable_dependencies(project_config)
+    if runnable_dependencies:
+        task_config["options"] = task_config.get("options", {})
+        task_config["options"]["dependencies"] = runnable_dependencies
+
+    try:
+        task_class = project_config.get_task(task_action.name).get_class()
+    except (ImportError, AttributeError, TaskImportError) as e:
+        raise FlowConfigError(f"Task named {task_action.name} has bad classpath, {e}")
+
+    return StepSpec(
+        step_num=StepVersion(str(step_num)),
+        task_name=task_action.name,
+        task_config=task_config,
+        task_class=task_class,
+        project_config=project_config,
+        allow_failure=task_config.get("ignore_failure", False),
+        from_flow=from_flow,
+        when=task_config.get("when"),
+    )

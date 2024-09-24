@@ -6,7 +6,11 @@ from rich.text import Text
 from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 from pydantic import BaseModel, Field, root_validator
-from cumulusci.core.exceptions import OrgActionNotFound
+from cumulusci.core.exceptions import (
+    OrgActionNotFound,
+    TaskImportError,
+    FlowConfigError,
+)
 from cumulusci.utils.hashing import hash_obj
 from cumulusci.utils.options import FilePath, DirectoryPath
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
@@ -427,7 +431,7 @@ class BaseTaskAction(BaseModel):
         for key, value in self.options.items():
             details.append(f"  {key}: {value}")
 
-        if self.exception:
+        if self.exception is not None and self.exception != "None":
             details.append("Exception:")
             details.append(self.exception)
         return "\n".join(details)
@@ -448,19 +452,53 @@ class TaskOrgAction(BaseTaskAction, BaseOrgActionResult):
         description="The return values of the task",
     )
 
+    def get_runnable_dependencies(self, project_config):
+        """Return a list of dependencies that are valid input ProjectDependencies"""
+
+        # Handle update_dependencies task
+        if self.name == "update_dependencies" and "dependencies" in self.return_values:
+            dependencies = self.return_values["dependencies"]
+
+            # Convert the dependencies to the format expected by the task
+            formatted_dependencies = []
+            for dep in dependencies:
+                if "namespace" in dep:
+                    formatted_dep = {
+                        "namespace": dep["namespace"],
+                        "version": dep["version"],
+                    }
+                elif "github" in dep:
+                    formatted_dep = {
+                        "github": dep["github"],
+                        "subfolder": dep.get("subfolder"),
+                        "ref": dep.get("ref"),
+                        "unmanaged": dep.get("unmanaged", False),
+                        "namespace_inject": dep.get("namespace_inject"),
+                    }
+                    formatted_dep = {
+                        k: v for k, v in formatted_dep.items() if v is not None
+                    }
+                else:
+                    # Handle other types of dependencies if necessary
+                    formatted_dep = dep
+
+                formatted_dependencies.append(formatted_dep)
+
+            return formatted_dependencies
+
 
 class BaseFlowAction(BaseModel):
     name: str = Field(
         ...,
         description="The name of the flow",
     )
-    description: str = Field(
-        ...,
+    description: Optional[str] = Field(
+        None,
         description="The description of the flow",
     )
 
-    group: str = Field(
-        ...,
+    group: Optional[str] = Field(
+        None,
         description="The group of the flow",
     )
     config_steps: dict = Field(
@@ -477,10 +515,12 @@ class BaseFlowAction(BaseModel):
     def _get_details(self):
         details = []
         details.append(f"Flow: {self.name}")
-        details.append(f"Group: {self.group}")
-        details.append("Config:")
-        for key, value in self.config_steps.items():
-            details.append(f"  {key}: {value}")
+        if self.group is not None and self.group != "None":
+            details.append(f"Group: {self.group}")
+        if self.config_steps and len(self.config_steps) > 0:
+            details.append("Config:")
+            for key, value in self.config_steps.items():
+                details.append(f"  {key}: {value}")
         return details
 
     @property
@@ -535,7 +575,8 @@ class FlowOrgAction(BaseFlowAction, BaseOrgActionResult):
     def log(self):
         log = []
         log.append(f"Flow: {self.name}")
-        log.append(f"Group: {self.group}")
+        if self.group is not None and self.group != "None":
+            log.append(f"Group: {self.group}")
         log.append(f"Status: {self.status}")
         log.append(f"Duration: {self.duration}")
         log.append("Details:")
@@ -544,7 +585,7 @@ class FlowOrgAction(BaseFlowAction, BaseOrgActionResult):
 
     def _get_details(self):
         details = super()._get_details()
-        if self.exception:
+        if self.exception is not None and self.exception != "None":
             details.append("Exception:")
             details.append(self.exception)
         details.append("Steps:")
@@ -592,10 +633,19 @@ def actions_from_dict(data: dict) -> List[OrgActionType]:
 class OrgHistory(BaseModel):
     """Model for tracking the history of actions run against a CumulusCI org profile"""
 
+    hash_config: Optional[str] = Field(
+        None,
+        description="A unique hash representing the complete configuration of the org",
+    )
+
     actions: List[OrgActionType] = Field(
         ...,
         description="The actions run against the org",
     )
+
+    def calculate_config_hash(self):
+        hash_data = [action.hash_config for action in self.actions]
+        return hash_obj(hash_data)
 
     @classmethod
     def parse_obj(cls, obj):
