@@ -9,11 +9,14 @@ class GetPermissionSetAssignments(BaseSalesforceApiTask):
         for result in self.sf.query_all(query)["records"]:
             if result["PermissionSet"]["Name"] not in self.return_values:
                 self.return_values.append(result["PermissionSet"]["Name"])
-
             if result["PermissionSetGroupId"] is not None:
                 psg_query = f"SELECT PermissionSet.Name from PermissionSetGroupComponent where PermissionSetGroupId = '{result['PermissionSetGroupId']}'"
                 for psg_result in self.sf.query_all(psg_query)["records"]:
-                    if psg_result["PermissionSet"]["Name"] not in self.return_values:
+                    if (
+                        psg_result["PermissionSet"]
+                        and psg_result["PermissionSet"]["Name"]
+                        not in self.return_values
+                    ):
                         self.return_values.append(psg_result["PermissionSet"]["Name"])
 
         permsets_str = "\n".join(self.return_values)
