@@ -23,7 +23,11 @@ from cumulusci.core.org_history import (
     ActionCommandExecution,
     ActionDirectoryReference,
     ActionFileReference,
-    ActionMetadataDeployment,
+    ActionGithubMetadataDeploy,
+    ActionRepoMetadataDeploy,
+    ActionPackageInstall,
+    ActionPackageUpgrade,
+    ActionUrlMetadataDeploy,
     OrgActionStatus,
     TaskActionTracker,
     TaskOrgAction,
@@ -38,6 +42,7 @@ from cumulusci.core.exceptions import (
     TaskRequiresSalesforceOrg,
 )
 from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
+from cumulusci.salesforce_api.package_install import PackageInstallOptions
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
 from cumulusci.utils.metaprogramming import classproperty
@@ -125,10 +130,12 @@ class BaseTask:
 
         self.action = None
         self.tracker = TaskActionTracker(
-            name=self.task_config.name or self.name,
-            config=self.task_config.config,
+            name=self.name,
+            description=self.task_config.description,
+            group=self.task_config.group,
             class_path=self.task_config.class_path,
-            options=(
+            options=self.task_config.options,
+            parsed_options=(
                 self.parsed_options.to_dict()
                 if self.Options
                 else getattr(self, "options", {})
@@ -136,7 +143,12 @@ class BaseTask:
             files=[],
             directories=[],
             commands=[],
-            deploys=[],
+            deploys={
+                "github": [],
+                "zip_url": [],
+                "repo": [],
+            },
+            package_installs=[],
             repo=self.project_config.repo_url,
             branch=self.project_config.repo_branch,
             commit=self.project_config.repo_commit,
@@ -369,21 +381,234 @@ class BaseTask:
         )
         return [ui_step]
 
-    def _track_command(self, command: str, return_code: int, output: str) -> None:
+    def _track_command(
+        self,
+        command: str,
+        return_code: int,
+        output: str,
+        stderr: str,
+    ) -> None:
+        """
+        Track the execution of a command.
+
+        Args:
+            command (str): The command that was executed.
+            return_code (int): The return code of the command.
+            output (str): The standard output of the command.
+            stderr (str): The standard error output of the command.
+
+        Returns:
+            None
+        """
         self.tracker.commands.append(
             ActionCommandExecution(
-                command=command, return_code=return_code, output=output
+                command=command,
+                return_code=return_code,
+                output=output,
+                stderr=stderr,
             )
         )
 
     def _track_file_reference(self, path: str, name: str) -> None:
+        """
+        Track a file reference.
+
+        Args:
+            path (str): The path to the file.
+            name (str): The name of the file.
+
+        Returns:
+            None
+        """
         self.tracker.files.append(ActionFileReference(path=path, name=name))
 
     def _track_directory_reference(self, path: str, name: str) -> None:
+        """
+        Track a directory reference.
+
+        Args:
+            path (str): The path to the directory.
+            name (str): The name of the directory.
+
+        Returns:
+            None
+        """
         self.tracker.directories.append(ActionDirectoryReference(path=path, name=name))
 
-    def _track_metadata_deployment(self, path: str, name: str) -> None:
-        self.tracker.deploys.append(ActionMetadataDeployment(path=path, name=name))
+    def _track_metadata_deploy(
+        self,
+        path: str,
+        hash: str,
+        size: int,
+        option: str = None,
+    ) -> None:
+        """
+        Track a metadata deployment.
+
+        Args:
+            path (str): The path to the metadata.
+            hash (str): The hash of the deployed metadata.
+            size (int): The size of the deployed metadata.
+            option (str, optional): Additional options for the deployment. Defaults to None.
+
+        Returns:
+            None
+        """
+        self.tracker.deploys.repo.append(
+            ActionRepoMetadataDeploy(
+                path=path,
+                hash=hash,
+                size=size,
+                option=option,
+            )
+        )
+
+    def _track_github_metadata_deploy(
+        self,
+        repo: str,
+        hash: str,
+        size: int,
+        commit: str,
+        branch: str | None,
+        tag: str | None,
+        subfolder: str | None,
+    ) -> None:
+        """
+        Track a GitHub metadata deployment.
+
+        Args:
+            repo (str): The repository where the metadata is stored.
+            hash (str): The hash of the deployed metadata.
+            size (int): The size of the deployed metadata.
+            commit (str): The commit hash of the deployment.
+            branch (str | None): The branch of the deployment. Defaults to None.
+            tag (str | None): The tag of the deployment. Defaults to None.
+            subfolder (str | None): The subfolder of the deployment. Defaults to None.
+
+        Returns:
+            None
+        """
+        self.tracker.deploys.github.append(
+            ActionGithubMetadataDeploy(
+                repo=repo,
+                commit=commit,
+                branch=branch,
+                tag=tag,
+                subfolder=subfolder,
+                hash=hash,
+                size=size,
+            )
+        )
+
+    def _track_url_metadata_deploy(
+        self,
+        url: str,
+        subfolder: str | None,
+        hash: str,
+        size: int,
+    ) -> None:
+        """
+        Track a URL metadata deployment.
+
+        Args:
+            url (str): The URL where the metadata is stored.
+            subfolder (str | None): The subfolder of the deployment. Defaults to None.
+            hash (str): The hash of the deployed metadata.
+            size (int): The size of the deployed metadata.
+
+        Returns:
+            None
+        """
+        self.tracker.deploys.url.append(
+            ActionUrlMetadataDeploy(
+                url=url,
+                subfolder=subfolder,
+                hash=hash,
+                size=size,
+            )
+        )
+
+    def _track_package_install(
+        self,
+        version_id=None,
+        namespace=None,
+        package_id=None,
+        name=None,
+        version=None,
+        package_type=None,
+        is_beta=None,
+        is_promotable=None,
+        ancestor_id=None,
+        previous_version_id=None,
+        previous_version=None,
+        activate_remote_site_settings=None,
+        name_conflict_resolution=None,
+        security_type=None,
+        apex_compile_type=None,
+        upgrade_type=None,
+    ) -> None:
+        """
+        Track a package installation.
+
+        Args:
+            version_id (str, optional): The version ID of the package. Defaults to None.
+            namespace (str, optional): The namespace of the package. Defaults to None.
+            package_id (str, optional): The package ID. Defaults to None.
+            name (str, optional): The name of the package. Defaults to None.
+            version (str, optional): The version of the package. Defaults to None.
+            package_type (str, optional): The type of the package. Defaults to None.
+            is_beta (bool, optional): Whether the package is a beta version. Defaults to None.
+            is_promotable (bool, optional): Whether the package is promotable. Defaults to None.
+            ancestor_id (str, optional): The ancestor ID of the package. Defaults to None.
+            previous_version_id (str, optional): The previous version ID of the package. Defaults to None.
+            previous_version (str, optional): The previous version of the package. Defaults to None.
+            activate_remote_site_settings (bool, optional): Whether to activate remote site settings. Defaults to None.
+            name_conflict_resolution (str, optional): The name conflict resolution strategy. Defaults to None.
+            security_type (str, optional): The security type of the package. Defaults to None.
+            apex_compile_type (str, optional): The Apex compile type. Defaults to None.
+            upgrade_type (str, optional): The upgrade type of the package. Defaults to None.
+
+        Returns:
+            None
+        """
+        kwargs = {
+            "version_id": version_id,
+            "namespace": namespace,
+            "package_id": package_id,
+            "name": name,
+            "version": version,
+            "package_type": package_type,
+            "is_beta": is_beta,
+            "is_promotable": is_promotable,
+            "ancestor_id": ancestor_id,
+            # "password": password,
+        }
+
+        if hasattr(self, "install_options"):
+            install_options = self.install_options
+        else:
+            install_options = PackageInstallOptions.from_task_options(
+                {
+                    "activate_remote_site_settings": activate_remote_site_settings,
+                    "name_conflict_resolution": name_conflict_resolution,
+                    "security_type": security_type,
+                    "apex_compile_type": apex_compile_type,
+                    "upgrade_type": upgrade_type,
+                }
+            )
+
+        kwargs.update(install_options.dict())
+        kwargs["security_type"] = kwargs["security_type"].value
+        kwargs["name_conflict_resolution"] = kwargs["name_conflict_resolution"].value
+
+        action: ActionPackageInstall | ActionPackageUpgrade | None = None
+        if previous_version_id or previous_version:
+            kwargs["previous_version"] = previous_version
+            kwargs["previous_version_id"] = previous_version_id
+            action = ActionPackageUpgrade.parse_obj(kwargs)
+        else:
+            action = ActionPackageInstall.parse_obj(kwargs)
+        self.tracker.package_installs.append(action)
 
     def _record_result(self, exception=None) -> None:
         data = self.tracker.dict()

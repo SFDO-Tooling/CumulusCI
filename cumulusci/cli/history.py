@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta
+from dateutil.parser import parse
 
 import click
 from rich.console import Console
@@ -16,9 +17,90 @@ from cumulusci.utils.yaml.render import dump_yaml
 from .runtime import pass_runtime
 
 
+def color_by_status(name, status, text=None):
+    color = "green" if status == OrgActionStatus.SUCCESS.value else "red"
+    if status == OrgActionStatus.FAILURE.value:
+        color = "orange"
+    style = f"bold {color}"
+    if text:
+        text.append(name, style=style)
+        return text
+    return Text(name, style=style)
+
+
 @click.group("history", help="Commands for interacting with org history")
 def history():
     pass
+
+
+@history.command(
+    name="previous",
+    help="List the previous org instances for this org and a summary of their history.",
+)
+@orgname_option_or_argument(required=False)
+@click.option("--json", "print_json", is_flag=True, help="Print as JSON.")
+@click.option("--indent", type=int, help="Indentation level for JSON output.")
+@pass_runtime(require_project=True, require_keychain=True)
+def history_previous(runtime, org_name, print_json, indent):
+    org_name, org_config = runtime.get_org(org_name)
+    previous_orgs = org_config.history.previous_orgs
+    if print_json:
+        click.echo(
+            json.dumps(
+                previous_orgs,
+                indent=indent,
+                default=cci_json_encoder,
+            )
+        )
+        return
+
+    console = Console()
+    table = Table(
+        title=f"Previous Orgs ({org_name})",
+        show_lines=True,
+        title_justify="left",
+    )
+    table.add_column("Org Id")
+    table.add_column("Config Hash")
+    table.add_column("Created")
+    table.add_column("# Actions")
+    table.add_column("Tasks & Flows")
+
+    if not previous_orgs:
+        table.add_row("No previous orgs available", "", "", "", "")
+    else:
+        for org_id, org in previous_orgs.items():
+            created = org.filtered_actions(action_type=["OrgCreate"])
+            if created:
+                date = datetime.fromtimestamp(created[0].timestamp)
+                created = Text(date.strftime("%Y-%m-%d\n%H:%M:%S"))
+            else:
+                created = Text("N/A")
+            tasks_and_flows = Text()
+            for action in org.filtered_actions(action_type=["Task", "Flow"]):
+                tasks_and_flows = color_by_status(
+                    name=action.name,
+                    status=action.status,
+                    text=tasks_and_flows,
+                )
+
+            table.add_row(
+                Text(org_id, style="bold"),
+                org.hash_config,
+                created,
+                str(len(org.actions)),
+                tasks_and_flows,
+            )
+
+    console.print()
+    console.print(table)
+    console.print()
+
+    console.print(
+        Text("Use the Org Id to list history for a previous org:", style="gray")
+    )
+    console.print(Text("cci org history list --org-id <org_id>", style="bold"))
+    console.print()
 
 
 @history.command(name="list", help="List the orgs history")
@@ -52,6 +134,10 @@ def history():
 @click.option(
     "--after", help="Include only actions that ran after the specified action hash"
 )
+@click.option(
+    "--org-id",
+    help="List the actions run against a previous org instance by org id. Use `cci history previous` to list previous org instances.",
+)
 @click.option("--json", "print_json", is_flag=True, help="Print as JSON.")
 @click.option("--indent", type=int, help="Indentation level for JSON output.")
 @pass_runtime(require_project=True, require_keychain=True)
@@ -66,20 +152,44 @@ def history_list(
     exclude_config_hash=None,
     before=None,
     after=None,
+    org_id=None,
     print_json=False,
     indent=4,
 ):
     org_name, org_config = runtime.get_org(org_name)
+
+    org_history = org_config.history
+
+    if org_config.track_history is False:
+        click.echo("Org history tracking is disabled for this org.")
+        click.echo(
+            "*Use `cci org history enable` to enable history tracking for this org.*"
+        )
+        if org_history and (org_history.actions or org_history.previous_orgs):
+            click.echo(
+                "Org history found from before tracking was disabled. Continuing..."
+            )
+        return
+
+    if org_id:
+        org_history = org_history.previous_orgs.get(org_id)
+
     if print_json:
         click.echo(
-            json.dumps(
-                org_config.history.dict(), indent=indent, default=cci_json_encoder
-            )
+            json.dumps(org_history.dict(), indent=indent, default=cci_json_encoder)
         )
         return
 
     console = Console()
-    table = Table(title="Org History", show_lines=True)
+    console.print()
+    table_title = f"Org History for {org_name} ({org_config.org_id})"
+    if org_id:
+        table_title += f" (Previous Org: {org_id})"
+    table = Table(
+        title=table_title,
+        show_lines=True,
+        title_justify="left",
+    )
     table.add_column("Hash")
     table.add_column("Type")
     table.add_column("Time")
@@ -97,7 +207,11 @@ def history_list(
         "after": after,
     }
 
-    for action in org_config.history.filtered_actions(**filters):
+    if not org_history.actions:
+        table.add_row("No history available", "", "", "", "")
+
+    last_action_hash = None
+    for action in org_history.filtered_actions(**filters):
         color = "green" if action.status == OrgActionStatus.SUCCESS.value else "red"
         if action.status == OrgActionStatus.FAILURE.value:
             color = "orange"
@@ -109,21 +223,31 @@ def history_list(
             status_text,  # Add Text object directly
             str(action.column_details),
         )
+        last_action_hash = action.hash_action
 
-    if not org_config.history.actions:
-        table.add_row("No history available", "", "", "", "")
     console.print(table)
+    console.print()
+    if last_action_hash:
+        console.print(
+            Text(
+                "Use the Action Hash to get the info on an action, for example:",
+                style="",
+            )
+        )
+        console.print()
+        console.print(Text(f"   cci history info {last_action_hash}", style="bold"))
+    console.print()
 
 
 @history.command(name="info", help="Display information for a specific action hash")
-@click.argument("hash")
+@click.argument("action_hash")
 @orgname_option_or_argument(required=False)
 @click.option("--json", "print_json", is_flag=True, help="Print as JSON.")
 @click.option("--indent", type=int, help="Indentation level for JSON output.")
 @pass_runtime(require_project=True, require_keychain=True)
-def history_info(runtime, org_name, hash, print_json, indent):
+def history_info(runtime, org_name, action_hash, print_json, indent):
     org_name, org_config = runtime.get_org(org_name)
-    action = org_config.history.get_action_by_hash(hash)
+    action = org_config.history.get_action_by_hash(action_hash)
     if print_json:
         click.echo(json.dumps(action.dict(), indent=indent))
         return
@@ -143,7 +267,7 @@ def history_info(runtime, org_name, hash, print_json, indent):
         return str(value)
 
     console = Console()
-    table = Table(title=f"Org History: {hash}")
+    table = Table(title=f"Org History: {action_hash}")
     table.add_column("Key")
     table.add_column("Value")
 

@@ -10,10 +10,11 @@ from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.org_history import OrgHistory, actions_from_dict
+from cumulusci.core.org_history import OrgHistory
 from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyResolutionError,
+    OrgHistoryError,
     ServiceNotConfigured,
 )
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
@@ -83,10 +84,23 @@ class OrgConfig(BaseConfig):
         self._installed_packages = None
         self._is_person_accounts_enabled = None
         self._multiple_currencies_is_enabled = False
-        actions = actions_from_dict(config.get("history", {}).get("actions", []))
-        self.history = OrgHistory.parse_obj({"actions": actions})
+        history_exception = None
+        try:
+            self.history = OrgHistory.parse_obj(config.get("history", {}))
+        except Exception as e:
+            history_exception = e
 
         super().__init__(config)
+
+        if history_exception:
+            if config.get("track_history", False):
+                self.logger.error(
+                    f"Failed to load history for org {name}: {history_exception}. Disabiling track_history to avoid data loss."
+                )
+            else:
+                raise OrgHistoryError(
+                    f"Failed to load history for org {name}: {history_exception}."
+                )
 
     def refresh_oauth_token(self, keychain, connected_app=None, is_sandbox=False):
         """Get a fresh access token and store it in the org config.

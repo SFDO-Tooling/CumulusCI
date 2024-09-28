@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 import click
@@ -6,6 +7,8 @@ from cumulusci.core.dependencies.dependencies import (
     Dependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
+    UnmanagedGitHubRefDependency,
+    UnmanagedZipURLDependency,
     parse_dependencies,
 )
 from cumulusci.core.dependencies.resolvers import (
@@ -231,11 +234,46 @@ class UpdateDependencies(BaseSalesforceTask):
         if isinstance(
             dependency, (PackageNamespaceVersionDependency, PackageVersionIdDependency)
         ):
+            track_data = {
+                "name": dependency.package_name,
+                "version": dependency.version,
+                "version_id": dependency.version_id,
+            }
+            if isinstance(dependency, PackageNamespaceVersionDependency):
+                track_data["namespace"] = dependency.namespace
+            # if dependency.password_env_var:
+            #     # NOTE: This includes the password into the MaskedField in the task result
+            #     # Since org history is stored in the keychain, this should be safe
+            #     track_data["password"] = os.environ.get(dependency.password_env_var)
+
+            self._track_package_install(**track_data)
             dependency.install(
                 self.project_config, self.org_config, self.install_options
             )
         else:
             dependency.install(self.project_config, self.org_config)
+            if dependency.hash:
+                if isinstance(dependency, UnmanagedGitHubRefDependency):
+                    self._track_github_metadata_deploy(
+                        subfolder=dependency.subfolder,
+                        repo=dependency.github,
+                        commit=dependency.ref,
+                        branch=None,
+                        tag=None,
+                        hash=dependency.hash,
+                        size=dependency.size,
+                    )
+                elif isinstance(dependency, UnmanagedZipURLDependency):
+                    self._track_url_metadata_deploy(
+                        url=dependency.url,
+                        subfolder=dependency.subfolder,
+                        hash=dependency.hash,
+                        size=dependency.size,
+                    )
+                else:
+                    raise CumulusCIException(
+                        f"Unsupported dependency type: {type(dependency)}"
+                    )
 
     def freeze(self, step):
         if self.options["interactive"]:

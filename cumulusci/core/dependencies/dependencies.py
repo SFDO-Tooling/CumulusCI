@@ -56,9 +56,9 @@ def _validate_github_parameters(values):
 
     # Populate the `github` property if not already populated.
     if not values.get("github") and values.get("repo_name"):
-        values[
-            "github"
-        ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        values["github"] = (
+            f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        )
         values.pop("repo_owner")
         values.pop("repo_name")
 
@@ -67,12 +67,10 @@ def _validate_github_parameters(values):
 
 class DependencyPin(HashableBaseModel, abc.ABC):
     @abc.abstractmethod
-    def can_pin(self, d: "DynamicDependency") -> bool:
-        ...
+    def can_pin(self, d: "DynamicDependency") -> bool: ...
 
     @abc.abstractmethod
-    def pin(self, d: "DynamicDependency", context: BaseProjectConfig):
-        ...
+    def pin(self, d: "DynamicDependency", context: BaseProjectConfig): ...
 
 
 DependencyPin.update_forward_refs()
@@ -328,9 +326,9 @@ class GitHubDynamicDependency(BaseGitHubDependency):
                         subfolder=this_subfolder,
                         unmanaged=not managed,
                         namespace_inject=namespace if namespace and managed else None,
-                        namespace_strip=namespace
-                        if namespace and not managed
-                        else None,
+                        namespace_strip=(
+                            namespace if namespace and not managed else None
+                        ),
                     )
                 )
 
@@ -545,6 +543,8 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
     namespace_inject: Optional[str] = None
     namespace_strip: Optional[str] = None
     collision_check: Optional[bool] = None
+    hash: Optional[str] = None
+    size: Optional[int] = None
 
     def _get_unmanaged(self, org: OrgConfig):
         if self.unmanaged is None:
@@ -630,7 +630,12 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
 
         package_zip_builder = self.get_metadata_package_zip_builder(context, org)
         task = TaskContext(org_config=org, project_config=context, logger=logger)
-        api = ApiDeploy(task, package_zip_builder.as_base64())
+        self.hash = package_zip_builder.as_hash()
+        package_zip_base64 = package_zip_builder.as_base64()  # Encode to base64
+        self.size = len(
+            package_zip_base64
+        )  # Calculate the size of the base64-encoded data
+        api = ApiDeploy(task, package_zip_base64)
 
         return api()
 
@@ -765,6 +770,24 @@ AVAILABLE_DEPENDENCY_CLASSES = [
     UnmanagedZipURLDependency,
     GitHubDynamicDependency,
     GitHubDynamicSubfolderDependency,
+]
+
+# Static and dynamic
+InputDependencyType = [
+    PackageVersionIdDependency,
+    PackageNamespaceVersionDependency,
+    UnmanagedGitHubRefDependency,
+    UnmanagedZipURLDependency,
+    GitHubDynamicDependency,
+    GitHubDynamicSubfolderDependency,
+]
+
+# Static only
+OutputDependencyType = [
+    PackageVersionIdDependency,
+    PackageNamespaceVersionDependency,
+    UnmanagedGitHubRefDependency,
+    UnmanagedZipURLDependency,
 ]
 
 

@@ -152,6 +152,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
             run_tests=self.specified_tests,
         )
 
+    def _track_metadata_request(self, api):
+        self._track_metadata_deploy(
+            path=self.options.get("path"),
+            hash=self.package_hash,
+            size=self.package_size,
+        )
+
     def _has_namespaced_package(self, ns: Optional[str]) -> bool:
         if "unmanaged" in self.options:
             return not process_bool_arg(self.options.get("unmanaged", True))
@@ -244,7 +251,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 # If the package is empty, do nothing.
                 if not package_zip.zf.namelist():
                     return
-                return package_zip.as_base64()
+                self.package_hash = package_zip.as_hash()
+                package_zip_base64 = package_zip.as_base64()
+                self.package_size = len(package_zip_base64)
+                return package_zip_base64
             else:
                 return xml_map
 
