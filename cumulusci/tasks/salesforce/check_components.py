@@ -58,9 +58,10 @@ class CheckComponents(BaseSalesforceTask):
                 self.logger.warning(f"Path does not exist: {full_path}")
                 continue
 
-            components, api_retrieve_unpackaged_response = (
-                self._collect_components_from_paths(full_path)
-            )
+            (
+                components,
+                api_retrieve_unpackaged_response,
+            ) = self._collect_components_from_paths(full_path)
             if not components:
                 self.logger.info("No components found in deploy paths.")
                 return

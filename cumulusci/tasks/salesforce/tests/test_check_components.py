@@ -7,7 +7,6 @@ from .util import create_task
 
 
 class TestCheckComponents:
-
     def test_get_current_plan_or_flow_name_with_options(self):
         task = create_task(CheckComponents, {"plan_name": "test_plan"})
 
