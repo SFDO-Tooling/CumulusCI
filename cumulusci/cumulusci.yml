@@ -756,7 +756,7 @@ tasks:
         description: "Executes the `vlocity packDeploy` command against an org"
         group: OmniStudio
     check_components:
-        description: "Check"
+        description: "Check common coponents int the target org from Check task deploy paths"
         class_path: cumulusci.tasks.salesforce.check_components.CheckComponents
 flows:
     ci_beta:
