@@ -15,9 +15,22 @@ class SelectStrategy(StrEnum):
     RANDOM = "random"
 
 
+class SelectRecordRetrievalMode(StrEnum):
+    """Enum defining whether you need all records or match the
+    number of records of the local sql file"""
+
+    ALL = "all"
+    MATCH = "match"
+
+
 class SelectOperationExecutor:
     def __init__(self, strategy: SelectStrategy):
         self.strategy = strategy
+        self.retrieval_mode = (
+            SelectRecordRetrievalMode.ALL
+            if strategy == SelectStrategy.SIMILARITY
+            else SelectRecordRetrievalMode.MATCH
+        )
 
     def select_generate_query(
         self,
@@ -96,7 +109,7 @@ def standard_post_process(
         original_records = selected_records.copy()
         while len(selected_records) < num_records:
             selected_records.extend(original_records)
-        selected_records = selected_records[:num_records]
+    selected_records = selected_records[:num_records]
 
     return selected_records, None  # Return selected records and None for error
 
@@ -115,8 +128,8 @@ def similarity_generate_query(
     else:
         where_clause = None
     # Construct the query with the WHERE clause (if it exists)
-
-    fields.insert(0, "Id")
+    if "Id" not in fields:
+        fields.insert(0, "Id")
     fields_to_query = ", ".join(field for field in fields if field)
 
     query = f"SELECT {fields_to_query} FROM {sobject}"

@@ -1685,7 +1685,7 @@ class TestRestApiDmlOperation:
             selection_strategy=SelectStrategy.SIMILARITY,
         )
 
-        results = {
+        results_first_call = {
             "records": [
                 {
                     "Id": "003000000000001",
@@ -1705,13 +1705,16 @@ class TestRestApiDmlOperation:
             ],
             "done": True,
         }
-        step.sf.restful = mock.Mock()
-        step.sf.restful.return_value = results
+
+        # First call returns `results_first_call`, second call returns an empty list
+        step.sf.restful = mock.Mock(
+            side_effect=[results_first_call, {"records": [], "done": True}]
+        )
         records = iter(
             [
-                ["Id: 1", "Jawad", "mjawadtp@example.com"],
-                ["Id: 2", "Aditya", "aditya@example.com"],
-                ["Id: 3", "Tom Cruise", "tom@example.com"],
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom Cruise", "tom@example.com"],
             ]
         )
         step.start()
