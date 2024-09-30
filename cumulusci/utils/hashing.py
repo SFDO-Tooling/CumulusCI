@@ -1,41 +1,47 @@
+import aiofiles
 import hashlib
 import json
 import asyncio
+from io import BytesIO
 from pathlib import Path, PosixPath
-import aiofiles
-
-
-def cci_json_encoder(obj):
-    if hasattr(obj, "dict"):
-        return obj.dict()
-    if hasattr(obj, "task_config"):
-        if obj.skip:
-            return None
-        return obj.task_config
-    if isinstance(obj, Path | PosixPath):
-        return str(obj)
-    # Fallback to default encoder
-    try:
-        return json.JSONEncoder().default(obj)
-    except TypeError:
-        raise TypeError(
-            f"Object of type {obj.__class__.__name__} is not JSON serializable"
-        )
+from collections.abc import Iterable
+from cumulusci.utils.serialization import encode_value, decode_nested_dict
 
 
 def compute_hash(chunks):
+    if isinstance(chunks, str):
+        chunks = BytesIO(chunks.encode("utf-8"))
+    if isinstance(chunks, bytes):
+        chunks = BytesIO(chunks)
     md5_hash = hashlib.md5()
     for chunk in chunks:
         md5_hash.update(chunk)
     return md5_hash.hexdigest()[:8]
 
 
+def dump_json(data, **kwargs):
+    # NOTE: This means that dict ordering is not respected by the hash
+    # This is a tradeoff to ensure that the hash is consistent across Python versions
+    # and that the hash is not affected by changes in the order of the keys in the dictionary
+    # If you need ordering, pass in a list of dictionaries
+    kwargs.setdefault("sort_keys", True)
+    kwargs.setdefault("default", encode_value)
+    return json.dumps(data, **kwargs).encode("utf-8")
+
+
 def hash_as_json(data):
-    # Step 1: Serialize the dictionary in a sorted order to ensure consistency
-    serialized_dict = json.dumps(data, sort_keys=True, default=cci_json_encoder).encode(
-        "utf-8"
-    )
-    return compute_hash([serialized_dict])
+    try:
+        # if isinstance(data, dict):
+        #     # Convert the dictionary to a list of dictionaries to ensure consistent ordering
+        #     hash_data = [{k, v} for k, v in data.items()]
+        hash_content = dump_json(data)
+        hashed = compute_hash(hash_content)
+    except TypeError as e:
+        import pdb
+
+        pdb.set_trace()
+        raise ValueError(f"Data {data} is not JSON serializable")
+    return hashed
 
 
 def hash_file(file):

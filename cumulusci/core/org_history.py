@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from enum import Enum
+from pathlib import Path, PosixPath
 from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 from jsonpath_ng import jsonpath, parse
@@ -17,6 +18,7 @@ from cumulusci.salesforce_api.package_models import (
     UpgradeType,
 )
 from cumulusci.utils.hashing import hash_obj
+from cumulusci.utils.serialization import decode_nested_dict
 from cumulusci.utils.yaml.render import dump_yaml
 from pydantic import DirectoryPath, FilePath
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
@@ -52,7 +54,7 @@ class ActionFileReference(BaseModel):
     )
 
     class Config:
-        json_encoders = {FilePath: lambda v: str(v)}
+        json_encoders = {Path: lambda v: str(v), PosixPath: lambda v: str(v)}
 
     @root_validator(pre=True)
     def populate_hash(cls, values):
@@ -81,7 +83,9 @@ class ActionScratchDefReference(ActionFileReference):
                 raise ValueError(
                     f"Error loading scratchdef from {scratch_config.config_file}: {e}"
                 )
-            values["hash"] = hash_obj(values["scratchdef"])
+            values["hash"] = hash_obj(
+                decode_nested_dict(values["scratchdef"]) if values["scratchdef"] else {}
+            )
         return values
 
     def _load_scratchdef(self):
@@ -105,7 +109,7 @@ class ActionDirectoryReference(BaseModel):
     )
 
     class Config:
-        json_encoders = {DirectoryPath: lambda v: str(v)}
+        json_encoders = {Path: lambda v: str(v), PosixPath: lambda v: str(v)}
 
     @root_validator(pre=True)
     def populate_hash(cls, values):
@@ -1059,30 +1063,38 @@ class OrgHistory(BaseOrgHistory):
 def actions_from_dicts(actions: list[dict]) -> List[OrgActionType]:
     mapped = []
     for action_data in actions:
-        action: OrgActionType | None = None
-        if "action_type" not in action_data:
-            raise ValueError("Missing required key 'action_type'")
-        if action_data["action_type"] == "OrgConnect":
-            action = OrgConnectAction(**action_data)
-        elif action_data["action_type"] == "OrgImport":
-            action = OrgImportAction(**action_data)
-        elif action_data["action_type"] == "OrgDelete":
-            action = OrgDeleteAction(**action_data)
-        elif action_data["action_type"] == "OrgCreate":
-            action = OrgCreateAction(**action_data)
-        elif action_data["action_type"] == "Task":
-            action = TaskOrgAction(**action_data)
-        elif action_data["action_type"] == "Flow":
-            action = FlowOrgAction(**action_data)
-        else:
-            raise ValueError(f"Unknown action_type: {action_data['action_type']}")
-        action.hash_action = action.calculate_action_hash()
-        action.hash_config = action.calculate_config_hash()
+        try:
+            action: OrgActionType | None = None
+            if "action_type" not in action_data:
+                raise ValueError("Missing required key 'action_type'")
+            if action_data["action_type"] == "OrgConnect":
+                action = OrgConnectAction.parse_obj(action_data)
+            elif action_data["action_type"] == "OrgImport":
+                action = OrgImportAction.parse_obj(action_data)
+            elif action_data["action_type"] == "OrgDelete":
+                action = OrgDeleteAction.parse_obj(action_data)
+            elif action_data["action_type"] == "OrgCreate":
+                action = OrgCreateAction.parse_obj(action_data)
+            elif action_data["action_type"] == "Task":
+                action = TaskOrgAction.parse_obj(action_data)
+            elif action_data["action_type"] == "Flow":
+                action = FlowOrgAction.parse_obj(action_data)
+            else:
+                raise ValueError(f"Unknown action_type: {action_data['action_type']}")
+            action.hash_action = action.calculate_action_hash()
+            action.hash_config = action.calculate_config_hash()
+
+        except Exception as e:
+            import pdb
+
+            pdb.set_trace()
+            raise OrgHistoryError(f"Error loading action: {e}")
         mapped.append(action)
     return mapped
 
 
 def history_from_dict(data: dict) -> "OrgHistory":
+    data = decode_nested_dict(data)
     actions: List[OrgActionType] = []
     previous_orgs: Dict[str, List[OrgActionType]] = {}
     actions = actions_from_dicts(data.get("actions", []))

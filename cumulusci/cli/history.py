@@ -11,7 +11,7 @@ from cumulusci.cli.org import orgname_option_or_argument
 from cumulusci.core.org_history import OrgActionStatus
 from cumulusci.core.utils import format_duration
 from cumulusci.core.flowrunner import flow_from_org_actions
-from cumulusci.utils.hashing import cci_json_encoder
+from cumulusci.utils.hashing import dump_json
 from cumulusci.utils.yaml.render import dump_yaml
 
 from .runtime import pass_runtime
@@ -46,10 +46,9 @@ def history_previous(runtime, org_name, print_json, indent):
     previous_orgs = org_config.history.previous_orgs
     if print_json:
         click.echo(
-            json.dumps(
+            dump_json(
                 previous_orgs,
                 indent=indent,
-                default=cci_json_encoder,
             )
         )
         return
@@ -175,9 +174,7 @@ def history_list(
         org_history = org_history.previous_orgs.get(org_id)
 
     if print_json:
-        click.echo(
-            json.dumps(org_history.dict(), indent=indent, default=cci_json_encoder)
-        )
+        click.echo(dump_json(org_history.dict(), indent=indent))
         return
 
     console = Console()
@@ -249,7 +246,7 @@ def history_info(runtime, org_name, action_hash, print_json, indent):
     org_name, org_config = runtime.get_org(org_name)
     action = org_config.history.get_action_by_hash(action_hash)
     if print_json:
-        click.echo(json.dumps(action.dict(), indent=indent))
+        click.echo(dump_json(action.dict(), indent=indent))
         return
 
     timestamp = None

@@ -85,10 +85,13 @@ class OrgConfig(BaseConfig):
         self._is_person_accounts_enabled = None
         self._multiple_currencies_is_enabled = False
         history_exception = None
-        try:
-            self.history = OrgHistory.parse_obj(config.get("history", {}))
-        except Exception as e:
-            history_exception = e
+        # try:
+        self.history = OrgHistory.parse_obj(config.get("history", {}))
+        # except Exception as e:
+        #     import pdb
+
+        #     pdb.set_trace()
+        #     history_exception = e
 
         super().__init__(config)
 

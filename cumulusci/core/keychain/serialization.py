@@ -1,9 +1,11 @@
 import json
 import os
 import pickle
+from pathlib import Path, PosixPath
 from datetime import date, datetime
 from logging import Logger
 from typing import NamedTuple, Optional
+from cumulusci.utils.serialization import encode_value, decode_dict
 
 # Delay saving as JSON for a few CumulusCI releases because
 # people might downgrade a release and then their
@@ -25,61 +27,6 @@ def load_config_from_json_or_pickle(b: bytes) -> dict:
         raise ValueError(str(e)) from e
 
     return data
-
-
-class JSONSerializer(NamedTuple):
-    type: str
-    to_json: callable
-    from_json: callable
-
-    @property
-    def name(self):
-        return self.type.__name__
-
-
-# make sure that datetime comes before date
-string_serializers = [
-    JSONSerializer(
-        datetime,
-        to_json=lambda x: x.isoformat(),
-        from_json=lambda x: datetime.fromisoformat(x),
-    ),
-    JSONSerializer(
-        date, to_json=lambda x: x.isoformat(), from_json=lambda x: date.fromisoformat(x)
-    ),
-    JSONSerializer(
-        bytes,
-        to_json=lambda x: x.decode("unicode_escape"),
-        from_json=lambda x: x.encode("unicode_escape"),
-    ),
-]
-
-
-def encode_value(x):
-    """Encode a value that JSON does not support natively"""
-    for serializer in string_serializers:
-        if isinstance(x, serializer.type):
-            return {"$type": serializer.name, "$value": serializer.to_json(x)}
-
-    raise TypeError(type(x))  # pragma: no cover
-
-
-def decode_dict(x: dict):
-    """Decode a dict from JSON"""
-    assert isinstance(x, dict)
-    if "$type" in x:
-        return decode_typed_value(x)
-    else:
-        return x
-
-
-def decode_typed_value(x: dict):
-    """Decode a value that JSON does not support natively"""
-    for serializer in string_serializers:
-        if x["$type"] == serializer.name:
-            return serializer.from_json(x["$value"])
-
-    raise TypeError(f"Unknown $type: {x['$type']}")  # pragma: no cover
 
 
 def try_load_config_from_json_or_pickle(data: bytes) -> dict:
