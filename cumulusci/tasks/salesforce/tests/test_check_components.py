@@ -1,7 +1,9 @@
-from unittest.mock import MagicMock, patch, mock_open
 import os
-from .util import create_task
+from unittest.mock import MagicMock, mock_open, patch
+
 from cumulusci.tasks.salesforce.check_components import CheckComponents
+
+from .util import create_task
 
 
 class TestCheckComponents:

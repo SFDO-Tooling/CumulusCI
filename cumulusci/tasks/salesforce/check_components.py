@@ -1,12 +1,14 @@
-from cumulusci.tasks.salesforce import BaseSalesforceTask
-from cumulusci.core.exceptions import TaskOptionsError
-from defusedxml.minidom import parseString
 import os
 from collections import defaultdict
+from xml.etree.ElementTree import ParseError
+
+from defusedxml.minidom import parseString
+
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.utils.xml import metadata_tree
-from xml.etree.ElementTree import ParseError
 
 
 class CheckComponents(BaseSalesforceTask):
