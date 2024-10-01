@@ -22,5 +22,5 @@ class DescribeMetadataTypes(BaseRetrieveMetadata):
 
     def _run_task(self):
         api_object = self._get_api()
-        metadata_list = api_object()
-        self.logger.info("Metadata Types supported by org:\n" + str(metadata_list))
+        self.return_values = api_object()
+        return self.return_values

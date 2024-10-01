@@ -3,13 +3,18 @@ import os
 import pathlib
 from unittest import mock
 
+import pytest
+
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
 from cumulusci.tasks.salesforce.sourcetracking import (
     KNOWN_BAD_MD_TYPES,
     ListChanges,
     RetrieveChanges,
     SnapshotChanges,
     _write_manifest,
+    retrieve_components,
 )
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
@@ -151,7 +156,12 @@ class TestRetrieveChanges:
 
         with temporary_dir():
             task = create_task_fixture(
-                RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
+                RetrieveChanges,
+                {
+                    "include": "Test",
+                    "namespace_tokenize": "ns",
+                    "retrieve_complete_profile": True,
+                },
             )
             task._init_task()
             task.tooling = mock.Mock()
@@ -162,18 +172,30 @@ class TestRetrieveChanges:
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
                         "RevisionCounter": 1,
-                    }
+                    },
+                    {
+                        "MemberType": "Profile",
+                        "MemberName": "TestProfile",
+                        "RevisionCounter": 1,
+                    },
                 ],
             }
+            with mock.patch.object(
+                RetrieveProfile, "_run_task"
+            ) as mock_retrieve_profile, mock.patch.object(
+                pathlib.Path, "exists", return_value=True
+            ), mock.patch.object(
+                pathlib.Path, "is_dir", return_value=True
+            ):
+                task._run_task()
 
-            task._run_task()
-
-            assert sfdx_calls == [
-                "force:mdapi:convert",
-                "force:source:retrieve",
-                "force:source:convert",
-            ]
-            assert os.path.exists(os.path.join("src", "package.xml"))
+                assert sfdx_calls == [
+                    "force:mdapi:convert",
+                    "force:source:retrieve",
+                    "force:source:convert",
+                ]
+                assert os.path.exists(os.path.join("src", "package.xml"))
+                mock_retrieve_profile.assert_called()
 
     def test_run_task__no_changes(self, sfdx, create_task_fixture):
         with temporary_dir() as path:
@@ -251,3 +273,28 @@ def test_write_manifest__bad_md_types():
         assert "<name>Report</name>" in package_xml
         for name in bad_md_types:
             assert f"<name>{name}</name>" not in package_xml
+
+
+def test_retrieve_components_project_config_not_found():
+    components = mock.Mock()
+    org_config = mock.Mock()
+    target = "force-app/"
+    md_format = False
+    extra_package_xml_opts = {"sample": "dict"}
+    namespace_tokenize = "sample"
+    api_version = "58.0"
+    expected_error_message = (
+        "Kindly provide project_config as part of retrieve_components"
+    )
+    with pytest.raises(ProjectConfigNotFound) as e:
+        retrieve_components(
+            components=components,
+            org_config=org_config,
+            target=target,
+            md_format=md_format,
+            extra_package_xml_opts=extra_package_xml_opts,
+            namespace_tokenize=namespace_tokenize,
+            api_version=api_version,
+            retrieve_complete_profile=True,
+        )
+        assert expected_error_message == e.value.message

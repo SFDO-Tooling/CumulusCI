@@ -158,7 +158,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
 
 class AssignPermissionSetLicenses(AssignPermissionSets):
     task_docs = """
-Assigns Permission Set Licenses whose Developer Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Licenses that are already assigned.
+Assigns Permission Set Licenses whose Developer Names or PermissionSetLicenseKey are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Licenses that are already assigned.
 
 Permission Set Licenses are usually associated with a Permission Set, and assigning the Permission Set usually assigns the associated Permission Set License automatically.  However, in non-namespaced developer scratch orgs, assigning the associated Permission Set may not automatically assign the Permission Set License, and this task will ensure the Permission Set Licenses are assigned.
     """
@@ -174,11 +174,34 @@ Permission Set Licenses are usually associated with a Permission Set, and assign
     }
 
     permission_name = "PermissionSetLicense"
-    permission_name_field = "DeveloperName"
+    permission_name_field = ["DeveloperName", "PermissionSetLicenseKey"]
     permission_label = "Permission Set License"
     assignment_name = "PermissionSetLicenseAssign"
     assignment_lookup = "PermissionSetLicenseId"
     assignment_child_relationship = "PermissionSetLicenseAssignments"
+
+    def _get_perm_ids(self):
+        perms_by_ids = {}
+        api_names = "', '".join(self.options["api_names"])
+        perms = self.sf.query(
+            f"SELECT Id,{self.permission_name_field[0]},{self.permission_name_field[1]} FROM {self.permission_name} WHERE {self.permission_name_field[0]} IN ('{api_names}') OR {self.permission_name_field[1]} IN ('{api_names}')"
+        )
+        for p in perms["records"]:
+            if p[self.permission_name_field[0]] in self.options["api_names"]:
+                perms_by_ids[p["Id"]] = p[self.permission_name_field[0]]
+            else:
+                perms_by_ids[p["Id"]] = p[self.permission_name_field[1]]
+
+        missing_perms = [
+            api_name
+            for api_name in self.options["api_names"]
+            if api_name not in perms_by_ids.values()
+        ]
+        if missing_perms:
+            raise CumulusCIException(
+                f"The following {self.permission_label}s were not found: {', '.join(missing_perms)}."
+            )
+        return perms_by_ids
 
 
 class AssignPermissionSetGroups(AssignPermissionSets):
