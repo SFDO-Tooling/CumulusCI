@@ -359,7 +359,7 @@ class AbstractGitHubReleaseBranchResolver(
 
 class GitHubReleaseBranchCommitStatusResolver(AbstractGitHubReleaseBranchResolver):
     """Resolver that identifies a ref by finding a beta 2GP package version
-    in a commit status on a `feature/NNN`  release branch."""
+    in a commit status on a `feature/NNN` release branch."""
 
     name = "GitHub Release Branch Commit Status Resolver"
     commit_status_context = "2gp_context"
