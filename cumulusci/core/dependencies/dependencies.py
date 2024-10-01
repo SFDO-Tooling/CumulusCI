@@ -544,6 +544,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
     subfolder: Optional[str] = None
     namespace_inject: Optional[str] = None
     namespace_strip: Optional[str] = None
+    collision_check: Optional[bool] = None
 
     def _get_unmanaged(self, org: OrgConfig):
         if self.unmanaged is None:

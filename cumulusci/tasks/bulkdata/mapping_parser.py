@@ -1,4 +1,5 @@
 import typing as T
+from collections import OrderedDict
 from datetime import date
 from enum import Enum
 from functools import lru_cache
@@ -36,7 +37,7 @@ class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
 
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
-    table: str
+    table: Union[str, List[str]]  # Support for polymorphic lookups
     key_field: Optional[str] = None
     value_field: Optional[str] = None
     join_field: Optional[str] = None
@@ -193,6 +194,18 @@ class MappingStep(CCIDictModel):
             columns.append("RecordTypeId")
 
         return columns
+
+    def get_extract_field_list(self):
+        """Build a ordered list of Salesforce fields for the given mapping, including fields, lookups, and record types,
+        for an extraction operation.
+        The Id field is guaranteed to come first in the list."""
+
+        # Build the list of fields to import
+        fields = ["Id"]
+        fields.extend([f for f in self.fields.keys() if f != "Id"])
+        fields.extend(self.lookups.keys())
+
+        return fields
 
     def get_relative_date_context(self, fields: List[str], sf: Salesforce):
         date_fields = [
@@ -465,6 +478,27 @@ class MappingStep(CCIDictModel):
 
         return True
 
+    def check_required(self, fields_describe):
+        required_fields = set()
+        for field in fields_describe:
+            defaulted = (
+                fields_describe[field]["defaultValue"] is not None
+                or fields_describe[field]["nillable"]
+                or fields_describe[field]["defaultedOnCreate"]
+            )
+            if fields_describe[field]["createable"] and not defaulted:
+                required_fields.add(field)
+        missing_fields = required_fields.difference(
+            set(self.fields.keys()) | set(self.lookups)
+        )
+        if len(missing_fields) > 0:
+            logger.error(
+                f"One or more required fields are missing for loading on {self.sf_object} :{missing_fields}"
+            )
+            return False
+        else:
+            return True
+
     def validate_and_inject_namespace(
         self,
         sf: Salesforce,
@@ -472,6 +506,7 @@ class MappingStep(CCIDictModel):
         operation: DataOperationType,
         inject_namespaces: bool = False,
         drop_missing: bool = False,
+        is_load: bool = False,
     ):
         """Process the schema elements in this step.
 
@@ -503,7 +538,6 @@ class MappingStep(CCIDictModel):
         global_describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in sf.describe()["sobjects"]}
         )
-
         if not self._validate_sobject(global_describe, inject, strip, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
@@ -511,7 +545,6 @@ class MappingStep(CCIDictModel):
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
         describe = self.describe_data(sf)
-
         fields_correct = self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
         )
@@ -519,6 +552,10 @@ class MappingStep(CCIDictModel):
         lookups_correct = self._validate_field_dict(
             describe, self.lookups, inject, strip, drop_missing, operation
         )
+
+        if is_load:
+            # Show warning logs for unspecified required fields
+            self.check_required(describe)
 
         if not (fields_correct and lookups_correct):
             return False
@@ -585,6 +622,80 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
     return MappingSteps.parse_from_yaml(source)
 
 
+def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
+    """Validate that all the lookup tables mentioned are valid references
+    to the lookup. Also verify that the mapping for the tables are mentioned
+    before they are mentioned in the lookups"""
+    # store the table name and their sobject
+    sf_objects = OrderedDict((m.table, m.sf_object) for m in mapping.values())
+
+    fail = False
+
+    for idx, m in enumerate(mapping.values()):
+        describe = CaseInsensitiveDict(
+            {f["name"]: f for f in getattr(sf, m.sf_object).describe()["fields"]}
+        )
+
+        for lookup_name, lookup in m.lookups.items():
+            if lookup.after:
+                # If configured by the user, skip.
+                # TODO: do we need more validation here?
+                continue
+
+            field_describe = describe.get(lookup_name, {})
+            reference_to_objects = field_describe.get("referenceTo", [])
+            target_objects = []
+
+            lookup_tables = (
+                [lookup.table] if isinstance(lookup.table, str) else lookup.table
+            )
+
+            for table in lookup_tables:
+                try:
+                    sf_object = sf_objects[table]
+                    # Check if sf_object is a valid lookup
+                    if sf_object in reference_to_objects:
+                        target_objects.append(sf_object)
+                    else:
+                        logger.error(
+                            f"The lookup {sf_object} is not a valid lookup for {lookup_name} in sf_object: {m.sf_object}"
+                        )
+                        fail = True
+                except KeyError:
+                    logger.error(
+                        f"The table {table} does not exist in the mapping file"
+                    )
+                    fail = True
+
+            if fail:
+                continue
+
+            if len(target_objects) == 1:
+                # This is a non-polymorphic lookup.
+                target_index = list(sf_objects.values()).index(target_objects[0])
+                if target_index > idx or target_index == idx:
+                    # This is a non-polymorphic after step.
+                    lookup.after = list(mapping.keys())[idx]
+            else:
+                # This is a polymorphic lookup.
+                # Make sure that any lookup targets present in the operation precede this step.
+                target_indices = [
+                    list(sf_objects.values()).index(t) for t in target_objects
+                ]
+                if not all([target_index < idx for target_index in target_indices]):
+                    logger.error(
+                        f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup_name} "
+                        f"must precede {m.sf_object} in the mapping."
+                    )
+                    fail = True
+                    continue
+
+    if fail:
+        raise BulkDataException(
+            "One or more relationship errors blocked the operation."
+        )
+
+
 def validate_and_inject_mapping(
     *,
     mapping: Dict,
@@ -595,9 +706,12 @@ def validate_and_inject_mapping(
     drop_missing: bool,
     org_has_person_accounts_enabled: bool = False,
 ):
+    # Check if operation is load or extract
+    is_load = True if data_operation == DataOperationType.INSERT else False
+
     should_continue = [
         m.validate_and_inject_namespace(
-            sf, namespace, data_operation, inject_namespaces, drop_missing
+            sf, namespace, data_operation, inject_namespaces, drop_missing, is_load
         )
         for m in mapping.values()
     ]
@@ -606,7 +720,7 @@ def validate_and_inject_mapping(
         raise BulkDataException(
             "One or more schema or permissions errors blocked the operation.\n"
             "If you would like to attempt the load regardless, you can specify "
-            "'--drop_missing_schema True' on the command."
+            "'--drop_missing_schema True' on the command option and ensure all required fields are included in the mapping file."
         )
 
     if drop_missing:
@@ -622,7 +736,14 @@ def validate_and_inject_mapping(
 
             for field in list(m.lookups.keys()):
                 lookup = m.lookups[field]
-                if lookup.table not in [step.table for step in mapping.values()]:
+                if isinstance(lookup.table, list):
+                    lookup_tables = lookup.table
+                else:
+                    lookup_tables = [lookup.table]
+                if all(
+                    table not in [step.table for step in mapping.values()]
+                    for table in lookup_tables
+                ):
                     del m.lookups[field]
 
                     # Make sure this didn't cause the operation to be invalid
@@ -633,6 +754,10 @@ def validate_and_inject_mapping(
                             f"{describe[field]['referenceTo']} was removed from the operation "
                             "due to missing permissions."
                         )
+
+    # Infer/validate lookups
+    if is_load:
+        _infer_and_validate_lookups(mapping, sf)
 
     # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".
     # IsPersonAccount field values are used to properly load person account records.

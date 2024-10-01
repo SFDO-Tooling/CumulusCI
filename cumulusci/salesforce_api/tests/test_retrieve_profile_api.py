@@ -18,7 +18,7 @@ def retrieve_profile_api_instance():
     project_config = MagicMock()
     task_config = MagicMock()
     org_config = MagicMock()
-    org_config.latest_api_version = "58.0"
+    project_config.config = {"project": {"package": {"api_version": "58.0"}}}
     sf_mock.query.return_value = {"records": []}
     api = RetrieveProfileApi(
         project_config=project_config, org_config=org_config, task_config=task_config
@@ -36,7 +36,7 @@ def test_init_task(retrieve_profile_api_instance):
 
 
 def test_retrieve_existing_profiles(retrieve_profile_api_instance):
-    profiles = ["Profile1", "Profile2"]
+    profiles = ["Profile1", "Profile2", "Admin"]
     result = {"records": [{"Name": "Profile1"}]}
     with patch.object(
         RetrieveProfileApi, "_build_query", return_value="some_query"
@@ -47,6 +47,8 @@ def test_retrieve_existing_profiles(retrieve_profile_api_instance):
 
     assert "Profile1" in existing_profiles
     assert "Profile2" not in existing_profiles
+    assert "Admin" in existing_profiles
+    assert "System Administrator" in existing_profiles
 
 
 def test_run_query_sf(retrieve_profile_api_instance):

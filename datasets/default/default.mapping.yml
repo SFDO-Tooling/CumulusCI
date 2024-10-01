@@ -1,0 +1,20 @@
+Account:
+    sf_object: Account
+    api: bulk
+    batch_size: 1
+    fields:
+        - Name
+        - Description
+        - ShippingStreet
+        - ShippingCity
+        - ShippingState
+        - ShippingPostalCode
+        - ShippingCountry
+        - Phone
+        - AccountNumber
+Contact:
+    sf_object: Contact
+    api: bulk
+    batch_size: 1
+    fields:
+        - FirstName

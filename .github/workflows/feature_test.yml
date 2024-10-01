@@ -11,15 +11,15 @@ on:
 jobs:
     lint:
         name: Lint
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ contains(fromJSON('["workflow_dispatch", "pull_request"]'), github.event_name) }}
         uses: SFDO-Tooling/.github/.github/workflows/pre-commit.yml@main
     docs:
         name: Build Docs
         if: ${{ github.event_name == 'pull_request' }}
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - name: "Checkout"
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
               with:
                   fetch-depth: 1
             - name: Set up Python 3.8
@@ -40,10 +40,16 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [macos-latest, sfdc-ubuntu-latest, sfdc-windows-latest]
+                os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
                 python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+                exclude:
+                    - os: macos-latest
+                      python-version: 3.8
+                include:
+                    - os: macos-13
+                      python-version: 3.8
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
@@ -57,9 +63,9 @@ jobs:
 
     robot_api:
         name: "Robot: No browser"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Set up Python 3.8
               uses: actions/setup-python@v4
               with:
@@ -75,9 +81,9 @@ jobs:
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins --core
+                  sf plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-                  sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+                  sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
               env:
                   SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
                   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -95,7 +101,7 @@ jobs:
                   cci org scratch_delete dev
             - name: Store robot results
               if: failure()
-              uses: actions/upload-artifact@v1
+              uses: actions/upload-artifact@v4
               with:
                   name: robot
                   path: robot/CumulusCI/results

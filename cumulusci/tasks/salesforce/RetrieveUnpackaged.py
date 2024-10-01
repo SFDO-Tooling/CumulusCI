@@ -27,11 +27,10 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
         super(RetrieveUnpackaged, self)._init_options(kwargs)
 
         if "package_xml" in self.options:
-            self.options["package_xml_path"] = self.options["package_xml"]
-            with open(self.options["package_xml_path"], "r") as f:
-                self.options["package_xml"] = f.read()
+            with open(self.options["package_xml"], "r") as f:
+                self.options["package_xml_content"] = f.read()
 
     def _get_api(self):
         return self.api_class(
-            self, self.options["package_xml"], self.options.get("api_version")
+            self, self.options["package_xml_content"], self.options.get("api_version")
         )
