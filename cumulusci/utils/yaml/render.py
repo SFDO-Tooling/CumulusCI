@@ -38,9 +38,6 @@ def dump_yaml(
     include_types: bool = True,
 ):
 
-    import pdb
-
-    pdb.set_trace()
     # Convert data types
     data = encode_keys(data)
     data = encode_nested(data, value_only=not include_types)
