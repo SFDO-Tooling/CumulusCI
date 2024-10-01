@@ -8,7 +8,10 @@ from rich.text import Text
 from rich.table import Table
 
 from cumulusci.cli.org import orgname_option_or_argument
-from cumulusci.core.org_history import OrgActionStatus
+from cumulusci.core.org_history import (
+    FilterOrgActions,
+    OrgActionStatus,
+)
 from cumulusci.core.utils import format_duration
 from cumulusci.core.flowrunner import flow_from_org_actions
 from cumulusci.utils.hashing import dump_json
@@ -26,6 +29,16 @@ def color_by_status(name, status, text=None):
         text.append(name, style=style)
         return text
     return Text(name, style=style)
+
+
+def instance_from_locals(model, data: dict):
+    """Create an instance of a model from a dictionary of data using only keys matching fields for the model."""
+    model_data = {}
+    for field in model.__fields__.keys():
+        if field in data:
+            model_data[field] = data[field]
+
+    return model.parse_obj(model_data)
 
 
 @click.group("history", help="Commands for interacting with org history")
@@ -65,18 +78,22 @@ def history_previous(runtime, org_name, print_json, indent):
     table.add_column("# Actions")
     table.add_column("Tasks & Flows")
 
+    last_org_id = None
     if not previous_orgs:
         table.add_row("No previous orgs available", "", "", "", "")
     else:
         for org_id, org in previous_orgs.items():
-            created = org.filtered_actions(action_type=["OrgCreate"])
+            last_org_id = org_id
+            created = org.filtered_actions(FilterOrgActions(action_type=["OrgCreate"]))
             if created:
                 date = datetime.fromtimestamp(created[0].timestamp)
                 created = Text(date.strftime("%Y-%m-%d\n%H:%M:%S"))
             else:
                 created = Text("N/A")
             tasks_and_flows = Text()
-            for action in org.filtered_actions(action_type=["Task", "Flow"]):
+            for action in org.filtered_actions(
+                FilterOrgActions(action_type=["Task", "Flow"])
+            ):
                 tasks_and_flows = color_by_status(
                     name=action.name,
                     status=action.status,
@@ -98,7 +115,10 @@ def history_previous(runtime, org_name, print_json, indent):
     console.print(
         Text("Use the Org Id to list history for a previous org:", style="gray")
     )
-    console.print(Text("cci org history list --org-id <org_id>", style="bold"))
+    console.print()
+    console.print(
+        Text(f"    cci history list --org-id {last_org_id or '<org_id>'}", style="bold")
+    )
     console.print()
 
 
@@ -179,9 +199,11 @@ def history_list(
 
     console = Console()
     console.print()
-    table_title = f"Org History for {org_name} ({org_config.org_id})"
+    table_title = f"Org History for {org_name}"
     if org_id:
         table_title += f" (Previous Org: {org_id})"
+    else:
+        table_title += f" ({org_config.org_id})"
     table = Table(
         title=table_title,
         show_lines=True,
@@ -193,34 +215,27 @@ def history_list(
     table.add_column("Status")
     table.add_column("Details")
 
-    filters = {
-        "action_type": action_type,
-        "status": status,
-        "action_hash": action_hash,
-        "config_hash": config_hash,
-        "exclude_action_hash": exclude_action_hash,
-        "exclude_config_hash": exclude_config_hash,
-        "before": before,
-        "after": after,
-    }
+    filters = instance_from_locals(FilterOrgActions, locals())
 
-    if not org_history.actions:
+    actions = org_history.filtered_actions(filters)
+    if not actions:
         table.add_row("No history available", "", "", "", "")
 
-    last_action_hash = None
-    for action in org_history.filtered_actions(**filters):
-        color = "green" if action.status == OrgActionStatus.SUCCESS.value else "red"
-        if action.status == OrgActionStatus.FAILURE.value:
-            color = "orange"
-        status_text = Text(str(action.status), style=f"bold {color}")
-        table.add_row(
-            str(action.column_hash),
-            str(action.column_type),
-            str(action.column_date),
-            status_text,  # Add Text object directly
-            str(action.column_details),
-        )
-        last_action_hash = action.hash_action
+    else:
+        last_action_hash = None
+        for action in org_history.filtered_actions(filters):
+            color = "green" if action.status == OrgActionStatus.SUCCESS.value else "red"
+            if action.status == OrgActionStatus.FAILURE.value:
+                color = "orange"
+            status_text = Text(str(action.status), style=f"bold {color}")
+            table.add_row(
+                str(action.column_hash),
+                str(action.column_type),
+                str(action.column_date),
+                status_text,  # Add Text object directly
+                str(action.column_details),
+            )
+            last_action_hash = action.hash_action
 
     console.print(table)
     console.print()
@@ -394,26 +409,71 @@ def history_replay(
 
 @history.command(name="clear", help="Clear the org history")
 @orgname_option_or_argument(required=False)
-@click.option("--all", is_flag=True, help="Clear all history for the org.")
+@click.option("--clear-all", is_flag=True, help="Clear all history for the org.")
 @click.option("--before", help="Clear history before the specified action hash.")
 @click.option("--after", help="Clear history after the specified action hash.")
-@click.option("--hash", help="Clear a specific action hash from the history.")
+@click.option("--action-hash", help="Clear a specific action hash from the history.")
+@click.option(
+    "--org-id", help="Clear the history for a previous org instance by org id."
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def history_clear(runtime, org_name, all, before, after, hash):
+def history_clear(runtime, org_name, clear_all, before, after, action_hash, org_id):
     org_name, org_config = runtime.get_org(org_name)
-    if all:
-        org_config.clear_history()
-        click.echo("All history cleared.")
-        return
-    elif before:
-        org_config.clear_history(before=before)
-        click.echo(f"History cleared before {before}.")
-    elif after:
-        org_config.clear_history(after=after)
-        click.echo(f"History cleared after {after}.")
-    elif hash:
-        org_config.clear_history(hash=hash)
-        click.echo(f"History cleared for action {hash}.")
+    console = Console()
+    console.print()
+    if clear_all:
+        org_config.clear_history(org_id=org_id)
+    elif any([before, after, action_hash]):
+        filters = FilterOrgActions(
+            action_hash=action_hash,
+            before=before,
+            after=after,
+        )
+
+        console.print(Text("Using filters:", style="bold"))
+        console.print(
+            dump_yaml(
+                {k: v for k, v in filters.dict().items() if v is not None}, indent=4
+            )
+        )
+        console.print()
+        if org_id:
+            history = org_config.history.lookup_org(org_id)
+        else:
+            history = org_config.history
+        actions = history.filtered_actions(
+            filters=filters,
+        )
+
+        console.print()
+        if not actions:
+            console.print(Text("No actions found to clear.", style="bold yellow"))
+            console.print()
+            return
+
+        table = Table(title=f"Matched {len(actions)} Actions to be cleared")
+
+        table.add_column("Action Hash")
+        table.add_column("Type")
+        table.add_column("Time")
+        table.add_column("Status")
+
+        for action in actions:
+            table.add_row(
+                action.hash_action,
+                action.column_type,
+                action.column_date,
+                action.column_status,
+            )
+        console.print(table)
+        console.print()
+        if not click.confirm("Are you sure you want to clear these actions?"):
+            return
+
+        org_config.clear_history(
+            filters=filters,
+            org_id=org_id,
+        )
     else:
         click.echo("Please specify --before, --after, or --all")
 
@@ -422,6 +482,7 @@ def history_clear(runtime, org_name, all, before, after, hash):
 @orgname_option_or_argument(required=False)
 @pass_runtime(require_project=False, require_keychain=True)
 def history_enable(runtime, org_name):
+
     org_name, org_config = runtime.get_org(org_name)
     if org_config.track_history:
         click.echo("Org history tracking is already enabled for this org.")

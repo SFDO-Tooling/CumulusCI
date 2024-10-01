@@ -1,4 +1,5 @@
 import yaml
+from cumulusci.utils.serialization import encode_nested, encode_keys
 
 
 # Custom dumper to use block style (|) for multi-line strings
@@ -30,7 +31,19 @@ def make_multiline_strings_literal(data):
         return data
 
 
-def dump_yaml(data, stream=None, indent=None):
+def dump_yaml(
+    data,
+    stream=None,
+    indent: int = 4,
+    include_types: bool = True,
+):
+
+    import pdb
+
+    pdb.set_trace()
+    # Convert data types
+    data = encode_keys(data)
+    data = encode_nested(data, value_only=not include_types)
     # Apply LiteralStr to multi-line strings before dumping
     data = make_multiline_strings_literal(data)
     return yaml.dump(

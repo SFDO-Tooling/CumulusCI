@@ -5,7 +5,12 @@ import asyncio
 from io import BytesIO
 from pathlib import Path, PosixPath
 from collections.abc import Iterable
-from cumulusci.utils.serialization import encode_value, decode_nested_dict
+from cumulusci.utils.serialization import (
+    encode_value,
+    decode_dict,
+    decode_nested_dict,
+    json_dumps,
+)
 
 
 def compute_hash(chunks):
@@ -25,8 +30,7 @@ def dump_json(data, **kwargs):
     # and that the hash is not affected by changes in the order of the keys in the dictionary
     # If you need ordering, pass in a list of dictionaries
     kwargs.setdefault("sort_keys", True)
-    kwargs.setdefault("default", encode_value)
-    return json.dumps(data, **kwargs).encode("utf-8")
+    return json_dumps(data).encode("utf-8")
 
 
 def hash_as_json(data):

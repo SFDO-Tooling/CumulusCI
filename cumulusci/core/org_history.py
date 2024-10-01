@@ -1,11 +1,19 @@
 import json
 from datetime import datetime
 from enum import Enum
+from logging import Logger
 from pathlib import Path, PosixPath
 from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 from jsonpath_ng import jsonpath, parse
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import (
+    BaseModel,
+    DirectoryPath,
+    FilePath,
+    Field,
+    root_validator,
+    validator,
+)
 from rich.text import Text
 from cumulusci.core.exceptions import (
     OrgHistoryError,
@@ -18,10 +26,15 @@ from cumulusci.salesforce_api.package_models import (
     UpgradeType,
 )
 from cumulusci.utils.hashing import hash_obj
-from cumulusci.utils.serialization import decode_nested_dict
+from cumulusci.utils.serialization import (
+    decode_dict,
+    decode_nested_dict,
+    encode_keys,
+    encode_nested,
+)
 from cumulusci.utils.yaml.render import dump_yaml
-from pydantic import DirectoryPath, FilePath
-from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
+from cumulusci.utils.version_strings import StepVersion, LooseVersion
+from cumulusci.utils.yaml.cumulusci_yml import Step, ScratchOrg
 
 
 class OrgActionStatus(Enum):
@@ -83,9 +96,10 @@ class ActionScratchDefReference(ActionFileReference):
                 raise ValueError(
                     f"Error loading scratchdef from {scratch_config.config_file}: {e}"
                 )
-            values["hash"] = hash_obj(
-                decode_nested_dict(values["scratchdef"]) if values["scratchdef"] else {}
+            values["hash"] = (
+                hash_obj(values["scratchdef"]) if values.get("scratchdef") else {}
             )
+
         return values
 
     def _load_scratchdef(self):
@@ -772,10 +786,22 @@ class BaseFlowAction(BaseModel):
         None,
         description="The group of the flow",
     )
-    config_steps: dict = Field(
+    config_steps: Dict[StepVersion, Step] = Field(
         ...,
         description="The flow configuration",
     )
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @validator("config_steps", pre=True, always=True)
+    def validate_version(cls, v):
+        if not isinstance(v, dict):
+            raise ValueError("config_steps must be a dictionary")
+        keys = [k for k in v.keys() if not isinstance(k, StepVersion)]
+        for key in keys:
+            v[StepVersion(str(key))] = v.pop(key)
+        return v
 
     def get_config_hash_data(self):
         return {
@@ -790,7 +816,7 @@ class BaseFlowAction(BaseModel):
             details.append(f"Group: {self.group}")
         if self.config_steps and len(self.config_steps) > 0:
             details.append("Config:")
-            details.append(dump_yaml(self.config_steps))
+            details.append(dump_yaml(self.config_steps, include_types=False))
         return details
 
     @property
@@ -857,7 +883,7 @@ class FlowOrgAction(BaseFlowAction, BaseOrgActionResult):
         details = super()._get_details()
         if self.exception is not None and self.exception != "None":
             details.append("Exception:")
-            details.append(self.exception)
+            details.append("\n".join(self.exception.split("\n")[:3]) + "\n...")
         details.append("Steps:")
         for step in self.steps:
             details.append(f"  {step.task.name}")
@@ -881,27 +907,39 @@ class FilterOrgActions(BaseModel):
         List[
             Literal["OrgCreate", "OrgConnect", "OrgImport", "OrgDelete", "Task", "Flow"]
         ]
+        | str
     ] = Field(
         None,
         description="Filter to only actions of the specified type(s)",
     )
-    status: Optional[List[OrgActionStatus]] = Field(
+    status: Optional[List[OrgActionStatus] | str] = Field(
         None,
         description="Filter to only actions with the specified status(es)",
     )
-    action_hash: Optional[List[str]] = Field(
+    action_hash: Optional[List[str] | str] = Field(
         None,
         description="Filter to only actions with the specified action hash(es)",
     )
-    config_hash: Optional[List[str]] = Field(
+    config_hash: Optional[List[str] | str] = Field(
         None,
         description="Filter to only actions with the specified config hash(es)",
     )
-
-    exclude_action_hash: Optional[str]
-    exclude_config_hash: Optional[str]
-    before: Optional[str]
-    after: Optional[str]
+    exclude_action_hash: Optional[List[str] | str] = Field(
+        None,
+        description="Exclude actions with the specified action hash(es)",
+    )
+    exclude_config_hash: Optional[List[str] | str] = Field(
+        None,
+        description="Exclude actions with the specified config hash(es)",
+    )
+    before: Optional[str] = Field(
+        None,
+        description="Filter to only actions before the specified action hash",
+    )
+    after: Optional[str] = Field(
+        None,
+        description="Filter to only actions after the specified action hash",
+    )
 
 
 class BaseOrgHistory(BaseModel):
@@ -923,21 +961,9 @@ class BaseOrgHistory(BaseModel):
 
     def filtered_actions(
         self,
-        action_type: Optional[
-            List[
-                Literal[
-                    "OrgCreate", "OrgConnect", "OrgImport", "OrgDelete", "Task", "Flow"
-                ]
-            ]
-        ] = None,
-        status: Optional[List[OrgActionStatus]] = None,
-        action_hash: Optional[List[str]] = None,
-        config_hash: Optional[List[str]] = None,
-        exclude_action_hash: Optional[List[str]] = None,
-        exclude_config_hash: Optional[List[str]] = None,
-        before: Optional[str] = None,
-        after: Optional[str] = None,
+        filters: FilterOrgActions,
     ) -> List[OrgActionType]:
+        """Return a list of actions that match the provided filters"""
 
         def process_string_to_list(value) -> List[str] | None:
             if value is None:
@@ -948,6 +974,7 @@ class BaseOrgHistory(BaseModel):
                 return value
             raise ValueError(f"{value} must be a string or list")
 
+        # A list of strings that should be converted to lists
         strings_to_lists = [
             "status",
             "action_hash",
@@ -956,27 +983,36 @@ class BaseOrgHistory(BaseModel):
             "exclude_config_hash",
         ]
 
-        for key in strings_to_lists:
-            value = locals()[key]
-            locals()[key] = process_string_to_list(value)
+        if isinstance(filters, dict):
+            filters = FilterOrgActions(**filters)
+
+        # Convert strings to lists as needed
+        for field in filters.__fields__.keys():
+            value = getattr(filters, field)
+            if field in strings_to_lists:
+                setattr(filters, field, process_string_to_list(value))
 
         actions = self.actions
-        if action_type:
-            actions = [a for a in actions if a.action_type in action_type]
-        if status:
-            actions = [a for a in actions if a.status == status]
-        if action_hash:
-            actions = [a for a in actions if a.hash_action == action_hash]
-        if config_hash:
-            actions = [a for a in actions if a.hash_config == config_hash]
-        if exclude_action_hash:
-            actions = [a for a in actions if a.hash_action != exclude_action_hash]
-        if exclude_config_hash:
-            actions = [a for a in actions if a.hash_config != exclude_config_hash]
-        if before:
-            actions = [a for a in actions if a.hash_action < before]
-        if after:
-            actions = [a for a in actions if a.hash_action > after]
+        if filters.action_type:
+            actions = [a for a in actions if a.action_type in filters.action_type]
+        if filters.status:
+            actions = [a for a in actions if a.status in filters.status]
+        if filters.action_hash:
+            actions = [a for a in actions if a.hash_action in filters.action_hash]
+        if filters.config_hash:
+            actions = [a for a in actions if a.hash_config in filters.config_hash]
+        if filters.exclude_action_hash:
+            actions = [
+                a for a in actions if a.hash_action in filters.exclude_action_hash
+            ]
+        if filters.exclude_config_hash:
+            actions = [
+                a for a in actions if a.hash_config not in filters.exclude_config_hash
+            ]
+        if filters.before:
+            actions = [a for a in actions if a.hash_action < filters.before]
+        if filters.after is not None:
+            actions = [a for a in actions if a.hash_action > filters.after]
         return actions
 
     def get_org_actions(self, org_id: str = None) -> List[OrgActionType]:
@@ -1012,6 +1048,36 @@ class BaseOrgHistory(BaseModel):
                 dependencies.extend(action.get_runnable_dependencies())
         return dependencies
 
+    def clear_history(
+        self,
+        filters: FilterOrgActions,
+        logger: Logger,
+    ):
+        """Clear the org's history"""
+        logger.info(f"Starting length: {len(self.history.actions)}")
+
+        if isinstance(filters, dict):
+            filters = FilterOrgActions.parse_obj(filters)
+
+        if org_id:
+            history = self.previous_orgs[org_id]
+        else:
+            history = self.history
+
+        actions = history.filtered_actions(filters)
+        for action in actions:
+            logger.warning(f"Removing {action.action_type} action: {action}")
+            history.actions.remove(action)
+
+        if org_id:
+            history.hash_config = history.calculate_config_hash()
+        self.history.hash_config = self.history.calculate_config_hash()
+        logger.info(f"Recalculated history config hash: {self.history.hash_config}")
+
+        self.logger.info(f"Ending length: {len(self.history.actions)}")
+        self.config["history"] = self.history.dict()
+        self.save()
+
 
 class PreviousOrgHistory(BaseOrgHistory):
     """Model for tracking the history of actions run against a previous org instance"""
@@ -1025,16 +1091,30 @@ class PreviousOrgHistory(BaseOrgHistory):
 class OrgHistory(BaseOrgHistory):
     """Model for tracking the history of actions run against a CumulusCI org profile"""
 
+    org_id: Optional[str] = Field(
+        None,
+        description="The Salesforce org ID",
+    )
     previous_orgs: Dict[str, PreviousOrgHistory] = Field(
         {},
         description="The previous orgs that were created and deleted and their action history.",
     )
 
-    def lookup_org(self, org_id: str) -> PreviousOrgHistory:
-        """Lookup a previous org by org ID"""
-        if org_id not in self.previous_orgs:
-            raise OrgHistoryError(f"Org with ID {org_id} not found in org history")
-        return self.previous_orgs[org_id]
+    def lookup_org(
+        self, org_id: str | None = None
+    ) -> Union["OrgHistory", PreviousOrgHistory]:
+        if org_id:
+            if hasattr(self, "previous_orgs") and org_id in self.previous_orgs:
+                try:
+                    return self.previous_orgs[org_id].org_config
+                except KeyError:
+                    raise OrgHistoryError(
+                        f"Org with ID {org_id} not found in org history",
+                    )
+            if org_id != self.config.get("org_id"):
+                raise OrgHistoryError(f"Org with ID {org_id} not found in org history")
+            return self
+        return self
 
     def rotate_org(self, org_config: dict):
         """Rotate the org history to a new org ID"""
@@ -1051,6 +1131,22 @@ class OrgHistory(BaseOrgHistory):
         self.actions = []
         self.hash_config = self.calculate_config_hash()
 
+    def filtered_actions(
+        self,
+        filters: FilterOrgActions,
+        org_id: Optional[str] = None,
+    ) -> List[OrgActionType]:
+        if org_id:
+            # For previous orgs, pass off to their history
+            try:
+                history = self.previous_orgs[org_id]
+                return history.filtered_actions(filters)
+            except KeyError:
+                raise OrgActionNotFound(
+                    f"Org with ID {org_id} not found in org history"
+                )
+        return super().filtered_actions(filters)
+
     @classmethod
     def parse_obj(cls, obj):
         if isinstance(obj, dict):
@@ -1058,6 +1154,16 @@ class OrgHistory(BaseOrgHistory):
 
         obj = super().parse_obj(obj)
         return obj
+
+    def dict(self, *args, **kwargs):
+        obj = super().dict(*args, **kwargs)
+        obj = encode_keys(obj)
+        obj = encode_nested(obj)
+        return obj
+
+    # def dict(self, *args, **kwargs):
+    #     obj = super().dict(*args, **kwargs)
+    #     return decode_nested_dict(obj)
 
 
 def actions_from_dicts(actions: list[dict]) -> List[OrgActionType]:
@@ -1078,6 +1184,12 @@ def actions_from_dicts(actions: list[dict]) -> List[OrgActionType]:
             elif action_data["action_type"] == "Task":
                 action = TaskOrgAction.parse_obj(action_data)
             elif action_data["action_type"] == "Flow":
+                keys = [key for key in action_data["config_steps"].keys()]
+                for key in keys:
+                    if isinstance(key, LooseVersion):
+                        action_data["config_steps"][StepVersion(str(key))] = (
+                            action_data["config_steps"].pop(key)
+                        )
                 action = FlowOrgAction.parse_obj(action_data)
             else:
                 raise ValueError(f"Unknown action_type: {action_data['action_type']}")
@@ -1094,7 +1206,7 @@ def actions_from_dicts(actions: list[dict]) -> List[OrgActionType]:
 
 
 def history_from_dict(data: dict) -> "OrgHistory":
-    data = decode_nested_dict(data)
+    # data = decode_nested_dict(data)
     actions: List[OrgActionType] = []
     previous_orgs: Dict[str, List[OrgActionType]] = {}
     actions = actions_from_dicts(data.get("actions", []))

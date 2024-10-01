@@ -162,6 +162,7 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
                 )
 
     # Create the flow and handle initialization exceptions
+    coordinator = None
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
         start_time = datetime.now()
@@ -170,7 +171,7 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
         click.echo(f"Ran {flow_name} in {format_duration(duration)}")
         org_config.add_action_to_history(coordinator.action)
     except Exception as e:
-        if coordinator.action:
+        if coordinator and coordinator.action:
             org_config.add_action_to_history(coordinator.action)
         runtime.alert(f"Flow error: {flow_name}")
         raise

@@ -1,11 +1,17 @@
 import json
 import os
 import pickle
-from pathlib import Path, PosixPath
-from datetime import date, datetime
+from io import StringIO
 from logging import Logger
-from typing import NamedTuple, Optional
-from cumulusci.utils.serialization import encode_value, decode_dict
+from typing import Any, Dict, List, Optional
+from rich import box
+from rich.console import Console
+from rich.padding import Padding
+from rich.table import Table
+from rich.text import Text
+from cumulusci.utils.compare import compare_nested_structures
+from cumulusci.utils.serialization import encode_value, decode_dict, json_dumps
+from cumulusci.utils.yaml.render import dump_yaml
 
 # Delay saving as JSON for a few CumulusCI releases because
 # people might downgrade a release and then their
@@ -66,20 +72,98 @@ def report_error(msg: str, e: Exception, logger: Logger):
     )
 
 
+def report_diffs(diffs: List[Dict[str, Any]]) -> str:
+    """
+    Create a rich Table to display the differences.
+
+    Args:
+    differences (List[Dict[str, Any]]): List of differences from compare_nested_structures
+
+    Returns:
+    Table: A rich Table object containing the formatted differences
+    """
+    # table = Table(title="Differences", show_lines=True)
+    # table.add_column("Path", style="cyan", no_wrap=True)
+    # table.add_column("Type", style="magenta")
+    # table.add_column("Base Value", style="green")
+    # table.add_column("Compare Value", style="yellow")
+
+    console = Console(width=200, file=StringIO())
+    report = Text("OrgConfig JSON Roundtrip Differences", style="bold underline")
+
+    for diff in diffs:
+        path = diff["path"]
+        diff_type = diff["type"]
+        base_value = diff.get("base_value")
+        compare_value = diff.get("compare_value")
+        base_type = f" [{type(base_value).__name__}]" if base_value is not None else ""
+        compare_type = (
+            f" [{type(compare_value).__name__}]" if compare_value is not None else ""
+        )
+        console.print(Text(f"{diff_type}: {path}", style="bold"))
+        base_value = (
+            dump_yaml(base_value, indent=4) if base_value is not None else "N/A"
+        )
+        compare_value = (
+            dump_yaml(compare_value, indent=4) if compare_value is not None else "N/A"
+        )
+        base_line = f"Base Value{base_type}: {base_value}"
+        compare_line = f"Compare Value{compare_type}: {compare_value}"
+
+        pad = (0, 0, 0, 2)
+        if diff_type == "value_difference":
+            console.print(
+                Padding(Text(base_line, style="green"), pad=pad),
+            )
+            console.print(
+                Padding(Text(compare_line, style="yellow"), pad=pad),
+            )
+        elif diff_type == "missing_in_base":
+            console.print(
+                Padding(Text(base_line, style="red"), pad=pad),
+            )
+            console.print(
+                Padding(Text(compare_line, style="yellow"), pad=pad),
+            )
+        elif diff_type == "missing_in_compare":
+            console.print(
+                Padding(Text(base_line, style="green"), pad=pad),
+            )
+            console.print(
+                Padding(Text(compare_line, style="red"), pad=pad),
+            )
+        console.print()
+
+    # console.print(table)
+    return console.file.getvalue()
+
+
 def check_round_trip(data: dict, logger: Logger) -> Optional[bytes]:
     """Return JSON bytes if possible, else None"""
     try:
-        as_json_text = json.dumps(data, default=encode_value).encode("utf-8")
+        as_json_text = json_dumps(data).encode("utf-8")
     except Exception as e:
+        raise e from e
+        import pdb
+
+        pdb.set_trace()
         report_error("CumulusCI found an unusual datatype in your config:", e, logger)
         return None
+    diffs = []
     try:
         test_load = load_config_from_json_or_pickle(as_json_text)
-        assert _simplify_config(test_load) == _simplify_config(
-            data
-        ), f"JSON did not round-trip-cleanly {test_load}, {data}"
+        base_data = _simplify_config(data)
+        compare_data = _simplify_config(test_load)
+        diffs = compare_nested_structures(base_data, compare_data)
+        assert diffs == [], f"JSON did not round-trip cleanly\n"
     except Exception as e:  # pragma: no cover
-        report_error("CumulusCI found a problem saving your config:", e, logger)
+        if diffs:
+            report = report_diffs(diffs)
+            logger.warning(
+                f"JSON did not round-trip cleanly:\n {report}\n\n Please report this warning to the CumulusCI team for investigation."
+            )
+        else:
+            report_error("CumulusCI found a problem saving your config:", e, logger)
         return None
     assert isinstance(as_json_text, bytes)
     return as_json_text

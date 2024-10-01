@@ -87,7 +87,7 @@ from cumulusci.core.exceptions import (
     FlowInfiniteLoopError,
     TaskImportError,
 )
-from cumulusci.utils.version_strings import LooseVersion
+from cumulusci.utils.version_strings import StepVersion
 
 if TYPE_CHECKING:
     from cumulusci.core.tasks import BaseTask
@@ -96,14 +96,6 @@ if TYPE_CHECKING:
 RETURN_VALUE_OPTION_PREFIX = "^^"
 
 jinja2_env = ImmutableSandboxedEnvironment()
-
-
-class StepVersion(LooseVersion):
-    """Like LooseVersion, but converts "/" into -1 to support comparisons"""
-
-    def parse(self, vstring: str):
-        super().parse(vstring)
-        self.version = tuple(-1 if x == "/" else x for x in self.version)
 
 
 class StepSpec:
