@@ -13,6 +13,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingLookup,
     MappingStep,
     ValidationError,
+    _infer_and_validate_lookups,
     parse_from_yaml,
     validate_and_inject_mapping,
 )
@@ -321,6 +322,64 @@ class TestMappingParser:
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
+
+    def test_validate_fields_required(self):
+        ms = MappingStep(
+            sf_object="Account",
+            fields=["Id", "Name", "Test__c"],
+            action=DataOperationType.INSERT,
+        )
+        fields_describe = CaseInsensitiveDict(
+            {
+                "Name": {
+                    "createable": True,
+                    "nillable": False,
+                    "defaultedOnCreate": False,
+                    "defaultValue": None,
+                },
+                "npsp__Test__c": {
+                    "createable": True,
+                    "nillable": False,
+                    "defaultedOnCreate": False,
+                    "defaultValue": None,
+                },
+            }
+        )
+        ms._validate_field_dict(
+            describe=fields_describe,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
+        )
+        assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
+        assert ms.check_required(fields_describe)
+
+        def test_validate_fields_required_missing(self):
+            ms = MappingStep(
+                sf_object="Account",
+                fields=["Test__c"],
+                action=DataOperationType.INSERT,
+            )
+            fields_describe = CaseInsensitiveDict(
+                {
+                    "Name": {
+                        "createable": True,
+                        "nillable": False,
+                        "defaultedOnCreate": False,
+                        "defaultValue": None,
+                    },
+                    "Test__c": {
+                        "createable": True,
+                        "nillable": False,
+                        "defaultedOnCreate": False,
+                        "defaultValue": None,
+                    },
+                }
+            )
+            assert ms.fields_ == {"Test__c": "Test__c"}
+            assert not ms.check_required(fields_describe)
 
     def test_validate_field_dict__injection_duplicate_fields(self):
         ms = MappingStep(
@@ -929,7 +988,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    AccountId:\n      table: Account"
                 )
             )
         )
@@ -951,6 +1010,71 @@ class TestMappingParser:
         assert "AccountId" not in mapping["Insert Contacts"].lookups
 
     @responses.activate
+    def test_validate_and_inject_mapping_removes_lookups_with_drop_missing__polymorphic_partial_present(
+        self,
+    ):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account\n"
+                    "Insert Events:\n  sf_object: Event\n  table: Event\n  lookups:\n    WhoId:\n      table:\n        - Contact\n        - Lead"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace=None,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=False,
+            drop_missing=True,
+        )
+
+        assert "Insert Accounts" not in mapping
+        assert "Insert Contacts" in mapping
+        assert "Insert Events" in mapping
+        assert "AccountId" not in mapping["Insert Contacts"].lookups
+        assert "WhoId" in mapping["Insert Events"].lookups
+
+    @responses.activate
+    def test_validate_and_inject_mapping_removes_lookups_with_drop_missing__polymorphic_none_present(
+        self,
+    ):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Contacts:\n  sf_object: NotContact\n  table: NotContact\n  fields:\n    - LastName\n"
+                    "Insert Leads:\n  sf_object: NotLead\n  table: NotLead\n  fields:\n    - LastName\n    - Company\n"
+                    "Insert Events:\n  sf_object: Event\n  table: Event\n  lookups:\n    WhoId:\n      table:\n        - Contact\n        - Lead"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace=None,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=False,
+            drop_missing=True,
+        )
+
+        assert "Insert Contacts" not in mapping
+        assert "Insert Leads" not in mapping
+        assert "Insert Events" in mapping
+        assert "WhoId" not in mapping["Insert Events"].lookups
+
+    @responses.activate
     def test_validate_and_inject_mapping_throws_exception_required_lookup_dropped(self):
         mock_describe_calls()
 
@@ -961,7 +1085,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    Id:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    Id:\n      table: Account"
                 )
             )
         )
@@ -978,6 +1102,40 @@ class TestMappingParser:
                 inject_namespaces=False,
                 drop_missing=True,
             )
+
+    @responses.activate
+    def test_validate_and_inject_mapping_throws_exception_required_fields_missing(
+        self, caplog
+    ):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - ns__Description__c\n"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace="",
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=False,
+        )
+
+        expected_error_message = (
+            "One or more required fields are missing for loading on Account :{'Name'}"
+        )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
 
     @responses.activate
     def test_validate_and_inject_mapping_injects_namespaces(self):
@@ -1004,6 +1162,39 @@ class TestMappingParser:
         )
 
         assert list(ms.fields.keys()) == ["ns__Description__c"]
+
+    @responses.activate
+    def test_validate_and_inject_mapping_injects_namespaces__validates_lookup(self):
+        """Test to verify that with namespace inject, we validate lookups correctly"""
+        mock_describe_calls()
+        # Note: ns__Description__c is a mock field added to our stored, mock describes (in JSON)
+        mapping = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  table: Account
+                  fields:
+                    - Description__c
+                  lookups:
+                    LinkedAccount__c:
+                      table: Account"""
+            )
+        )
+        ms = mapping["Insert Accounts"]
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        assert ms.validate_and_inject_namespace(
+            org_config.salesforce_client,
+            "ns",
+            DataOperationType.INSERT,
+            inject_namespaces=True,
+        )
+        # Here we verify that the field ns__LinkedAccount__c does lookup
+        # to sobject Account inside of describe
+        _infer_and_validate_lookups(mapping, org_config.salesforce_client)
+        assert list(ms.lookups.keys()) == ["ns__LinkedAccount__c"]
 
     @responses.activate
     def test_validate_and_inject_mapping_removes_namespaces(self):
@@ -1107,7 +1298,7 @@ class TestMappingLookup:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: account\n  table: account\n  fields:\n    - name\n"
-                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - fIRSTnAME\n  lookups:\n    accountid:\n      table: account"
+                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - LaSTnAME\n  lookups:\n    accountid:\n      table: account"
                 )
             )
         )
@@ -1260,3 +1451,143 @@ class TestUpsertKeyValidations:
             "FirstName",
             "LastName",
         ), mapping["Insert Accounts"]["update_key"]
+
+    def test_get_extract_field_list(self):
+        """Test to ensure Id comes first, lookups come
+        last and order of mappings do not change"""
+        m = MappingStep(
+            sf_object="Account",
+            fields=["Name", "RecordTypeId", "AccountSite"],
+            lookups={"ParentId": MappingLookup(table="Account")},
+        )
+
+        assert m.get_extract_field_list() == [
+            "Id",
+            "Name",
+            "RecordTypeId",
+            "AccountSite",
+            "ParentId",
+        ]
+
+    @responses.activate
+    def test_infer_and_validate_lookups__table_doesnt_exist(self, caplog):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        expected_error_message = "The table Account does not exist in the mapping file"
+
+        with pytest.raises(BulkDataException) as e:
+            _infer_and_validate_lookups(
+                mapping=mapping, sf=org_config.salesforce_client
+            )
+            assert "One or more relationship errors blocked the operation" in str(
+                e.value
+            )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
+
+    @responses.activate
+    def test_infer_and_validate_lookups__incorrect_order(self, caplog):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Account:\n"
+                    "  sf_object: Account\n"
+                    "  table: Account\n"
+                    "  fields:\n"
+                    "    - Description__c\n"
+                    "Insert Events:\n"
+                    "  sf_object: Event\n"
+                    "  table: Event\n"
+                    "  lookups:\n"
+                    "    WhatId:\n"
+                    "      table:\n"
+                    "        - Opportunity\n"
+                    "        - Account\n"
+                    "Insert Opportunity:\n"
+                    "  sf_object: Opportunity\n"
+                    "  table: Opportunity\n"
+                    "  fields:\n"
+                    "    - Description__c\n"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        expected_error_message = "All included target objects (Opportunity,Account) for the field Event.WhatId must precede Event in the mapping."
+
+        with pytest.raises(BulkDataException) as e:
+            _infer_and_validate_lookups(
+                mapping=mapping, sf=org_config.salesforce_client
+            )
+            assert "One or more relationship errors blocked the operation" in str(
+                e.value
+            )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
+
+    @responses.activate
+    def test_infer_and_validate_lookups__after(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  lookups:\n    ParentId:\n      table: Account\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+        _infer_and_validate_lookups(mapping=mapping, sf=org_config.salesforce_client)
+        assert mapping["Insert Accounts"].lookups["ParentId"].after == "Insert Accounts"
+        assert mapping["Insert Contacts"].lookups["AccountId"].after is None
+
+    @responses.activate
+    def test_infer_and_validate_lookups__invalid_reference(self, caplog):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Events:\n  sf_object: Event\n  table: Event\n  fields:\n    - Description__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Event"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        expected_error_message = "The lookup Event is not a valid lookup"
+
+        with pytest.raises(BulkDataException) as e:
+            _infer_and_validate_lookups(
+                mapping=mapping, sf=org_config.salesforce_client
+            )
+            assert "One or more relationship errors blocked the operation" in str(
+                e.value
+            )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
