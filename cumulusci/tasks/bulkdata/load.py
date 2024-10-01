@@ -313,6 +313,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Create a step appropriate to the action"""
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
+        num_records_in_target = None
 
         fields = mapping.get_load_field_list()
 
@@ -344,10 +345,26 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         elif mapping.action == DataOperationType.SELECT:
             # Bulk process expects DataOpertionType to be QUERY
             action = DataOperationType.QUERY
+            # Determine number of records in the target org
+            record_count_response = self.sf.restful(
+                f"limits/recordCount?sObjects={mapping.sf_object}"
+            )
+            sobject_map = {
+                entry["name"]: entry["count"]
+                for entry in record_count_response["sObjects"]
+            }
+            num_records_in_target = sobject_map.get(mapping.sf_object, None)
         else:
             action = mapping.action
 
         query = self._query_db(mapping)
+
+        # Set volume
+        volume = (
+            num_records_in_target
+            if num_records_in_target is not None
+            else query.count()
+        )
 
         step = get_dml_operation(
             sobject=mapping.sf_object,
@@ -356,7 +373,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             context=self,
             fields=fields,
             api=mapping.api,
-            volume=query.count(),
+            volume=volume,
             selection_strategy=mapping.selection_strategy,
             selection_filter=mapping.selection_filter,
         )

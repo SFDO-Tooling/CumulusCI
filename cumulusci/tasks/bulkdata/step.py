@@ -3,7 +3,6 @@ import io
 import json
 import os
 import pathlib
-import re
 import tempfile
 import time
 from abc import ABCMeta, abstractmethod
@@ -453,7 +452,18 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         # Count total number of records to fetch using the copy
         total_num_records = sum(1 for _ in records_copy)
 
-        # Since OFFSET is not supported in bulk, we can run only over 1 api_batch_size
+        # Set LIMIT condition
+        if (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.ALL
+        ):
+            limit_clause = None
+        elif (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.MATCH
+        ):
+            limit_clause = total_num_records
+
         # Generate and execute SOQL query
         # (not passing offset as it is not supported in Bulk)
         (
@@ -462,58 +472,17 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         ) = self.select_operation_executor.select_generate_query(
             sobject=self.sobject,
             fields=self.fields,
-            limit=self.api_options.get("batch_size", 500),
+            user_filter=self.selection_filter if self.selection_filter else None,
+            limit=limit_clause,
             offset=None,
         )
-        if self.selection_filter:
-            # Generate user filter query if selection_filter is present (offset clause not supported)
-            user_query = generate_user_filter_query(
-                filter_clause=self.selection_filter,
-                sobject=self.sobject,
-                fields=["Id"],
-                limit_clause=self.api_options.get("batch_size", 500),
-                offset_clause=None,
-            )
-            # Execute the user query using Bulk API
-            user_query_executor = get_query_operation(
-                sobject=self.sobject,
-                fields=["Id"],
-                api_options=self.api_options,
-                context=self,
-                query=user_query,
-                api=DataApi.BULK,
-            )
-            user_query_executor.query()
-            user_query_records = user_query_executor.get_results()
-
-            # Find intersection based on 'Id'
-            user_query_ids = (
-                list(record[0] for record in user_query_records)
-                if user_query_records
-                else []
-            )
 
         # Execute the main select query using Bulk API
         select_query_records = self._execute_select_query(
             select_query=select_query, query_fields=query_fields
         )
 
-        # If user_query_ids exist, filter select_query_records based on the intersection of Ids
-        if self.selection_filter:
-            # Create a dictionary to map IDs to their corresponding records
-            id_to_record_map = {
-                record[query_fields.index("Id")]: record
-                for record in select_query_records
-            }
-            # Extend query_records in the order of user_query_ids
-            query_records.extend(
-                record
-                for id in user_query_ids
-                if (record := id_to_record_map.get(id)) is not None
-            )
-        else:
-            query_records.extend(select_query_records)
-
+        query_records.extend(select_query_records)
         # Post-process the query results
         (
             selected_records,
@@ -812,100 +781,52 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         self.results = []
         query_records = []
-        user_query_records = []
         # Create a copy of the generator using tee
         records, records_copy = tee(records)
         # Count total number of records to fetch using the copy
         total_num_records = sum(1 for _ in records_copy)
-        # Set offset
-        offset = 0
 
-        # Define condition
-        def condition(retrieval_mode, offset, total_num_records):
-            if retrieval_mode == SelectRecordRetrievalMode.ALL:
-                return True
-            elif retrieval_mode == SelectRecordRetrievalMode.MATCH:
-                return offset < total_num_records
-
-        # Process in batches
-        while condition(
-            self.select_operation_executor.retrieval_mode, offset, total_num_records
+        # Set LIMIT condition
+        if (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.ALL
         ):
-            # Generate the SOQL query based on the selection strategy
-            (
-                select_query,
-                query_fields,
-            ) = self.select_operation_executor.select_generate_query(
-                sobject=self.sobject,
-                fields=self.fields,
-                limit=self.api_options.get("batch_size"),
-                offset=offset,
-            )
+            limit_clause = None
+        elif (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.MATCH
+        ):
+            limit_clause = total_num_records
 
-            # If user given selection filter present, create composite request
-            if self.selection_filter:
-                # Generate user query
-                user_query = generate_user_filter_query(
-                    filter_clause=self.selection_filter,
-                    sobject=self.sobject,
-                    fields=["Id"],
-                    limit_clause=self.api_options.get("batch_size"),
-                    offset_clause=offset,
+        # Generate the SOQL query based on the selection strategy
+        (
+            select_query,
+            query_fields,
+        ) = self.select_operation_executor.select_generate_query(
+            sobject=self.sobject,
+            fields=self.fields,
+            user_filter=self.selection_filter if self.selection_filter else None,
+            limit=limit_clause,
+            offset=None,
+        )
+
+        # Handle the case where self.selection_query is None (and hence user_query is also None)
+        response = self.sf.restful(
+            requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
+        )
+        query_records.extend(
+            list(convert(rec, query_fields) for rec in response["records"])
+        )
+        while True:
+            if not response["done"]:
+                response = self.sf.query_more(
+                    response["nextRecordsUrl"], identifier_is_url=True
                 )
-                # Execute composite query
-                (
-                    current_user_query_records,
-                    current_query_records,
-                ) = self._execute_composite_query(
-                    select_query=select_query,
-                    user_query=user_query,
-                    query_fields=query_fields,
+                query_records.extend(
+                    list(convert(rec, query_fields) for rec in response["records"])
                 )
-                # Break if org has no more records
-                if (
-                    len(current_user_query_records) == 0
-                    and len(current_query_records) == 0
-                ):
-                    break
-
-                # Extend to each
-                user_query_records.extend(current_user_query_records)
-                query_records.extend(current_query_records)
-
             else:
-                # Handle the case where self.selection_query is None (and hence user_query is also None)
-                response = self.sf.restful(
-                    requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
-                )
-                current_query_records = list(
-                    convert(rec, query_fields) for rec in response["records"]
-                )
-                # Break if nothing is returned
-                if len(current_query_records) == 0:
-                    break
-                # Extend the query records
-                query_records.extend(current_query_records)
-
-            # Update offset
-            offset += self.api_options.get("batch_size")
-
-        # Find intersection if filter given
-        if self.selection_filter:
-            # Find intersection based on 'Id'
-            user_query_ids = list(record[0] for record in user_query_records)
-            # Create a dictionary to map IDs to their corresponding records
-            id_to_record_map = {
-                record[query_fields.index("Id")]: record for record in query_records
-            }
-
-            # Extend insersection_query_records in the order of user_query_ids
-            insersection_query_records = [
-                record
-                for id in user_query_ids
-                if (record := id_to_record_map.get(id)) is not None
-            ]
-        else:
-            insersection_query_records = query_records
+                break
 
         # Post-process the query results for this batch
         (
@@ -913,7 +834,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             error_message,
         ) = self.select_operation_executor.select_post_process(
             load_records=records,
-            query_records=insersection_query_records,
+            query_records=query_records,
             num_records=total_num_records,
             sobject=self.sobject,
         )
@@ -1103,53 +1024,3 @@ def get_dml_operation(
         selection_strategy=selection_strategy,
         selection_filter=selection_filter,
     )
-
-
-def generate_user_filter_query(
-    filter_clause: str,
-    sobject: str,
-    fields: list,
-    limit_clause: Union[float, None] = None,
-    offset_clause: Union[float, None] = None,
-) -> str:
-    """
-    Generates a SOQL query with the provided filter, object, fields, limit, and offset clauses.
-    Handles cases where the filter clause already contains LIMIT or OFFSET, and avoids multiple spaces.
-    """
-
-    # Extract existing LIMIT and OFFSET from filter_clause if present
-    existing_limit_match = re.search(r"LIMIT\s+(\d+)", filter_clause, re.IGNORECASE)
-    existing_offset_match = re.search(r"OFFSET\s+(\d+)", filter_clause, re.IGNORECASE)
-
-    if existing_limit_match:
-        existing_limit = int(existing_limit_match.group(1))
-        if limit_clause is not None:  # Only apply limit_clause if it's provided
-            limit_clause = min(existing_limit, limit_clause)
-        else:
-            limit_clause = existing_limit
-
-    if existing_offset_match:
-        existing_offset = int(existing_offset_match.group(1))
-        if offset_clause is not None:
-            offset_clause = existing_offset + offset_clause
-        else:
-            offset_clause = existing_offset
-
-    # Remove existing LIMIT and OFFSET from filter_clause, handling potential extra spaces
-    filter_clause = re.sub(
-        r"\s+OFFSET\s+\d+\s*", " ", filter_clause, flags=re.IGNORECASE
-    ).strip()
-    filter_clause = re.sub(
-        r"\s+LIMIT\s+\d+\s*", " ", filter_clause, flags=re.IGNORECASE
-    ).strip()
-
-    # Construct the SOQL query
-    fields_str = ", ".join(fields)
-    query = f"SELECT {fields_str} FROM {sobject} {filter_clause}"
-
-    if limit_clause is not None:
-        query += f" LIMIT {limit_clause}"
-    if offset_clause is not None:
-        query += f" OFFSET {offset_clause}"
-
-    return query

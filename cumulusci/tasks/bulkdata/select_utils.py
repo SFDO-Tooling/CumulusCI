@@ -1,4 +1,5 @@
 import random
+import re
 import typing as T
 
 from cumulusci.core.enums import StrEnum
@@ -36,20 +37,29 @@ class SelectOperationExecutor:
         self,
         sobject: str,
         fields: T.List[str],
+        user_filter: str,
         limit: T.Union[int, None],
         offset: T.Union[int, None],
     ):
         # For STANDARD strategy
         if self.strategy == SelectStrategy.STANDARD:
-            return standard_generate_query(sobject=sobject, limit=limit, offset=offset)
+            return standard_generate_query(
+                sobject=sobject, user_filter=user_filter, limit=limit, offset=offset
+            )
         # For SIMILARITY strategy
         elif self.strategy == SelectStrategy.SIMILARITY:
             return similarity_generate_query(
-                sobject=sobject, fields=fields, limit=limit, offset=offset
+                sobject=sobject,
+                fields=fields,
+                user_filter=user_filter,
+                limit=limit,
+                offset=offset,
             )
         # For RANDOM strategy
         elif self.strategy == SelectStrategy.RANDOM:
-            return standard_generate_query(sobject=sobject, limit=limit, offset=offset)
+            return standard_generate_query(
+                sobject=sobject, user_filter=user_filter, limit=limit, offset=offset
+            )
 
     def select_post_process(
         self, load_records, query_records: list, num_records: int, sobject: str
@@ -72,21 +82,26 @@ class SelectOperationExecutor:
 
 
 def standard_generate_query(
-    sobject: str, limit: T.Union[int, None], offset: T.Union[int, None]
+    sobject: str,
+    user_filter: str,
+    limit: T.Union[int, None],
+    offset: T.Union[int, None],
 ) -> T.Tuple[str, T.List[str]]:
     """Generates the SOQL query for the standard (as well as random) selection strategy"""
-    # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-    declaration = DEFAULT_DECLARATIONS.get(sobject)
-    if declaration:
-        where_clause = declaration.where
-    else:
-        where_clause = None
-    # Construct the query with the WHERE clause (if it exists)
+
     query = f"SELECT Id FROM {sobject}"
-    if where_clause:
-        query += f" WHERE {where_clause}"
-    query += f" LIMIT {limit}" if limit else ""
-    query += f" OFFSET {offset}" if offset else ""
+    # If user specifies user_filter
+    if user_filter:
+        query += add_limit_offset_to_user_filter(
+            filter_clause=user_filter, limit_clause=limit, offset_clause=offset
+        )
+    else:
+        # Get the WHERE clause from DEFAULT_DECLARATIONS if available
+        declaration = DEFAULT_DECLARATIONS.get(sobject)
+        if declaration:
+            query += f" WHERE {declaration.where}"
+        query += f" LIMIT {limit}" if limit else ""
+        query += f" OFFSET {offset}" if offset else ""
     return query, ["Id"]
 
 
@@ -117,26 +132,29 @@ def standard_post_process(
 def similarity_generate_query(
     sobject: str,
     fields: T.List[str],
+    user_filter: str,
     limit: T.Union[int, None],
     offset: T.Union[int, None],
 ) -> T.Tuple[str, T.List[str]]:
     """Generates the SOQL query for the similarity selection strategy"""
-    # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-    declaration = DEFAULT_DECLARATIONS.get(sobject)
-    if declaration:
-        where_clause = declaration.where
-    else:
-        where_clause = None
     # Construct the query with the WHERE clause (if it exists)
     if "Id" not in fields:
         fields.insert(0, "Id")
     fields_to_query = ", ".join(field for field in fields if field)
 
     query = f"SELECT {fields_to_query} FROM {sobject}"
-    if where_clause:
-        query += f" WHERE {where_clause}"
-    query += f" LIMIT {limit}" if limit else ""
-    query += f" OFFSET {offset}" if offset else ""
+
+    if user_filter:
+        query += add_limit_offset_to_user_filter(
+            filter_clause=user_filter, limit_clause=limit, offset_clause=offset
+        )
+    else:
+        # Get the WHERE clause from DEFAULT_DECLARATIONS if available
+        declaration = DEFAULT_DECLARATIONS.get(sobject)
+        if declaration:
+            query += f" WHERE {declaration.where}"
+        query += f" LIMIT {limit}" if limit else ""
+        query += f" OFFSET {offset}" if offset else ""
     return query, fields
 
 
@@ -242,3 +260,43 @@ def calculate_levenshtein_distance(record1: list, record2: list):
         total_fields += 1
 
     return total_distance / total_fields if total_fields > 0 else 0
+
+
+def add_limit_offset_to_user_filter(
+    filter_clause: str,
+    limit_clause: T.Union[float, None] = None,
+    offset_clause: T.Union[float, None] = None,
+) -> str:
+
+    # Extract existing LIMIT and OFFSET from filter_clause if present
+    existing_limit_match = re.search(r"LIMIT\s+(\d+)", filter_clause, re.IGNORECASE)
+    existing_offset_match = re.search(r"OFFSET\s+(\d+)", filter_clause, re.IGNORECASE)
+
+    if existing_limit_match:
+        existing_limit = int(existing_limit_match.group(1))
+        if limit_clause is not None:  # Only apply limit_clause if it's provided
+            limit_clause = min(existing_limit, limit_clause)
+        else:
+            limit_clause = existing_limit
+
+    if existing_offset_match:
+        existing_offset = int(existing_offset_match.group(1))
+        if offset_clause is not None:
+            offset_clause = existing_offset + offset_clause
+        else:
+            offset_clause = existing_offset
+
+    # Remove existing LIMIT and OFFSET from filter_clause, handling potential extra spaces
+    filter_clause = re.sub(
+        r"\s+OFFSET\s+\d+\s*", " ", filter_clause, flags=re.IGNORECASE
+    ).strip()
+    filter_clause = re.sub(
+        r"\s+LIMIT\s+\d+\s*", " ", filter_clause, flags=re.IGNORECASE
+    ).strip()
+
+    if limit_clause is not None:
+        filter_clause += f" LIMIT {limit_clause}"
+    if offset_clause is not None:
+        filter_clause += f" OFFSET {offset_clause}"
+
+    return f" {filter_clause}"
