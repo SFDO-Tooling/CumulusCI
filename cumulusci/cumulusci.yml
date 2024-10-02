@@ -82,7 +82,7 @@ tasks:
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
     check_components:
-        description: "Check common coponents int the target org from Check task deploy paths"
+        description: "Check if common components exist in the target org based on provided deploy paths or those from a plan/flow."
         class_path: cumulusci.tasks.salesforce.check_components.CheckComponents
         group: Salesforce Preflight Checks
     check_dataset_load:
