@@ -256,10 +256,19 @@ def history_list(
 @orgname_option_or_argument(required=False)
 @click.option("--json", "print_json", is_flag=True, help="Print as JSON.")
 @click.option("--indent", type=int, help="Indentation level for JSON output.")
+@click.option(
+    "--org-id",
+    help="Lookup the action in the history of a previous org instance by org id.",
+)
 @pass_runtime(require_project=True, require_keychain=True)
-def history_info(runtime, org_name, action_hash, print_json, indent):
+def history_info(runtime, org_name, action_hash, print_json, indent, org_id):
     org_name, org_config = runtime.get_org(org_name)
-    action = org_config.history.get_action_by_hash(action_hash)
+
+    org_history = org_config.history
+    if org_id:
+        org_history = org_config.history.previous_orgs.get(org_id)
+
+    action = org_history.get_action_by_hash(action_hash)
     if print_json:
         click.echo(dump_json(action.dict(), indent=indent))
         return
