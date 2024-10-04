@@ -48,8 +48,9 @@ def fromstring(source):
     """Parse a Metadata Tree from a string"""
     return MetadataElement(lxml_parse_string(source).getroot())
 
+
 def parse_package_xml_types(feildName, source_xml_tree):
-    """"Parse metadata types based on the  feildName and map based on the type"""
+    """ "Parse metadata types based on the  feildName and map based on the type"""
     xml_map = {}
     for type in source_xml_tree.types:
         members = []
