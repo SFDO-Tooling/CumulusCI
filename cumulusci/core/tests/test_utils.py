@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+from unittest.mock import MagicMock
 
 import pytest
 import pytz
@@ -139,3 +140,63 @@ class TestProcessListOfPairsDictArg:
         error_message = re.escape("Var specified twice: foo")
         with pytest.raises(TaskOptionsError, match=error_message):
             utils.process_list_of_pairs_dict_arg(duplicate)
+
+
+class TestProcessComponents:
+    def test_process_common_components(self):
+
+        mock_message_1 = MagicMock()
+        mock_message_1.firstChild.nextSibling.firstChild.nodeValue = (
+            "Entity of type 'ApexClass' named 'TestClass' is available"
+        )
+
+        mock_message_2 = MagicMock()
+        mock_message_2.firstChild.nextSibling.firstChild.nodeValue = (
+            "Entity of type 'CustomObject' is not available in this organization"
+        )
+
+        response_messages = [mock_message_1, mock_message_2]
+
+        components = {
+            "ApexClass": {"TestClass", "AnotherClass"},
+            "CustomObject": {"TestObject", "AnotherObject"},
+        }
+
+        result = utils.process_common_components(response_messages, components)
+
+        expected_components = {
+            "ApexClass": {"AnotherClass"},
+        }
+
+        assert result == expected_components
+        assert "ApexClass" in result
+        assert "AnotherClass" in result["ApexClass"]
+        assert "TestClass" not in result["ApexClass"]
+        assert "CustomObject" not in result
+
+    def test_process_common_components_no_response_messages(self):
+        components = {
+            "ApexClass": {"TestClass", "AnotherClass"},
+            "CustomObject": {"TestObject", "AnotherObject"},
+        }
+
+        result = utils.process_common_components([], components)
+
+        # If there are no response messages, the components list should remain unchanged
+        assert result == components
+
+    def test_process_common_components_no_components(self):
+        response_messages = [
+            MagicMock(
+                firstChild=MagicMock(
+                    nextSibling=MagicMock(
+                        firstChild=MagicMock(
+                            nodeValue="Entity of type 'ApexClass' named 'TestClass' is available"
+                        )
+                    )
+                )
+            )
+        ]
+
+        result = utils.process_common_components(response_messages, {})
+        assert result == {}
