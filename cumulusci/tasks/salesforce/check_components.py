@@ -36,9 +36,7 @@ class CheckComponents(BaseSalesforceTask):
         super(CheckComponents, self)._init_options(kwargs)
         if "paths" in self.options:
             if "name" in self.options:
-                raise TaskOptionsError(
-                    "Please provide either --paths or --name (plan/flow)"
-                )
+                raise TaskOptionsError("Please provide either --paths or --name")
         elif "name" not in self.options:
             raise TaskOptionsError(
                 "This task requires a plan/flow name or paths options. pass --paths or --name options"
