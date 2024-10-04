@@ -26,7 +26,7 @@ class CheckComponents(BaseSalesforceTask):
             "required": False,
         },
         "name": {
-            "description": "The name of the current plan or flow detect deploy paths",
+            "description": "The name of the current plan or flow to detect deploy paths",
             "required": False,
         },
     }
@@ -37,10 +37,12 @@ class CheckComponents(BaseSalesforceTask):
         if "paths" in self.options:
             if "name" in self.options:
                 raise TaskOptionsError(
-                    "Please provide either paths or plan or flow name"
+                    "Please provide either --paths or --name (plan/flow)"
                 )
         elif "name" not in self.options:
-            raise TaskOptionsError("No plan or paths options provided ")
+            raise TaskOptionsError(
+                "This task requires a plan/flow name or paths options. pass --paths or --name options"
+            )
 
     def _run_task(self):
         # Check if paths are provided in options. Assuming to only check for those paths
