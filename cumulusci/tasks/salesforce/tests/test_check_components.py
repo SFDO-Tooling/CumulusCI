@@ -46,14 +46,12 @@ class TestCheckComponents:
         mock_remove,
         mock_path_exists,
     ):
-        # Set up the mocks
         mock_path_exists.return_value = True
         mock_isdir.return_value = True
         mock_listdir.return_value = ["some_file_or_directory"]
         mock_path_join.side_effect = lambda *args: "/".join(args)
         mock_convert_sfdx_source.return_value.__enter__.return_value = "/converted/path"
 
-        # Mock metadata_tree.parse to return a tree structure
         mock_tree = MagicMock()
         mock_tree.findall.return_value = [
             MagicMock(
@@ -74,7 +72,6 @@ class TestCheckComponents:
         mock_tree.find.return_value = MagicMock(text="58.0")
         mock_metadata_parse.return_value = mock_tree
 
-        # Mock API response messages
         response_messages = [
             MagicMock(
                 getElementsByTagName=MagicMock(
@@ -94,16 +91,11 @@ class TestCheckComponents:
                 CheckComponents, "_get_api_object_responce"
             ) as mock_get_api_response:
                 mock_get_api_response.return_value = response_messages
-
-                # Create the task
                 task = create_task(CheckComponents, {"paths": "force-app/main/default"})
-
-                # Run the method under test
                 components, api_response = task._collect_components_from_paths(
                     "force-app/main/default"
                 )
 
-                # Assertions
                 assert components is not None
                 assert "ApexClass" not in components
         sfdx.assert_called_once_with(
