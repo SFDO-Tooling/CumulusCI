@@ -10,8 +10,17 @@ from sqlalchemy import Boolean, Column, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.iterators import iterate_in_chunks
+
+
+class DataApi(StrEnum):
+    """Enum defining requested Salesforce data API for an operation."""
+
+    BULK = "bulk"
+    REST = "rest"
+    SMART = "smart"
 
 
 class SqlAlchemyMixin:
