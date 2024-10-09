@@ -4,6 +4,7 @@ import shutil
 import urllib.parse
 from logging import Logger, getLogger
 from pathlib import Path
+from typing import Dict, List
 
 import yaml
 
@@ -40,7 +41,7 @@ def metadata_sort_key_section(name):
     return key
 
 
-def process_common_components(response_messages, components):
+def process_common_components(response_messages: List, components: Dict):
     """Compare compoents in the api responce object with list of components and return common common components"""
     if not response_messages or not components:
         return components
