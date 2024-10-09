@@ -11,8 +11,9 @@ from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.sfdx import convert_sfdx_source
-from cumulusci.core.utils import process_common_components, process_list_arg
+from cumulusci.core.utils import process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
+from cumulusci.tasks.metadata.package import process_common_components
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.utils import cd
 from cumulusci.utils.xml import metadata_tree
@@ -34,12 +35,12 @@ class CheckComponents(BaseSalesforceTask):
 
     def _init_options(self, kwargs):
         super(CheckComponents, self)._init_options(kwargs)
-    if "paths" in self.options and "name" in self.options:
-        raise TaskOptionsError("Please provide either --paths or --name")
-    if "paths" not in self.options and "name" not in self.options:
-        raise TaskOptionsError(
-            "This task requires a plan/flow name or paths options. Pass --paths or --name options"
-        )
+        if "paths" in self.options and "name" in self.options:
+            raise TaskOptionsError("Please provide either --paths or --name")
+        if "paths" not in self.options and "name" not in self.options:
+            raise TaskOptionsError(
+                "This task requires a plan/flow name or paths options. Pass --paths or --name options"
+            )
 
     def _run_task(self):
         # Check if paths are provided in options. Assuming to only check for those paths
@@ -47,8 +48,7 @@ class CheckComponents(BaseSalesforceTask):
         plan_or_flow_name = self.options.get("name")
 
         if paths:
-            if isinstance(paths, str):
-                paths = process_list_arg(paths)
+            paths = process_list_arg(paths)
             self.logger.info(f"Using provided paths: {paths}")
             self.deploy_paths = paths
         elif plan_or_flow_name:
@@ -95,8 +95,9 @@ class CheckComponents(BaseSalesforceTask):
             self.logger.info(f"No components found in deploy path{path}")
             raise TaskOptionsError("No plan or paths options provided")
 
+        self.logger.debug("Components detected at source")
         for component_type, component_names in components.items():
-            self.logger.info(f"{component_type}: {', '.join(component_names)}")
+            self.logger.debug(f"{component_type}: {', '.join(component_names)}")
         # check common components
         existing_components = process_common_components(
             api_retrieve_unpackaged_response, components
@@ -126,7 +127,7 @@ class CheckComponents(BaseSalesforceTask):
                 if not os.path.exists(dst_item):
                     shutil.copy2(src_item, dst_item)
                 else:
-                    print(f"File {dst_item} already exists, skipping...")
+                    self.logger.debug(f"File {dst_item} already exists, skipping...")
 
     def _merge_directories(self, src_dir, dst_dir):
         for item in os.listdir(src_dir):
@@ -141,7 +142,7 @@ class CheckComponents(BaseSalesforceTask):
                 if not os.path.exists(dst_item):
                     shutil.copy2(src_item, dst_item)  # Copy file if it doesn't exist
                 else:
-                    print(f"File {dst_item} already exists, skipping...")
+                    self.logger.debug(f"File {dst_item} already exists, skipping...")
 
     def _is_plan(self, name):
 
@@ -270,7 +271,7 @@ class CheckComponents(BaseSalesforceTask):
         api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
             self, package_xml.read(), version
         )
-
+        
         response_messages = parseString(
             api_retrieve_unpackaged_object._get_response().content
         ).getElementsByTagName("messages")

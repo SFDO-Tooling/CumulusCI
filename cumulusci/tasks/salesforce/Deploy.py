@@ -12,14 +12,11 @@ from cumulusci.core.source_transforms.transforms import (
     SourceTransform,
     SourceTransformList,
 )
-from cumulusci.core.utils import (
-    process_bool_arg,
-    process_common_components,
-    process_list_arg,
-)
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy, ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
+from cumulusci.tasks.metadata.package import process_common_components
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )

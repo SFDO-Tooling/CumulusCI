@@ -362,23 +362,3 @@ def make_jsonable(x):
         return x
     except (TypeError, OverflowError):
         return str(x)
-
-
-def process_common_components(response_messages, components):
-    if not response_messages or not components:
-        return components
-
-    for message in response_messages:
-        message_list = message.firstChild.nextSibling.firstChild.nodeValue.split("'")
-        component_type = message_list[1]
-        message_txt = message_list[2]
-
-        if "is not available in this organization" in message_txt:
-            del components[component_type]
-        else:
-            component_name = message_list[3]
-            if component_name in components[component_type]:
-                components[component_type].remove(component_name)
-                if len(components[component_type]) == 0:
-                    del components[component_type]
-    return components
