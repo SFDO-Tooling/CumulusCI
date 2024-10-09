@@ -106,6 +106,23 @@ class MappingOption(CCIOptionType):
         return parse_list_of_pairs_dict_arg(v)
 
 
+# class MaskedField(Field):
+#     """A field that will mask the value when it is serialized"""
+
+#     @classmethod
+#     def __get_validators__(cls):
+#         yield cls.validate
+
+#     @classmethod
+#     def validate(cls, v: Any) -> str | None:
+#         if v is None:
+#             try:
+#                 return "*" * len(v)
+#             except:
+#                 return "*" * 8
+#         return None
+
+
 def parse_list_of_pairs_dict_arg(arg):
     """Process an arg in the format "aa:bb,cc:dd" """
     if isinstance(arg, dict):
@@ -130,6 +147,7 @@ __all__ = [
     "Field",
     "FilePath",
     "DirectoryPath",
+    # "MaskedField",
     "parse_list_of_pairs_dict_arg",
     "CCIOptions",
     "CCIOptionType",

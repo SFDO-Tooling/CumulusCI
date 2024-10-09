@@ -72,13 +72,22 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
+from cumulusci.core.org_history import (
+    OrgActionStatus,
+    FlowOrgAction,
+    FlowActionStep,
+    FlowActionTracker,
+    TaskOrgAction,
+)
+
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import (
+    CumulusCIFailure,
     FlowConfigError,
     FlowInfiniteLoopError,
     TaskImportError,
 )
-from cumulusci.utils.version_strings import LooseVersion
+from cumulusci.utils.version_strings import StepVersion
 
 if TYPE_CHECKING:
     from cumulusci.core.tasks import BaseTask
@@ -87,14 +96,6 @@ if TYPE_CHECKING:
 RETURN_VALUE_OPTION_PREFIX = "^^"
 
 jinja2_env = ImmutableSandboxedEnvironment()
-
-
-class StepVersion(LooseVersion):
-    """Like LooseVersion, but converts "/" into -1 to support comparisons"""
-
-    def parse(self, vstring: str):
-        super().parse(vstring)
-        self.version = tuple(-1 if x == "/" else x for x in self.version)
 
 
 class StepSpec:
@@ -171,6 +172,7 @@ class StepResult(NamedTuple):
     result: Any
     return_values: Any
     exception: Optional[Exception]
+    action: TaskOrgAction | FlowOrgAction | None
 
 
 class FlowCallback:
@@ -295,6 +297,7 @@ class TaskRunner:
             task.result,
             task.return_values,
             exc,
+            FlowActionStep(task=task.action),
         )
 
     def _log_options(self, task: "BaseTask"):
@@ -330,6 +333,8 @@ class FlowCoordinator:
     runtime_options: dict
     name: Optional[str]
     results: List[StepResult]
+    tracker: FlowActionTracker
+    action: FlowOrgAction | None
 
     def __init__(
         self,
@@ -356,6 +361,18 @@ class FlowCoordinator:
 
         self.logger = self._init_logger()
         self.steps = self._init_steps()
+
+        self.tracker = FlowActionTracker(
+            name=self.name,
+            description=self.flow_config.description,
+            group=self.flow_config.group,
+            config_steps=self.flow_config.config.get("steps"),
+            steps=[],
+            repo=self.project_config.repo_url,
+            branch=self.project_config.repo_branch,
+            commit=self.project_config.repo_commit,
+        )
+        self.action = None
 
     @classmethod
     def from_steps(
@@ -497,6 +514,10 @@ class FlowCoordinator:
             self.logger.info(
                 f"Completed flow {flow_name}on org {org_config.name} successfully!"
             )
+            self._record_result()
+        except Exception as e:
+            self._record_result(e)
+            raise e from e
         finally:
             self.callbacks.post_flow(self)
 
@@ -527,7 +548,6 @@ class FlowCoordinator:
         self.callbacks.pre_task(step)
         result = TaskRunner.from_flow(self, step).run_step()
         self.callbacks.post_task(step, result)
-
         self.results.append(
             result
         )  # add even a failed result to the result set for the post flow
@@ -762,6 +782,22 @@ class FlowCoordinator:
                 return result
         raise NameError(f"Path not found: {path}")
 
+    def _record_result(self, exception=None) -> None:
+        data = self.tracker.dict()
+        if exception:
+            if isinstance(exception, CumulusCIFailure):
+                status = OrgActionStatus.FAILURE
+            else:
+                status = OrgActionStatus.ERROR
+        else:
+            status = OrgActionStatus.SUCCESS
+        data["action_type"] = "Flow"
+        data["log"] = ""
+        data["exception"] = str(exception)
+        data["status"] = status
+        data["steps"] = [result.action for result in self.results if result.action]
+        self.action = FlowOrgAction.parse_obj(data)
+
 
 class PreflightFlowCoordinator(FlowCoordinator):
     """Coordinates running preflight checks instead of the actual flow steps."""
@@ -883,3 +919,79 @@ class CachedTaskRunner:
 
         self.cache.results[cache_key] = result
         return result.return_values
+
+
+def flow_from_org_actions(
+    name: str,
+    description: str,
+    group: str,
+    project_config: BaseProjectConfig,
+    org_actions: List[Union[TaskOrgAction, FlowOrgAction]],
+) -> FlowCoordinator:
+
+    steps = []
+    step_counter = 1
+
+    flow_step_name = None
+
+    for org_action in org_actions:
+        if isinstance(org_action, TaskOrgAction):
+            flow_step_name = org_action.name
+            # Handle single task
+            steps.append(
+                stepspec_from_task_action(project_config, org_action, step_counter)
+            )
+            step_counter += 1
+        elif isinstance(org_action, FlowOrgAction):
+            flow_step_name = f"{org_action.name}@{org_action.hash_action}"
+            # Handle flow (multiple tasks)
+            for step_action in org_action.steps:
+                steps.append(
+                    stepspec_from_task_action(
+                        project_config,
+                        step_action.task,
+                        step_counter,
+                        from_flow=flow_step_name,
+                    )
+                )
+                step_counter += 1
+
+    return FlowCoordinator.from_steps(
+        project_config,
+        steps,
+        name="Composite Replay Flow",
+    )
+
+
+def stepspec_from_task_action(
+    project_config: BaseProjectConfig,
+    task_action: TaskOrgAction,
+    step_num: int,
+    from_flow: Optional[str] = None,
+) -> StepSpec:
+    task_config = {
+        "class_path": task_action.class_path,
+        "options": task_action.options.copy(),
+    }
+
+    # Handle special case of mapping resolved dependencies back to runnable ones
+    runnable_dependencies = task_action.get_runnable_dependencies(project_config)
+    if runnable_dependencies:
+        task_config["options"] = task_config.get("options", {})
+        task_config["options"]["dependencies"] = runnable_dependencies
+
+    try:
+        task_class = project_config.get_task(task_action.name).get_class()
+    except (ImportError, AttributeError, TaskImportError) as e:
+        raise FlowConfigError(f"Task named {task_action.name} has bad classpath, {e}")
+
+    return StepSpec(
+        step_num=StepVersion(str(step_num)),
+        task_name=task_action.name,
+        task_config=task_config,
+        task_class=task_class,
+        project_config=project_config,
+        allow_failure=task_config.get("ignore_failure", False),
+        from_flow=from_flow,
+        when=task_config.get("when"),
+    )

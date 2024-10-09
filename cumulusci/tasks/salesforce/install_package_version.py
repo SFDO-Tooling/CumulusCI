@@ -123,16 +123,16 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                     dependency.package_dependency, PackageNamespaceVersionDependency
                 ):
                     self.options["version"] = dependency.package_dependency.version
-                    self.options[
-                        "version_id"
-                    ] = dependency.package_dependency.version_id
+                    self.options["version_id"] = (
+                        dependency.package_dependency.version_id
+                    )
                 elif isinstance(
                     dependency.package_dependency, PackageVersionIdDependency
                 ):
                     self.options["version"] = dependency.package_dependency.version_id
-                    self.options[
-                        "version_number"
-                    ] = dependency.package_dependency.version_number
+                    self.options["version_number"] = (
+                        dependency.package_dependency.version_number
+                    )
             else:
                 raise CumulusCIException(
                     f"The release for {version} does not identify a package version."
@@ -189,6 +189,23 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             self.org_config,
             self.install_options,
             self.retry_options,
+        )
+        package_type = (
+            "managed_1gp"
+            if isinstance(dep, PackageNamespaceVersionDependency)
+            else None
+        )
+        self._track_package_install(
+            name=dep.package_name,
+            namespace=dep.namespace if hasattr(dep, "namespace") else None,
+            version=dep.version_number,
+            version_id=dep.version_id,
+            package_type=package_type,
+            activate_remote_site_settings=self.install_options.activate_remote_site_settings,
+            name_conflict_resolution=self.install_options.name_conflict_resolution,
+            security_type=self.install_options.security_type,
+            apex_compile_type=self.install_options.apex_compile_type,
+            upgrade_type=self.install_options.upgrade_type,
         )
 
         self.org_config.reset_installed_packages()

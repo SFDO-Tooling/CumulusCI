@@ -95,6 +95,8 @@ class ListChanges(BaseSalesforceApiTask):
         for change in filtered:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
 
+        self.return_values["changes"] = filtered
+
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
             self._store_snapshot(filtered)
@@ -395,9 +397,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         self.options["path"] = path
 
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = (
+                self.project_config.project__package__api_version
+            )
 
     def _run_task(self):
         self._load_snapshot()
@@ -420,6 +422,8 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                     "uninstall_class": self.project_config.project__package__uninstall_class,
                 }
             )
+
+        self.return_values["changes"] = filtered
 
         retrieve_components(
             filtered,

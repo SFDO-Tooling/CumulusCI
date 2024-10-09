@@ -20,6 +20,9 @@ class SfdxOrgConfig(OrgConfig):
 
         # On-demand creation of scratch orgs
         if self.createable and not self.created:
+            if self.config.get("org_id") and self.track_history:
+                self.history.rotate_org(self.config)
+
             self.create_org()
 
         username = self.config.get("username")

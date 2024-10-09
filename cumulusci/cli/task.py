@@ -167,9 +167,13 @@ class RunTaskCommand(click.MultiCommand):
             # Merge options from the command line into options from the task config.
             task_config.config["options"].update(options)
 
+            task_instance = None
             try:
-                task = task_class(
-                    task_config.project_config, task_config, org_config=org_config
+                task_instance = task_class(
+                    task_config.project_config,
+                    task_config,
+                    org_config=org_config,
+                    name=task_name,
                 )
 
                 if kwargs.get("debug_before", None):
@@ -177,7 +181,7 @@ class RunTaskCommand(click.MultiCommand):
 
                     pdb.set_trace()
 
-                task()
+                task_instance()
 
                 if kwargs.get("debug_after", None):
                     import pdb
@@ -185,6 +189,9 @@ class RunTaskCommand(click.MultiCommand):
                     pdb.set_trace()
 
             finally:
+                if task_instance and task_instance.action:
+                    org_config.add_action_to_history(task_instance.action)
+
                 runtime.alert(f"Task complete: {task_name}")
 
         cmd = click.Command(task_name, params=params, callback=run_task)

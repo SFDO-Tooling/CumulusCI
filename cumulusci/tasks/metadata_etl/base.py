@@ -1,3 +1,5 @@
+import difflib
+import os
 import tempfile
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -6,11 +8,16 @@ from urllib.parse import quote, unquote
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.org_history import (
+    ActionTransformMetadataDeploy,
+    ActionMetadataTransform,
+)
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.utils import inject_namespace
+from cumulusci.utils.hashing import hash_obj
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
@@ -39,6 +46,16 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
             "description": "Metadata API version to use, if not project__package__api_version."
         },
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.retrieve_dir = None
+        self.deploy_dir = None
+        self.retrieve_hash = None
+        self.retrieve_size = None
+        self.deploy_hash = None
+        self.deploy_size = None
+        self.deploy_diff = None
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
@@ -124,10 +141,70 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         unpackaged = api_retrieve()
         unpackaged.extractall(self.retrieve_dir)
 
+        self.retrieve_hash = hash_obj(self.retrieve_dir)
+        self.retrieve_size = sum(
+            f.stat().st_size for f in self.retrieve_dir.rglob("*") if f.is_file()
+        )
+
+    def _track_metadata_etl(
+        self,
+        deploy: ActionTransformMetadataDeploy = None,
+    ):
+        """Track the metadata request in the org's history."""
+        if deploy:
+            self.tracker.transforms.append(
+                ActionMetadataTransform(
+                    deploy=deploy,
+                    diff=self.deploy_diff,
+                )
+            )
+
     @abstractmethod
     def _transform(self):
         """Transform the metadata in self.retrieve_dir into self.deploy_dir."""
         pass
+
+    def _create_diff(self):
+        """Create a diff of the retrieved and transformed metadata."""
+        if not self.deploy_dir:
+            return
+        if not self.retrieve_dir:
+            return
+
+        # List all files in both directories
+        deploy_files = {
+            os.path.relpath(os.path.join(root, file), self.deploy_dir)
+            for root, _, files in os.walk(self.deploy_dir)
+            for file in files
+        }
+        retrieve_files = {
+            os.path.relpath(os.path.join(root, file), self.retrieve_dir)
+            for root, _, files in os.walk(self.retrieve_dir)
+            for file in files
+        }
+
+        # Find common files
+        common_files = deploy_files & retrieve_files
+
+        for file in common_files:
+            deploy_file_path = os.path.join(self.deploy_dir, file)
+            retrieve_file_path = os.path.join(self.retrieve_dir, file)
+
+            with open(deploy_file_path, "r") as deploy_file, open(
+                retrieve_file_path, "r"
+            ) as retrieve_file:
+                deploy_lines = deploy_file.readlines()
+                retrieve_lines = retrieve_file.readlines()
+
+                # Create a diff
+                diff = difflib.unified_diff(
+                    retrieve_lines,
+                    deploy_lines,
+                    fromfile=f"retrieve/{file}",
+                    tofile=f"deploy/{file}",
+                )
+                self.deploy_diff = "\n".join(list(diff))
+        return self.deploy_diff
 
     def _deploy(self):
         """Deploy metadata from self.deploy_dir"""
@@ -141,20 +218,32 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         from cumulusci.tasks.salesforce import Deploy
 
         api = Deploy(
-            self.project_config,
-            TaskConfig(
+            name=f"{self.name}__deploy",
+            project_config=self.project_config,
+            task_config=TaskConfig(
                 {
+                    "name": f"{self.name}__deploy",
+                    "class_path": "cumulusci.tasks.salesforce.Deploy",
                     "options": {
                         "path": self.deploy_dir,
                         "namespace_inject": self.options.get("namespace_inject"),
                         "unmanaged": not self.options["managed"],
                         "namespaced_org": self.options["namespaced_org"],
-                    }
-                }
+                    },
+                },
             ),
-            self.org_config,
+            org_config=self.org_config,
         )
+
         result = api()
+        api_deploy = api.tracker.deploys.repo[0]
+        self._track_metadata_etl(
+            deploy=ActionTransformMetadataDeploy(
+                hash=api_deploy.hash,
+                size=api_deploy.size,
+                option=None,
+            )
+        )
 
         return result
 
@@ -169,9 +258,11 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
             if self.retrieve:
                 self._retrieve()
             self._transform()
+            self._create_diff()
             if self.deploy:
                 result = self._deploy()
                 self._post_deploy(result)
+                self._track_metadata_etl()
 
 
 class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
@@ -242,7 +333,8 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
 class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABCMeta):
     """Base class for a Metadata ETL task that affects one or more
     instances of a specific metadata entity. Concrete subclasses must set
-    `entity` to the Metadata API entity transformed, and implement _transform_entity()."""
+    `entity` to the Metadata API entity transformed, and implement _transform_entity().
+    """
 
     entity = None
 
