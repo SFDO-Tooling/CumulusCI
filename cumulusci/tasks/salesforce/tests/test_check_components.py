@@ -171,7 +171,7 @@ class TestCheckComponents:
     def test_init_options_with_neither_paths_nor_name(self):
         with pytest.raises(
             TaskOptionsError,
-            match="This task requires a plan/flow name or paths options. pass --paths or --name options",
+            match="This task requires a plan/flow name or paths options. Pass --paths or --name options",
         ):
             create_task(CheckComponents, {})
 
