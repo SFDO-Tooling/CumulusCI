@@ -271,7 +271,7 @@ class CheckComponents(BaseSalesforceTask):
         api_retrieve_unpackaged_object = self.api_retrieve_unpackaged(
             self, package_xml.read(), version
         )
-        
+
         response_messages = parseString(
             api_retrieve_unpackaged_object._get_response().content
         ).getElementsByTagName("messages")
