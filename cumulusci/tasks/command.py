@@ -146,7 +146,7 @@ class SalesforceCommand(Command):
     """Execute a Command with SF credentials provided on the environment.
 
     Provides:
-     * SF_INSTANCE_URL
+     * SF_ORG_INSTANCE_URL
      * SF_ACCESS_TOKEN
     """
 
@@ -158,7 +158,7 @@ class SalesforceCommand(Command):
     def _get_env(self):
         env = super(SalesforceCommand, self)._get_env()
         env["SF_ACCESS_TOKEN"] = self.org_config.access_token
-        env["SF_INSTANCE_URL"] = self.org_config.instance_url
+        env["SF_ORG_INSTANCE_URL"] = self.org_config.instance_url
         return env
 
 

@@ -61,7 +61,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             return delta.days + 1
 
     def create_org(self) -> None:
-        """Uses sfdx force:org:create to create the org"""
+        """Uses sf org create scratch  to create the org"""
         if not self.config_file:
             raise ScratchOrgException(
                 f"Scratch org config {self.name} is missing a config_file"
@@ -72,7 +72,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         args: List[str] = self._build_org_create_args()
         extra_args = os.environ.get("SFDX_ORG_CREATE_ARGS", "")
         p: sarge.Command = sfdx(
-            f"force:org:create --json {extra_args}",
+            f"org create scratch --json {extra_args}",
             args=args,
             username=None,
             log_note="Creating scratch org",
@@ -139,33 +139,32 @@ class ScratchOrgConfig(SfdxOrgConfig):
         args = ["-f", self.config_file, "-w", "120"]
         devhub_username: Optional[str] = self._choose_devhub_username()
         if devhub_username:
-            args += ["--targetdevhubusername", devhub_username]
+            args += ["--target-dev-hub", devhub_username]
         if not self.namespaced:
-            args += ["-n"]
+            args += ["--no-namespace"]
         if self.noancestors:
-            args += ["--noancestors"]
+            args += ["--no-ancestors"]
         if self.days:
-            args += ["--durationdays", str(self.days)]
+            args += ["--duration-days", str(self.days)]
         if self.release:
-            args += [f"release={self.release}"]
+            args += [f"--release={self.release}"]
         if self.sfdx_alias:
             args += ["-a", self.sfdx_alias]
         with open(self.config_file, "r") as org_def:
             org_def_data = json.load(org_def)
             org_def_has_email = "adminEmail" in org_def_data
         if self.email_address and not org_def_has_email:
-            args += [f"adminEmail={self.email_address}"]
+            args += [f"--admin-email={self.email_address}"]
         if self.default:
-            args += ["-s"]
-        if instance := self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE"):
-            args += [f"instance={instance}"]
+            args += ["--set-default"]
+
         return args
 
     def _choose_devhub_username(self) -> Optional[str]:
         """Determine which devhub username to specify when calling sfdx, if any."""
         # If a devhub was specified via `cci org scratch`, use it.
         # (This will return None if "devhub" isn't set in the org config,
-        # in which case sfdx will use its defaultdevhubusername.)
+        # in which case sf will use its target-dev-hub.)
         devhub_username = self.devhub
         if not devhub_username and self.keychain is not None:
             # Otherwise see if one is configured via the "devhub" service
@@ -178,7 +177,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         return devhub_username
 
     def generate_password(self) -> None:
-        """Generates an org password with: sfdx force:user:password:generate.
+        """Generates an org password with: sf org generate password.
         On a non-zero return code, set the password_failed in our config
         and log the output (stdout/stderr) from sfdx."""
 
@@ -187,7 +186,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             return
 
         p: sarge.Command = sfdx(
-            "force:user:password:generate",
+            "org generate password",
             self.username,
             log_note="Generating scratch org user password",
         )
@@ -214,13 +213,13 @@ class ScratchOrgConfig(SfdxOrgConfig):
         return bool(self.date_created)
 
     def delete_org(self) -> None:
-        """Uses sfdx force:org:delete to delete the org"""
+        """Uses sf org delete scratch to delete the org"""
         if not self.created:
             self.logger.info("Skipping org deletion: the scratch org does not exist.")
             return
 
         p: sarge.Command = sfdx(
-            "force:org:delete -p", self.username, "Deleting scratch org"
+            "org delete scratch -p", self.username, "Deleting scratch org"
         )
         sfdx_output: List[str] = list(p.stdout_text) + list(p.stderr_text)
 

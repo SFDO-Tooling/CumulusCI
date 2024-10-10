@@ -115,7 +115,7 @@ Scratch org limits are based on your Dev Hub's edition and your
 Salesforce contract. To review limits and consumption, run the command:
 
 ```console
-$ sfdx force:limits:api:display -u <username>
+$ sf org list limits --target-org <username>
 ```
 
 `<username>` is your Dev Hub username. The limit names are

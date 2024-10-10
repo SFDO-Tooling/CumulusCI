@@ -181,15 +181,15 @@ The Cumulus Suite Actions **require CumulusCI 3.61.1 or greater** for any operat
 All Actions that interact with persistent orgs (such as a packaging org or Dev Hub) authorize those orgs using SFDX Auth URLs.
 These URLs are obtained via by first authorizing an org to the CLI:
 
-`sfdx auth:web:login -a packaging`
+`sf org login web -a packaging`
 
 and then retrieving the auth URL from the JSON output of the command
 
-`sfdx force:org:display --json --verbose`
+`sf org display --json --verbose`
 
 under the key `sfdxAuthUrl` under `result`.
 
-If you have `jq` installed, you can do `sfdx force:org:display -u packaging-gh --json --verbose | jq -r .result.sfdxAuthUrl`.
+If you have `jq` installed, you can do `sf org display -u packaging-gh --json --verbose | jq -r .result.sfdxAuthUrl`.
 
 First-generation package projects will have two auth-URL secrets, for the packaging org and for the Dev Hub.
 Second-generation and Unlocked package projects will have at least one auth-URL secret, for the Dev Hub, and may have

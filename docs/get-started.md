@@ -180,12 +180,12 @@ To set up Salesforce DX:
     Org](https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm)
 3.  [Connect SFDX to Your Dev Hub
     Org](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm) -
-    Be sure to use the `--setdefaultdevhubusername` option!
+    Be sure to use the `--set-default-dev-hub` option!
 
-If you have the `sfdx` command installed, are connected to your Dev Hub,
-and set the `defaultdevhubusername` config setting (use
-`sfdx force:config:list` to verify), you're now ready to use `cci` with
-`sfdx` to build scratch orgs.
+If you have the `sf` command installed, are connected to your Dev Hub,
+and set the `target-dev-hub` config setting (use
+`sf config list` to verify), you're now ready to use `cci` with
+`sf` to build scratch orgs.
 
 ```{important}
 SFDX supports multiple Dev Hubs, so CumulusCI uses the one set as
@@ -464,7 +464,7 @@ package namespace matches the namespace you entered when running
     command to extract your package metadata.
 
 ```console
-$ sfdx force:source:retrieve -n package_name /path/to/project/
+$ sf project retrieve start -n package_name /path/to/project/
 ```
 
 That's it! You now have all of the metadata you care about in a single

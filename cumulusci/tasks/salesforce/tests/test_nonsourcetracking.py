@@ -215,9 +215,9 @@ class TestRetrieveComponents:
                 assert "SharingRules: alpha" in messages
                 assert "SharingRules: BusinessBrand" not in messages
                 assert sfdx_calls == [
-                    "force:mdapi:convert",
-                    "force:source:retrieve",
-                    "force:source:convert",
+                    "project convert mdapi",
+                    "project retrieve start",
+                    "project convert source",
                 ]
                 assert os.path.exists(os.path.join("src", "package.xml"))
 

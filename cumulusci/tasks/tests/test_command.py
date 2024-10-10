@@ -126,4 +126,4 @@ class TestSalesforceCommand:
         task = SalesforceCommand(self.project_config, self.task_config, self.org_config)
         env = task._get_env()
         assert "SF_ACCESS_TOKEN" in env
-        assert "SF_INSTANCE_URL" in env
+        assert "SF_ORG_INSTANCE_URL" in env
