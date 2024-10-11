@@ -472,7 +472,7 @@ class TestCreatePackageVersion:
             return_value=devhub_config,
         ):
             task()
-
+        zf.close()
         assert task.return_values["dependencies"] == [
             {"version_id": "04t000000000009AAA"}
         ]

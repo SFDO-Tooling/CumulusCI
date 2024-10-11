@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 import responses
+from responses.matchers import json_params_matcher
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubException, TaskOptionsError
@@ -354,7 +355,7 @@ class TestCreateRelease(GithubApiTestMixin):
             url=self.repo_api_url + "/releases",
             json=self._get_expected_release("release"),
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "tag_name": "beta/1.1",
                         "name": "1.1",

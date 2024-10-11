@@ -783,12 +783,11 @@ class TestSnowfakery:
                 "recipe": Path(__file__).parent
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
-                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "loading_rules": Path(__file__).parent
                 / "snowfakery/simple_snowfakery_channels.load.yml",
             },
         )
-        with mock.patch.object(
+        with pytest.warns(UserWarning), mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
         ) as keychain:
 
@@ -833,7 +832,6 @@ class TestSnowfakery:
                 "recipe": Path(__file__).parent
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
-                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "bulk_mode": "Serial",
             },
         )
