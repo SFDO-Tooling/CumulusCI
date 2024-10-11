@@ -129,8 +129,11 @@ removeXmlElement = remove_xml_element_directory
 def download_extract_zip(url, target=None, subfolder=None, headers=None):
     if not headers:
         headers = {}
-    resp = requests.get(url, headers=headers)
-    zip_content = io.BytesIO(resp.content)
+    if url.startswith("file://"):
+        zip_content = url[7:]
+    else:
+        resp = requests.get(url, headers=headers)
+        zip_content = io.BytesIO(resp.content)
     zip_file = zipfile.ZipFile(zip_content)
     if subfolder:
         zip_file = zip_subfolder(zip_file, subfolder)
