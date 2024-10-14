@@ -97,7 +97,10 @@ class TestCreateConnectedApp(MockLoggerMixin):
         )
         task.tempdir = "asdf"
         command = task._get_command()
-        assert command == "sfdx force:mdapi:deploy --wait 5 -u username -d asdf"
+        assert (
+            command
+            == "sf project deploy start --wait 5 -o username --metadata-dir asdf"
+        )
 
     def test_process_json_output(self):
         """_process_json_output returns valid json"""

@@ -17,7 +17,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
 
-SFDX_CLI = "sfdx"
+SFDX_CLI = "sf"
 
 
 class SFDXBaseTask(Command):
@@ -47,20 +47,20 @@ class SFDXOrgTask(SFDXBaseTask, BaseSalesforceTask):
         command = super()._get_command()
         # For scratch orgs, just pass the username in the command line
         if isinstance(self.org_config, ScratchOrgConfig):
-            command += " -u {username}".format(username=self.org_config.username)
+            command += " -o {username}".format(username=self.org_config.username)
         return command
 
     def _get_env(self):
         env = super(SFDXOrgTask, self)._get_env()
         if not isinstance(self.org_config, ScratchOrgConfig):
             # For non-scratch keychain orgs, pass the access token via env var
-            env["SFDX_INSTANCE_URL"] = self.org_config.instance_url
-            env["SFDX_DEFAULTUSERNAME"] = self.org_config.access_token
+            env["SF_ORG_INSTANCE_URL"] = self.org_config.instance_url
+            env["SF_TARGET_ORG"] = self.org_config.access_token
         return env
 
 
 class SFDXJsonTask(SFDXOrgTask):
-    command = "force:mdapi:deploy --json"
+    command = "project deploy start --json"
 
     task_options = {
         "extra": {"description": "Append additional options to the command"}

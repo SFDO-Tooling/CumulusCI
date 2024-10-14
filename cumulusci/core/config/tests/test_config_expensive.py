@@ -376,7 +376,7 @@ class TestScratchOrgConfig:
             with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 access_token = config.get_access_token(alias="dadvisor")
                 sfdx.assert_called_once_with(
-                    "force:org:display --targetusername=whatever@example.com --json"
+                    "org display --target-org=whatever@example.com --json"
                 )
                 assert access_token == "the-token"
 
@@ -792,7 +792,6 @@ class TestScratchOrgConfigPytest:
                 "noancestors": True,
                 "sfdx_alias": "project__org",
                 "default": True,
-                "instance": "NA01",
                 "release": "previous",
             },
             "test",
@@ -804,18 +803,17 @@ class TestScratchOrgConfigPytest:
             "tmp.json",
             "-w",
             "120",
-            "--targetdevhubusername",
+            "--target-dev-hub",
             "fake@fake.devhub",
-            "-n",
-            "--noancestors",
-            "--durationdays",
+            "--no-namespace",
+            "--no-ancestors",
+            "--duration-days",
             "1",
-            "release=previous",
+            "--release=previous",
             "-a",
             "project__org",
-            "adminEmail=test@example.com",
-            "-s",
-            "instance=NA01",
+            "--admin-email=test@example.com",
+            "--set-default",
         ]
 
     def test_build_org_create_args__email_in_scratch_def(self):
