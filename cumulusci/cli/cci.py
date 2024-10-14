@@ -1,5 +1,6 @@
 import code
 import contextlib
+import os
 import pdb
 import runpy
 import sys
@@ -52,6 +53,7 @@ def main(args=None):
 
     This wraps the `click` library in order to do some initialization and centralized error handling.
     """
+
     with contextlib.ExitStack() as stack:
         args = args or sys.argv
 
@@ -71,13 +73,27 @@ def main(args=None):
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
 
+        context_kwargs = {}
+
+        # Allow commands to load additional yaml configuration from a file
+        if "--load-yml" in args:
+            yml_path_index = args.index("--load-yml") + 1
+            try:
+                load_yml_path = args[yml_path_index]
+            except IndexError:
+                raise CumulusCIUsageError("No path specified for --load-yml")
+            if not os.path.isfile(load_yml_path):
+                raise CumulusCIUsageError(f"File not found: {load_yml_path}")
+            with open(load_yml_path, "r") as f:
+                context_kwargs["additional_yaml"] = f.read()
+
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
 
         with set_debug_mode(debug):
             try:
-                runtime = CliRuntime(load_keychain=False)
+                runtime = CliRuntime(load_keychain=False, **context_kwargs)
             except Exception as e:
                 handle_exception(e, is_error_command, tempfile_path, debug)
                 sys.exit(1)
