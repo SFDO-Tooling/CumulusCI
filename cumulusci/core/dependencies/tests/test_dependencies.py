@@ -861,7 +861,7 @@ class TestUnmanagedZipURLDependency:
             context=mock.ANY,
         )
         sfdx_mock.assert_called_once_with(
-            "force:source:convert",
+            "project convert source",
             args=["-d", mock.ANY, "-r", "force-app"],
             capture_output=True,
             check_return=True,

@@ -150,7 +150,7 @@ class ListChanges(BaseSalesforceApiTask):
             self.org_config, ScratchOrgConfig
         ):
             sfdx(
-                "force:source:tracking:reset",
+                "project reset tracking",
                 args=["-p"],
                 username=self.org_config.username,
                 capture_output=True,
@@ -229,7 +229,7 @@ def retrieve_components(
 ):
     """Retrieve specified components from an org into a target folder.
 
-    Retrieval is done using the sfdx force:source:retrieve command.
+    Retrieval is done using the sf project retrieve start command.
 
     Set `md_format` to True if retrieving into a folder with a package
     in metadata format. In this case the folder will be temporarily
@@ -240,7 +240,6 @@ def retrieve_components(
 
     target = os.path.realpath(target)
     profiles = []
-
     # If retrieve_complete_profile and project_config is None, raise error
     # This is because project_config is only required if retrieve_complete_profile is True
     if retrieve_complete_profile and project_config is None:
@@ -274,7 +273,7 @@ def retrieve_components(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
             sfdx(
-                "force:mdapi:convert",
+                "project convert mdapi",
                 log_note="Converting to DX format",
                 args=["-r", target, "-d", "force-app"],
                 check_return=True,
@@ -292,7 +291,7 @@ def retrieve_components(
 
             # Retrieve specified components in DX format
             p = sfdx(
-                "force:source:retrieve",
+                "project retrieve start",
                 access_token=org_config.access_token,
                 log_note="Retrieving components",
                 args=[
@@ -302,10 +301,11 @@ def retrieve_components(
                     os.path.join(package_xml_path, "package.xml"),
                     "-w",
                     "5",
+                    "--ignore-conflicts",
                 ],
                 capture_output=capture_output,
                 check_return=True,
-                env={"SFDX_INSTANCE_URL": org_config.instance_url},
+                env={"SF_ORG_INSTANCE_URL": org_config.instance_url},
             )
 
         # Extract Profiles
@@ -321,11 +321,10 @@ def retrieve_components(
                 task_config=task_config,
             )
             cls_retrieve_profile()
-
         if md_format:
             # Convert back to metadata format
             sfdx(
-                "force:source:convert",
+                "project convert source",
                 log_note="Converting back to metadata format",
                 args=["-r", "force-app", "-d", target],
                 capture_output=capture_output,
