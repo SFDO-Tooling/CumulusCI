@@ -119,17 +119,128 @@ tasks specific to your project when running `cci task list`.
 
 Congratulations! You created a new custom task in CumulusCI.
 
-If you've built a custom task in Python, you can make it available to
-the project by adding the task under the `tasks` section of the
-`cumulusci.yml` file. (Let's assume that your task's class is named
-`MyNewTaskClassName` and exists in the file `tasks/task_file.py`.)
+### Custom Tasks in Python
+
+You can use Python to implement entirely new functionality. You do so by
+putting it in the "tasks" subdiretory of your project. For example, you
+might write a file called `tasks/write_file_custom_task.py`.
+
+```python
+from pathlib import Path
+
+from cumulusci.core.tasks import BaseTask, CCIOptions
+from cumulusci.utils.options import Field
+
+
+class WriteFileCustomTask(BaseTask):
+    class Options(CCIOptions):
+        mypath: Path = Field(..., description="A filepath to be used by the task")
+        mystring: str = Field("Hello", description="A string to be used by the task")
+
+    parsed_options: Options
+
+    def _run_task(self):
+        file = self.parsed_options.mypath
+        data = self.parsed_options.mystring
+        file.write_text(data)
+        self.logger.info(f"Wrote {data} to {file}")
+```
+
+You can make it available to
+the project by adding it under the `tasks` section of the
+`cumulusci.yml` file. If one does not exist, you can
+create one.
 
 ```yaml
 tasks:
     my_new_task:
-        description: Description of the task
-        class_path: tasks.task_file.MyNewTaskClassName
-        group: projectName
+        description: My custom task to write data to a file
+            class_path: tasks.write_file_custom_task.WriteFileCustomTask
+            group: projectName
+```
+
+This task will be accessible directly to this project. It will also
+be accessible to any other project that adds this as a source
+(see [Tasks and Flows from a Different Project](tasks-and-flows-from-a-different-project)) with
+`allow_remote_code: True`.
+
+#### Options for Custom Tasks
+
+Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.options.CCIOptions`. These options are validated via the use of [Pydantic models](https://pydantic-docs.helpmanual.io/usage/models/) which are generated dynamically for each `Options` class.
+Each option can define its own type via either a [standard library type](https://pydantic-docs.helpmanual.io/usage/types/) or by utilizing a custom type from [`cumulusci.utils.options`](https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/utils/options.py).
+Additionally the [`Field()`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`) function is useful for further customizing options. This can be imported from `cumulusci.utils.options` and used when defining individual options.
+It has the same features as the pydantic function.
+
+The task above (`WriteFileCustomTask`) takes two options: (1) A defaulted string (myString),
+and (2) A required file path.
+
+Once the options are defined, they can be accessed via the `parsed_options` property of the task.
+
+```{important}
+When the nested `Options` class is defined within your custom task (or is part of a class you inherit from), it restricts modifications to the `options` property of the task, making it read-only. To make any changes, you should instead modify the `parsed_options` property rather than the `options` property.
+```
+
+Some of the most commonly used types are:
+
+-   `pathlib.Path`: simply uses the type itself for validation by passing the value to Path(v);
+-   `FilePath`: like Path, but the path must exist and be a file
+-   `DirectoryPath`: like Path, but the path must exist and be a directory
+-   `MappingOption`: Parses pairs of values from a string in format "a:b,c:d"
+-   `ListOfStringsOption`: Parses a list of comma-separated strings from an argument in the format "abc,def,ghi"
+-   `JSON`: Parse a JSON string into a structure, including a deeply nested structure
+
+Others can be found in the [pydantic docs](https://pydantic-docs.helpmanual.io/usage/types).
+
+If you are comfortable with Python types, you can do very sophisticated parsing.
+For example:
+
+```python
+from typing import Optional
+
+from pydantic import Json
+
+from cumulusci.core.tasks import BaseTask, CCIOptions
+from cumulusci.utils.options import Field
+
+
+class Person(CCIOptions):
+    name: str
+    children: Optional[dict[str, "Person"]]
+
+
+People = dict[str, Person]
+
+
+class ComplexOptionsCustomTask(BaseTask):
+    class Options(CCIOptions):
+        lineage: Json[People] | People = Field(..., description="Foo")
+
+    parsed_options: Options
+
+    def _run_task(self):
+        self.logger.info(f"Got {self.parsed_options.lineage}")
+```
+
+Which can parse this commmand line:
+
+```sh
+$ cci task run complex_options --lineage '{"Bob": {"name": "Bob Cat Sr", "children": {"Bob": {"name": "Bob Cat Jr"}}}}'
+    Got {'Bob': Person(name='Bob Cat Sr', children={'Bob': Person(name='Bob Cat Jr', children=None)})}
+```
+
+Or this YAML:
+
+```yaml
+complex_options:
+    description: Description of the task
+    class_path: tasks.complex_options_custom_task.ComplexOptionsCustomTask
+    options:
+        lineage:
+            Bob:
+                name: Bob Cat Sr
+                children:
+                    Bob:
+                        name: Bob Cat Jr
 ```
 
 (use-variables-for-task-options)=
@@ -474,6 +585,17 @@ flows:
 This flow uses NPSP's `install_prod` flow to install NPSP as a managed
 package, and then run this project's own `dev_org` flow.
 
+If the flow uses tasks that are implemented in custom Python code
+(see [Add a Custom Task](#add-a-custom-task))
+then you must instruct CumulusCI to allow that code to run:
+
+```yaml
+sources:
+    eda:
+        github: https://github.com/SalesforceFoundation/EDA
+        allow_remote_code: True
+```
+
 (scratch-org-configurations)=
 
 ## Scratch Org Configurations
@@ -653,41 +775,67 @@ method](https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cde
 sets `self.return_values` to a dictionary with these keys:
 `version_number`, `version_id`, and `package_id`.
 
-Now look at the standard `release_beta` flow defined in the universal
+Now look at the standard `release_unlocked_production` flow defined in the universal
 `cumulusci.yml` file:
 
 ```yaml
-release_beta:
-    description: Upload and release a beta version of the metadata currently in packaging
+release_unlocked_production:
+    group: Release Operations
+    description: Promote the latest beta 2GP unlocked package version and create a new release in GitHub
     steps:
         1:
-            task: upload_beta
-            options:
-                name: Automated beta release
+            task: promote_package_version
         2:
             task: github_release
             options:
-                version: ^^upload_beta.version_number
+                version: ^^promote_package_version.version_number
+                version_id: ^^promote_package_version.version_id
+                dependencies: ^^promote_package_version.dependencies
+                package_type: 2GP
+                tag_prefix: $project_config.project__git__prefix_release
         3:
             task: github_release_notes
-            ignore_failure: True ## Attempt to generate release notes but don't fail build
+            ignore_failure: True
             options:
-                link_pr: True
                 publish: True
                 tag: ^^github_release.tag_name
-                include_empty: True
-                version_id: ^^upload_beta.version_id
-        4:
-            task: github_master_to_feature
+                version_id: ^^promote_package_version.version_id
 ```
 
 This flow shows how subsequent tasks can reference the return values of
 a prior task. In this case, the `github_release` task uses the
-`version_numer` set by the `upload_beta` task as an option value with
-the `^^upload_beta.version_number` syntax. Similarly, the
-`github_release_notes` task uses the `version_id` set by the
-`upload_beta` task as an option value with the
-`^^upload_beta.version_id` syntax.
+`version_numer` set by the `promote_package_version` task as an option value
+with the `^^promote_package_version.version_number` syntax. Here, `dependencies`
+is of type list and it uses the list from `promote_package_version` task as an
+option value with `^^promote_package_version.dependencies` syntax.
+
+Similarly, the `github_release_notes` task uses the `version_id` set by the
+`promote_package_version` task as an option value with the
+`^^promote_package_version.version_number` syntax and uses the `tag` set by
+`github_release` task as an option value with the `^^github_release.tag_name`
+syntax.
+
+The below `example_flow` shows how the task options of type list CANNOT be used.
+Here, `update_dependencies` task does not set the task option `dependencies`
+as the list of values from the prior tasks. Similarly, task options of type
+dictionary cannot be set as key value pairs from the prior tasks.
+
+```yaml
+example_flow:
+    description: You cannot make a list/dict with return values like below
+    steps:
+        1:
+            task: get_latest_version_example
+        2:
+            task: get_old_version_example
+        3:
+            task: update_dependencies
+            options:
+                dependencies:
+                    - latest_version_id: ^^get_latest_version_example.version_id
+                    - version_id: ^^get_old_version_example.version_id
+                packages_only: true
+```
 
 ## Troubleshoot Configurations
 

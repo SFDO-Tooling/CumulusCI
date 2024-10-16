@@ -1,0 +1,39 @@
+{
+    "status": "DONE",
+    "entities": {
+        "assets": {
+            "0": {
+                "issues": [],
+                "data": {},
+                "action": {
+                    "type": "create",
+                    "available": true,
+                    "issues": []
+                },
+                "actions": {
+                    "update": {
+                        "type": "update",
+                        "available": false,
+                        "issues": []
+                    },
+                    "create": {
+                        "type": "create",
+                        "available": true,
+                        "issues": []
+                    },
+                    "reuse": {
+                        "type": "reuse",
+                        "available": false,
+                        "issues": []
+                    },
+                    "skip": {
+                        "type": "skip",
+                        "available": false
+                    }
+                },
+                "renameable": true,
+                "status": "READY"
+            }
+        }
+    }
+}

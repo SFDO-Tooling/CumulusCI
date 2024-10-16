@@ -2,7 +2,6 @@
 import json
 import os
 import pathlib
-from distutils.version import StrictVersion
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -42,8 +41,9 @@ from cumulusci.core.keychain.base_project_keychain import (
     BaseProjectKeychain,
 )
 from cumulusci.core.source import LocalFolderSource
-from cumulusci.tests.util import DummyKeychain
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, DummyKeychain
 from cumulusci.utils import temporary_dir, touch
+from cumulusci.utils.version_strings import StrictVersion
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
 
 
@@ -682,6 +682,7 @@ class TestBaseProjectConfig:
     @mock.patch("cumulusci.core.config.project_config.GitHubSource")
     def test_include_source__github(self, source):
         source.return_value = expected_result = mock.Mock()
+        expected_result.fetch.return_value.repo_root = "/whatever"
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
         other_config = project_config.include_source(
@@ -1037,11 +1038,13 @@ class TestOrgConfig:
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET", "https://na01.salesforce.com/services/data", json=[{"version": 42.0}]
+            "GET",
+            "https://na01.salesforce.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
-        assert config.latest_api_version == "42.0"
+        assert config.latest_api_version == CURRENT_SF_API_VERSION
 
     @responses.activate
     def test_get_salesforce_version_bad_json(self):
@@ -1092,12 +1095,14 @@ class TestOrgConfig:
             "test",
         )
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "OrganizationType": "Enterprise Edition",
                 "IsSandbox": False,
@@ -1128,11 +1133,15 @@ class TestOrgConfig:
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
-        responses.add("GET", "https://test/services/data", json=[{"version": 48.0}])
+        responses.add(
+            "GET",
+            "https://test/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
 
         responses.add(
             "GET",
-            "https://test/services/data/v48.0/connect/communities",
+            f"https://test/services/data/v{CURRENT_SF_API_VERSION}/connect/communities",
             json={"communities": [{"name": "Kōkua"}]},
         )
 
@@ -1386,12 +1395,14 @@ class TestOrgConfig:
         ), "_is_person_accounts_enabled should be initialized as None"
 
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/describe",
             json={"fields": [{"name": "Id"}]},
         )
 
@@ -1421,12 +1432,14 @@ class TestOrgConfig:
         ), "_is_person_accounts_enabled should be initialized as None"
 
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/describe",
             json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
         )
 
@@ -1457,7 +1470,9 @@ class TestOrgConfig:
 
         # Login call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # CurrencyType describe() call.
@@ -1465,7 +1480,7 @@ class TestOrgConfig:
         # Therefore, the describe call will result in a 404.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/CurrencyType/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1476,7 +1491,7 @@ class TestOrgConfig:
         # Add a second 404 to demonstrate we always check the describe until we detect Multiple Currencies is enabled.  From then on, we cache the fact that Multiple Currencies is enabled knowing Multiple Currencies cannot be disabled.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/CurrencyType/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1522,14 +1537,16 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # CurrencyType describe() call.
         # Since Multiple Currencies is enabled, so the describe call returns a 200.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/CurrencyType/describe",
             json={
                 # The actual payload doesn't matter; only matters is we get a 200.
             },
@@ -1571,7 +1588,9 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # DatedConversionRate describe() call.
@@ -1579,7 +1598,7 @@ class TestOrgConfig:
         # Therefore, the describe call will result in a 404.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/DatedConversionRate/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1612,7 +1631,9 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # DatedConversionRate describe() call.
@@ -1620,7 +1641,7 @@ class TestOrgConfig:
         # However, ACM is not enabled so DatedConversionRate is not createable.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/DatedConversionRate/describe",
             json={"createable": False},
         )
 
@@ -1650,7 +1671,9 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # DatedConversionRate describe() call.
@@ -1658,7 +1681,7 @@ class TestOrgConfig:
         # However, ACM is not enabled so DatedConversionRate is not createable.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/DatedConversionRate/describe",
             json={"createable": True},
         )
 
@@ -1686,13 +1709,15 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # describe()
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/PermissionSet/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/PermissionSet/describe",
             json={"fields": [{"name": "PermissionsAllowSurveyAdvancedFeatures"}]},
         )
 
@@ -1711,13 +1736,15 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # describe()
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/PermissionSet/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/PermissionSet/describe",
             json={"fields": [{"name": "foo"}]},
         )
 

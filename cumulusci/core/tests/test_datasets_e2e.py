@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -103,6 +104,9 @@ class TestDatasetsE2E:
     def demo_dataset(
         self, dataset, timer, sf, delete_data_from_org, run_code_without_recording
     ):
+        # Need record types for the RecordTypeId field to be in the org
+        create_record_type_for_account(sf, run_code_without_recording)
+
         def count(sobject):
             return sf.query(f"select count(Id) from {sobject}")["records"][0]["expr0"]
 
@@ -110,6 +114,9 @@ class TestDatasetsE2E:
         timer.checkpoint("Before create")
         # Create a dataset directory and associated files
         dataset.create()
+        load_rules = [{"sf_object": "Account", "api": "rest"}]
+        dataset.load_rules_file.write_text(yaml.safe_dump(load_rules))
+
         timer.checkpoint("After create")
 
         # Read selected schema objects and fields into a T.Dict[str, T.List[str]]
@@ -122,11 +129,13 @@ class TestDatasetsE2E:
         objs["Account"].remove("Description")
         objs["Account"].remove("History__c")
         objs["Account"].remove("ns__Description__c")
+        objs["Account"].remove("ns__LinkedAccount__c")
         objs["Account"].remove("Primary_Contact__c")
         dataset.update_schema_subset(objs)
         timer.checkpoint("Updated Subset")
 
-        # Read full schema in a Datastructure like {"Account": {"Name": True, "Description": False}}
+        # Read full schema in a Datastructure like
+        # {"Account": {"Name": True, "Description": False}}
         objs = dataset.read_which_fields_selected()
         assert objs["Account"]["Name"] is True
         assert objs["Account"]["Description"] is False
@@ -155,7 +164,13 @@ class TestDatasetsE2E:
         timer.checkpoint("Verified")
 
     def test_datasets_extract_standard_objects(
-        self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
+        self,
+        sf,
+        project_config,
+        org_config,
+        delete_data_from_org,
+        ensure_accounts,
+        run_code_without_recording,
     ):
         timer = Timer()
         timer.checkpoint("Started")
@@ -165,6 +180,9 @@ class TestDatasetsE2E:
             describe_for("Contact"),
             describe_for("Opportunity"),
         )
+        # Need record types for the RecordTypeId field to be in the org
+        create_record_type_for_account(sf, run_code_without_recording)
+
         with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
             "cumulusci.core.datasets.get_org_schema",
             lambda _sf, org_config, **kwargs: _fake_get_org_schema(
@@ -208,11 +226,19 @@ class TestDatasetsE2E:
     def test_datasets_read_explicit_extract_declaration(
         self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
     ):
-        object_counts = {"Account": 6, "Contact": 1, "Opportunity": 5}
+        object_counts = {
+            "Account": 6,
+            "Contact": 1,
+            "Opportunity": 5,
+            "Lead": 1,
+            "Event": 2,
+        }
         obj_describes = (
             describe_for("Account"),
             describe_for("Contact"),
             describe_for("Opportunity"),
+            describe_for("Lead"),
+            describe_for("Event"),
         )
         with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
             "cumulusci.core.datasets.get_org_schema",
@@ -231,23 +257,78 @@ class TestDatasetsE2E:
 
             dataset.create()
             with TemporaryDirectory() as t:
-                def_file = Path(t) / "test_extract_definition"
-                with open(def_file, "w") as f:
-                    yaml.safe_dump({"extract": {"Account": {"fields": "Name"}}}, f)
+
+                def write_yaml(filename: str, json: Any):
+                    full_path = Path(t) / filename
+                    with open(full_path, "w") as f:
+                        yaml.safe_dump(json, f)
+                    return full_path
+
+                extract_def = write_yaml(
+                    "test_extract_definition",
+                    {
+                        "extract": {
+                            "Account": {"fields": ["Name"]},
+                            "Contact": {
+                                "fields": ["FirstName", "LastName", "AccountId"]
+                            },
+                            "Event": {"fields": ["Subject", "WhoId"]},
+                        }
+                    },
+                )
+                loading_rules = write_yaml(
+                    "loading_rules.load.yml",
+                    [
+                        {"sf_object": "Account", "load_after": "Contact"},
+                        {"sf_object": "Lead", "load_after": "Event"},
+                    ],
+                )
 
                 # Don't actually extract data.
                 with patch("cumulusci.tasks.bulkdata.ExtractData._run_task"):
-                    dataset.extract(extraction_definition=def_file)
+                    dataset.extract(
+                        extraction_definition=extract_def,
+                        loading_rules_file=loading_rules,
+                    )
             with open(dataset.mapping_file) as p:
                 actual = yaml.safe_load(p)
                 expected = {
+                    "Insert Contact": {
+                        "sf_object": "Contact",
+                        "table": "Contact",
+                        "fields": ["FirstName", "LastName"],
+                        "lookups": {
+                            "AccountId": {
+                                "table": ["Account"],
+                                "key_field": "AccountId",
+                                "after": "Insert Account",
+                            }
+                        },
+                    },
+                    "Insert Event": {
+                        "sf_object": "Event",
+                        "table": "Event",
+                        "fields": ["Subject"],
+                        "lookups": {
+                            "WhoId": {
+                                "table": ["Contact", "Lead"],
+                                "key_field": "WhoId",
+                                "after": "Insert Lead",
+                            }
+                        },
+                    },
                     "Insert Account": {
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name"],
-                    }
+                    },
+                    "Insert Lead": {
+                        "sf_object": "Lead",
+                        "table": "Lead",
+                        "fields": ["Company", "LastName"],
+                    },
                 }
-                assert actual == expected, actual
+                assert tuple(actual.items()) == tuple(expected.items()), actual.items()
 
             if dataset.path.exists():
                 rmtree(dataset.path)
@@ -277,8 +358,25 @@ class TestLoadDatasets:
         assert called
 
     def test_dataset_with_no_data_or_recipe(self, sf, project_config, org_config):
-
         with setup_test(org_config), Dataset(
             "fxoyoxz", project_config, sf, org_config, schema=None
         ) as dataset, pytest.raises(BulkDataException, match="fxoyoxz"):
             dataset.load()
+
+
+# Need record types for the RecordTypeId field to be in the org
+def create_record_type_for_account(sf, run_code_without_recording):
+    def create_record_type_for_account_real():
+        account_record_types = sf.query(
+            "select Count(Id) from RecordType where SObjectType='Account'"
+        )
+        if account_record_types["records"][0]["expr0"] == 0:
+            sf.RecordType.create(
+                {
+                    "DeveloperName": "PytestAccountRecordType",
+                    "Name": "PytestAccountRecordType",
+                    "SObjectType": "Account",
+                }
+            )
+
+    run_code_without_recording(create_record_type_for_account_real)

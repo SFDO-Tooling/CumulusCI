@@ -37,7 +37,7 @@ class LoadCustomSettings(BaseSalesforceApiTask):
                      MyField__c: 2
     """
 
-    task_options = {
+    task_options = {  # TODO: should use `class Options instead`
         "settings_path": {
             "description": "The path to a YAML settings file",
             "required": True,

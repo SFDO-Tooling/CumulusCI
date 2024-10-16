@@ -83,6 +83,8 @@ class BaseCumulusCI:
         self.project_config = self.project_config_cls(
             self.universal_config, *args, **kwargs
         )
+        if self.project_config is not None:
+            self.project_config._add_tasks_directory_to_python_path()
 
     def _load_keychain(self):
         if self.keychain is not None:

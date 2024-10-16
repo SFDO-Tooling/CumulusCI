@@ -29,7 +29,7 @@ class TestUtilLogging:
             sys.stdout.write(expected_stdout_text)
             sys.stderr.write(expected_stderr_text)
 
-        assert gist_logger.called_once()
+        gist_logger.assert_called_once()
         assert logger.debug.call_count == 3
         assert logger.debug.call_args_list[0][0][0] == "cci test\n"
         assert logger.debug.call_args_list[1][0][0] == expected_stdout_text

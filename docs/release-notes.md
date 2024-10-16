@@ -1,5 +1,7 @@
 # Generate Release Notes
 
+## Using Automatic Release Note Generation
+
 The `github_release_notes` task fetches the text from Pull Requests that
 were merged between two given tags. The task then searches for specific
 titles (Critical Changes, Changes, Issues Closed, New Metadata,
@@ -51,3 +53,38 @@ the [default
 parsers](https://github.com/SFDO-Tooling/CumulusCI/blob/671a0e88cef79e9aeefe1e2b835816cd8141bdbb/cumulusci/cumulusci.yml#L1154)
 that come with CumulusCI.
 ```
+
+## Using Static Release Notes
+
+In some cases, you may wish to use static text as your release notes instead of aggregating them
+from Pull Request content. You can do that by making customizations in your `cumulusci.yml`.
+
+Customize the `github_release` task to include your static content:
+
+```yaml
+tasks:
+    github_release:
+        options:
+            release_content: |
+                # This is my top-level heading
+
+                Here is some body content.
+```
+
+Note that you may use Markdown, provided you indent the content as shown and
+utilize the `|` indicator, which marks a YAML block.
+
+Then, turn off the `github_release_notes` task, where you don't want it to run:
+
+```yaml
+flows:
+    release_beta:
+        steps:
+            3:
+                task: None
+```
+
+You can repeat this configuration for any or all of the flows `release_beta`, `release_production`,
+`release_2gp_beta`, `release_2gp_production`, `release_unlocked_beta`, and `release_unlocked_production`.
+You may choose to customize only the production flows if you want to use auto-generated release notes
+for your beta releases.

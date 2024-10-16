@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
@@ -36,14 +37,14 @@ def setup_test(org_config):
     ), responses.RequestsMock() as rsps:
         rsps.add(
             responses.GET,
-            f"https://orgname.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects",
+            f"{org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects",
             json={"sobjects": [{"name": "WebLink"}]},
             status=200,
         )
         yield
 
 
-class TestCaptureDatasetss:
+class TestCaptureDatasets:
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
     def test_simple_extract(
         self,
@@ -54,11 +55,12 @@ class TestCaptureDatasetss:
         with setup_test(org_config):
             task = create_task(CaptureSampleData, {})
             task()
+            print("Dataset.mock_calls", Dataset.mock_calls)
             # default dataset should created
             Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
             # and extracted
             Dataset().__enter__().extract.assert_called_with(
-                {}, task.logger, None, mock.ANY
+                {}, task.logger, None, mock.ANY, None
             )
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
@@ -68,10 +70,14 @@ class TestCaptureDatasetss:
         create_task,
         org_config,
     ):
-        with setup_test(org_config):
-            extraction_definition = Path("test_extract_definition")
+        with setup_test(org_config), TemporaryDirectory() as t:
+            extraction_definition = Path(t) / "test_extract_definition"
             with open(extraction_definition, "w") as f:
                 f.write("")  # Doesn't matter. We won't parse it
+
+            loading_rules = Path(t) / "test_load_definition"
+            with open(loading_rules, "w") as f:
+                f.write("[]")  # Doesn't matter. We won't parse it
 
             Dataset().__enter__().path.exists.return_value = False
             task = create_task(
@@ -79,6 +85,7 @@ class TestCaptureDatasetss:
                 {
                     "dataset": "mydataset",
                     "extraction_definition": extraction_definition,
+                    "loading_rules": loading_rules,
                 },
             )
             task()
@@ -89,7 +96,7 @@ class TestCaptureDatasetss:
             Dataset().__enter__().create.assert_called_with()
             # and extracted
             Dataset().__enter__().extract.assert_called_with(
-                {}, task.logger, extraction_definition, mock.ANY
+                {}, task.logger, extraction_definition, mock.ANY, loading_rules
             )
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")

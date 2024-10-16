@@ -1,3 +1,5 @@
+# pyright: strict
+
 import typing as T
 
 from cumulusci.salesforce_api.org_schema import Schema
@@ -16,12 +18,14 @@ def _mapping_decl_for_extract_decl(
     decl: SimplifiedExtractDeclarationWithLookups,
 ):
     """Make a CCI extract mapping step from a SimplifiedExtractDeclarationWithLookups"""
-    lookups = {lookup: {"table": table} for lookup, table in decl.lookups.items()}
-    mapping_dict = {
+    lookups = {lookup: {"table": tables} for lookup, tables in decl.lookups.items()}
+    mapping_dict: dict[str, T.Any] = {
         "sf_object": decl.sf_object,
     }
     if decl.where:
         mapping_dict["soql_filter"] = decl.where
+    if decl.api:
+        mapping_dict["api"] = decl.api.value
     mapping_dict["fields"] = decl.fields
     if lookups:
         mapping_dict["lookups"] = lookups

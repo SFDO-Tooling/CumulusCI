@@ -1,6 +1,8 @@
 import typing as T
 from itertools import chain
 
+from snowfakery.cci_mapping_files.declaration_parser import SObjectRuleDeclaration
+
 from cumulusci.salesforce_api.org_schema import Schema
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 from cumulusci.utils.collections import OrderedSet
@@ -16,13 +18,14 @@ from .load_mapping_file_generator import generate_load_mapping_file
 
 
 class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
-    lookups: T.Dict[str, str]
+    lookups: T.Dict[str, T.Union[str, T.Tuple[str, ...]]]
 
 
 def create_load_mapping_file_from_extract_declarations(
     decls: T.Sequence[ExtractDeclaration],
     schema: Schema,
     opt_in_only: T.Sequence[str] = (),
+    loading_rules: T.Sequence[SObjectRuleDeclaration] = (),
 ) -> T.Dict[str, dict]:
     """Create a mapping file from Extract declarations"""
     simplified_decls = flatten_declarations(decls, schema, opt_in_only)  # FIXME
@@ -33,13 +36,15 @@ def create_load_mapping_file_from_extract_declarations(
         fields = tuple(chain(decl.fields, decl.lookups.keys()))
         return MappingStep(
             sf_object=decl.sf_object,
-            fields=zip(fields, fields),
+            fields=dict(zip(fields, fields)),
             # lookups=lookups,      # lookups can be re-created later, for simplicity
         )
 
     mapping_steps = [_mapping_step(decl) for decl in simplified_decls_w_lookups]
 
-    mappings = generate_load_mapping_file(mapping_steps, intertable_dependencies, None)
+    mappings = generate_load_mapping_file(
+        mapping_steps, intertable_dependencies, loading_rules
+    )
     return mappings
 
 
@@ -49,9 +54,9 @@ def _discover_dependendencies(simplified_decls: T.Sequence):
     intertable_dependencies = OrderedSet()
 
     for decl in simplified_decls:
-        for fieldname, tablename in decl.lookups.items():
+        for fieldname, tablenames in decl.lookups.items():
             intertable_dependencies.add(
-                SObjDependency(decl.sf_object, tablename, fieldname)
+                SObjDependency(decl.sf_object, tablenames, fieldname)
             )
     return intertable_dependencies
 
@@ -60,7 +65,8 @@ def classify_and_filter_lookups(
     decls: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
 ) -> T.Sequence[SimplifiedExtractDeclarationWithLookups]:
     """Move lookups into their own field, if they reference a table we're including"""
-    referenceable_tables = [decl.sf_object for decl in decls]
+    referenceable_tables = [decl.sf_object for decl in decls if decl.sf_object]
+    # the if statement above is just to shut up the type checker
     return [_add_lookups_to_decl(decl, schema, referenceable_tables) for decl in decls]
 
 
@@ -87,16 +93,19 @@ def _add_lookups_to_decl(
 
 def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables):
     """Split fields versus lookups for a declaration"""
-    simple_fields, lookups = partition(
-        lambda field_name: sobject_schema_info.fields[field_name].referenceTo,
-        decl.fields,
-    )
+
+    def is_lookup(field_name):
+        # Record types are not treated as lookup.
+        if field_name == "RecordTypeId":
+            return False
+        schema_info_for_field = sobject_schema_info.fields[field_name]
+        target = schema_info_for_field.referenceTo
+        return target
+
+    simple_fields, lookups = partition(is_lookup, decl.fields)
 
     def target_table(field_info):
-        if len(field_info.referenceTo) == 1:
-            target = field_info.referenceTo[0]
-        else:  # pragma: no cover  # TODO: Cover
-            target = "Polymorphic lookups are not supported"
+        target = field_info.referenceTo
         return target
 
     lookups = list(lookups)
@@ -105,8 +114,8 @@ def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables
         (lookup, target_table(sobject_schema_info.fields[lookup])) for lookup in lookups
     )
     lookups_and_targets = (
-        (lookup, table)
-        for lookup, table in lookups_and_targets
-        if table in referenceable_tables
+        (lookup, [table for table in tables if table in referenceable_tables])
+        for lookup, tables in lookups_and_targets
+        if any(table in referenceable_tables for table in tables)
     )
     return simple_fields, lookups_and_targets

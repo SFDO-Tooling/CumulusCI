@@ -9,7 +9,9 @@ import re
 import threading
 import time
 from contextlib import nullcontext
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Type, Union
+
+from pydantic.error_wrappers import ValidationError
 
 from cumulusci import __version__
 from cumulusci.core.config import TaskConfig
@@ -25,6 +27,8 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
+from cumulusci.utils.metaprogramming import classproperty
+from cumulusci.utils.options import CCIOptions, ReadOnlyOptions
 
 CURRENT_TASK = threading.local()
 
@@ -51,7 +55,7 @@ class BaseTask:
     """
 
     task_docs: str = ""
-    task_options: dict = {}
+    Options: Optional[Type[CCIOptions]] = None
     salesforce_task: bool = False  # Does this task require a salesforce org?
     name: Optional[str]
     stepnum: Optional[StepVersion]
@@ -110,6 +114,16 @@ class BaseTask:
         else:
             self.logger = logging.getLogger(__name__)
 
+    @classproperty
+    def task_options(cls):  # type: ignore  -- doesn't like the signature override below
+        "Convert Options dict into old fashioned task_options syntax"
+        if cls.Options:
+            return cls.Options.as_task_options()
+        else:
+            return {}
+
+    task_options: Union[classproperty, Dict]
+
     def _init_options(self, kwargs):
         """Initializes self.options"""
         if self.task_config.options is None:
@@ -121,13 +135,53 @@ class BaseTask:
             self.options.update(kwargs)
 
         # Handle dynamic lookup of project_config values via $project_config.attr
-        for option, value in self.options.items():
-            if isinstance(value, str):
-                value = PROJECT_CONFIG_RE.sub(
+        def process_options(option):
+            if isinstance(option, str):
+                return PROJECT_CONFIG_RE.sub(
                     lambda match: str(self.project_config.lookup(match.group(1), None)),
-                    value,
+                    option,
                 )
-                self.options[option] = value
+            elif isinstance(option, dict):
+                processed_dict = {}
+                for key, value in option.items():
+                    processed_dict[key] = process_options(value)
+                return processed_dict
+            elif isinstance(option, list):
+                processed_list = []
+                for item in option:
+                    processed_list.append(process_options(item))
+                return processed_list
+            else:
+                return option
+
+        self.options = process_options(self.options)
+
+        if self.Options:
+            try:
+                specials = ["debug_before", "debug_after", "no_prompt"]
+                options_without_specials = {
+                    opt: val for opt, val in self.options.items() if opt not in specials
+                }
+                self.parsed_options = self.Options(**options_without_specials)
+                self.options = ReadOnlyOptions(self.options)
+            except ValidationError as e:
+                try:
+                    errors = [
+                        f"Error in '{error['loc'][0]}' option: '{error['msg']}'"
+                        for error in e.errors()
+                    ]
+                    plural = "s" if len(errors) > 1 else ""
+                    errorstrs = ", ".join(errors)
+                    message = f"Task Options Error{plural}: {errorstrs}"
+                except (AttributeError, IndexError):
+                    message = f"Task Options Error: {e.errors()}"
+                if "extra fields not permitted" in message:
+                    message = message.replace("extra fields", "extra options")
+                raise TaskOptionsError(message) from e
+            except (TaskOptionsError, TypeError) as e:
+                raise TaskOptionsError(
+                    f"Task Options Error: Error in '{self.options}' option: '{e}'"
+                )
 
     def _validate_options(self):
         missing_required = []
@@ -252,7 +306,10 @@ class BaseTask:
             "is_required": True,
         }
         ui_step.update(self.task_config.config.get("ui_options", {}))
-        task_config = {"options": self.options, "checks": self.task_config.checks or []}
+        task_config = {
+            "options": self.options,
+            "checks": self.task_config.checks or [],
+        }
         ui_step.update(
             {
                 "path": step.path,

@@ -1,6 +1,7 @@
 import pytest
 
 from cumulusci.utils.git import (
+    EMPTY_URL_MESSAGE,
     construct_release_branch_name,
     get_release_identifier,
     is_release_branch,
@@ -45,12 +46,19 @@ def test_construct_release_branch_name():
         ("https://github.com/owner/repo_name/", "owner", "repo_name", "github.com"),
         ("https://github.com/owner/repo_name.git", "owner", "repo_name", "github.com"),
         (
+            "https://user@github.com/owner/repo_name.git",
+            "owner",
+            "repo_name",
+            "github.com",
+        ),
+        (
             "https://git.ent.example.com/org/private_repo.git",
             "org",
             "private_repo",
             "git.ent.example.com",
         ),
         ("git@github.com:owner/repo_name.git", "owner", "repo_name", "github.com"),
+        ("git@github.com:/owner/repo_name.git", "owner", "repo_name", "github.com"),
         ("git@github.com:owner/repo_name", "owner", "repo_name", "github.com"),
         (
             "git@api.github.com/owner/repo_name/",
@@ -69,3 +77,9 @@ def test_construct_release_branch_name():
 def test_parse_repo_url(repo_uri, owner, repo_name, host):
     assert parse_repo_url(repo_uri) == (owner, repo_name, host)
     assert split_repo_url(repo_uri) == (owner, repo_name)
+
+
+@pytest.mark.parametrize("URL", [None, ""])
+def test_empty_url(URL):
+    with pytest.raises(ValueError, match=EMPTY_URL_MESSAGE):
+        parse_repo_url(URL)

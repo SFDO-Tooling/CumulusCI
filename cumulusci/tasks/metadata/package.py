@@ -4,6 +4,7 @@ import shutil
 import urllib.parse
 from logging import Logger, getLogger
 from pathlib import Path
+from typing import Dict, List
 
 import yaml
 
@@ -38,6 +39,28 @@ def metadata_sort_key_section(name):
 
     key = prefix + name
     return key
+
+
+def process_common_components(response_messages: List, components: Dict):
+    """Compare compoents in the api responce object with list of components and return common common components"""
+    if not response_messages or not components:
+        return components
+
+    for message in response_messages:
+        message_list = message.firstChild.nextSibling.firstChild.nodeValue.split("'")
+        if len(message_list) > 1:
+            component_type = message_list[1]
+            message_txt = message_list[2]
+
+            if "is not available in this organization" in message_txt:
+                del components[component_type]
+            else:
+                component_name = message_list[3]
+                if component_name in components[component_type]:
+                    components[component_type].remove(component_name)
+                    if len(components[component_type]) == 0:
+                        del components[component_type]
+    return components
 
 
 class MetadataParserMissingError(Exception):

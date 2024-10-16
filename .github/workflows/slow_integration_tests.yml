@@ -4,15 +4,25 @@ on:
     pull_request_review:
         types: [submitted]
 
+    workflow_call:
+        secrets:
+            CUMULUSCI_SERVICE_github:
+                required: true
+            CCITEST_APP_KEY:
+                required: true
+
     workflow_dispatch:
 
 env:
     CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
+    CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+    GITHUB_APP_ID: 129383
+    GITHUB_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
 
 jobs:
     org_backed_tests:
         name: "Org-connected Tests"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
@@ -45,3 +55,62 @@ jobs:
               if: always()
               run: |
                   cci org scratch_delete pytest
+    robot_ui:
+        name: "Robot: ${{ matrix.job-name }}"
+        runs-on: SFDO-Tooling-Ubuntu
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - browser: "BROWSER:headlesschrome"
+                      job-name: "Chrome"
+                      org-shape: "dev"
+                    # - browser: "BROWSER:headlessfirefox"
+                    #   job-name: "Firefox"
+                    #   org-shape: "dev"
+                    # - browser: "BROWSER:headlesschrome"
+                    #   job-name: "Pre-release"
+                    #   org-shape: "prerelease"
+        steps:
+            - uses: actions/checkout@v2
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v4
+              with:
+                  python-version: 3.8
+                  cache: pip
+                  cache-dependency-path: "requirements/*.txt"
+            - name: Install Python dependencies
+              run: pip install -r requirements_dev.txt
+            - name: Install sfdx
+              run: |
+                  mkdir sfdx
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  echo $(realpath sfdx/bin) >> $GITHUB_PATH
+            - name: Initialize Browser/Playwright
+              run: cci robot install_playwright
+            - name: Authenticate Dev Hub
+              run: |
+                  sfdx plugins --core
+                  echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+                  sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+              env:
+                  SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+                  SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+                  SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
+            - name: Run robot tests
+              run: |
+                  coverage run --append $(which cci) task run robot \
+                    --org ${{ matrix.org-shape }} \
+                    -o suites cumulusci/robotframework/tests/salesforce \
+                    -o exclude no-browser \
+                    -o vars ${{ matrix.browser }}
+            - name: Delete scratch org
+              if: always()
+              run: |
+                  cci org scratch_delete ${{ matrix.org-shape }}
+            - name: Store robot results
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: robot
+                  path: robot/CumulusCI/results

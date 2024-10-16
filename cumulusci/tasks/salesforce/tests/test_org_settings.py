@@ -93,6 +93,7 @@ class TestDeployOrgSettings:
     </nestedList>
 </OtherSettings>"""
         )
+        zf.close()
 
     def test_run_task__json_only__with_org_settings(self):
         with temporary_dir() as d:
@@ -137,6 +138,7 @@ class TestDeployOrgSettings:
     <version>48.0</version>
 </Package>"""
         )
+        zf.close()
 
     def test_run_task__settings_only(self):
         settings = {
@@ -187,6 +189,7 @@ class TestDeployOrgSettings:
     </nested>
 </OtherSettings>"""
         )
+        zf.close()
 
     def test_run_task__json_and_settings(self):
         with temporary_dir() as d:
@@ -251,6 +254,7 @@ class TestDeployOrgSettings:
     </nested>
 </OtherSettings>"""
         )
+        zf.close()
 
     def test_run_task__no_settings(self):
         with temporary_dir() as d:

@@ -152,9 +152,10 @@ class TestBaseProjectKeychain:
         )
         keychain = BaseProjectKeychain(project_config, key)
         keychain.key = key
-        keychain.create_scratch_org("test", "dev", days=3)
+        keychain.create_scratch_org("test", "dev", days=3, release="previous")
         org_config = keychain.get_org("test").config
         assert org_config["days"] == 3
+        assert org_config["release"] == "previous"
 
     def test_load_scratch_orgs(self, keychain):
         assert list(keychain.orgs) == []
@@ -290,3 +291,9 @@ class TestBaseProjectKeychain:
         keychain.remove_org("test")
         assert "test" not in keychain.orgs
         keychain.cleanup_org_cache_dirs.assert_called_once()
+
+    def test_org_definition__missing(self, project_config, key):
+        """What if a scratch org was created with a YAML definition which was deleted more recently?"""
+        keychain = BaseProjectKeychain(project_config, key)
+        with pytest.raises(OrgNotFound, match="No such org"):
+            keychain.create_scratch_org("no_such_org", "no_such_org")

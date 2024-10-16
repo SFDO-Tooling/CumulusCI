@@ -197,14 +197,16 @@ class OAuth2Client(object):
                 raise
 
         if use_https:
-            if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
+            certfile = "localhost.pem"
+            keyfile = "key.pem"
+            if not Path(certfile).is_file() or not Path(keyfile).is_file():
                 create_key_and_self_signed_cert()
-            httpd.socket = ssl.wrap_socket(
+            # FIXME: Use ssl.PROTOCOL_TLS_SERVER after dropping 3.8 support
+            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)
+            ssl_context.load_cert_chain(certfile, keyfile)
+            httpd.socket = ssl_context.wrap_socket(
                 httpd.socket,
                 server_side=True,
-                certfile="localhost.pem",
-                keyfile="key.pem",
-                ssl_version=ssl.PROTOCOL_TLS,
             )
 
         httpd.timeout = self.httpd_timeout
@@ -354,7 +356,7 @@ def get_device_oauth_token(
     from the auth server.
     @returns a dict including the access token.
     {
-        "access_token": "gho_16C7e42F292c6912E7710c838347Ae178B4a",
+        "access_token": "gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         "token_type": "bearer",
         "scope": "user"
     }

@@ -498,6 +498,42 @@ class TestBulkApiDmlOperation:
         serialized = step._serialize_csv_record(record)
         assert serialized == b'"col1","multiline\ncol2"\r\n'
 
+    def test_get_prev_record_values(self):
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["LastName"],
+        )
+        results = [
+            [{"LastName": "Test1", "Id": "Id1"}, {"LastName": "Test2", "Id": "Id2"}]
+        ]
+        expected_record_values = [["Test1", "Id1"], ["Test2", "Id2"]]
+        expected_relevant_fields = ("Id", "LastName")
+        step.bulk.create_query_job = mock.Mock()
+        step.bulk.create_query_job.return_value = "JOB_ID"
+        step.bulk.query = mock.Mock()
+        step.bulk.query.return_value = "BATCH_ID"
+        step.bulk.get_all_results_for_query_batch = mock.Mock()
+        step.bulk.get_all_results_for_query_batch.return_value = results
+
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        with mock.patch("json.load", side_effect=lambda result: result), mock.patch(
+            "salesforce_bulk.util.IteratorBytesIO", side_effect=lambda result: result
+        ):
+            prev_record_values, relevant_fields = step.get_prev_record_values(records)
+
+        assert sorted(map(sorted, prev_record_values)) == sorted(
+            map(sorted, expected_record_values)
+        )
+        assert set(relevant_fields) == set(expected_relevant_fields)
+        step.bulk.create_query_job.assert_called_once_with(
+            "Contact", contentType="JSON"
+        )
+        step.bulk.get_all_results_for_query_batch.assert_called_once_with("BATCH_ID")
+
     def test_batch(self):
         context = mock.Mock()
 
@@ -586,9 +622,9 @@ class TestBulkApiDmlOperation:
         results = step.get_results()
 
         assert list(results) == [
-            DataOperationResult("003000000000001", True, None),
-            DataOperationResult("003000000000002", True, None),
-            DataOperationResult(None, False, "error"),
+            DataOperationResult("003000000000001", True, None, True),
+            DataOperationResult("003000000000002", True, None, True),
+            DataOperationResult(None, False, "error", False),
         ]
         download_mock.assert_has_calls(
             [
@@ -649,9 +685,9 @@ class TestBulkApiDmlOperation:
         results = step.get_results()
 
         assert list(results) == [
-            DataOperationResult("003000000000001", True, None),
-            DataOperationResult("003000000000002", True, None),
-            DataOperationResult(None, False, "error"),
+            DataOperationResult("003000000000001", True, None, True),
+            DataOperationResult("003000000000002", True, None, True),
+            DataOperationResult(None, False, "error", False),
         ]
 
 
@@ -781,10 +817,67 @@ class TestRestApiDmlOperation:
             DataOperationStatus.SUCCESS, [], 3, 0
         )
         assert list(dml_op.get_results()) == [
-            DataOperationResult("003000000000001", True, ""),
-            DataOperationResult("003000000000002", True, ""),
-            DataOperationResult("003000000000003", True, ""),
+            DataOperationResult("003000000000001", True, "", True),
+            DataOperationResult("003000000000002", True, "", True),
+            DataOperationResult("003000000000003", True, "", True),
         ]
+
+    @responses.activate
+    def test_get_prev_record_values(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+        )
+
+        results = {
+            "records": [
+                {"LastName": "Test1", "Id": "Id1"},
+                {"LastName": "Test2", "Id": "Id2"},
+            ]
+        }
+        expected_record_values = [["Test1", "Id1"], ["Test2", "Id2"]]
+        expected_relevant_fields = ("Id", "LastName")
+        step.sf.query = mock.Mock()
+        step.sf.query.return_value = results
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        prev_record_values, relevant_fields = step.get_prev_record_values(records)
+
+        assert sorted(map(sorted, prev_record_values)) == sorted(
+            map(sorted, expected_record_values)
+        )
+        assert set(relevant_fields) == set(expected_relevant_fields)
 
     @responses.activate
     def test_insert_dml_operation__boolean_conversion(self):
@@ -1013,10 +1106,10 @@ class TestRestApiDmlOperation:
             DataOperationStatus.ROW_FAILURE, [], 3, 1
         )
         assert list(dml_op.get_results()) == [
-            DataOperationResult("003000000000001", True, ""),
-            DataOperationResult("003000000000002", True, ""),
+            DataOperationResult("003000000000001", True, "", True),
+            DataOperationResult("003000000000002", True, "", True),
             DataOperationResult(
-                "003000000000003", False, "VALIDATION_ERR: Bad data (FirstName)"
+                "003000000000003", False, "VALIDATION_ERR: Bad data (FirstName)", True
             ),
         ]
 
@@ -1247,7 +1340,7 @@ class TestGetOperationFunctions:
         )
         assert op == bulk_query.return_value
 
-        context.sf.restful.called_once_with("limits/recordCount?sObjects=Test")
+        context.sf.restful.assert_called_once_with("limits/recordCount?sObjects=Test")
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")

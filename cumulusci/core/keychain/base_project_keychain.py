@@ -1,11 +1,8 @@
 import sarge
 
-from cumulusci.core.config import (
-    BaseConfig,
-    ConnectedAppOAuthConfig,
-    ScratchOrgConfig,
-    ServiceConfig,
-)
+from cumulusci.core.config import ConnectedAppOAuthConfig, ServiceConfig
+from cumulusci.core.config.base_config import BaseConfig
+from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
     CumulusCIUsageError,
@@ -57,25 +54,33 @@ class BaseProjectKeychain(BaseConfig):
     #               Orgs                  #
     #######################################
 
-    def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
+    def create_scratch_org(
+        self, org_name, config_name, days=None, set_password=True, release=None
+    ):
         """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = self.project_config.lookup(f"orgs__scratch__{config_name}")
+        if scratch_config is None:
+            raise OrgNotFound(f"No such org configured: `{config_name}`")
         if days is not None:
             # Allow override of scratch config's default days
             scratch_config["days"] = days
         else:
             # Use scratch config days or default of 1 day
             scratch_config.setdefault("days", 1)
+        if release is not None:
+            scratch_config["release"] = release
         scratch_config["set_password"] = bool(set_password)
         scratch_config["scratch"] = True
         scratch_config.setdefault("namespaced", False)
         scratch_config["config_name"] = config_name
+
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
         org_config = ScratchOrgConfig(
             scratch_config, org_name, keychain=self, global_org=False
         )
+
         org_config.save()
 
     def set_org(self, org_config, global_org=False, save=True):
@@ -86,6 +91,7 @@ class BaseProjectKeychain(BaseConfig):
     def set_default_org(self, name):
         """set the default org for tasks and flows by name"""
         org = self.get_org(name)
+        assert org is not None
         self.unset_default_org()
         org.config["default"] = True
         org.save()
@@ -100,6 +106,7 @@ class BaseProjectKeychain(BaseConfig):
         """unset the default orgs for tasks"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
+            assert org_config is not None
             if org_config.default:
                 del org_config.config["default"]
                 org_config.save()
@@ -114,6 +121,7 @@ class BaseProjectKeychain(BaseConfig):
         """retrieve the name and configuration of the default org"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
+            assert org_config is not None
             if org_config.default:
                 return org, org_config
         return None, None
@@ -121,6 +129,7 @@ class BaseProjectKeychain(BaseConfig):
     def get_org(self, name: str):
         """retrieve an org configuration by name key"""
         org = self._get_org(name)
+        assert org
         if org.keychain:
             assert org.keychain is self
         else:

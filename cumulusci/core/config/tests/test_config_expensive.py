@@ -606,6 +606,29 @@ class TestScratchOrgConfig:
         assert config.config["created"]
         assert config.scratch_org_type == "workspace"
 
+    def test_check_apiversion_error(self, Command):
+        out = b"""{
+            "context": "Create",
+            "commandName": "Create",
+            "message": "The requested resource does not exist",
+            "name": "NOT_FOUND"
+            }"""
+
+        Command.return_value = mock.Mock(
+            stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=1
+        )
+        config = ScratchOrgConfig(
+            {"config_file": "tmp.json", "email_address": "test@example.com"}, "test"
+        )
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write("{}")
+            with pytest.raises(
+                SfdxOrgException,
+                match="The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub.",
+            ):
+                config.create_org()
+
     def test_create_org_no_config_file(self, Command):
         config = ScratchOrgConfig({}, "test")
         with pytest.raises(ScratchOrgException, match="missing a config_file"):
@@ -746,14 +769,14 @@ class TestScratchOrgConfig:
         )
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
-        assert config._choose_devhub() == "fake@fake.devhub"
+        assert config._choose_devhub_username() == "fake@fake.devhub"
 
     def test_choose_devhub__service_not_configured(self, Command):
         mock_keychain = mock.Mock()
         mock_keychain.get_service.side_effect = ServiceNotConfigured
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
-        assert config._choose_devhub() is None
+        assert config._choose_devhub_username() is None
 
 
 class TestScratchOrgConfigPytest:
@@ -770,6 +793,7 @@ class TestScratchOrgConfigPytest:
                 "sfdx_alias": "project__org",
                 "default": True,
                 "instance": "NA01",
+                "release": "previous",
             },
             "test",
             mock_keychain,
@@ -786,6 +810,7 @@ class TestScratchOrgConfigPytest:
             "--noancestors",
             "--durationdays",
             "1",
+            "release=previous",
             "-a",
             "project__org",
             "adminEmail=test@example.com",

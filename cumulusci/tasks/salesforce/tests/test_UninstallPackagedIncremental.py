@@ -94,6 +94,7 @@ class TestUninstallPackagedIncremental:
 </Package>"""
                 == result
             )
+            zf.close()
 
     def test_get_destructive_changes__no_package_xml(self):
         project_config = create_project_config()

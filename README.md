@@ -58,9 +58,11 @@ presentation](https://www.youtube.com/watch?v=XL77lRTVF3g) from minute
 
 ## Questions?
 
-Ask in the [CumulusCI group in the Trailblazer
+Ask in the [CumulusCI (CCI) group in the Trailblazer
 Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU).
 
 _Please note:_ CumulusCI is distributed under an [open source
 license](https://github.com/SFDO-Tooling/CumulusCI/blob/main/LICENSE)
 and is not covered by the Salesforce Master Subscription Agreement.
+
+<!-- Changelog -->
