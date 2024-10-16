@@ -7,15 +7,21 @@ import tempfile
 import time
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, List, NamedTuple, Optional
+from itertools import tee
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import requests
 import salesforce_bulk
 
 from cumulusci.core.enums import StrEnum
-from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import BulkDataException, SOQLQueryException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
+from cumulusci.tasks.bulkdata.select_utils import (
+    SelectOperationExecutor,
+    SelectRecordRetrievalMode,
+    SelectStrategy,
+)
+from cumulusci.tasks.bulkdata.utils import DataApi, iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
 from cumulusci.utils.xml import lxml_parse_string
 
@@ -36,14 +42,7 @@ class DataOperationType(StrEnum):
     UPSERT = "upsert"
     ETL_UPSERT = "etl_upsert"
     SMART_UPSERT = "smart_upsert"  # currently undocumented
-
-
-class DataApi(StrEnum):
-    """Enum defining requested Salesforce data API for an operation."""
-
-    BULK = "bulk"
-    REST = "rest"
-    SMART = "smart"
+    SELECT = "select"
 
 
 class DataOperationStatus(StrEnum):
@@ -321,6 +320,11 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def select_records(self, records):
+        """Perform the requested DML operation on the supplied row iterator."""
+        pass
+
+    @abstractmethod
     def load_records(self, records):
         """Perform the requested DML operation on the supplied row iterator."""
         pass
@@ -338,7 +342,17 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
 class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     """Operation class for all DML operations run using the Bulk API."""
 
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self,
+        *,
+        sobject,
+        operation,
+        api_options,
+        context,
+        fields,
+        selection_strategy=SelectStrategy.STANDARD,
+        selection_filter=None,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -353,6 +367,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff, quoting=csv.QUOTE_ALL)
 
+        self.select_operation_executor = SelectOperationExecutor(selection_strategy)
+        self.selection_filter = selection_filter
+
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
@@ -364,7 +381,8 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
     def end(self):
         self.bulk.close_job(self.job_id)
-        self.job_result = self._wait_for_job(self.job_id)
+        if not self.job_result:
+            self.job_result = self._wait_for_job(self.job_id)
 
     def get_prev_record_values(self, records):
         """Get the previous values of the records based on the update key
@@ -424,6 +442,89 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
+    def select_records(self, records):
+        """Executes a SOQL query to select records and adds them to results"""
+
+        self.select_results = []  # Store selected records
+        query_records = []
+        # Create a copy of the generator using tee
+        records, records_copy = tee(records)
+        # Count total number of records to fetch using the copy
+        total_num_records = sum(1 for _ in records_copy)
+
+        # Set LIMIT condition
+        if (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.ALL
+        ):
+            limit_clause = None
+        elif (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.MATCH
+        ):
+            limit_clause = total_num_records
+
+        # Generate and execute SOQL query
+        # (not passing offset as it is not supported in Bulk)
+        (
+            select_query,
+            query_fields,
+        ) = self.select_operation_executor.select_generate_query(
+            sobject=self.sobject,
+            fields=self.fields,
+            user_filter=self.selection_filter if self.selection_filter else None,
+            limit=limit_clause,
+            offset=None,
+        )
+
+        # Execute the main select query using Bulk API
+        select_query_records = self._execute_select_query(
+            select_query=select_query, query_fields=query_fields
+        )
+
+        query_records.extend(select_query_records)
+        # Post-process the query results
+        (
+            selected_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            load_records=records,
+            query_records=query_records,
+            num_records=total_num_records,
+            sobject=self.sobject,
+        )
+        if not error_message:
+            self.select_results.extend(selected_records)
+
+        # Update job result based on selection outcome
+        self.job_result = DataOperationJobResult(
+            status=DataOperationStatus.SUCCESS
+            if len(self.select_results)
+            else DataOperationStatus.JOB_FAILURE,
+            job_errors=[error_message] if error_message else [],
+            records_processed=len(self.select_results),
+            total_row_errors=0,
+        )
+
+    def _execute_select_query(self, select_query: str, query_fields: List[str]):
+        """Executes the select Bulk API query and retrieves the results."""
+        self.batch_id = self.bulk.query(self.job_id, select_query)
+        self._wait_for_job(self.job_id)
+        result_ids = self.bulk.get_query_batch_result_ids(
+            self.batch_id, job_id=self.job_id
+        )
+        select_query_records = []
+        for result_id in result_ids:
+            uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
+            with download_file(uri, self.bulk) as f:
+                reader = csv.reader(f)
+                self.headers = next(reader)
+                if "Records not found for this query" in self.headers:
+                    break
+                for row in reader:
+                    select_query_records.append(row[: len(query_fields)])
+        return select_query_records
+
     def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
@@ -472,6 +573,29 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         return serialized
 
     def get_results(self):
+        """
+        Retrieves and processes the results of a Bulk API operation.
+        """
+
+        if self.operation is DataOperationType.QUERY:
+            yield from self._get_query_results()
+        else:
+            yield from self._get_batch_results()
+
+    def _get_query_results(self):
+        """Handles results for QUERY (select) operations"""
+        for row in self.select_results:
+            success = process_bool_arg(row["success"])
+            created = process_bool_arg(row["created"])
+            yield DataOperationResult(
+                row["id"] if success else "",
+                success,
+                "",
+                created,
+            )
+
+    def _get_batch_results(self):
+        """Handles results for other DataOperationTypes (insert, update, etc.)"""
         for batch_id in self.batch_ids:
             try:
                 results_url = (
@@ -481,29 +605,43 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 # to avoid the server dropping connections
                 with download_file(results_url, self.bulk) as f:
                     self.logger.info(f"Downloaded results for batch {batch_id}")
+                    yield from self._parse_batch_results(f)
 
-                    reader = csv.reader(f)
-                    next(reader)  # skip header
-
-                    for row in reader:
-                        success = process_bool_arg(row[1])
-                        created = process_bool_arg(row[2])
-                        yield DataOperationResult(
-                            row[0] if success else None,
-                            success,
-                            row[3] if not success else None,
-                            created,
-                        )
             except Exception as e:
                 raise BulkDataException(
                     f"Failed to download results for batch {batch_id} ({str(e)})"
                 )
 
+    def _parse_batch_results(self, f):
+        """Parses batch results from the downloaded file"""
+        reader = csv.reader(f)
+        next(reader)  # Skip header row
+
+        for row in reader:
+            success = process_bool_arg(row[1])
+            created = process_bool_arg(row[2])
+            yield DataOperationResult(
+                row[0] if success else None,
+                success,
+                row[3] if not success else None,
+                created,
+            )
+
 
 class RestApiDmlOperation(BaseDmlOperation):
     """Operation class for all DML operations run using the REST API."""
 
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self,
+        *,
+        sobject,
+        operation,
+        api_options,
+        context,
+        fields,
+        selection_strategy=SelectStrategy.STANDARD,
+        selection_filter=None,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -525,6 +663,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         self.api_options["batch_size"] = min(
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
+
+        self.select_operation_executor = SelectOperationExecutor(selection_strategy)
+        self.selection_filter = selection_filter
 
     def _record_to_json(self, rec):
         result = dict(zip(self.fields, rec))
@@ -631,6 +772,139 @@ class RestApiDmlOperation(BaseDmlOperation):
             row_errors,
         )
 
+    def select_records(self, records):
+        """Executes a SOQL query to select records and adds them to results"""
+
+        def convert(rec, fields):
+            """Helper function to convert record values to strings, handling None values"""
+            return [str(rec[f]) if rec[f] is not None else "" for f in fields]
+
+        self.results = []
+        query_records = []
+        # Create a copy of the generator using tee
+        records, records_copy = tee(records)
+        # Count total number of records to fetch using the copy
+        total_num_records = sum(1 for _ in records_copy)
+
+        # Set LIMIT condition
+        if (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.ALL
+        ):
+            limit_clause = None
+        elif (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.MATCH
+        ):
+            limit_clause = total_num_records
+
+        # Generate the SOQL query based on the selection strategy
+        (
+            select_query,
+            query_fields,
+        ) = self.select_operation_executor.select_generate_query(
+            sobject=self.sobject,
+            fields=self.fields,
+            user_filter=self.selection_filter if self.selection_filter else None,
+            limit=limit_clause,
+            offset=None,
+        )
+
+        # Handle the case where self.selection_query is None (and hence user_query is also None)
+        response = self.sf.restful(
+            requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
+        )
+        query_records.extend(
+            list(convert(rec, query_fields) for rec in response["records"])
+        )
+        while True:
+            if not response["done"]:
+                response = self.sf.query_more(
+                    response["nextRecordsUrl"], identifier_is_url=True
+                )
+                query_records.extend(
+                    list(convert(rec, query_fields) for rec in response["records"])
+                )
+            else:
+                break
+
+        # Post-process the query results for this batch
+        (
+            selected_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            load_records=records,
+            query_records=query_records,
+            num_records=total_num_records,
+            sobject=self.sobject,
+        )
+        if not error_message:
+            # Add selected records from this batch to the overall results
+            self.results.extend(selected_records)
+
+        # Update the job result based on the overall selection outcome
+        self.job_result = DataOperationJobResult(
+            status=DataOperationStatus.SUCCESS
+            if len(self.results)  # Check the overall results length
+            else DataOperationStatus.JOB_FAILURE,
+            job_errors=[error_message] if error_message else [],
+            records_processed=len(self.results),
+            total_row_errors=0,
+        )
+
+    def _execute_composite_query(self, select_query, user_query, query_fields):
+        """Executes a composite request with two queries and returns the results."""
+
+        def convert(rec, fields):
+            """Helper function to convert record values to strings, handling None values"""
+            return [str(rec[f]) if rec[f] is not None else "" for f in fields]
+
+        composite_request_json = {
+            "compositeRequest": [
+                {
+                    "method": "GET",
+                    "url": requests.utils.requote_uri(
+                        f"/services/data/v{self.sf.sf_version}/query/?q={select_query}"
+                    ),
+                    "referenceId": "select_query",
+                },
+                {
+                    "method": "GET",
+                    "url": requests.utils.requote_uri(
+                        f"/services/data/v{self.sf.sf_version}/query/?q={user_query}"
+                    ),
+                    "referenceId": "user_query",
+                },
+            ]
+        }
+        response = self.sf.restful(
+            "composite", method="POST", json=composite_request_json
+        )
+
+        # Extract results based on referenceId
+        for sub_response in response["compositeResponse"]:
+            if (
+                sub_response["referenceId"] == "select_query"
+                and sub_response["httpStatusCode"] == 200
+            ):
+                select_query_records = list(
+                    convert(rec, query_fields)
+                    for rec in sub_response["body"]["records"]
+                )
+            elif (
+                sub_response["referenceId"] == "user_query"
+                and sub_response["httpStatusCode"] == 200
+            ):
+                user_query_records = list(
+                    convert(rec, ["Id"]) for rec in sub_response["body"]["records"]
+                )
+            else:
+                raise SOQLQueryException(
+                    f"{sub_response['body'][0]['errorCode']}: {sub_response['body'][0]['message']}"
+                )
+
+        return user_query_records, select_query_records
+
     def get_results(self):
         """Return a generator of DataOperationResult objects."""
 
@@ -712,6 +986,8 @@ def get_dml_operation(
     context: Any,
     volume: int,
     api: Optional[DataApi] = DataApi.SMART,
+    selection_strategy: SelectStrategy = SelectStrategy.STANDARD,
+    selection_filter: Union[str, None] = None,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
@@ -745,4 +1021,6 @@ def get_dml_operation(
         api_options=api_options,
         context=context,
         fields=fields,
+        selection_strategy=selection_strategy,
+        selection_filter=selection_filter,
     )
