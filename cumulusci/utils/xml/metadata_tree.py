@@ -49,6 +49,20 @@ def fromstring(source):
     return MetadataElement(lxml_parse_string(source).getroot())
 
 
+def parse_package_xml_types(feildName, source_xml_tree):
+    """ "Parse metadata types based on the  feildName and map based on the type"""
+    xml_map = {}
+    for type in source_xml_tree.types:
+        members = []
+        try:
+            for member in type.members:
+                members.append(member.text)
+        except AttributeError:  # Exception if there are no members for a type
+            pass
+        xml_map[type[feildName].text] = members
+    return xml_map
+
+
 class MetadataElement:
     '''A class for representing Metadata in a Pythonic tree.
 

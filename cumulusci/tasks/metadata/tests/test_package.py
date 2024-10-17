@@ -2,6 +2,7 @@ import os
 from unittest import mock
 
 import pytest
+from defusedxml.minidom import parseString
 
 from cumulusci.core.config import (
     BaseProjectConfig,
@@ -27,6 +28,7 @@ from cumulusci.tasks.metadata.package import (
     RecordTypeParser,
     UpdatePackageXml,
     metadata_sort_key,
+    process_common_components,
 )
 from cumulusci.utils import temporary_dir, touch
 
@@ -398,3 +400,77 @@ class TestUpdatePackageXmlInstallUninstallClass:
             with open(output_path, "r") as f:
                 result = f.read()
             assert expected == result
+
+
+class TestProcessComponents:
+    response = """<?xml version="1.0" encoding="UTF-8"?>
+    <soapenv:Envelope
+    xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns="http://soap.sforce.com/2006/04/metadata">
+    <soapenv:Body> <checkRetrieveStatusResponse>
+    <result>
+    <done>true</done>
+    <fileProperties>
+        <createdById>0058N000006PycGQAS</createdById>
+        <createdByName>User User</createdByName>
+        <createdDate>2024-10-08T22:54:34.372Z</createdDate>
+        <fileName>unpackaged/labels/CustomLabels.labels</fileName>
+        <fullName>CustomLabels</fullName>
+        <id>000000000000000AAA</id>
+        <lastModifiedById>0058N000006PycGQAS</lastModifiedById>
+        <lastModifiedByName>User User</lastModifiedByName>
+        <lastModifiedDate>2024-10-08T22:54:34.372Z</lastModifiedDate>
+        <type>CustomLabels</type>
+    </fileProperties>
+    <id>09S8N000002vlujUAA</id>
+    <messages>
+     <problem>Entity of type 'ApexClass' 'TestClass' cannot be found</problem>
+    <fileName>unpackaged/package.xml</fileName>
+    </messages>
+    <messages>
+     <problem>Entity of type 'CustomObject' 'TestObject' cannot be found</problem>
+     <fileName>unpackaged/package.xml</fileName>
+     </messages>
+    <messages>
+     <problem>Entity of type 'CustomObject' 'AnotherObject' cannot be found</problem>
+     <fileName>unpackaged/package.xml</fileName>
+    </messages>
+    </result></checkRetrieveStatusResponse></soapenv:Body></soapenv:Envelope>
+    """
+
+    def test_process_common_components(self):
+
+        response_messages = parseString(self.response).getElementsByTagName("messages")
+
+        components = {
+            "ApexClass": {"TestClass", "AnotherClass"},
+            "CustomObject": {"TestObject", "AnotherObject"},
+        }
+
+        result = process_common_components(response_messages, components)
+
+        expected_components = {
+            "ApexClass": {"AnotherClass"},
+        }
+
+        assert result == expected_components
+        assert "ApexClass" in result
+        assert "AnotherClass" in result["ApexClass"]
+        assert "TestClass" not in result["ApexClass"]
+        assert "CustomObject" not in result
+
+    def test_process_common_components_no_response_messages(self):
+        components = {
+            "ApexClass": {"TestClass", "AnotherClass"},
+            "CustomObject": {"TestObject", "AnotherObject"},
+        }
+
+        result = process_common_components([], components)
+
+        # If there are no response messages, the components list should remain unchanged
+        assert result == components
+
+    def test_process_common_components_no_components(self):
+        response_messages = parseString(self.response).getElementsByTagName("messages")
+        result = process_common_components(response_messages, {})
+        assert result == {}

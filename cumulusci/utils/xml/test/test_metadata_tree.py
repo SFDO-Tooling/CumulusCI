@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from cumulusci.utils.xml.metadata_tree import METADATA_NAMESPACE, fromstring, parse
+from cumulusci.utils.xml.metadata_tree import (
+    METADATA_NAMESPACE,
+    fromstring,
+    parse,
+    parse_package_xml_types,
+)
 
 standard_xml = f"""<Data xmlns='{METADATA_NAMESPACE}'>
                 <foo>Foo</foo>
@@ -230,3 +235,17 @@ class TestMetadataTree:
         assert (
             " ".join(xml_out.split()).strip() == " ".join(expected_out.split()).strip()
         ), xml_out.strip()
+
+    def test_parse_package_xml_types(self):
+        from cumulusci.tasks.metadata import tests
+
+        path = (
+            Path(tests.__file__).parent
+            / "package_metadata/namespaced_report_folder/package.xml"
+        )
+        tree = parse(path)
+        result = parse_package_xml_types("name", tree)
+
+        expected = {"Report": ["namespace__TestFolder/TestReport"]}
+
+        assert result == expected

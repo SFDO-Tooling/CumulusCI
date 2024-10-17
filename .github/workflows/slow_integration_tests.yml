@@ -84,7 +84,7 @@ jobs:
             - name: Install sfdx
               run: |
                   mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Initialize Browser/Playwright
               run: cci robot install_playwright
@@ -92,7 +92,7 @@ jobs:
               run: |
                   sfdx plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-                  sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+                  sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
               env:
                   SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
                   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -110,7 +110,7 @@ jobs:
                   cci org scratch_delete ${{ matrix.org-shape }}
             - name: Store robot results
               if: failure()
-              uses: actions/upload-artifact@v1
+              uses: actions/upload-artifact@v4
               with:
                   name: robot
                   path: robot/CumulusCI/results
