@@ -4,7 +4,7 @@
 
 ## v3.93.0 (2024-10-17)
 
-<!-- Release notes generated using configuration in .github/release.yml at main -->
+<!-- Release notes generated using configuration in .github/release.yml at main  -->
 
 ## What's Changed
 
