@@ -15,6 +15,7 @@ from typing_extensions import Literal
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
+from cumulusci.tasks.bulkdata.select_utils import SelectStrategy
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.utils.yaml.model_parser import CCIDictModel
@@ -84,7 +85,7 @@ class BulkMode(StrEnum):
 
 ENUM_VALUES = {
     v.value.lower(): v.value
-    for enum in [BulkMode, DataApi, DataOperationType]
+    for enum in [BulkMode, DataApi, DataOperationType, SelectStrategy]
     for v in enum.__members__.values()
 }
 
@@ -107,9 +108,13 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
+    selection_strategy: SelectStrategy = SelectStrategy.STANDARD  # selection strategy
+    selection_filter: Optional[
+        str
+    ] = None  # filter to be added at the end of select query
     update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
-    @validator("bulk_mode", "api", "action", pre=True)
+    @validator("bulk_mode", "api", "action", "selection_strategy", pre=True)
     def case_normalize(cls, val):
         if isinstance(val, Enum):
             return val
