@@ -31,8 +31,14 @@ class BaseReleaseNotesGenerator(object):
         self.production_date = None
 
     def __call__(self):
-        self._parse_change_notes()
-        return self.render()
+        try:
+            self._parse_change_notes()
+            release_notes = self.render()
+            self._record_result()
+            return release_notes
+        except Exception as e:
+            self._record_result(e)
+            raise e from e
 
     def init_change_notes(self):
         self.change_notes = self._init_change_notes()

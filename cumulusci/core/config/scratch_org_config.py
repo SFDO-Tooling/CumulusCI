@@ -7,6 +7,7 @@ import sarge
 
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
+from cumulusci.core.org_history import OrgCreateAction, OrgDeleteAction
 from cumulusci.core.exceptions import (
     CumulusCIException,
     ScratchOrgException,
@@ -69,10 +70,28 @@ class ScratchOrgConfig(SfdxOrgConfig):
         if not self.scratch_org_type:
             self.config["scratch_org_type"] = "workspace"
 
+        org_action_info = {
+            "timestamp": datetime.datetime.now().timestamp(),
+            "action_type": "OrgCreate",
+            "repo": self.keychain.project_config.repo_url,
+            "branch": self.keychain.project_config.repo_branch,
+            "commit": self.keychain.project_config.repo_commit,
+            "scratch_org": self.keychain.project_config.lookup(
+                f"orgs__scratch__{self.name}"
+            ),
+            "config": {
+                "path": self.config_file,
+            },
+            "days": self.days,
+            "namespaced": self.namespaced,
+            "log": "",
+        }
         args: List[str] = self._build_org_create_args()
         extra_args = os.environ.get("SFDX_ORG_CREATE_ARGS", "")
+        command = f"force:org:create --json {extra_args}"
+
         p: sarge.Command = sfdx(
-            f"force:org:create --json {extra_args}",
+            command=command,
             args=args,
             username=None,
             log_note="Creating scratch org",
@@ -80,21 +99,43 @@ class ScratchOrgConfig(SfdxOrgConfig):
         stdout = p.stdout_text.read()
         stderr = p.stderr_text.read()
 
+        org_action_info["sf_command"] = {
+            "command": f"sf {command} {' '.join(args)}",
+            "return_code": p.returncode,
+            "output": stdout,
+            "stderr": stderr,
+        }
+
         def raise_error() -> NoReturn:
             message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
+            org_action_info["status"] = "error"
             try:
                 output = json.loads(stdout)
                 if (
                     output.get("message") == "The requested resource does not exist"
                     and output.get("name") == "NOT_FOUND"
                 ):
-                    raise ScratchOrgException(
+                    exc = ScratchOrgException(
                         "The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub."
                     )
+                    org_action_info["exception"] = str(exc)
+                    self.add_action_to_history(
+                        OrgCreateAction(
+                            **org_action_info,
+                        )
+                    )
+                    raise exc
             except json.decoder.JSONDecodeError:
                 raise ScratchOrgException(message)
 
-            raise ScratchOrgException(message)
+            exc = ScratchOrgException(message)
+            org_action_info["exception"] = str(exc)
+            self.add_action_to_history(
+                OrgCreateAction(
+                    **org_action_info,
+                )
+            )
+            raise exc
 
         result = {}  # for type checker.
         if p.returncode:
@@ -127,6 +168,19 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         self.logger.info(
             f"Created: OrgId: {self.config['org_id']}, Username:{self.config['username']}"
+        )
+
+        org_action_info["status"] = "success"
+        org_action_info["org_id"] = self.org_id
+        org_action_info["sfdx_alias"] = self.sfdx_alias
+        org_action_info["username"] = self.username
+        org_action_info["login_url"] = res.get("ScratchOrgInfo", {}).get("LoginUrl")
+        org_action_info["instance"] = res.get("ScratchOrgInfo", {}).get("Instance")
+        org_action_info["devhub"] = self.devhub
+        self.add_action_to_history(
+            OrgCreateAction(
+                **org_action_info,
+            )
         )
 
         if self.config.get("set_password"):
@@ -219,10 +273,27 @@ class ScratchOrgConfig(SfdxOrgConfig):
             self.logger.info("Skipping org deletion: the scratch org does not exist.")
             return
 
-        p: sarge.Command = sfdx(
-            "force:org:delete -p", self.username, "Deleting scratch org"
-        )
-        sfdx_output: List[str] = list(p.stdout_text) + list(p.stderr_text)
+        org_action_info = {
+            "timestamp": datetime.datetime.now().timestamp(),
+            "action_type": "OrgDelete",
+            "org_id": self.config["org_id"],
+            "repo": self.keychain.project_config.repo_url,
+            "branch": self.keychain.project_config.repo_branch,
+            "commit": self.keychain.project_config.repo_commit,
+            "log": "",
+        }
+
+        command = "force:org:delete -p"
+        org_action_info["sf_command"] = {
+            "command": f"sf {command}",
+        }
+        p: sarge.Command = sfdx(command, self.username, "Deleting scratch org")
+        stdout = p.stdout_text.readlines()
+        stderr = p.stderr_text.readlines()
+        sfdx_output: List[str] = stdout + stderr
+        org_action_info["sf_command"]["return_code"] = p.returncode
+        org_action_info["sf_command"]["output"] = "\n".join(stdout)
+        org_action_info["sf_command"]["stderr"] = "\n".join(stderr)
 
         for line in sfdx_output:
             if "error" in line.lower():
@@ -232,7 +303,20 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         if p.returncode:
             message = "Failed to delete scratch org"
-            raise ScratchOrgException(message)
+            exc = ScratchOrgException(message)
+            org_action_info["status"] = "error"
+            org_action_info["exception"] = str(exc)
+            # Record the failed action to the org's history
+            self.add_action_to_history(
+                OrgDeleteAction(
+                    **org_action_info,
+                )
+            )
+            raise exc
+
+        # Record the action to the org's history
+        org_action_info["status"] = "success"
+        self.add_action_to_history(OrgDeleteAction(**org_action_info))
 
         # Flag that this org has been deleted
         self.config["created"] = False

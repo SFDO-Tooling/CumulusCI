@@ -435,6 +435,11 @@
                     "title": "Release",
                     "enum": ["preview", "previous"],
                     "type": "string"
+                },
+                "track_history": {
+                    "title": "Track History",
+                    "default": false,
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false

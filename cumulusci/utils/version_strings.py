@@ -144,7 +144,6 @@ class Version:
 
 
 class StrictVersion(Version):
-
     """Version numbering for anal retentives and software idealists.
     Implements the standard interface for version number classes as
     described above.  A version number consists of two or three
@@ -319,7 +318,6 @@ class StrictVersion(Version):
 
 
 class LooseVersion(Version):
-
     """Version numbering for anarchists and software realists.
     Implements the standard interface for version number classes as
     described above.  A version number consists of a series of numbers,
@@ -374,6 +372,9 @@ class LooseVersion(Version):
     def __str__(self):
         return self.vstring
 
+    def __hash__(self):
+        return hash(self.version)
+
     def __repr__(self):
         return "LooseVersion ('%s')" % str(self)
 
@@ -389,3 +390,14 @@ class LooseVersion(Version):
             return -1
         if self.version > other.version:
             return 1
+
+
+class StepVersion(LooseVersion):
+    """Like LooseVersion, but converts "/" into -1 to support comparisons and represents as a string using the orginal vstring"""
+
+    def parse(self, vstring: str):
+        super().parse(vstring)
+        self.version = tuple(-1 if x == "/" else x for x in self.version)
+
+    def __repr__(self):
+        return self.vstring

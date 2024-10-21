@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "aiofiles",
     "click",
     "cryptography",
     "python-dateutil",
@@ -62,7 +63,7 @@ dependencies = [
 
 [project.optional-dependencies]
 docs = ["myst-parser", "Sphinx"]
-lint = ["black", "flake8<4", "isort", "pre-commit"]
+lint = ["black", "flake8<4", "flake8-pydantic", "isort", "pre-commit" ]
 test = [
     "coverage[toml]",
     "factory-boy",

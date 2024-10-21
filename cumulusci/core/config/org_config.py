@@ -10,9 +10,11 @@ from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
+from cumulusci.core.org_history import FilterOrgActions, OrgHistory
 from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyResolutionError,
+    OrgHistoryError,
     ServiceNotConfigured,
 )
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
@@ -63,8 +65,10 @@ class OrgConfig(BaseConfig):
     refresh_token: str
     client_secret: str
     connected_app: str
+    track_history: bool
 
     createable: bool = None
+    history: OrgHistory = None
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
@@ -80,8 +84,30 @@ class OrgConfig(BaseConfig):
         self._installed_packages = None
         self._is_person_accounts_enabled = None
         self._multiple_currencies_is_enabled = False
+        history_exception = None
+        # try:
+        config_history = config.get("history", {})
+        if config.get("org_id"):
+            config_history["org_id"] = config["org_id"]
+
+        self.history = OrgHistory.parse_obj(config_history)
+        # except Exception as e:
+        #     import pdb
+
+        #     pdb.set_trace()
+        #     history_exception = e
 
         super().__init__(config)
+
+        if history_exception:
+            if config.get("track_history", False):
+                self.logger.error(
+                    f"Failed to load history for org {name}: {history_exception}. Disabiling track_history to avoid data loss."
+                )
+            else:
+                raise OrgHistoryError(
+                    f"Failed to load history for org {name}: {history_exception}."
+                )
 
     def refresh_oauth_token(self, keychain, connected_app=None, is_sandbox=False):
         """Get a fresh access token and store it in the org config.
@@ -317,7 +343,8 @@ class OrgConfig(BaseConfig):
         To check if a required package is present, call `has_minimum_package_version()` with either the
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
 
-        Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
+        Beta version of a package are represented as "1.2.3b5", where 5 is the build number.
+        """
         if self._installed_packages is None:
             isp_result = self.salesforce_client.restful(
                 "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
@@ -361,6 +388,8 @@ class OrgConfig(BaseConfig):
 
     def save(self):
         assert self.keychain, "Keychain was not set on OrgConfig"
+        if self.track_history and self.history:
+            self.config["history"] = self.history.dict()
         self.keychain.set_org(self, self.global_org)
 
     def get_domain(self):
@@ -583,3 +612,44 @@ class OrgConfig(BaseConfig):
                 new_dependencies.append(dependency)
 
         return new_dependencies
+
+    def add_action_to_history(self, action):
+        """Add an entry to the org's history"""
+        if not self.track_history:
+            return
+
+        self.history.actions.append(action)
+        self.config["history"] = self.history.dict()
+        self.save()
+
+    def clear_history(
+        self,
+        filters: FilterOrgActions,
+        org_id: str | None = None,
+    ):
+        """Clear the org's history"""
+        self.logger.info(f"Starting length: {len(self.history.actions)}")
+
+        if isinstance(filters, dict):
+            filters = FilterOrgActions.parse_obj(filters)
+
+        if org_id:
+            history = self.previous_orgs[org_id]
+        else:
+            history = self.history
+
+        actions = history.filtered_actions(filters)
+        for action in actions:
+            self.logger.warning(f"Removing {action.action_type} action: {action}")
+            history.actions.remove(action)
+
+        if org_id:
+            history.hash_config = history.calculate_config_hash()
+        self.history.hash_config = self.history.calculate_config_hash()
+        self.logger.info(
+            f"Recalculated history config hash: {self.history.hash_config}"
+        )
+
+        self.logger.info(f"Ending length: {len(self.history.actions)}")
+        self.config["history"] = self.history.dict()
+        self.save()
