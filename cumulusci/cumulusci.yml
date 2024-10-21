@@ -375,6 +375,10 @@ tasks:
         description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
         class_path: cumulusci.tasks.github.publish.PublishSubtree
         group: GitHub
+    github_org_to_env:
+        description: Publishes an org's credentials and info as a GitHub Environment. This task will create or update an environment with the same ORG_ID value automatically.
+        class_path: cumulusci.tasks.github.environments.OrgToEnvironment
+        group: GitHub
     github_package_data:
         description: Look up 2gp package dependencies for a version id recorded in a commit status.
         class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus

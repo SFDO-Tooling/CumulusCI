@@ -41,6 +41,7 @@ dependencies = [
     "psutil",
     "pydantic<2",
     "PyJWT",
+    "PyNaCL",
     "pytz",
     "pyyaml",
     "requests",
