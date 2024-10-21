@@ -653,22 +653,22 @@ utilize a release branch model and build second-generation package betas
 
 > -   If a `tag` is present, use the commit for that tag, and any
 >     package version found there. (Resolver: `tag`)
-> -   If the current branch is a release branch (`feature/NNN`, where
->     `feature/` is the feature branch prefix and `NNN` is any integer)
+> -   If the current branch is a release branch (`feature/NNN` or `feature/N.N.N`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer or `N.N.N` is a version number made up of integers)
 >     or a child branch of a release branch, locate a branch with the
 >     same name in the dependency repository. If a commit status
 >     contains a beta package Id for any of the first five commits on
 >     that branch, use that commit and package. (Resolver:
 >     `commit_status_exact_branch`)
-> -   If the current branch is a release branch (`feature/NNN`, where
->     `feature/` is the feature branch prefix and `NNN` is any integer)
+> -   If the current branch is a release branch (`feature/NNN` or `feature/N.N.N`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer or `N.N.N` is a version number made up of integers)
 >     or a child branch of a release branch, locate a matching release
->     branch (`feature/NNN`) in the dependency repository. If a commit
+>     branch (`feature/NNN` or `feature/N.N.N`) in the dependency repository. If a commit
 >     status contains a beta package Id for any of the first five
 >     commits on that branch, use that commit and package. (Resolver:
 >     `commit_status_release_branch`)
-> -   If the current branch is a release branch (`feature/NNN`, where
->     `feature/` is the feature branch prefix and `NNN` is any integer)
+> -   If the current branch is a release branch (`feature/NNN` or `feature/N.N.N`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer or `N.N.N` is a version number made up of integers)
 >     or a child branch of a release branch, locate a branch for either
 >     of the two previous releases (e.g., `feature/230` in this
 >     repository would search `feature/229` and `feature/228`) in the
@@ -696,22 +696,22 @@ utilize a release branch model and build unlocked package betas
 also suitable for use cases where a persistent org and Unlocked
 Package versions are used for ongoing QA.
 
-> -   If the current branch is a release branch (`feature/NNN`, where
->     `feature/` is the feature branch prefix and `NNN` is any integer)
+> -   If the current branch is a release branch (`feature/NNN` or `feature/N.N.N`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer or `N.N.N` is a version number made up of integers)
 >     or a child branch of a release branch, locate a branch with the
 >     same name in the dependency repository. If a commit status
 >     contains a beta package Id for any of the first five commits on
 >     that branch, use that commit and package. (Resolver:
 >     `unlocked_exact_branch`)
-> -   If the current branch is a release branch (`feature/NNN`, where
->     `feature/` is the feature branch prefix and `NNN` is any integer)
+> -   If the current branch is a release branch (`feature/NNN` or `feature/N.N.N`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer or `N.N.N` is a version number made up of integers)
 >     or a child branch of a release branch, locate a matching release
->     branch (`feature/NNN`) in the dependency repository. If a commit
+>     branch (`feature/NNN` or `feature/N.N.N`) in the dependency repository. If a commit
 >     status contains a beta package Id for any of the first five
 >     commits on that branch, use that commit and package. (Resolver:
 >     `unlocked_release_branch`)
-> -   If the current branch is a release branch (`feature/NNN`, where
->     `feature/` is the feature branch prefix and `NNN` is any integer)
+> -   If the current branch is a release branch (`feature/NNN` or `feature/N.N.N`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer or `N.N.N` is a version number made up of integers)
 >     or a child branch of a release branch, locate a branch for either
 >     of the two previous releases (e.g., `feature/230` in this
 >     repository would search `feature/229` and `feature/228`) in the
