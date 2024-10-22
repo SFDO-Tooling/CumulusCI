@@ -352,6 +352,58 @@ class TestScratchOrgConfig:
             with pytest.raises(ScratchOrgException):
                 config.scratch_info
 
+    def test_scratch_info_verbose(self, Command, caplog):
+        result = b"""{
+        "result": {
+            "instanceUrl": "url",
+            "accessToken": "access!token",
+            "username": "username",
+            "password": "password",
+            "sfdxAuthUrl": "test_auth_url",
+            "createdDate": "1970-01-01T00:00:00Z",
+            "expirationDate": "1970-01-08"
+        }
+    }"""
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        config = ScratchOrgConfig({"username": "test", "created": True}, "test")
+
+        expected = {
+            "access_token": "access!token",
+            "instance_url": "url",
+            "org_id": "access",
+            "password": "password",
+            "username": "username",
+            "sfdx_auth_url": "test_auth_url",
+            "created_date": "1970-01-01T00:00:00Z",
+            "expiration_date": "1970-01-08",
+        }
+        with caplog.at_level("WARNING"):
+            sfdx_info = config.get_sfdx_info(verbose=True)
+        assert "sfdx_auth_url" in sfdx_info
+        assert sfdx_info["sfdx_auth_url"] == "test_auth_url"
+
+        # Ensure that the verbose sfdx_info is not stored in the org config
+        assert hasattr(config, "_sfdx_info") is False
+
+        # Check the command that was passed to the mocked Command
+        Command.assert_called_with(
+            "sfdx force:org:display --json --verbose -u test",
+            stdout=mock.ANY,
+            stderr=mock.ANY,
+            shell=True,
+            env=mock.ANY,
+        )
+
+        logs = [
+            record.message for record in caplog.records if record.levelname == "WARNING"
+        ]
+        logs = "\n".join(logs)
+        # Assert that the log warning message was emitted about accessing sfdxAuthUrl
+        assert "Using --verbose mode to retrieve the sfdxAuthUrl" in logs
+
     def test_access_token(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()

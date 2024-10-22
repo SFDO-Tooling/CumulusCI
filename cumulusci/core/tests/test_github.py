@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from datetime import datetime
@@ -18,6 +19,7 @@ from github3.exceptions import (
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import AppInstallationTokenAuth
+from nacl import encoding, public
 from requests.exceptions import RequestException, RetryError, SSLError
 from requests.models import Response
 
@@ -909,3 +911,27 @@ class TestGithub(GithubApiTestMixin):
         get_latest_prerelease(repo=repo)
         assert responses.assert_call_count(endpoint, 1)
         repo.release_from_tag.assert_called_once_with(expected_tag)
+
+
+def test_encrypt_secret():
+    # Generate a real public/private key pair
+    private_key = public.PrivateKey.generate()
+    public_key = private_key.public_key
+
+    # Convert the public key to a base64-encoded string
+    public_key_str = public_key.encode(encoder=encoding.Base64Encoder()).decode("utf-8")
+
+    # Secret value to encrypt
+    secret_value = "test_secret"
+
+    # Encrypt the secret using the encrypt_secret function
+    encrypted_secret = github.encrypt_secret(public_key_str, secret_value)
+
+    # Decrypt the secret to verify it was encrypted correctly
+    sealed_box = public.SealedBox(private_key)
+    decrypted_secret = sealed_box.decrypt(base64.b64decode(encrypted_secret)).decode(
+        "utf-8"
+    )
+
+    # Assert that the decrypted secret matches the original secret value
+    assert decrypted_secret == secret_value

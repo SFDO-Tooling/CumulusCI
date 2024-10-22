@@ -56,6 +56,12 @@ class OrgCannotBeLoaded(CumulusCIUsageError):
     pass
 
 
+class OrgNotValidForTask(CumulusCIUsageError):
+    """Raised when an org is not valid for a task"""
+
+    pass
+
+
 class ServiceNotConfigured(CumulusCIUsageError):
     """Raised when no service configuration could be found by a given name in the project keychain"""
 
@@ -209,6 +215,10 @@ class GithubApiNoResultsError(CumulusCIException):
 
 
 class GithubApiUnauthorized(CumulusCIException):
+    pass
+
+
+class GithubEnvironmentError(CumulusCIException):
     pass
 
 
