@@ -196,7 +196,7 @@ class TestOrgToEnvironment:
         task,
     ):
         mock_get_org_info.return_value = {
-            "secrets": {"ACCESS_TOKEN": "test_token"},
+            "secrets": {"SFDX_AUTH_URL": "test_sfdx_auth_url"},
             "variables": {"ORG_ID": "test_org_id"},
         }
         mock_check_env.return_value = True
@@ -208,7 +208,7 @@ class TestOrgToEnvironment:
         mock_get_or_create_env.assert_called_once()
         mock_check_env.assert_called_once()
         mock_update_secrets.assert_called_once_with(
-            "test_env", {"ACCESS_TOKEN": "test_token"}
+            "test_env", {"SFDX_AUTH_URL": "test_sfdx_auth_url"}
         )
         mock_update_variables.assert_called_once_with(
             "test_env", {"ORG_ID": "test_org_id"}
@@ -219,7 +219,7 @@ class TestOrgToEnvironment:
         task.console.print.assert_any_call(
             "Getting or Creating GitHub environment test_env..."
         )
-        task.console.print.assert_any_call("Updating secrets ACCESS_TOKEN")
+        task.console.print.assert_any_call("Updating secrets SFDX_AUTH_URL")
         task.console.print.assert_any_call("Updating variables ORG_ID")
 
     def test_get_environment_variables(self, task):
@@ -309,7 +309,7 @@ class TestOrgToEnvironment:
     def test_get_org_info_success(self, task):
         mock_org_config = mock.Mock()
         mock_org_config.get_sfdx_info.return_value = {
-            "access_token": "test_token",
+            "sfdx_auth_url": "test_sfdx_auth_url",
             "instance_url": "https://test.salesforce.com",
             "org_id": "00D000000000001",
             "username": "test@example.com",
@@ -328,7 +328,6 @@ class TestOrgToEnvironment:
 
         assert org_info == {
             "secrets": {
-                "ACCESS_TOKEN": "test_token",
                 "SFDX_AUTH_URL": "https://test.salesforce.com",
             },
             "variables": {
@@ -400,7 +399,7 @@ class TestOrgToEnvironment:
         task,
     ):
         mock_get_org_info.return_value = {
-            "secrets": {"ACCESS_TOKEN": "test_token"},
+            "secrets": {"SFDX_AUTH_TOKEN": "test_sfdx_auth_token"},
             "variables": {"ORG_ID": "test_org_id"},
         }
         mock_check_env.return_value = True

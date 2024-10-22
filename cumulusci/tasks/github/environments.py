@@ -47,7 +47,7 @@ class OrgToEnvironment(BaseGithubTask):
 
         self._check_environment(org_info)
 
-        self.console.print(f"Updating secrets {",".join(org_info['secrets'].keys())}")
+        self.console.print(f"Updating secrets {','.join(org_info['secrets'].keys())}")
         self._update_secrets(self.parsed_options.environment_name, org_info["secrets"])
         self.console.print(
             f"Updating variables {",".join(org_info['variables'].keys())}"
@@ -129,7 +129,6 @@ class OrgToEnvironment(BaseGithubTask):
         self.org_config._sfdx_info = sfdx_info
         org_info = {
             "secrets": {
-                "ACCESS_TOKEN": sfdx_info["access_token"],
                 "SFDX_AUTH_URL": sfdx_info["instance_url"],
             },
             "variables": {
