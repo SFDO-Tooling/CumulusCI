@@ -34,6 +34,7 @@ class SfdxOrgConfig(OrgConfig):
         # access_token
         command = f"force:org:display --json"
         if verbose:
+            self.logger.warning("Using --verbose mode to retrieve the sfdxAuthUrl")
             command += " --verbose"
         p = sfdx(command, self.username)
 
@@ -69,9 +70,10 @@ class SfdxOrgConfig(OrgConfig):
         }
         if org_info["result"].get("password"):
             sfdx_info["password"] = org_info["result"]["password"]
-        self._sfdx_info = sfdx_info
-        self._sfdx_info_date = datetime.datetime.utcnow()
-        self.config.update(sfdx_info)
+        if not verbose:
+            self._sfdx_info = sfdx_info
+            self._sfdx_info_date = datetime.datetime.utcnow()
+            self.config.update(sfdx_info)
 
         sfdx_info.update(
             {

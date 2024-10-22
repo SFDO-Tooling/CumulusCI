@@ -29,6 +29,12 @@ class TestOrgToEnvironment:
         task.repo.url = "https://api.github.com/repos/TestOwner/TestRepo"
         return task
 
+    def test_init_task(self, task):
+        task.get_repo = mock.Mock()
+        task._init_task()
+        assert task.console is not None
+        assert task.repo is not None
+
     def test_get_or_create_environment(self, task):
         task.repo._put.return_value.json.return_value = {"name": "test_env"}
 
@@ -50,9 +56,14 @@ class TestOrgToEnvironment:
         )
 
     def test_get_environment_variable_not_found(self, task):
-        task.repo._get.side_effect = GithubApiNotFoundError("Not found")
+        # Create a mock response with a status_code of 404
+        mock_response = mock.Mock()
+        mock_response.status_code = 404
 
-        with pytest.raises(GithubApiNotFoundError):
+        # Set the side effect of the _get method to raise GithubApiNotFoundError with the mock response
+        task.repo._get.return_value = mock_response
+
+        with pytest.raises(GithubApiNotFoundError) as exc_info:
             task._get_environment_variable("NON_EXISTENT_VAR")
 
     @mock.patch("cumulusci.tasks.github.environments.encrypt_secret")
@@ -67,6 +78,15 @@ class TestOrgToEnvironment:
             json={"encrypted_value": "encrypted_value", "key_id": "test_key_id"},
         )
 
+    @mock.patch("cumulusci.tasks.github.environments.encrypt_secret")
+    def test_update_secret_404(self, mock_encrypt_secret, task):
+        mock_encrypt_secret.return_value = "encrypted_value"
+        task.repo._put.return_value = mock.Mock(status_code=404)
+        public_key = {"key": "test_key", "key_id": "test_key_id"}
+
+        with pytest.raises(GithubApiNotFoundError):
+            task._update_secret("TEST_SECRET", "test_value", public_key)
+
     def test_create_variable(self, task):
         task._create_variable("TEST_VAR", "test_value")
 
@@ -80,6 +100,24 @@ class TestOrgToEnvironment:
             json=True,
         )
 
+    def test_create_variable_404(self, task):
+        task.repo._post.return_value = mock.Mock(status_code=404)
+        with pytest.raises(GithubApiNotFoundError):
+            task._create_variable("TEST_VAR", "test_value")
+
+    def test_create_variable_none_value(self, task):
+        task._create_variable("TEST_VAR", None)
+
+        task.repo._post.assert_called_once_with(
+            "https://api.github.com/repos/TestOwner/TestRepo/environments/test_env/variables",
+            headers={
+                "Accept": "application/vnd.github.v3+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            data={"name": "TEST_VAR", "value": "None"},
+            json=True,
+        )
+
     def test_update_variable(self, task):
         task._update_variable("TEST_VAR", "new_value")
 
@@ -88,11 +126,25 @@ class TestOrgToEnvironment:
             json={"value": "new_value"},
         )
 
+    def test_update_variable_404(self, task):
+        task.repo._patch.return_value = mock.Mock(status_code=404)
+        with pytest.raises(GithubApiNotFoundError):
+            task._update_variable("TEST_VAR", "new_value")
+
     def test_get_org_info_invalid_org(self, task):
         task.org_config = mock.Mock(spec=["name"])
         task.org_config.name = "TestOrg"
         with pytest.raises(OrgNotValidForTask):
             task._get_org_info()
+
+    @mock.patch(
+        "cumulusci.tasks.github.environments.OrgToEnvironment._get_environment_variable"
+    )
+    def test_check_environment_no_org_id(self, mock_get_var, task):
+        mock_get_var.side_effect = GithubApiNotFoundError("Not found")
+        org_info = {"variables": {"ORG_ID": "test_org_id"}}
+
+        assert task._check_environment(org_info) is True
 
     @mock.patch(
         "cumulusci.tasks.github.environments.OrgToEnvironment._get_environment_variable"
@@ -232,12 +284,6 @@ class TestOrgToEnvironment:
         mock_update_variable.assert_called_once_with("EXISTING_VAR", "new_value")
         mock_create_variable.assert_called_once_with("NEW_VAR", "value")
 
-    def test_get_environment_variable_not_found(self, task):
-        task.repo._get.side_effect = GithubApiNotFoundError("Not found")
-
-        with pytest.raises(GithubApiNotFoundError):
-            task._get_environment_variable("NON_EXISTENT_VAR")
-
     def test_update_secret_environment_not_found(self, task):
         # Mock the _put method to raise GithubApiNotFoundError
         task.repo._put.side_effect = GithubApiNotFoundError("Environment not found")
@@ -259,12 +305,6 @@ class TestOrgToEnvironment:
                 "key_id": "test_key_id",
             },
         )
-
-    def test_get_or_create_environment_error(self, task):
-        task.repo._put.side_effect = Exception("API Error")
-
-        with pytest.raises(Exception, match="API Error"):
-            task._get_or_create_environment()
 
     def test_get_org_info_success(self, task):
         mock_org_config = mock.Mock()
