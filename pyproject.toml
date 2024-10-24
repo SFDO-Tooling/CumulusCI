@@ -55,7 +55,7 @@ dependencies = [
     "sarge",
     "selenium<4",
     "simple-salesforce==1.11.4",
-    "snowfakery",
+    "snowfakery==3.6.2",
     "SQLAlchemy<2",
     "xmltodict",
 ]
