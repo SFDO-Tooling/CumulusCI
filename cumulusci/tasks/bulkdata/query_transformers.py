@@ -123,7 +123,11 @@ class DynamicLookupQueryExtender(LoadQueryExtender):
                     load_fields = lookup_mapping_step.get_load_field_list()
                     for field in load_fields:
                         matching_column = next(
-                            (col for col in aliased_table.columns if col.name == field)
+                            (
+                                col
+                                for col in aliased_table.columns
+                                if col.name == lookup_mapping_step.fields[field]
+                            )
                         )
                         columns.append(
                             matching_column.label(f"{aliased_table.name}_{field}")

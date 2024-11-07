@@ -360,7 +360,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             num_records_in_target = sobject_map.get(mapping.sf_object, None)
 
             # Check for similarity selection strategy and modify fields accordingly
-            if mapping.selection_strategy == "similarity":
+            if mapping.select_options.strategy == "similarity":
                 # Describe the object to determine polymorphic lookups
                 describe_result = self.sf.restful(
                     f"sobjects/{mapping.sf_object}/describe"
@@ -469,8 +469,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             fields=fields,
             api=mapping.api,
             volume=volume,
-            selection_strategy=mapping.selection_strategy,
-            selection_filter=mapping.selection_filter,
+            selection_strategy=mapping.select_options.strategy,
+            selection_filter=mapping.select_options.filter,
+            selection_priority_fields=mapping.select_options.priority_fields,
             content_type=content_type,
         )
         return step, query
@@ -577,7 +578,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         transformers = []
         if (
             mapping.action == DataOperationType.SELECT
-            and mapping.selection_strategy == "similarity"
+            and mapping.select_options.strategy == "similarity"
         ):
             transformers.append(
                 DynamicLookupQueryExtender(

@@ -1,10 +1,12 @@
 import random
 import re
 import typing as T
+from enum import Enum
 
 import numpy as np
 import pandas as pd
 from annoy import AnnoyIndex
+from pydantic import Field, validator
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.preprocessing import StandardScaler
 
@@ -12,6 +14,8 @@ from cumulusci.core.enums import StrEnum
 from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
     DEFAULT_DECLARATIONS,
 )
+from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict
+from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 
 class SelectStrategy(StrEnum):
@@ -28,6 +32,35 @@ class SelectRecordRetrievalMode(StrEnum):
 
     ALL = "all"
     MATCH = "match"
+
+
+ENUM_VALUES = {
+    v.value.lower(): v.value
+    for enum in [SelectStrategy]
+    for v in enum.__members__.values()
+}
+
+
+class SelectOptions(CCIDictModel):
+    filter: T.Optional[str] = None  # Optional filter for selection
+    strategy: SelectStrategy = SelectStrategy.STANDARD  # Strategy for selection
+    priority_fields: T.Dict[str, str] = Field({})
+
+    @validator("strategy", pre=True)
+    def validate_strategy(cls, value):
+        if isinstance(value, Enum):
+            return value
+        if value is not None:
+            return ENUM_VALUES.get(value.lower())
+        raise ValueError(f"Invalid strategy value: {value}")
+
+    @validator("priority_fields", pre=True)
+    def standardize_fields_to_dict(cls, values):
+        if values is None:
+            values = {}
+        if type(values) is list:
+            values = {elem: elem for elem in values}
+        return CaseInsensitiveDict(values)
 
 
 class SelectOperationExecutor:
@@ -68,7 +101,12 @@ class SelectOperationExecutor:
             )
 
     def select_post_process(
-        self, load_records, query_records: list, num_records: int, sobject: str
+        self,
+        load_records,
+        query_records: list,
+        num_records: int,
+        sobject: str,
+        weights: list,
     ):
         # For STANDARD strategy
         if self.strategy == SelectStrategy.STANDARD:
@@ -78,7 +116,10 @@ class SelectOperationExecutor:
         # For SIMILARITY strategy
         elif self.strategy == SelectStrategy.SIMILARITY:
             return similarity_post_process(
-                load_records=load_records, query_records=query_records, sobject=sobject
+                load_records=load_records,
+                query_records=query_records,
+                sobject=sobject,
+                weights=weights,
             )
         # For RANDOM strategy
         elif self.strategy == SelectStrategy.RANDOM:
@@ -210,7 +251,7 @@ def similarity_generate_query(
 
 
 def similarity_post_process(
-    load_records, query_records: list, sobject: str
+    load_records, query_records: list, sobject: str, weights: list
 ) -> T.Tuple[T.List[dict], T.Union[str, None]]:
     """Processes the query results for the similarity selection strategy"""
     # Handle case where query returns 0 records
@@ -226,15 +267,15 @@ def similarity_post_process(
     closest_records = []
 
     if complexity_constant < 1000:
-        closest_records = levenshtein_post_process(load_records, query_records)
+        closest_records = levenshtein_post_process(load_records, query_records, weights)
     else:
-        closest_records = annoy_post_process(load_records, query_records)
+        closest_records = annoy_post_process(load_records, query_records, weights)
 
     return closest_records
 
 
 def annoy_post_process(
-    load_records: list, query_records: list
+    load_records: list, query_records: list, weights: list
 ) -> T.Tuple[T.List[dict], T.Union[str, None]]:
     """Processes the query results for the similarity selection strategy using Annoy algorithm for large number of records"""
 
@@ -253,7 +294,7 @@ def annoy_post_process(
     }
 
     final_load_vectors, final_query_vectors = vectorize_records(
-        load_records, query_record_data, hash_features=hash_features
+        load_records, query_record_data, hash_features=hash_features, weights=weights
     )
 
     # Create Annoy index for nearest neighbor search
@@ -290,13 +331,13 @@ def annoy_post_process(
 
 
 def levenshtein_post_process(
-    load_records: list, query_records: list
+    load_records: list, query_records: list, weights: list
 ) -> T.Tuple[T.List[dict], T.Union[str, None]]:
     """Processes the query results for the similarity selection strategy using Levenshtein algorithm for small number of records"""
     closest_records = []
 
     for record in load_records:
-        closest_record = find_closest_record(record, query_records)
+        closest_record = find_closest_record(record, query_records, weights)
         closest_records.append(
             {"id": closest_record[0], "success": True, "created": False}
         )
@@ -324,12 +365,12 @@ def random_post_process(
     return selected_records, None
 
 
-def find_closest_record(load_record: list, query_records: list):
+def find_closest_record(load_record: list, query_records: list, weights: list):
     closest_distance = float("inf")
     closest_record = query_records[0]
 
     for record in query_records:
-        distance = calculate_levenshtein_distance(load_record, record[1:])
+        distance = calculate_levenshtein_distance(load_record, record[1:], weights)
         if distance < closest_distance:
             closest_distance = distance
             closest_record = record
@@ -361,15 +402,16 @@ def levenshtein_distance(str1: str, str2: str):
     return dp[-1][-1]
 
 
-def calculate_levenshtein_distance(record1: list, record2: list):
+def calculate_levenshtein_distance(record1: list, record2: list, weights: list):
     if len(record1) != len(record2):
         raise ValueError("Records must have the same number of fields.")
+    elif len(record1) != len(weights):
+        raise ValueError("Records must be same size as fields (weights).")
 
     total_distance = 0
     total_fields = 0
 
-    for field1, field2 in zip(record1, record2):
-
+    for field1, field2, weight in zip(record1, record2, weights):
         field1 = field1.lower()
         field2 = field2.lower()
 
@@ -382,7 +424,8 @@ def calculate_levenshtein_distance(record1: list, record2: list):
                 # If one field is blank, reduce the impact of the distance
                 distance = distance * 0.05  # Fixed value for blank vs non-blank
 
-        total_distance += distance
+        # Multiply the distance by the corresponding weight
+        total_distance += distance * weight
         total_fields += 1
 
     return total_distance / total_fields if total_fields > 0 else 0
@@ -428,38 +471,57 @@ def add_limit_offset_to_user_filter(
     return f" {filter_clause}"
 
 
-def determine_field_types(df):
+def determine_field_types(df, weights):
     numerical_features = []
     boolean_features = []
     categorical_features = []
 
-    for col in df.columns:
+    numerical_weights = []
+    boolean_weights = []
+    categorical_weights = []
+
+    for col, weight in zip(df.columns, weights):
         # Check if the column can be converted to numeric
         try:
             # Attempt to convert to numeric
             df[col] = pd.to_numeric(df[col], errors="raise")
             numerical_features.append(col)
+            numerical_weights.append(weight)
         except ValueError:
             # Check for boolean values
             if df[col].str.lower().isin(["true", "false"]).all():
                 # Map to actual boolean values
                 df[col] = df[col].str.lower().map({"true": True, "false": False})
                 boolean_features.append(col)
+                boolean_weights.append(weight)
             else:
                 categorical_features.append(col)
+                categorical_weights.append(weight)
 
-    return numerical_features, boolean_features, categorical_features
+    return (
+        numerical_features,
+        boolean_features,
+        categorical_features,
+        numerical_weights,
+        boolean_weights,
+        categorical_weights,
+    )
 
 
-def vectorize_records(db_records, query_records, hash_features):
+def vectorize_records(db_records, query_records, hash_features, weights):
     # Convert database records and query records to DataFrames
     df_db = pd.DataFrame(db_records)
     df_query = pd.DataFrame(query_records)
 
-    # Dynamically determine field types
-    numerical_features, boolean_features, categorical_features = determine_field_types(
-        df_db
-    )
+    # Determine field types and corresponding weights
+    (
+        numerical_features,
+        boolean_features,
+        categorical_features,
+        numerical_weights,
+        boolean_weights,
+        categorical_weights,
+    ) = determine_field_types(df_db, weights)
 
     # Fit StandardScaler on the numerical features of the database records
     scaler = StandardScaler()
@@ -474,24 +536,26 @@ def vectorize_records(db_records, query_records, hash_features):
 
     # For db_records
     hashed_categorical_data_db = []
-    for col in categorical_features:
+    for idx, col in enumerate(categorical_features):
         hashed_db = hashing_vectorizer.fit_transform(df_db[col]).toarray()
-        hashed_categorical_data_db.append(hashed_db)
+        # Apply weight to the hashed vector for this categorical feature
+        hashed_db_weighted = hashed_db * categorical_weights[idx]
+        hashed_categorical_data_db.append(hashed_db_weighted)
 
     # For query_records
     hashed_categorical_data_query = []
-    for col in categorical_features:
+    for idx, col in enumerate(categorical_features):
         hashed_query = hashing_vectorizer.transform(df_query[col]).toarray()
-        hashed_categorical_data_query.append(hashed_query)
+        # Apply weight to the hashed vector for this categorical feature
+        hashed_query_weighted = hashed_query * categorical_weights[idx]
+        hashed_categorical_data_query.append(hashed_query_weighted)
 
     # Combine all feature types into a single vector for the database records
     db_vectors = []
     if numerical_features:
-        db_vectors.append(df_db[numerical_features].values)
+        db_vectors.append(df_db[numerical_features].values * numerical_weights)
     if boolean_features:
-        db_vectors.append(
-            df_db[boolean_features].astype(int).values
-        )  # Convert boolean to int
+        db_vectors.append(df_db[boolean_features].astype(int).values * boolean_weights)
     if hashed_categorical_data_db:
         db_vectors.append(np.hstack(hashed_categorical_data_db))
 
@@ -501,11 +565,11 @@ def vectorize_records(db_records, query_records, hash_features):
     # Combine all feature types into a single vector for the query records
     query_vectors = []
     if numerical_features:
-        query_vectors.append(df_query[numerical_features].values)
+        query_vectors.append(df_query[numerical_features].values * numerical_weights)
     if boolean_features:
         query_vectors.append(
-            df_query[boolean_features].astype(int).values
-        )  # Convert boolean to int
+            df_query[boolean_features].astype(int).values * boolean_weights
+        )
     if hashed_categorical_data_query:
         query_vectors.append(np.hstack(hashed_categorical_data_query))
 

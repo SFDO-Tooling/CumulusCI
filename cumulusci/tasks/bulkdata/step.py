@@ -28,6 +28,8 @@ from cumulusci.utils.xml import lxml_parse_string
 DEFAULT_BULK_BATCH_SIZE = 10_000
 DEFAULT_REST_BATCH_SIZE = 200
 MAX_REST_BATCH_SIZE = 200
+HIGH_PRIORITY_VALUE = 3
+LOW_PRIORITY_VALUE = 0.5
 csv.field_size_limit(2**27)  # 128 MB
 
 
@@ -352,6 +354,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         fields,
         selection_strategy=SelectStrategy.STANDARD,
         selection_filter=None,
+        selection_priority_fields=None,
         content_type=None,
     ):
         super().__init__(
@@ -370,6 +373,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         self.select_operation_executor = SelectOperationExecutor(selection_strategy)
         self.selection_filter = selection_filter
+        self.weights = assign_weights(
+            priority_fields=selection_priority_fields, fields=fields
+        )
         self.content_type = content_type if content_type else "CSV"
 
     def start(self):
@@ -494,6 +500,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             query_records=query_records,
             num_records=total_num_records,
             sobject=self.sobject,
+            weights=self.weights,
         )
         if not error_message:
             self.select_results.extend(selected_records)
@@ -651,6 +658,7 @@ class RestApiDmlOperation(BaseDmlOperation):
         fields,
         selection_strategy=SelectStrategy.STANDARD,
         selection_filter=None,
+        selection_priority_fields=None,
         content_type=None,
     ):
         super().__init__(
@@ -679,6 +687,9 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         self.select_operation_executor = SelectOperationExecutor(selection_strategy)
         self.selection_filter = selection_filter
+        self.weights = assign_weights(
+            priority_fields=selection_priority_fields, fields=fields
+        )
         self.content_type = content_type
 
     def _record_to_json(self, rec):
@@ -850,6 +861,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             query_records=query_records,
             num_records=total_num_records,
             sobject=self.sobject,
+            weights=self.weights,
         )
         if not error_message:
             # Add selected records from this batch to the overall results
@@ -1003,6 +1015,7 @@ def get_dml_operation(
     api: Optional[DataApi] = DataApi.SMART,
     selection_strategy: SelectStrategy = SelectStrategy.STANDARD,
     selection_filter: Union[str, None] = None,
+    selection_priority_fields: Union[dict, None] = None,
     content_type: Union[str, None] = None,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
@@ -1039,6 +1052,7 @@ def get_dml_operation(
         fields=fields,
         selection_strategy=selection_strategy,
         selection_filter=selection_filter,
+        selection_priority_fields=selection_priority_fields,
         content_type=content_type,
     )
 
@@ -1109,3 +1123,22 @@ def flatten_record(record, headers):
         flat_record.append(value)
 
     return flat_record
+
+
+def assign_weights(
+    priority_fields: Union[Dict[str, str], None], fields: List[str]
+) -> list:
+    # If priority_fields is None or an empty dictionary, set all weights to 1
+    if not priority_fields:
+        return [1] * len(fields)
+
+    # Initialize the weight list with LOW_PRIORITY_VALUE
+    weights = [LOW_PRIORITY_VALUE] * len(fields)
+
+    # Iterate over the fields and assign weights based on priority_fields
+    for i, field in enumerate(fields):
+        if field in priority_fields:
+            # Set weight to HIGH_PRIORITY_VALUE if field is in priority_fields
+            weights[i] = HIGH_PRIORITY_VALUE
+
+    return weights

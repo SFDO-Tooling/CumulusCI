@@ -5,6 +5,7 @@ import typing as T
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
+from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
 from simple_salesforce import Salesforce
 from sqlalchemy import Boolean, Column, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
@@ -21,6 +22,19 @@ class DataApi(StrEnum):
     BULK = "bulk"
     REST = "rest"
     SMART = "smart"
+
+
+class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
+    def __init__(self, *args, **kwargs):
+        self._canonical_keys = {}
+        super().__init__(*args, **kwargs)
+
+    def canonical_key(self, name):
+        return self._canonical_keys[name.lower()]
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._canonical_keys[key.lower()] = key
 
 
 class SqlAlchemyMixin:

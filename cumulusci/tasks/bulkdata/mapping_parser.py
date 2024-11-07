@@ -8,32 +8,19 @@ from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from pydantic import Field, ValidationError, root_validator, validator
-from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
 from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
-from cumulusci.tasks.bulkdata.select_utils import SelectStrategy
+from cumulusci.tasks.bulkdata.select_utils import SelectOptions, SelectStrategy
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
+from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 logger = getLogger(__name__)
-
-
-class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
-    def __init__(self, *args, **kwargs):
-        self._canonical_keys = {}
-        super().__init__(*args, **kwargs)
-
-    def canonical_key(self, name):
-        return self._canonical_keys[name.lower()]
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        self._canonical_keys[key.lower()] = key
 
 
 class MappingLookup(CCIDictModel):
@@ -85,7 +72,7 @@ class BulkMode(StrEnum):
 
 ENUM_VALUES = {
     v.value.lower(): v.value
-    for enum in [BulkMode, DataApi, DataOperationType, SelectStrategy]
+    for enum in [BulkMode, DataApi, DataOperationType]
     for v in enum.__members__.values()
 }
 
@@ -108,13 +95,12 @@ class MappingStep(CCIDictModel):
     )
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
-    selection_strategy: SelectStrategy = SelectStrategy.STANDARD  # selection strategy
-    selection_filter: Optional[str] = (
-        None  # filter to be added at the end of select query
+    select_options: Optional[SelectOptions] = Field(
+        default_factory=lambda: SelectOptions(strategy=SelectStrategy.STANDARD)
     )
     update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
-    @validator("bulk_mode", "api", "action", "selection_strategy", pre=True)
+    @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
         if isinstance(val, Enum):
             return val
@@ -133,6 +119,24 @@ class MappingStep(CCIDictModel):
                 val, (str, list, tuple)
             ), "`update_key` should be a field name or list of field names."
             assert False, "Should be unreachable"  # pragma: no cover
+
+    @root_validator
+    def validate_priority_fields(cls, values):
+        select_options = values.get("select_options")
+        fields_ = values.get("fields_", {})
+
+        if select_options and select_options.priority_fields:
+            priority_field_names = set(select_options.priority_fields.keys())
+            field_names = set(fields_.keys())
+
+            # Check if all priority fields are present in the fields
+            missing_fields = priority_field_names - field_names
+            if missing_fields:
+                raise ValueError(
+                    f"Priority fields {missing_fields} are not present in 'fields'"
+                )
+
+        return values
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
