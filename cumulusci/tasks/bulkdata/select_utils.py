@@ -142,14 +142,54 @@ def similarity_generate_query(
     limit: T.Union[int, None],
     offset: T.Union[int, None],
 ) -> T.Tuple[str, T.List[str]]:
-    """Generates the SOQL query for the similarity selection strategy"""
-    # Construct the query with the WHERE clause (if it exists)
-    if "Id" not in fields:
-        fields.insert(0, "Id")
-    fields_to_query = ", ".join(field for field in fields if field)
+    """Generates the SOQL query for the similarity selection strategy, with support for TYPEOF on polymorphic fields."""
 
+    # Pre-process the new fields format to create a nested dict structure for TYPEOF clauses
+    nested_fields = {}
+    regular_fields = []
+
+    for field in fields:
+        components = field.split(".")
+        if len(components) >= 3:
+            # Handle polymorphic fields (format: {relationship_name}.{ref_obj}.{ref_field})
+            relationship, ref_obj, ref_field = (
+                components[0],
+                components[1],
+                components[2],
+            )
+            if relationship not in nested_fields:
+                nested_fields[relationship] = {}
+            if ref_obj not in nested_fields[relationship]:
+                nested_fields[relationship][ref_obj] = []
+            nested_fields[relationship][ref_obj].append(ref_field)
+        else:
+            # Handle regular fields (format: {field})
+            regular_fields.append(field)
+
+    # Construct the query fields
+    query_fields = []
+
+    # Build TYPEOF clauses for polymorphic fields
+    for relationship, references in nested_fields.items():
+        type_clauses = []
+        for ref_obj, ref_fields in references.items():
+            fields_clause = ", ".join(ref_fields)
+            type_clauses.append(f"WHEN {ref_obj} THEN {fields_clause}")
+        type_clause = f"TYPEOF {relationship} {' '.join(type_clauses)} END"
+        query_fields.append(type_clause)
+
+    # Add regular fields to the query
+    query_fields.extend(regular_fields)
+
+    # Ensure "Id" is included in the fields list for identification
+    if "Id" not in query_fields:
+        query_fields.insert(0, "Id")
+
+    # Build the main SOQL query
+    fields_to_query = ", ".join(query_fields)
     query = f"SELECT {fields_to_query} FROM {sobject}"
 
+    # Add the user-defined filter clause or default clause
     if user_filter:
         query += add_limit_offset_to_user_filter(
             filter_clause=user_filter, limit_clause=limit, offset_clause=offset
@@ -161,7 +201,12 @@ def similarity_generate_query(
             query += f" WHERE {declaration.where}"
         query += f" LIMIT {limit}" if limit else ""
         query += f" OFFSET {offset}" if offset else ""
-    return query, fields
+
+    # Return the original input fields with "Id" added if needed
+    if "Id" not in fields:
+        fields.insert(0, "Id")
+
+    return query, fields  # Return the original input fields with "Id"
 
 
 def similarity_post_process(
@@ -178,16 +223,12 @@ def similarity_post_process(
 
     complexity_constant = load_record_count * query_record_count
 
-    print(complexity_constant)
-
     closest_records = []
 
     if complexity_constant < 1000:
         closest_records = annoy_post_process(load_records, query_records)
     else:
         closest_records = levenshtein_post_process(load_records, query_records)
-
-    print(closest_records)
 
     return closest_records
 
@@ -199,14 +240,6 @@ def annoy_post_process(
 
     query_records = replace_empty_strings_with_missing(query_records)
     load_records = replace_empty_strings_with_missing(load_records)
-
-    print("Query records: ")
-    print(query_records)
-
-    print("Load records: ")
-    print(load_records)
-
-    print("\n\n\n\n")
 
     hash_features = 100
     num_trees = 10
@@ -244,28 +277,14 @@ def annoy_post_process(
             load_vector, n_neighbors, include_distances=True
         )
         neighbor_indices = nearest_neighbors[0]  # Indices of nearest neighbors
-        distances = nearest_neighbors[1]  # Distances to nearest neighbors
 
-        load_record = load_records[i]  # Get the query record for the current index
-        print(f"Load record {i + 1}: {load_record}\n")  # Print the query record
-
-        # Print the nearest neighbors for the current query
-        print(f"Nearest neighbors for load record {i + 1}:")
-
-        for j, neighbor_index in enumerate(neighbor_indices):
+        for neighbor_index in neighbor_indices:
             # Retrieve the corresponding record from the database
             record = query_record_data[neighbor_index]
-            distance = distances[j]
-
-            # Print the record and its distance
-            print(f"  Neighbor {j + 1}: {record}, Distance: {distance:.6f}")
             closest_record_id = record_to_id_map[tuple(record)]
-            print("Record id:" + closest_record_id)
             closest_records.append(
                 {"id": closest_record_id, "success": True, "created": False}
             )
-
-        print("\n")  # Add a newline for better readability between query results
 
     return closest_records, None
 

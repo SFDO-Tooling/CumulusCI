@@ -86,6 +86,66 @@ class AddLookupsToQuery(LoadQueryExtender):
         return [join_for_lookup(lookup) for lookup in self.lookups]
 
 
+class DynamicLookupQueryExtender(LoadQueryExtender):
+    """Dynamically adds columns and joins for all fields in lookup tables, handling polymorphic lookups"""
+
+    def __init__(
+        self, mapping, all_mappings, metadata, model, _old_format: bool
+    ) -> None:
+        super().__init__(mapping, metadata, model)
+        self._old_format = _old_format
+        self.all_mappings = all_mappings
+        self.lookups = [
+            lookup for lookup in self.mapping.lookups.values() if not lookup.after
+        ]
+
+    @cached_property
+    def columns_to_add(self):
+        """Add all relevant fields from lookup tables directly without CASE, with support for polymorphic lookups."""
+        columns = []
+        for lookup in self.lookups:
+            tables = lookup.table if isinstance(lookup.table, list) else [lookup.table]
+            lookup.aliased_table = [
+                aliased(self.metadata.tables[table]) for table in tables
+            ]
+
+            for aliased_table, table_name in zip(lookup.aliased_table, tables):
+                # Find the mapping step for this polymorphic type
+                lookup_mapping_step = next(
+                    (
+                        step
+                        for step in self.all_mappings.values()
+                        if step.table == table_name
+                    ),
+                    None,
+                )
+                if lookup_mapping_step:
+                    load_fields = lookup_mapping_step.get_load_field_list()
+                    for field in load_fields:
+                        matching_column = next(
+                            (col for col in aliased_table.columns if col.name == field)
+                        )
+                        columns.append(
+                            matching_column.label(f"{aliased_table.name}_{field}")
+                        )
+        return columns
+
+    @cached_property
+    def outerjoins_to_add(self):
+        """Add outer joins for each lookup table directly, including handling for polymorphic lookups."""
+
+        def join_for_lookup(lookup, aliased_table):
+            key_field = lookup.get_lookup_key_field(self.model)
+            value_column = getattr(self.model, key_field)
+            return (aliased_table, aliased_table.columns.id == value_column)
+
+        joins = []
+        for lookup in self.lookups:
+            for aliased_table in lookup.aliased_table:
+                joins.append(join_for_lookup(lookup, aliased_table))
+        return joins
+
+
 class AddRecordTypesToQuery(LoadQueryExtender):
     """Adds columns, joins and filters relatinng to recordtypes"""
 

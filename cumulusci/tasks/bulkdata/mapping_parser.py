@@ -103,15 +103,15 @@ class MappingStep(CCIDictModel):
     batch_size: int = None
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
-    bulk_mode: Optional[
-        Literal["Serial", "Parallel"]
-    ] = None  # default should come from task options
+    bulk_mode: Optional[Literal["Serial", "Parallel"]] = (
+        None  # default should come from task options
+    )
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
     selection_strategy: SelectStrategy = SelectStrategy.STANDARD  # selection strategy
-    selection_filter: Optional[
-        str
-    ] = None  # filter to be added at the end of select query
+    selection_filter: Optional[str] = (
+        None  # filter to be added at the end of select query
+    )
     update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
     @validator("bulk_mode", "api", "action", "selection_strategy", pre=True)
@@ -678,7 +678,9 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
                 target_index = list(sf_objects.values()).index(target_objects[0])
-                if target_index > idx or target_index == idx:
+                if (
+                    target_index > idx or target_index == idx
+                ) and m.action != DataOperationType.SELECT:
                     # This is a non-polymorphic after step.
                     lookup.after = list(mapping.keys())[idx]
             else:
@@ -730,7 +732,7 @@ def validate_and_inject_mapping(
 
     if drop_missing:
         # Drop any steps with sObjects that are not present.
-        for (include, step_name) in zip(should_continue, list(mapping.keys())):
+        for include, step_name in zip(should_continue, list(mapping.keys())):
             if not include:
                 del mapping[step_name]
 

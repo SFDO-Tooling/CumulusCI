@@ -27,6 +27,7 @@ from cumulusci.tasks.bulkdata.query_transformers import (
     AddMappingFiltersToQuery,
     AddPersonAccountsToQuery,
     AddRecordTypesToQuery,
+    DynamicLookupQueryExtender,
 )
 from cumulusci.tasks.bulkdata.step import (
     DEFAULT_BULK_BATCH_SIZE,
@@ -314,6 +315,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
         num_records_in_target = None
+        content_type = None
 
         fields = mapping.get_load_field_list()
 
@@ -343,6 +345,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             api_options["update_key"] = mapping.update_key[0]
             action = DataOperationType.UPSERT
         elif mapping.action == DataOperationType.SELECT:
+            # Set content type to json
+            content_type = "JSON"
             # Bulk process expects DataOpertionType to be QUERY
             action = DataOperationType.QUERY
             # Determine number of records in the target org
@@ -354,6 +358,97 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 for entry in record_count_response["sObjects"]
             }
             num_records_in_target = sobject_map.get(mapping.sf_object, None)
+
+            # Check for similarity selection strategy and modify fields accordingly
+            if mapping.selection_strategy == "similarity":
+                # Describe the object to determine polymorphic lookups
+                describe_result = self.sf.restful(
+                    f"sobjects/{mapping.sf_object}/describe"
+                )
+                polymorphic_fields = {
+                    field["name"]: field
+                    for field in describe_result["fields"]
+                    if field["type"] == "reference"
+                }
+
+                # Loop through each lookup to get the corresponding fields
+                for name, lookup in mapping.lookups.items():
+                    if name in fields:
+                        # Get the index of the lookup field before removing it
+                        insert_index = fields.index(name)
+                        # Remove the lookup field from fields
+                        fields.remove(name)
+
+                        # Check if this lookup field is polymorphic
+                        if (
+                            name in polymorphic_fields
+                            and len(polymorphic_fields[name]["referenceTo"]) > 1
+                        ):
+                            # Convert to list if string
+                            if not isinstance(lookup.table, list):
+                                lookup.table = [lookup.table]
+                            # Polymorphic field handling
+                            polymorphic_references = lookup.table
+                            relationship_name = polymorphic_fields[name][
+                                "relationshipName"
+                            ]
+
+                            # Loop through each polymorphic type (e.g., Contact, Lead)
+                            for ref_type in polymorphic_references:
+                                # Find the mapping step for this polymorphic type
+                                lookup_mapping_step = next(
+                                    (
+                                        step
+                                        for step in self.mapping.values()
+                                        if step.sf_object == ref_type
+                                    ),
+                                    None,
+                                )
+
+                                if lookup_mapping_step:
+                                    lookup_fields = (
+                                        lookup_mapping_step.get_load_field_list()
+                                    )
+                                    # Insert fields in the format {relationship_name}.{ref_type}.{lookup_field}
+                                    for field in lookup_fields:
+                                        fields.insert(
+                                            insert_index,
+                                            f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}",
+                                        )
+                                        insert_index += 1
+
+                        else:
+                            # Non-polymorphic field handling
+                            lookup_table = lookup.table
+
+                            if isinstance(lookup_table, list):
+                                lookup_table = lookup_table[0]
+
+                            # Get the mapping step for the non-polymorphic reference
+                            lookup_mapping_step = next(
+                                (
+                                    step
+                                    for step in self.mapping.values()
+                                    if step.sf_object == lookup_table
+                                ),
+                                None,
+                            )
+
+                            if lookup_mapping_step:
+                                relationship_name = polymorphic_fields[name][
+                                    "relationshipName"
+                                ]
+                                lookup_fields = (
+                                    lookup_mapping_step.get_load_field_list()
+                                )
+
+                                # Insert the new fields at the same position as the removed lookup field
+                                for field in lookup_fields:
+                                    fields.insert(
+                                        insert_index, f"{relationship_name}.{field}"
+                                    )
+                                    insert_index += 1
+
         else:
             action = mapping.action
 
@@ -376,6 +471,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             volume=volume,
             selection_strategy=mapping.selection_strategy,
             selection_filter=mapping.selection_filter,
+            content_type=content_type,
         )
         return step, query
 
@@ -405,6 +501,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             total_rows += 1
             pkey = row[0]
             row = list(row[1:]) + statics
+
+            # Replace None values in row with empty strings
+            row = [value if value is not None else "" for value in row]
 
             if mapping.anchor_date and (date_context[0] or date_context[1]):
                 row = adjust_relative_dates(
@@ -475,9 +574,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             AddMappingFiltersToQuery,
             AddUpsertsToQuery,
         ]
-        transformers = [
-            AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
-        ]
+        transformers = []
+        if (
+            mapping.action == DataOperationType.SELECT
+            and mapping.selection_strategy == "similarity"
+        ):
+            transformers.append(
+                DynamicLookupQueryExtender(
+                    mapping, self.mapping, self.metadata, model, self._old_format
+                )
+            )
+        else:
+            transformers.append(
+                AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
+            )
+
         transformers.extend([cls(mapping, self.metadata, model) for cls in classes])
 
         if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):

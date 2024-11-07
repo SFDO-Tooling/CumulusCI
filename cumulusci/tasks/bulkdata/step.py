@@ -352,6 +352,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         fields,
         selection_strategy=SelectStrategy.STANDARD,
         selection_filter=None,
+        content_type=None,
     ):
         super().__init__(
             sobject=sobject,
@@ -369,12 +370,13 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         self.select_operation_executor = SelectOperationExecutor(selection_strategy)
         self.selection_filter = selection_filter
+        self.content_type = content_type if content_type else "CSV"
 
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
             self.operation.value,
-            contentType="CSV",
+            contentType=self.content_type,
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
             external_id_name=self.api_options.get("update_key"),
         )
@@ -498,31 +500,39 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         # Update job result based on selection outcome
         self.job_result = DataOperationJobResult(
-            status=DataOperationStatus.SUCCESS
-            if len(self.select_results)
-            else DataOperationStatus.JOB_FAILURE,
+            status=(
+                DataOperationStatus.SUCCESS
+                if len(self.select_results)
+                else DataOperationStatus.JOB_FAILURE
+            ),
             job_errors=[error_message] if error_message else [],
             records_processed=len(self.select_results),
             total_row_errors=0,
         )
 
     def _execute_select_query(self, select_query: str, query_fields: List[str]):
-        """Executes the select Bulk API query and retrieves the results."""
+        """Executes the select Bulk API query, retrieves results in JSON, and converts to CSV format if needed."""
         self.batch_id = self.bulk.query(self.job_id, select_query)
-        self._wait_for_job(self.job_id)
+        self.bulk.wait_for_batch(self.job_id, self.batch_id)
         result_ids = self.bulk.get_query_batch_result_ids(
             self.batch_id, job_id=self.job_id
         )
         select_query_records = []
+
         for result_id in result_ids:
-            uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
+            # Modify URI to request JSON format
+            uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}?format=json"
+            # Download JSON data
             with download_file(uri, self.bulk) as f:
-                reader = csv.reader(f)
-                self.headers = next(reader)
-                if "Records not found for this query" in self.headers:
-                    break
-                for row in reader:
-                    select_query_records.append(row[: len(query_fields)])
+                data = json.load(f)
+                # Get headers from fields, expanding nested structures for TYPEOF results
+                self.headers = query_fields
+
+                # Convert each record to a flat row
+                for record in data:
+                    flat_record = flatten_record(record, self.headers)
+                    select_query_records.append(flat_record)
+
         return select_query_records
 
     def _batch(self, records, n, char_limit=10000000):
@@ -641,6 +651,7 @@ class RestApiDmlOperation(BaseDmlOperation):
         fields,
         selection_strategy=SelectStrategy.STANDARD,
         selection_filter=None,
+        content_type=None,
     ):
         super().__init__(
             sobject=sobject,
@@ -655,7 +666,9 @@ class RestApiDmlOperation(BaseDmlOperation):
             field["name"]: field
             for field in getattr(context.sf, sobject).describe()["fields"]
         }
-        self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+        self.boolean_fields = [
+            f for f in fields if "." not in f and describe[f]["type"] == "boolean"
+        ]
         self.api_options = api_options.copy()
         self.api_options["batch_size"] = (
             self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE
@@ -666,6 +679,7 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         self.select_operation_executor = SelectOperationExecutor(selection_strategy)
         self.selection_filter = selection_filter
+        self.content_type = content_type
 
     def _record_to_json(self, rec):
         result = dict(zip(self.fields, rec))
@@ -764,9 +778,11 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         row_errors = len([res for res in self.results if not res["success"]])
         self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS
-            if not row_errors
-            else DataOperationStatus.ROW_FAILURE,
+            (
+                DataOperationStatus.SUCCESS
+                if not row_errors
+                else DataOperationStatus.ROW_FAILURE
+            ),
             [],
             len(self.results),
             row_errors,
@@ -774,10 +790,6 @@ class RestApiDmlOperation(BaseDmlOperation):
 
     def select_records(self, records):
         """Executes a SOQL query to select records and adds them to results"""
-
-        def convert(rec, fields):
-            """Helper function to convert record values to strings, handling None values"""
-            return [str(rec[f]) if rec[f] is not None else "" for f in fields]
 
         self.results = []
         query_records = []
@@ -814,17 +826,18 @@ class RestApiDmlOperation(BaseDmlOperation):
         response = self.sf.restful(
             requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
         )
-        query_records.extend(
-            list(convert(rec, query_fields) for rec in response["records"])
-        )
+        # Convert each record to a flat row
+        for record in response["records"]:
+            flat_record = flatten_record(record, query_fields)
+            query_records.append(flat_record)
         while True:
             if not response["done"]:
                 response = self.sf.query_more(
                     response["nextRecordsUrl"], identifier_is_url=True
                 )
-                query_records.extend(
-                    list(convert(rec, query_fields) for rec in response["records"])
-                )
+                for record in response["records"]:
+                    flat_record = flatten_record(record, query_fields)
+                    query_records.append(flat_record)
             else:
                 break
 
@@ -844,9 +857,11 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         # Update the job result based on the overall selection outcome
         self.job_result = DataOperationJobResult(
-            status=DataOperationStatus.SUCCESS
-            if len(self.results)  # Check the overall results length
-            else DataOperationStatus.JOB_FAILURE,
+            status=(
+                DataOperationStatus.SUCCESS
+                if len(self.results)  # Check the overall results length
+                else DataOperationStatus.JOB_FAILURE
+            ),
             job_errors=[error_message] if error_message else [],
             records_processed=len(self.results),
             total_row_errors=0,
@@ -988,6 +1003,7 @@ def get_dml_operation(
     api: Optional[DataApi] = DataApi.SMART,
     selection_strategy: SelectStrategy = SelectStrategy.STANDARD,
     selection_filter: Union[str, None] = None,
+    content_type: Union[str, None] = None,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
@@ -1023,4 +1039,71 @@ def get_dml_operation(
         fields=fields,
         selection_strategy=selection_strategy,
         selection_filter=selection_filter,
+        content_type=content_type,
     )
+
+
+def extract_flattened_headers(query_fields):
+    """Extract headers from query fields, including handling of TYPEOF fields."""
+    headers = []
+
+    for field in query_fields:
+        if isinstance(field, dict):
+            # Handle TYPEOF / polymorphic fields
+            for lookup, references in field.items():
+                # Assuming each reference is a list of dictionaries
+                for ref_type in references:
+                    for ref_obj, ref_fields in ref_type.items():
+                        for nested_field in ref_fields:
+                            headers.append(
+                                f"{lookup}.{ref_obj}.{nested_field}"
+                            )  # Flatten the structure
+        else:
+            # Regular fields
+            headers.append(field)
+
+    return headers
+
+
+def flatten_record(record, headers):
+    """Flatten each record to match headers, handling nested fields."""
+    flat_record = []
+
+    for field in headers:
+        components = field.split(".")
+        value = ""
+
+        # Handle lookup fields with two or three components
+        if len(components) >= 2:
+            lookup_field = components[0]
+            lookup = record.get(lookup_field, None)
+
+            # Check if lookup field exists in the record
+            if lookup is None:
+                value = ""
+            else:
+                if len(components) == 2:
+                    # Handle fields with two components: {lookup}.{ref_field}
+                    ref_field = components[1]
+                    value = lookup.get(ref_field, "")
+                elif len(components) == 3:
+                    # Handle fields with three components: {lookup}.{ref_obj}.{ref_field}
+                    ref_obj, ref_field = components[1], components[2]
+                    # Check if the type matches the specified ref_obj
+                    if lookup.get("attributes", {}).get("type") == ref_obj:
+                        value = lookup.get(ref_field, "")
+                    else:
+                        value = ""
+
+        else:
+            # Regular fields or non-polymorphic fields
+            value = record.get(field, "")
+
+        # Set None values to empty string
+        if value is None:
+            value = ""
+
+        # Append the resolved value to the flattened record
+        flat_record.append(value)
+
+    return flat_record
