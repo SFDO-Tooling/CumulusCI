@@ -1102,6 +1102,8 @@ def flatten_record(record, headers):
         # Set None values to empty string
         if value is None:
             value = ""
+        elif not isinstance(value, str):
+            value = str(value)
 
         # Append the resolved value to the flattened record
         flat_record.append(value)

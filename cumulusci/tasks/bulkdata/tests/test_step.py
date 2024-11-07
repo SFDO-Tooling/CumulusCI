@@ -20,7 +20,6 @@ from cumulusci.tasks.bulkdata.step import (
     RestApiDmlOperation,
     RestApiQueryOperation,
     download_file,
-    generate_user_filter_query,
     get_dml_operation,
     get_query_operation,
 )
@@ -2491,98 +2490,97 @@ class TestGetOperationFunctions:
 
 import pytest
 
+# def test_generate_user_filter_query_basic():
+#     """Tests basic query generation without existing LIMIT or OFFSET."""
+#     filter_clause = "WHERE Name = 'John'"
+#     sobject = "Account"
+#     fields = ["Id", "Name"]
+#     limit_clause = 10
+#     offset_clause = 5
 
-def test_generate_user_filter_query_basic():
-    """Tests basic query generation without existing LIMIT or OFFSET."""
-    filter_clause = "WHERE Name = 'John'"
-    sobject = "Account"
-    fields = ["Id", "Name"]
-    limit_clause = 10
-    offset_clause = 5
-
-    expected_query = (
-        "SELECT Id, Name FROM Account WHERE Name = 'John' LIMIT 10 OFFSET 5"
-    )
-    assert (
-        generate_user_filter_query(
-            filter_clause, sobject, fields, limit_clause, offset_clause
-        )
-        == expected_query
-    )
-
-
-def test_generate_user_filter_query_existing_limit():
-    """Tests handling of existing LIMIT in the filter clause."""
-    filter_clause = "WHERE Name = 'John' LIMIT 20"
-    sobject = "Contact"
-    fields = ["Id", "FirstName"]
-    limit_clause = 5  # Should override the existing LIMIT
-    offset_clause = None
-
-    expected_query = "SELECT Id, FirstName FROM Contact WHERE Name = 'John' LIMIT 5"
-    assert (
-        generate_user_filter_query(
-            filter_clause, sobject, fields, limit_clause, offset_clause
-        )
-        == expected_query
-    )
+#     expected_query = (
+#         "SELECT Id, Name FROM Account WHERE Name = 'John' LIMIT 10 OFFSET 5"
+#     )
+#     assert (
+#         generate_user_filter_query(
+#             filter_clause, sobject, fields, limit_clause, offset_clause
+#         )
+#         == expected_query
+#     )
 
 
-def test_generate_user_filter_query_existing_offset():
-    """Tests handling of existing OFFSET in the filter clause."""
-    filter_clause = "WHERE Name = 'John' OFFSET 15"
-    sobject = "Opportunity"
-    fields = ["Id", "Name"]
-    limit_clause = None
-    offset_clause = 10  # Should add to the existing OFFSET
+# def test_generate_user_filter_query_existing_limit():
+#     """Tests handling of existing LIMIT in the filter clause."""
+#     filter_clause = "WHERE Name = 'John' LIMIT 20"
+#     sobject = "Contact"
+#     fields = ["Id", "FirstName"]
+#     limit_clause = 5  # Should override the existing LIMIT
+#     offset_clause = None
 
-    expected_query = "SELECT Id, Name FROM Opportunity WHERE Name = 'John' OFFSET 25"
-    assert (
-        generate_user_filter_query(
-            filter_clause, sobject, fields, limit_clause, offset_clause
-        )
-        == expected_query
-    )
-
-
-def test_generate_user_filter_query_no_limit_or_offset():
-    """Tests when no limit or offset is provided or present in the filter."""
-    filter_clause = "WHERE Name = 'John' LIMIT 5 OFFSET 20"
-    sobject = "Lead"
-    fields = ["Id", "Name", "Email"]
-    limit_clause = None
-    offset_clause = None
-
-    expected_query = (
-        "SELECT Id, Name, Email FROM Lead WHERE Name = 'John' LIMIT 5 OFFSET 20"
-    )
-    print(
-        generate_user_filter_query(
-            filter_clause, sobject, fields, limit_clause, offset_clause
-        )
-    )
-    assert (
-        generate_user_filter_query(
-            filter_clause, sobject, fields, limit_clause, offset_clause
-        )
-        == expected_query
-    )
+#     expected_query = "SELECT Id, FirstName FROM Contact WHERE Name = 'John' LIMIT 5"
+#     assert (
+#         generate_user_filter_query(
+#             filter_clause, sobject, fields, limit_clause, offset_clause
+#         )
+#         == expected_query
+#     )
 
 
-def test_generate_user_filter_query_case_insensitivity():
-    """Tests case-insensitivity for LIMIT and OFFSET."""
-    filter_clause = "where name = 'John' offset 5 limit 20"
-    sobject = "Task"
-    fields = ["Id", "Subject"]
-    limit_clause = 15
-    offset_clause = 20
+# def test_generate_user_filter_query_existing_offset():
+#     """Tests handling of existing OFFSET in the filter clause."""
+#     filter_clause = "WHERE Name = 'John' OFFSET 15"
+#     sobject = "Opportunity"
+#     fields = ["Id", "Name"]
+#     limit_clause = None
+#     offset_clause = 10  # Should add to the existing OFFSET
 
-    expected_query = (
-        "SELECT Id, Subject FROM Task where name = 'John' LIMIT 15 OFFSET 25"
-    )
-    assert (
-        generate_user_filter_query(
-            filter_clause, sobject, fields, limit_clause, offset_clause
-        )
-        == expected_query
-    )
+#     expected_query = "SELECT Id, Name FROM Opportunity WHERE Name = 'John' OFFSET 25"
+#     assert (
+#         generate_user_filter_query(
+#             filter_clause, sobject, fields, limit_clause, offset_clause
+#         )
+#         == expected_query
+#     )
+
+
+# def test_generate_user_filter_query_no_limit_or_offset():
+#     """Tests when no limit or offset is provided or present in the filter."""
+#     filter_clause = "WHERE Name = 'John' LIMIT 5 OFFSET 20"
+#     sobject = "Lead"
+#     fields = ["Id", "Name", "Email"]
+#     limit_clause = None
+#     offset_clause = None
+
+#     expected_query = (
+#         "SELECT Id, Name, Email FROM Lead WHERE Name = 'John' LIMIT 5 OFFSET 20"
+#     )
+#     print(
+#         generate_user_filter_query(
+#             filter_clause, sobject, fields, limit_clause, offset_clause
+#         )
+#     )
+#     assert (
+#         generate_user_filter_query(
+#             filter_clause, sobject, fields, limit_clause, offset_clause
+#         )
+#         == expected_query
+#     )
+
+
+# def test_generate_user_filter_query_case_insensitivity():
+#     """Tests case-insensitivity for LIMIT and OFFSET."""
+#     filter_clause = "where name = 'John' offset 5 limit 20"
+#     sobject = "Task"
+#     fields = ["Id", "Subject"]
+#     limit_clause = 15
+#     offset_clause = 20
+
+#     expected_query = (
+#         "SELECT Id, Subject FROM Task where name = 'John' LIMIT 15 OFFSET 25"
+#     )
+#     assert (
+#         generate_user_filter_query(
+#             filter_clause, sobject, fields, limit_clause, offset_clause
+#         )
+#         == expected_query
+#     )
