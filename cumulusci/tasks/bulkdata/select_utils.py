@@ -175,7 +175,7 @@ def similarity_generate_query(
         for ref_obj, ref_fields in references.items():
             fields_clause = ", ".join(ref_fields)
             type_clauses.append(f"WHEN {ref_obj} THEN {fields_clause}")
-        type_clause = f"TYPEOF {relationship} {' '.join(type_clauses)} END"
+        type_clause = f"TYPEOF {relationship} {' '.join(type_clauses)} ELSE Id END"
         query_fields.append(type_clause)
 
     # Add regular fields to the query
@@ -206,7 +206,7 @@ def similarity_generate_query(
     if "Id" not in fields:
         fields.insert(0, "Id")
 
-    return query, fields  # Return the original input fields with "Id"
+    return query, fields
 
 
 def similarity_post_process(
@@ -226,9 +226,9 @@ def similarity_post_process(
     closest_records = []
 
     if complexity_constant < 1000:
-        closest_records = annoy_post_process(load_records, query_records)
-    else:
         closest_records = levenshtein_post_process(load_records, query_records)
+    else:
+        closest_records = annoy_post_process(load_records, query_records)
 
     return closest_records
 
