@@ -16,6 +16,7 @@ from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy, ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
+from cumulusci.tasks.metadata.package import process_common_components
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
@@ -169,38 +170,21 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return api_retrieve_unpackaged_object
 
     def _collision_check(self, src_path):
-        xml_map = {}
         is_collision = False
         package_xml = open(f"{src_path}/package.xml", "r")
         source_xml_tree = metadata_tree.parse(f"{src_path}/package.xml")
-
-        for type in source_xml_tree.types:
-            members = []
-            try:
-                for member in type.members:
-                    members.append(member.text)
-            except AttributeError:  # Exception if there are no members for a type
-                pass
-            xml_map[type["name"].text] = members
 
         api_retrieve_unpackaged_response = self._create_api_object(
             package_xml.read(), source_xml_tree.version.text
         )
 
+        xml_map = metadata_tree.parse_package_xml_types("name", source_xml_tree)
+
         messages = parseString(
             api_retrieve_unpackaged_response._get_response().content
         ).getElementsByTagName("messages")
 
-        for i in range(len(messages)):
-            # print(messages[i])
-            message_list = messages[
-                i
-            ].firstChild.nextSibling.firstChild.nodeValue.split("'")
-
-            if message_list[3] in xml_map[message_list[1]]:
-                xml_map[message_list[1]].remove(message_list[3])
-                if len(xml_map[message_list[1]]) == 0:
-                    del xml_map[message_list[1]]
+        process_common_components(messages, xml_map)
 
         for type, api_names in xml_map.items():
             if len(api_names) != 0:
