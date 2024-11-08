@@ -1,11 +1,16 @@
+import pandas as pd
 import pytest
 
 from cumulusci.tasks.bulkdata.select_utils import (
     SelectOperationExecutor,
     SelectStrategy,
+    annoy_post_process,
     calculate_levenshtein_distance,
+    determine_field_types,
     find_closest_record,
     levenshtein_distance,
+    replace_empty_strings_with_missing,
+    vectorize_records,
 )
 
 
@@ -193,107 +198,56 @@ def test_levenshtein_distance():
     )  # Longer strings with multiple differences
 
 
-def test_calculate_levenshtein_distance():
-    # Identical records
-    record1 = ["Tom Cruise", "24", "Actor"]
-    record2 = ["Tom Cruise", "24", "Actor"]
-    assert calculate_levenshtein_distance(record1, record2) == 0  # Distance should be 0
-
-    # Records with one different field
-    record1 = ["Tom Cruise", "24", "Actor"]
-    record2 = ["Tom Hanks", "24", "Actor"]
-    assert calculate_levenshtein_distance(record1, record2) > 0  # Non-zero distance
-
-    # One record has an empty field
-    record1 = ["Tom Cruise", "24", "Actor"]
-    record2 = ["Tom Cruise", "", "Actor"]
-    assert (
-        calculate_levenshtein_distance(record1, record2) > 0
-    )  # Distance should reflect the empty field
-
-    # Completely empty records
-    record1 = ["", "", ""]
-    record2 = ["", "", ""]
-    assert calculate_levenshtein_distance(record1, record2) == 0  # Distance should be 0
-
-
-def test_calculate_levenshtein_distance_error():
-    # Identical records
-    record1 = ["Tom Cruise", "24", "Actor"]
-    record2 = [
-        "Tom Cruise",
-        "24",
-        "Actor",
-        "SomethingElse",
-    ]  # Record Length does not match
-    with pytest.raises(ValueError) as e:
-        calculate_levenshtein_distance(record1, record2)
-    assert "Records must have the same number of fields" in str(e.value)
-
-
-def test_find_closest_record():
-    # Test case 1: Exact match
-    load_record = ["Tom Cruise", "62", "Actor"]
+def test_find_closest_record_different_weights():
+    load_record = ["hello", "world"]
     query_records = [
-        [1, "Tom Hanks", "30", "Actor"],
-        [2, "Tom Cruise", "62", "Actor"],  # Exact match
-        [3, "Jennifer Aniston", "30", "Actress"],
+        ["record1", "hello", "word"],  # Levenshtein distance = 1
+        ["record2", "hullo", "word"],  # Levenshtein distance = 1
+        ["record3", "hello", "word"],  # Levenshtein distance = 1
     ]
-    assert find_closest_record(load_record, query_records) == [
-        2,
-        "Tom Cruise",
-        "62",
-        "Actor",
-    ]  # Should return the exact match
+    weights = [2.0, 0.5]
 
-    # Test case 2: Closest match with slight differences
-    load_record = ["Tom Cruise", "62", "Actor"]
+    # With different weights, the first field will have more impact
+    closest_record = find_closest_record(load_record, query_records, weights)
+    assert closest_record == [
+        "record1",
+        "hello",
+        "word",
+    ], "The closest record should be 'record1'."
+
+
+def test_find_closest_record_basic():
+    load_record = ["hello", "world"]
     query_records = [
-        [1, "Tom Hanks", "62", "Actor"],
-        [2, "Tom Cruise", "63", "Actor"],  # Slight difference
-        [3, "Jennifer Aniston", "30", "Actress"],
+        ["record1", "hello", "word"],  # Levenshtein distance = 1
+        ["record2", "hullo", "word"],  # Levenshtein distance = 1
+        ["record3", "hello", "word"],  # Levenshtein distance = 1
     ]
-    assert find_closest_record(load_record, query_records) == [
-        2,
-        "Tom Cruise",
-        "63",
-        "Actor",
-    ]  # Should return the closest match
+    weights = [1.0, 1.0]
 
-    # Test case 3: All records are significantly different
-    load_record = ["Tom Cruise", "62", "Actor"]
+    closest_record = find_closest_record(load_record, query_records, weights)
+    assert closest_record == [
+        "record1",
+        "hello",
+        "word",
+    ], "The closest record should be 'record1'."
+
+
+def test_find_closest_record_multiple_matches():
+    load_record = ["cat", "dog"]
     query_records = [
-        [1, "Brad Pitt", "30", "Producer"],
-        [2, "Leonardo DiCaprio", "40", "Director"],
-        [3, "Jennifer Aniston", "30", "Actress"],
+        ["record1", "bat", "dog"],  # Levenshtein distance = 1
+        ["record2", "cat", "dog"],  # Levenshtein distance = 0
+        ["record3", "dog", "cat"],  # Levenshtein distance = 3
     ]
-    assert (
-        find_closest_record(load_record, query_records) == query_records[0]
-    )  # Should return the first record as the closest (though none are close)
+    weights = [1.0, 1.0]
 
-    # Test case 4: Closest match is the last in the list
-    load_record = ["Tom Cruise", "62", "Actor"]
-    query_records = [
-        [1, "Johnny Depp", "50", "Actor"],
-        [2, "Brad Pitt", "30", "Producer"],
-        [3, "Tom Cruise", "62", "Actor"],  # Exact match as the last record
-    ]
-    assert find_closest_record(load_record, query_records) == [
-        3,
-        "Tom Cruise",
-        "62",
-        "Actor",
-    ]  # Should return the last record
-
-    # Test case 5: Single record in query_records
-    load_record = ["Tom Cruise", "62", "Actor"]
-    query_records = [[1, "Johnny Depp", "50", "Actor"]]
-    assert find_closest_record(load_record, query_records) == [
-        1,
-        "Johnny Depp",
-        "50",
-        "Actor",
-    ]  # Should return the only record available
+    closest_record = find_closest_record(load_record, query_records, weights)
+    assert closest_record == [
+        "record2",
+        "cat",
+        "dog",
+    ], "The closest record should be 'record2'."
 
 
 def test_similarity_post_process_with_records():
@@ -307,9 +261,15 @@ def test_similarity_post_process_with_records():
         ["003", "Jennifer Aniston", "30", "Actress"],
     ]
 
+    weights = [1.0, 1.0, 1.0]  # Adjust weights to match your data structure
+
     selected_records, error_message = select_operator.select_post_process(
-        load_records, query_records, num_records, sobject
+        load_records, query_records, num_records, sobject, weights
     )
+
+    # selected_records, error_message = select_operator.select_post_process(
+    #     load_records, query_records, num_records, sobject
+    # )
 
     assert error_message is None
     assert len(selected_records) == num_records
@@ -329,3 +289,192 @@ def test_similarity_post_process_with_no_records():
 
     assert selected_records == []
     assert error_message == f"No records found for {sobject} in the target org."
+
+
+def test_calculate_levenshtein_distance_basic():
+    record1 = ["hello", "world"]
+    record2 = ["hullo", "word"]
+    weights = [1.0, 1.0]
+
+    # Expected distance based on simple Levenshtein distances
+    # Levenshtein("hello", "hullo") = 1, Levenshtein("world", "word") = 1
+    expected_distance = (1 * 1.0 + 1 * 1.0) / 2  # Averaged over two fields
+
+    result = calculate_levenshtein_distance(record1, record2, weights)
+    assert result == pytest.approx(
+        expected_distance
+    ), "Basic distance calculation failed."
+
+
+def test_calculate_levenshtein_distance_weighted():
+    record1 = ["cat", "dog"]
+    record2 = ["bat", "fog"]
+    weights = [2.0, 0.5]
+
+    # Levenshtein("cat", "bat") = 1, Levenshtein("dog", "fog") = 1
+    expected_distance = (1 * 2.0 + 1 * 0.5) / 2  # Weighted average over two fields
+
+    result = calculate_levenshtein_distance(record1, record2, weights)
+    assert result == pytest.approx(
+        expected_distance
+    ), "Weighted distance calculation failed."
+
+
+def test_replace_empty_strings_with_missing():
+    # Case 1: Normal case with some empty strings
+    records = [
+        ["Alice", "", "New York"],
+        ["Bob", "Engineer", ""],
+        ["", "Teacher", "Chicago"],
+    ]
+    expected = [
+        ["Alice", "missing", "New York"],
+        ["Bob", "Engineer", "missing"],
+        ["missing", "Teacher", "Chicago"],
+    ]
+    assert replace_empty_strings_with_missing(records) == expected
+
+    # Case 2: No empty strings, so the output should be the same as input
+    records = [["Alice", "Manager", "New York"], ["Bob", "Engineer", "San Francisco"]]
+    expected = [["Alice", "Manager", "New York"], ["Bob", "Engineer", "San Francisco"]]
+    assert replace_empty_strings_with_missing(records) == expected
+
+    # Case 3: List with all empty strings
+    records = [["", "", ""], ["", "", ""]]
+    expected = [["missing", "missing", "missing"], ["missing", "missing", "missing"]]
+    assert replace_empty_strings_with_missing(records) == expected
+
+    # Case 4: Empty list (should return an empty list)
+    records = []
+    expected = []
+    assert replace_empty_strings_with_missing(records) == expected
+
+    # Case 5: List with some empty sublists
+    records = [[], ["Alice", ""], []]
+    expected = [[], ["Alice", "missing"], []]
+    assert replace_empty_strings_with_missing(records) == expected
+
+
+def test_all_numeric_columns():
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
+    weights = [0.1, 0.2]
+    expected_output = (
+        ["A", "B"],  # numerical_features
+        [],  # boolean_features
+        [],  # categorical_features
+        [0.1, 0.2],  # numerical_weights
+        [],  # boolean_weights
+        [],  # categorical_weights
+    )
+    assert determine_field_types(df, weights) == expected_output
+
+
+def test_all_boolean_columns():
+    df = pd.DataFrame({"A": ["true", "false", "true"], "B": ["false", "true", "false"]})
+    weights = [0.3, 0.4]
+    expected_output = (
+        [],  # numerical_features
+        ["A", "B"],  # boolean_features
+        [],  # categorical_features
+        [],  # numerical_weights
+        [0.3, 0.4],  # boolean_weights
+        [],  # categorical_weights
+    )
+    assert determine_field_types(df, weights) == expected_output
+
+
+def test_all_categorical_columns():
+    df = pd.DataFrame(
+        {"A": ["apple", "banana", "cherry"], "B": ["dog", "cat", "mouse"]}
+    )
+    weights = [0.5, 0.6]
+    expected_output = (
+        [],  # numerical_features
+        [],  # boolean_features
+        ["A", "B"],  # categorical_features
+        [],  # numerical_weights
+        [],  # boolean_weights
+        [0.5, 0.6],  # categorical_weights
+    )
+    assert determine_field_types(df, weights) == expected_output
+
+
+def test_mixed_types():
+    df = pd.DataFrame(
+        {
+            "A": [1, 2, 3],
+            "B": ["true", "false", "true"],
+            "C": ["apple", "banana", "cherry"],
+        }
+    )
+    weights = [0.7, 0.8, 0.9]
+    expected_output = (
+        ["A"],  # numerical_features
+        ["B"],  # boolean_features
+        ["C"],  # categorical_features
+        [0.7],  # numerical_weights
+        [0.8],  # boolean_weights
+        [0.9],  # categorical_weights
+    )
+    assert determine_field_types(df, weights) == expected_output
+
+
+def test_vectorize_records_mixed_numerical_categorical():
+    # Test data with mixed types: numerical and categorical only
+    db_records = [["1.0", "apple"], ["2.0", "banana"]]
+    query_records = [["1.5", "apple"], ["2.5", "cherry"]]
+    weights = [1.0, 1.0]  # Equal weights for numerical and categorical columns
+    hash_features = 4  # Number of hashing vectorizer features for categorical columns
+
+    final_db_vectors, final_query_vectors = vectorize_records(
+        db_records, query_records, hash_features, weights
+    )
+
+    # Check the shape of the output vectors
+    assert final_db_vectors.shape[0] == len(db_records), "DB vectors row count mismatch"
+    assert final_query_vectors.shape[0] == len(
+        query_records
+    ), "Query vectors row count mismatch"
+
+    # Expected dimensions: numerical (1) + categorical hashed features (4)
+    expected_feature_count = 1 + hash_features
+    assert (
+        final_db_vectors.shape[1] == expected_feature_count
+    ), "DB vectors column count mismatch"
+    assert (
+        final_query_vectors.shape[1] == expected_feature_count
+    ), "Query vectors column count mismatch"
+
+
+def test_annoy_post_process():
+    # Test data
+    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
+    query_records = [["q1", "Alice", "Engineer"], ["q2", "Charlie", "Artist"]]
+    weights = [1.0, 1.0, 1.0]  # Example weights
+
+    closest_records, error = annoy_post_process(load_records, query_records, weights)
+
+    # Assert the closest records
+    assert (
+        len(closest_records) == 2
+    )  # We expect two results (one for each query record)
+    assert (
+        closest_records[0]["id"] == "q1"
+    )  # The first query record should match the first load record
+
+    # No errors expected
+    assert error is None
+
+
+def test_single_record_match_annoy_post_process():
+    # Mock data where only the first query record matches the first load record
+    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
+    query_records = [["q1", "Alice", "Engineer"]]
+    weights = [1.0, 1.0, 1.0]
+
+    closest_records, error = annoy_post_process(load_records, query_records, weights)
+
+    # Both the load records should be matched with the only query record we have
+    assert len(closest_records) == 2
+    assert closest_records[0]["id"] == "q1"
+    assert error is None
