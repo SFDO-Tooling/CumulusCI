@@ -22,8 +22,6 @@ jobs:
                   cache: pip
             - name: Install build tools
               run: python -m pip install hatch tomli tomli-w
-            - name: Pin dependencies
-              run: python utility/pin_dependencies.py
             - name: Build source tarball and binary wheel
               run: hatch build -c
             - name: Upload to PyPI

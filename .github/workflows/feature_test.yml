@@ -22,15 +22,18 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 1
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               id: py
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
-                  cache: pip
-                  cache-dependency-path: "pyproject.toml"
+                  python-version: 3.11
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
             - name: Install dependencies
-              run: pip install .[docs]
+              run: uv sync --group docs
             - name: Build Docs
               run: make docs
 
@@ -41,39 +44,39 @@ jobs:
             fail-fast: false
             matrix:
                 os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-                exclude:
-                    - os: macos-latest
-                      python-version: 3.8
-                include:
-                    - os: macos-13
-                      python-version: 3.8
+                python-version: ["3.11", "3.12", "3.13"]
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
                   python-version: "${{ matrix.python-version }}"
-                  cache: pip
-                  cache-dependency-path: "pyproject.toml"
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
             - name: Install dependencies
-              run: pip install .[test]
+              run: uv sync -p ${{ matrix.python-version }}
             - name: Run Pytest
-              run: pytest --cov-report= --cov=cumulusci
+              run: uv run pytest --cov-report= --cov=cumulusci
 
     robot_api:
         name: "Robot: No browser"
         runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v4
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
-                  cache: pip
-                  cache-dependency-path: "pyproject.toml"
-            - name: Install Python dependencies
-              run: pip install .[test]
+                  python-version: 3.11
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
+            - name: Install dependencies
+              run: uv sync -p ${{ matrix.python-version }}
             - name: Install sfdx
               run: |
                   mkdir sfdx
