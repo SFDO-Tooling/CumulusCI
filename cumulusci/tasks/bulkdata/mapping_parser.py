@@ -124,16 +124,19 @@ class MappingStep(CCIDictModel):
     def validate_priority_fields(cls, values):
         select_options = values.get("select_options")
         fields_ = values.get("fields_", {})
+        lookups = values.get("lookups", {})
 
         if select_options and select_options.priority_fields:
             priority_field_names = set(select_options.priority_fields.keys())
             field_names = set(fields_.keys())
+            lookup_names = set(lookups.keys())
 
             # Check if all priority fields are present in the fields
             missing_fields = priority_field_names - field_names
+            missing_fields = missing_fields - lookup_names
             if missing_fields:
                 raise ValueError(
-                    f"Priority fields {missing_fields} are not present in 'fields'"
+                    f"Priority fields {missing_fields} are not present in 'fields' or 'lookups'"
                 )
 
         return values

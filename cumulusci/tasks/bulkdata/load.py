@@ -310,6 +310,90 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             return step.job_result
 
+    def process_lookup_fields(self, mapping, fields, polymorphic_fields):
+        """Modify fields and priority fields based on lookup and polymorphic checks."""
+        for name, lookup in mapping.lookups.items():
+            if name in fields:
+                # Get the index of the lookup field before removing it
+                insert_index = fields.index(name)
+                # Remove the lookup field from fields
+                fields.remove(name)
+
+                # Do the same for priority fields
+                lookup_in_priority_fields = False
+                if name in mapping.select_options.priority_fields:
+                    # Set flag to True
+                    lookup_in_priority_fields = True
+                    # Remove the lookup field from priority fields
+                    del mapping.select_options.priority_fields[name]
+
+                # Check if this lookup field is polymorphic
+                if (
+                    name in polymorphic_fields
+                    and len(polymorphic_fields[name]["referenceTo"]) > 1
+                ):
+                    # Convert to list if string
+                    if not isinstance(lookup.table, list):
+                        lookup.table = [lookup.table]
+                    # Polymorphic field handling
+                    polymorphic_references = lookup.table
+                    relationship_name = polymorphic_fields[name]["relationshipName"]
+
+                    # Loop through each polymorphic type (e.g., Contact, Lead)
+                    for ref_type in polymorphic_references:
+                        # Find the mapping step for this polymorphic type
+                        lookup_mapping_step = next(
+                            (
+                                step
+                                for step in self.mapping.values()
+                                if step.table == ref_type
+                            ),
+                            None,
+                        )
+                        if lookup_mapping_step:
+                            lookup_fields = lookup_mapping_step.get_load_field_list()
+                            # Insert fields in the format {relationship_name}.{ref_type}.{lookup_field}
+                            for field in lookup_fields:
+                                fields.insert(
+                                    insert_index,
+                                    f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}",
+                                )
+                                insert_index += 1
+                                if lookup_in_priority_fields:
+                                    mapping.select_options.priority_fields[
+                                        f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}"
+                                    ] = f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}"
+
+                else:
+                    # Non-polymorphic field handling
+                    lookup_table = lookup.table
+
+                    if isinstance(lookup_table, list):
+                        lookup_table = lookup_table[0]
+
+                    # Get the mapping step for the non-polymorphic reference
+                    lookup_mapping_step = next(
+                        (
+                            step
+                            for step in self.mapping.values()
+                            if step.table == lookup_table
+                        ),
+                        None,
+                    )
+
+                    if lookup_mapping_step:
+                        relationship_name = polymorphic_fields[name]["relationshipName"]
+                        lookup_fields = lookup_mapping_step.get_load_field_list()
+
+                        # Insert the new fields at the same position as the removed lookup field
+                        for field in lookup_fields:
+                            fields.insert(insert_index, f"{relationship_name}.{field}")
+                            insert_index += 1
+                            if lookup_in_priority_fields:
+                                mapping.select_options.priority_fields[
+                                    f"{relationship_name}.{field}"
+                                ] = f"{relationship_name}.{field}"
+
     def configure_step(self, mapping):
         """Create a step appropriate to the action"""
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
@@ -370,85 +454,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     for field in describe_result["fields"]
                     if field["type"] == "reference"
                 }
-
-                # Loop through each lookup to get the corresponding fields
-                for name, lookup in mapping.lookups.items():
-                    if name in fields:
-                        # Get the index of the lookup field before removing it
-                        insert_index = fields.index(name)
-                        # Remove the lookup field from fields
-                        fields.remove(name)
-
-                        # Check if this lookup field is polymorphic
-                        if (
-                            name in polymorphic_fields
-                            and len(polymorphic_fields[name]["referenceTo"]) > 1
-                        ):
-                            # Convert to list if string
-                            if not isinstance(lookup.table, list):
-                                lookup.table = [lookup.table]
-                            # Polymorphic field handling
-                            polymorphic_references = lookup.table
-                            relationship_name = polymorphic_fields[name][
-                                "relationshipName"
-                            ]
-
-                            # Loop through each polymorphic type (e.g., Contact, Lead)
-                            for ref_type in polymorphic_references:
-                                # Find the mapping step for this polymorphic type
-                                lookup_mapping_step = next(
-                                    (
-                                        step
-                                        for step in self.mapping.values()
-                                        if step.sf_object == ref_type
-                                    ),
-                                    None,
-                                )
-
-                                if lookup_mapping_step:
-                                    lookup_fields = (
-                                        lookup_mapping_step.get_load_field_list()
-                                    )
-                                    # Insert fields in the format {relationship_name}.{ref_type}.{lookup_field}
-                                    for field in lookup_fields:
-                                        fields.insert(
-                                            insert_index,
-                                            f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}",
-                                        )
-                                        insert_index += 1
-
-                        else:
-                            # Non-polymorphic field handling
-                            lookup_table = lookup.table
-
-                            if isinstance(lookup_table, list):
-                                lookup_table = lookup_table[0]
-
-                            # Get the mapping step for the non-polymorphic reference
-                            lookup_mapping_step = next(
-                                (
-                                    step
-                                    for step in self.mapping.values()
-                                    if step.sf_object == lookup_table
-                                ),
-                                None,
-                            )
-
-                            if lookup_mapping_step:
-                                relationship_name = polymorphic_fields[name][
-                                    "relationshipName"
-                                ]
-                                lookup_fields = (
-                                    lookup_mapping_step.get_load_field_list()
-                                )
-
-                                # Insert the new fields at the same position as the removed lookup field
-                                for field in lookup_fields:
-                                    fields.insert(
-                                        insert_index, f"{relationship_name}.{field}"
-                                    )
-                                    insert_index += 1
-
+                self.process_lookup_fields(mapping, fields, polymorphic_fields)
         else:
             action = mapping.action
 
@@ -502,9 +508,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             total_rows += 1
             pkey = row[0]
             row = list(row[1:]) + statics
-
-            # Replace None values in row with empty strings
-            row = [value if value is not None else "" for value in row]
 
             if mapping.anchor_date and (date_context[0] or date_context[1]):
                 row = adjust_relative_dates(

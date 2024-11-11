@@ -14,7 +14,7 @@ import requests
 import salesforce_bulk
 
 from cumulusci.core.enums import StrEnum
-from cumulusci.core.exceptions import BulkDataException, SOQLQueryException
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.select_utils import (
     SelectOperationExecutor,
@@ -878,59 +878,6 @@ class RestApiDmlOperation(BaseDmlOperation):
             records_processed=len(self.results),
             total_row_errors=0,
         )
-
-    def _execute_composite_query(self, select_query, user_query, query_fields):
-        """Executes a composite request with two queries and returns the results."""
-
-        def convert(rec, fields):
-            """Helper function to convert record values to strings, handling None values"""
-            return [str(rec[f]) if rec[f] is not None else "" for f in fields]
-
-        composite_request_json = {
-            "compositeRequest": [
-                {
-                    "method": "GET",
-                    "url": requests.utils.requote_uri(
-                        f"/services/data/v{self.sf.sf_version}/query/?q={select_query}"
-                    ),
-                    "referenceId": "select_query",
-                },
-                {
-                    "method": "GET",
-                    "url": requests.utils.requote_uri(
-                        f"/services/data/v{self.sf.sf_version}/query/?q={user_query}"
-                    ),
-                    "referenceId": "user_query",
-                },
-            ]
-        }
-        response = self.sf.restful(
-            "composite", method="POST", json=composite_request_json
-        )
-
-        # Extract results based on referenceId
-        for sub_response in response["compositeResponse"]:
-            if (
-                sub_response["referenceId"] == "select_query"
-                and sub_response["httpStatusCode"] == 200
-            ):
-                select_query_records = list(
-                    convert(rec, query_fields)
-                    for rec in sub_response["body"]["records"]
-                )
-            elif (
-                sub_response["referenceId"] == "user_query"
-                and sub_response["httpStatusCode"] == 200
-            ):
-                user_query_records = list(
-                    convert(rec, ["Id"]) for rec in sub_response["body"]["records"]
-                )
-            else:
-                raise SOQLQueryException(
-                    f"{sub_response['body'][0]['errorCode']}: {sub_response['body'][0]['message']}"
-                )
-
-        return user_query_records, select_query_records
 
     def get_results(self):
         """Return a generator of DataOperationResult objects."""

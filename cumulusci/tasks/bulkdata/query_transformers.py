@@ -3,6 +3,7 @@ from functools import cached_property
 
 from sqlalchemy import String, and_, func, text
 from sqlalchemy.orm import Query, aliased
+from sqlalchemy.sql import literal_column
 
 from cumulusci.core.exceptions import BulkDataException
 
@@ -106,7 +107,10 @@ class DynamicLookupQueryExtender(LoadQueryExtender):
         for lookup in self.lookups:
             tables = lookup.table if isinstance(lookup.table, list) else [lookup.table]
             lookup.aliased_table = [
-                aliased(self.metadata.tables[table]) for table in tables
+                aliased(
+                    self.metadata.tables[table], name=f"{lookup.name}_{table}_alias"
+                )
+                for table in tables
             ]
 
             for aliased_table, table_name in zip(lookup.aliased_table, tables):
@@ -122,16 +126,24 @@ class DynamicLookupQueryExtender(LoadQueryExtender):
                 if lookup_mapping_step:
                     load_fields = lookup_mapping_step.get_load_field_list()
                     for field in load_fields:
-                        matching_column = next(
-                            (
-                                col
-                                for col in aliased_table.columns
-                                if col.name == lookup_mapping_step.fields[field]
+                        if field in lookup_mapping_step.fields:
+                            matching_column = next(
+                                (
+                                    col
+                                    for col in aliased_table.columns
+                                    if col.name == lookup_mapping_step.fields[field]
+                                )
                             )
-                        )
-                        columns.append(
-                            matching_column.label(f"{aliased_table.name}_{field}")
-                        )
+                            columns.append(
+                                matching_column.label(f"{aliased_table.name}_{field}")
+                            )
+                        else:
+                            # Append an empty string if the field is not present
+                            columns.append(
+                                literal_column("''").label(
+                                    f"{aliased_table.name}_{field}"
+                                )
+                            )
         return columns
 
     @cached_property

@@ -1,14 +1,17 @@
 import io
 import json
+from itertools import tee
 from unittest import mock
 
 import pytest
 import responses
 
-from cumulusci.core.exceptions import BulkDataException, SOQLQueryException
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.select_utils import SelectStrategy
 from cumulusci.tasks.bulkdata.step import (
+    HIGH_PRIORITY_VALUE,
+    LOW_PRIORITY_VALUE,
     BulkApiDmlOperation,
     BulkApiQueryOperation,
     BulkJobMixin,
@@ -19,7 +22,10 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     RestApiDmlOperation,
     RestApiQueryOperation,
+    assign_weights,
     download_file,
+    extract_flattened_headers,
+    flatten_record,
     get_dml_operation,
     get_query_operation,
 )
@@ -546,6 +552,7 @@ class TestBulkApiDmlOperation:
             context=context,
             fields=["LastName"],
             selection_strategy=SelectStrategy.STANDARD,
+            content_type="JSON",
         )
 
         # Mock Bulk API responses
@@ -555,10 +562,7 @@ class TestBulkApiDmlOperation:
         step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
 
         # Mock the downloaded CSV content with a single record
-        download_mock.return_value = io.StringIO(
-            """Id
-003000000000001"""
-        )
+        download_mock.return_value = io.StringIO('[{"Id":"003000000000001"}]')
 
         # Mock the _wait_for_job method to simulate a successful job
         step._wait_for_job = mock.Mock()
@@ -607,7 +611,7 @@ class TestBulkApiDmlOperation:
         step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
 
         # Mock the downloaded CSV content indicating no records found
-        download_mock.return_value = io.StringIO("""Records not found for this query""")
+        download_mock.return_value = io.StringIO("[]")
 
         # Mock the _wait_for_job method to simulate a successful job
         step._wait_for_job = mock.Mock()
@@ -654,51 +658,34 @@ class TestBulkApiDmlOperation:
         step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
 
         # Mock the downloaded CSV content with a single record
-        download_mock.return_value = io.StringIO(
-            """Id
-003000000000001
-003000000000002
-003000000000003"""
+        download_mock.return_value = io.StringIO('[{"Id":"003000000000001"}]')
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
         )
-        # Mock the query operation
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.step.get_query_operation"
-        ) as query_operation_mock:
-            query_operation_mock.return_value = mock.Mock()
-            query_operation_mock.return_value.query = mock.Mock()
-            query_operation_mock.return_value.get_results = mock.Mock()
-            query_operation_mock.return_value.get_results.return_value = [
-                ["003000000000001"]
-            ]
 
-            # Mock the _wait_for_job method to simulate a successful job
-            step._wait_for_job = mock.Mock()
-            step._wait_for_job.return_value = DataOperationJobResult(
-                DataOperationStatus.SUCCESS, [], 0, 0
-            )
+        # Prepare input records
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
 
-            # Prepare input records
-            records = iter([["Test1"], ["Test2"], ["Test3"]])
+        # Execute the select_records operation
+        step.start()
+        step.select_records(records)
+        step.end()
 
-            # Execute the select_records operation
-            step.start()
-            step.select_records(records)
-            step.end()
-
-            # Get the results and assert their properties
-            results = list(step.get_results())
-            assert (
-                len(results) == 3
-            )  # Expect 3 results (matching the input records count)
-            # Assert that all results have the expected ID, success, and created values
-            assert (
-                results.count(
-                    DataOperationResult(
-                        id="003000000000001", success=True, error="", created=False
-                    )
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
                 )
-                == 3
             )
+            == 3
+        )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_select_records_user_selection_filter_order_success(self, download_mock):
@@ -722,47 +709,29 @@ class TestBulkApiDmlOperation:
 
         # Mock the downloaded CSV content with a single record
         download_mock.return_value = io.StringIO(
-            """Id
-003000000000001
-003000000000002
-003000000000003"""
+            '[{"Id":"003000000000003"}, {"Id":"003000000000001"}, {"Id":"003000000000002"}]'
         )
-        # Mock the query operation
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.step.get_query_operation"
-        ) as query_operation_mock:
-            query_operation_mock.return_value = mock.Mock()
-            query_operation_mock.return_value.query = mock.Mock()
-            query_operation_mock.return_value.get_results = mock.Mock()
-            query_operation_mock.return_value.get_results.return_value = [
-                ["003000000000003"],
-                ["003000000000001"],
-                ["003000000000002"],
-            ]
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
 
-            # Mock the _wait_for_job method to simulate a successful job
-            step._wait_for_job = mock.Mock()
-            step._wait_for_job.return_value = DataOperationJobResult(
-                DataOperationStatus.SUCCESS, [], 0, 0
-            )
+        # Prepare input records
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
 
-            # Prepare input records
-            records = iter([["Test1"], ["Test2"], ["Test3"]])
+        # Execute the select_records operation
+        step.start()
+        step.select_records(records)
+        step.end()
 
-            # Execute the select_records operation
-            step.start()
-            step.select_records(records)
-            step.end()
-
-            # Get the results and assert their properties
-            results = list(step.get_results())
-            assert (
-                len(results) == 3
-            )  # Expect 3 results (matching the input records count)
-            # Assert that all results are in the order given by user query
-            assert results[0].id == "003000000000003"
-            assert results[1].id == "003000000000001"
-            assert results[2].id == "003000000000002"
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results are in the order given by user query
+        assert results[0].id == "003000000000003"
+        assert results[1].id == "003000000000001"
+        assert results[2].id == "003000000000002"
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_select_records_user_selection_filter_failure(self, download_mock):
@@ -785,29 +754,14 @@ class TestBulkApiDmlOperation:
         step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
 
         # Mock the downloaded CSV content with a single record
-        download_mock.return_value = io.StringIO(
-            """Id
-003000000000001
-003000000000002
-003000000000003"""
-        )
-        # Mock the query operation
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.step.get_query_operation"
-        ) as query_operation_mock:
-            query_operation_mock.return_value = mock.Mock()
-            query_operation_mock.return_value.query = mock.Mock()
-            query_operation_mock.return_value.query.side_effect = BulkDataException(
-                "MALFORMED QUERY"
-            )
+        download_mock.side_effect = BulkDataException("MALFORMED QUERY")
+        # Prepare input records
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
 
-            # Prepare input records
-            records = iter([["Test1"], ["Test2"], ["Test3"]])
-
-            # Execute the select_records operation
-            step.start()
-            with pytest.raises(BulkDataException):
-                step.select_records(records)
+        # Execute the select_records operation
+        step.start()
+        with pytest.raises(BulkDataException):
+            step.select_records(records)
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_select_records_similarity_strategy_success(self, download_mock):
@@ -818,7 +772,7 @@ class TestBulkApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10, "update_key": "LastName"},
             context=context,
-            fields=["Id", "Name", "Email"],
+            fields=["Name", "Email"],
             selection_strategy=SelectStrategy.SIMILARITY,
         )
 
@@ -830,10 +784,7 @@ class TestBulkApiDmlOperation:
 
         # Mock the downloaded CSV content with a single record
         download_mock.return_value = io.StringIO(
-            """Id,Name,Email
-003000000000001,Jawad,mjawadtp@example.com
-003000000000002,Aditya,aditya@example.com
-003000000000003,Tom,tom@example.com"""
+            """[{"Id":"003000000000001", "Name":"Jawad", "Email":"mjawadtp@example.com"}, {"Id":"003000000000002", "Name":"Aditya", "Email":"aditya@example.com"}, {"Id":"003000000000003", "Name":"Tom", "Email":"tom@example.com"}]"""
         )
 
         # Mock the _wait_for_job method to simulate a successful job
@@ -908,7 +859,7 @@ class TestBulkApiDmlOperation:
         step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
 
         # Mock the downloaded CSV content indicating no records found
-        download_mock.return_value = io.StringIO("""Records not found for this query""")
+        download_mock.return_value = io.StringIO("[]")
 
         # Mock the _wait_for_job method to simulate a successful job
         step._wait_for_job = mock.Mock()
@@ -939,6 +890,214 @@ class TestBulkApiDmlOperation:
         )
         assert job_result.records_processed == 0
         assert job_result.total_row_errors == 0
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_similarity_strategy_parent_level_records__polymorphic(
+        self, download_mock
+    ):
+        mock_describe_calls()
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Event",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=context,
+            fields=[
+                "Subject",
+                "Who.Contact.Name",
+                "Who.Contact.Email",
+                "Who.Lead.Name",
+                "Who.Lead.Company",
+            ],
+            selection_strategy=SelectStrategy.SIMILARITY,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        download_mock.return_value = io.StringIO(
+            """[
+                {"Id": "003000000000001", "Subject": "Sample Event 1", "Who":{ "attributes": {"type": "Contact"}, "Name": "Sample Contact", "Email": "contact@example.com"}},
+                { "Id": "003000000000002", "Subject": "Sample Event 2", "Who":{ "attributes": {"type": "Lead"}, "Name": "Sample Lead", "Company": "Salesforce"}}
+            ]"""
+        )
+
+        records = iter(
+            [
+                ["Sample Event 1", "Sample Contact", "contact@example.com", "", ""],
+                ["Sample Event 2", "", "", "Sample Lead", "Salesforce"],
+            ]
+        )
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 2  # Expect 2 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        assert results[0] == DataOperationResult(
+            id="003000000000001", success=True, error="", created=False
+        )
+        assert results[1] == DataOperationResult(
+            id="003000000000002", success=True, error="", created=False
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_similarity_strategy_parent_level_records__non_polymorphic(
+        self, download_mock
+    ):
+        mock_describe_calls()
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=context,
+            fields=["Name", "Account.Name", "Account.AccountNumber"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        download_mock.return_value = io.StringIO(
+            """[
+                {"Id": "003000000000001", "Name": "Sample Contact 1", "Account":{ "attributes": {"type": "Account"}, "Name": "Sample Account", "AccountNumber": 123456}},
+                { "Id": "003000000000002", "Subject": "Sample Contact 2", "Account": null}
+            ]"""
+        )
+
+        records = iter(
+            [
+                ["Sample Contact 3", "Sample Account", "123456"],
+                ["Sample Contact 4", "", ""],
+            ]
+        )
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 2  # Expect 2 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        assert results[0] == DataOperationResult(
+            id="003000000000001", success=True, error="", created=False
+        )
+        assert results[1] == DataOperationResult(
+            id="003000000000002", success=True, error="", created=False
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_similarity_strategy_priority_fields(self, download_mock):
+        mock_describe_calls()
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step_1 = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=context,
+            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            selection_priority_fields={"Name": "Name", "Email": "Email"},
+        )
+
+        step_2 = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=context,
+            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            selection_priority_fields={
+                "Account.Name": "Account.Name",
+                "Account.AccountNumber": "Account.AccountNumber",
+            },
+        )
+
+        # Mock Bulk API responses
+        step_1.bulk.endpoint = "https://test"
+        step_1.bulk.create_query_job.return_value = "JOB"
+        step_1.bulk.query.return_value = "BATCH"
+        step_1.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+        step_2.bulk.endpoint = "https://test"
+        step_2.bulk.create_query_job.return_value = "JOB"
+        step_2.bulk.query.return_value = "BATCH"
+        step_2.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        sample_response = [
+            {
+                "Id": "003000000000001",
+                "Name": "Bob The Builder",
+                "Email": "bob@yahoo.org",
+                "Account": {
+                    "attributes": {"type": "Account"},
+                    "Name": "Jawad TP",
+                    "AccountNumber": 567890,
+                },
+            },
+            {
+                "Id": "003000000000002",
+                "Name": "Tom Cruise",
+                "Email": "tom@exmaple.com",
+                "Account": {
+                    "attributes": {"type": "Account"},
+                    "Name": "Aditya B",
+                    "AccountNumber": 123456,
+                },
+            },
+        ]
+
+        download_mock.side_effect = [
+            io.StringIO(f"""{json.dumps(sample_response)}"""),
+            io.StringIO(f"""{json.dumps(sample_response)}"""),
+        ]
+
+        records = iter(
+            [
+                ["Bob The Builder", "bob@yahoo.org", "Aditya B", "123456"],
+            ]
+        )
+        records_1, records_2 = tee(records)
+        step_1.start()
+        step_1.select_records(records_1)
+        step_1.end()
+
+        step_2.start()
+        step_2.select_records(records_2)
+        step_2.end()
+
+        # Get the results and assert their properties
+        results_1 = list(step_1.get_results())
+        results_2 = list(step_2.get_results())
+        assert (
+            len(results_1) == 1
+        )  # Expect 1 results (matching the input records count)
+        assert (
+            len(results_2) == 1
+        )  # Expect 1 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        # Prioritizes Name and Email
+        assert results_1[0] == DataOperationResult(
+            id="003000000000001", success=True, error="", created=False
+        )
+        # Prioritizes Account.Name and Account.AccountNumber
+        assert results_2[0] == DataOperationResult(
+            id="003000000000002", success=True, error="", created=False
+        )
 
     def test_batch(self):
         context = mock.Mock()
@@ -1351,6 +1510,97 @@ class TestRestApiDmlOperation:
         )
 
     @responses.activate
+    def test_select_records_standard_strategy_success_pagination(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.STANDARD,
+        )
+
+        # Set up pagination: First call returns done=False, second call returns done=True
+        step.sf.restful = mock.Mock(
+            side_effect=[
+                {
+                    "records": [{"Id": "003000000000001"}, {"Id": "003000000000002"}],
+                    "done": False,  # Pagination in progress
+                    "nextRecordsUrl": "/services/data/vXX.X/query/next-records",
+                },
+            ]
+        )
+
+        step.sf.query_more = mock.Mock(
+            side_effect=[
+                {"records": [{"Id": "003000000000003"}], "done": True}  # Final page
+            ]
+        )
+
+        records = iter([["Test1"], ["Test2"], ["Test3"]])
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+
+    @responses.activate
     def test_select_records_standard_strategy_failure__no_records(self):
         mock_describe_calls()
         task = _make_task(
@@ -1448,28 +1698,10 @@ class TestRestApiDmlOperation:
         )
 
         results = {
-            "compositeResponse": [
-                {
-                    "body": {
-                        "records": [
-                            {"Id": "003000000000001"},
-                            {"Id": "003000000000002"},
-                            {"Id": "003000000000003"},
-                        ]
-                    },
-                    "referenceId": "select_query",
-                    "httpStatusCode": 200,
-                },
-                {
-                    "body": {
-                        "records": [
-                            {"Id": "003000000000001"},
-                        ]
-                    },
-                    "referenceId": "user_query",
-                    "httpStatusCode": 200,
-                },
-            ]
+            "records": [
+                {"Id": "003000000000001"},
+            ],
+            "done": True,
         }
         step.sf.restful = mock.Mock()
         step.sf.restful.return_value = results
@@ -1532,30 +1764,12 @@ class TestRestApiDmlOperation:
         )
 
         results = {
-            "compositeResponse": [
-                {
-                    "body": {
-                        "records": [
-                            {"Id": "003000000000001"},
-                            {"Id": "003000000000002"},
-                            {"Id": "003000000000003"},
-                        ]
-                    },
-                    "referenceId": "select_query",
-                    "httpStatusCode": 200,
-                },
-                {
-                    "body": {
-                        "records": [
-                            {"Id": "003000000000003"},
-                            {"Id": "003000000000001"},
-                            {"Id": "003000000000002"},
-                        ]
-                    },
-                    "referenceId": "user_query",
-                    "httpStatusCode": 200,
-                },
-            ]
+            "records": [
+                {"Id": "003000000000003"},
+                {"Id": "003000000000001"},
+                {"Id": "003000000000002"},
+            ],
+            "done": True,
         }
         step.sf.restful = mock.Mock()
         step.sf.restful.return_value = results
@@ -1612,38 +1826,12 @@ class TestRestApiDmlOperation:
             selection_filter="MALFORMED FILTER",  # Applying malformed filter
         )
 
-        results = {
-            "compositeResponse": [
-                {
-                    "body": {
-                        "records": [
-                            {"Id": "003000000000001"},
-                            {"Id": "003000000000002"},
-                            {"Id": "003000000000003"},
-                        ]
-                    },
-                    "referenceId": "select_query",
-                    "httpStatusCode": 200,
-                },
-                {
-                    "body": [
-                        {
-                            "message": "Error in MALFORMED FILTER",
-                            "errorCode": "MALFORMED QUERY",
-                        }
-                    ],
-                    "referenceId": "user_query",
-                    "httpStatusCode": 400,
-                },
-            ]
-        }
         step.sf.restful = mock.Mock()
-        step.sf.restful.return_value = results
+        step.sf.restful.side_effect = Exception("MALFORMED QUERY")
         records = iter([["Test1"], ["Test2"], ["Test3"]])
         step.start()
-        with pytest.raises(SOQLQueryException) as e:
+        with pytest.raises(Exception):
             step.select_records(records)
-        assert "MALFORMED QUERY" in str(e.value)
 
     @responses.activate
     def test_select_records_similarity_strategy_success(self):
@@ -1680,7 +1868,7 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.UPSERT,
             api_options={"batch_size": 10, "update_key": "LastName"},
             context=task,
-            fields=["Id", "Name", "Email"],
+            fields=["Name", "Email"],
             selection_strategy=SelectStrategy.SIMILARITY,
         )
 
@@ -1811,6 +1999,318 @@ class TestRestApiDmlOperation:
         )
         assert job_result.records_processed == 0
         assert job_result.total_row_errors == 0
+
+    @responses.activate
+    def test_select_records_similarity_strategy_parent_level_records__polymorphic(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Event",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=task,
+            fields=[
+                "Subject",
+                "Who.Contact.Name",
+                "Who.Contact.Email",
+                "Who.Lead.Name",
+                "Who.Lead.Company",
+            ],
+            selection_strategy=SelectStrategy.SIMILARITY,
+        )
+
+        step.sf.restful = mock.Mock(
+            side_effect=[
+                {
+                    "records": [
+                        {
+                            "Id": "003000000000001",
+                            "Subject": "Sample Event 1",
+                            "Who": {
+                                "attributes": {"type": "Contact"},
+                                "Name": "Sample Contact",
+                                "Email": "contact@example.com",
+                            },
+                        },
+                        {
+                            "Id": "003000000000002",
+                            "Subject": "Sample Event 2",
+                            "Who": {
+                                "attributes": {"type": "Lead"},
+                                "Name": "Sample Lead",
+                                "Company": "Salesforce",
+                            },
+                        },
+                    ],
+                    "done": True,
+                },
+            ]
+        )
+
+        records = iter(
+            [
+                ["Sample Event 1", "Sample Contact", "contact@example.com", "", ""],
+                ["Sample Event 2", "", "", "Sample Lead", "Salesforce"],
+            ]
+        )
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 2  # Expect 2 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        assert results[0] == DataOperationResult(
+            id="003000000000001", success=True, error="", created=False
+        )
+        assert results[1] == DataOperationResult(
+            id="003000000000002", success=True, error="", created=False
+        )
+
+    @responses.activate
+    def test_select_records_similarity_strategy_parent_level_records__non_polymorphic(
+        self,
+    ):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=task,
+            fields=["Name", "Account.Name", "Account.AccountNumber"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+        )
+
+        step.sf.restful = mock.Mock(
+            side_effect=[
+                {
+                    "records": [
+                        {
+                            "Id": "003000000000001",
+                            "Name": "Sample Contact 1",
+                            "Account": {
+                                "attributes": {"type": "Account"},
+                                "Name": "Sample Account",
+                                "AccountNumber": 123456,
+                            },
+                        },
+                        {
+                            "Id": "003000000000002",
+                            "Name": "Sample Contact 2",
+                            "Account": None,
+                        },
+                    ],
+                    "done": True,
+                },
+            ]
+        )
+
+        records = iter(
+            [
+                ["Sample Contact 3", "Sample Account", "123456"],
+                ["Sample Contact 4", "", ""],
+            ]
+        )
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 2  # Expect 2 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        assert results[0] == DataOperationResult(
+            id="003000000000001", success=True, error="", created=False
+        )
+        assert results[1] == DataOperationResult(
+            id="003000000000002", success=True, error="", created=False
+        )
+
+    @responses.activate
+    def test_select_records_similarity_strategy_priority_fields(self):
+        mock_describe_calls()
+        task_1 = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task_1.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task_1._init_task()
+
+        task_2 = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task_2.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task_2._init_task()
+
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+        step_1 = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=task_1,
+            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            selection_priority_fields={"Name": "Name", "Email": "Email"},
+        )
+
+        step_2 = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10},
+            context=task_2,
+            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            selection_priority_fields={
+                "Account.Name": "Account.Name",
+                "Account.AccountNumber": "Account.AccountNumber",
+            },
+        )
+
+        sample_response = [
+            {
+                "records": [
+                    {
+                        "Id": "003000000000001",
+                        "Name": "Bob The Builder",
+                        "Email": "bob@yahoo.org",
+                        "Account": {
+                            "attributes": {"type": "Account"},
+                            "Name": "Jawad TP",
+                            "AccountNumber": 567890,
+                        },
+                    },
+                    {
+                        "Id": "003000000000002",
+                        "Name": "Tom Cruise",
+                        "Email": "tom@exmaple.com",
+                        "Account": {
+                            "attributes": {"type": "Account"},
+                            "Name": "Aditya B",
+                            "AccountNumber": 123456,
+                        },
+                    },
+                ],
+                "done": True,
+            },
+        ]
+
+        step_1.sf.restful = mock.Mock(side_effect=sample_response)
+        step_2.sf.restful = mock.Mock(side_effect=sample_response)
+
+        records = iter(
+            [
+                ["Bob The Builder", "bob@yahoo.org", "Aditya B", "123456"],
+            ]
+        )
+        records_1, records_2 = tee(records)
+        step_1.start()
+        step_1.select_records(records_1)
+        step_1.end()
+
+        step_2.start()
+        step_2.select_records(records_2)
+        step_2.end()
+
+        # Get the results and assert their properties
+        results_1 = list(step_1.get_results())
+        results_2 = list(step_2.get_results())
+        assert (
+            len(results_1) == 1
+        )  # Expect 1 results (matching the input records count)
+        assert (
+            len(results_2) == 1
+        )  # Expect 1 results (matching the input records count)
+
+        # Assert that all results have the expected ID, success, and created values
+        # Prioritizes Name and Email
+        assert results_1[0] == DataOperationResult(
+            id="003000000000001", success=True, error="", created=False
+        )
+        # Prioritizes Account.Name and Account.AccountNumber
+        assert results_2[0] == DataOperationResult(
+            id="003000000000002", success=True, error="", created=False
+        )
 
     @responses.activate
     def test_insert_dml_operation__boolean_conversion(self):
@@ -2301,6 +2801,8 @@ class TestGetOperationFunctions:
             context=context,
             selection_strategy=SelectStrategy.SIMILARITY,
             selection_filter=None,
+            selection_priority_fields=None,
+            content_type=None,
         )
 
         op = get_dml_operation(
@@ -2324,6 +2826,8 @@ class TestGetOperationFunctions:
             context=context,
             selection_strategy=SelectStrategy.SIMILARITY,
             selection_filter=None,
+            selection_priority_fields=None,
+            content_type=None,
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
@@ -2488,99 +2992,120 @@ class TestGetOperationFunctions:
         }, json_out
 
 
-import pytest
-
-# def test_generate_user_filter_query_basic():
-#     """Tests basic query generation without existing LIMIT or OFFSET."""
-#     filter_clause = "WHERE Name = 'John'"
-#     sobject = "Account"
-#     fields = ["Id", "Name"]
-#     limit_clause = 10
-#     offset_clause = 5
-
-#     expected_query = (
-#         "SELECT Id, Name FROM Account WHERE Name = 'John' LIMIT 10 OFFSET 5"
-#     )
-#     assert (
-#         generate_user_filter_query(
-#             filter_clause, sobject, fields, limit_clause, offset_clause
-#         )
-#         == expected_query
-#     )
-
-
-# def test_generate_user_filter_query_existing_limit():
-#     """Tests handling of existing LIMIT in the filter clause."""
-#     filter_clause = "WHERE Name = 'John' LIMIT 20"
-#     sobject = "Contact"
-#     fields = ["Id", "FirstName"]
-#     limit_clause = 5  # Should override the existing LIMIT
-#     offset_clause = None
-
-#     expected_query = "SELECT Id, FirstName FROM Contact WHERE Name = 'John' LIMIT 5"
-#     assert (
-#         generate_user_filter_query(
-#             filter_clause, sobject, fields, limit_clause, offset_clause
-#         )
-#         == expected_query
-#     )
-
-
-# def test_generate_user_filter_query_existing_offset():
-#     """Tests handling of existing OFFSET in the filter clause."""
-#     filter_clause = "WHERE Name = 'John' OFFSET 15"
-#     sobject = "Opportunity"
-#     fields = ["Id", "Name"]
-#     limit_clause = None
-#     offset_clause = 10  # Should add to the existing OFFSET
-
-#     expected_query = "SELECT Id, Name FROM Opportunity WHERE Name = 'John' OFFSET 25"
-#     assert (
-#         generate_user_filter_query(
-#             filter_clause, sobject, fields, limit_clause, offset_clause
-#         )
-#         == expected_query
-#     )
+@pytest.mark.parametrize(
+    "query_fields, expected",
+    [
+        # Test with simple field names
+        (["Id", "Name", "Email"], ["Id", "Name", "Email"]),
+        # Test with TYPEOF fields (polymorphic fields)
+        (
+            [
+                "Subject",
+                {
+                    "Who": [
+                        {"Contact": ["Name", "Email"]},
+                        {"Lead": ["Name", "Company"]},
+                    ]
+                },
+            ],
+            [
+                "Subject",
+                "Who.Contact.Name",
+                "Who.Contact.Email",
+                "Who.Lead.Name",
+                "Who.Lead.Company",
+            ],
+        ),
+        # Test with mixed simple and TYPEOF fields
+        (
+            ["Subject", {"Who": [{"Contact": ["Email"]}]}, "Account.Name"],
+            ["Subject", "Who.Contact.Email", "Account.Name"],
+        ),
+        # Test with an empty list
+        ([], []),
+    ],
+)
+def test_extract_flattened_headers(query_fields, expected):
+    result = extract_flattened_headers(query_fields)
+    assert result == expected
 
 
-# def test_generate_user_filter_query_no_limit_or_offset():
-#     """Tests when no limit or offset is provided or present in the filter."""
-#     filter_clause = "WHERE Name = 'John' LIMIT 5 OFFSET 20"
-#     sobject = "Lead"
-#     fields = ["Id", "Name", "Email"]
-#     limit_clause = None
-#     offset_clause = None
+@pytest.mark.parametrize(
+    "record, headers, expected",
+    [
+        # Test with simple field matching
+        (
+            {"Id": "001", "Name": "John Doe", "Email": "john@example.com"},
+            ["Id", "Name", "Email"],
+            ["001", "John Doe", "john@example.com"],
+        ),
+        # Test with lookup fields and missing values
+        (
+            {
+                "Who": {
+                    "attributes": {"type": "Contact"},
+                    "Name": "Jane Doe",
+                    "Email": "johndoe@org.com",
+                    "Number": 10,
+                }
+            },
+            ["Who.Contact.Name", "Who.Contact.Email", "Who.Contact.Number"],
+            ["Jane Doe", "johndoe@org.com", "10"],
+        ),
+        # Test with non-matching ref_obj type
+        (
+            {"Who": {"attributes": {"type": "Contact"}, "Email": "jane@contact.com"}},
+            ["Who.Lead.Email"],
+            [""],
+        ),
+        # Test with mixed fields and nested lookups
+        (
+            {
+                "Who": {"attributes": {"type": "Lead"}, "Name": "John Doe"},
+                "Email": "john@example.com",
+            },
+            ["Who.Lead.Name", "Who.Lead.Company", "Email"],
+            ["John Doe", "", "john@example.com"],
+        ),
+        # Test with mixed fields and nested lookups
+        (
+            {
+                "Who": {"attributes": {"type": "Lead"}, "Name": "John Doe"},
+                "Email": "john@example.com",
+            },
+            ["What.Account.Name"],
+            [""],
+        ),
+        # Test with empty record
+        ({}, ["Id", "Name"], ["", ""]),
+    ],
+)
+def test_flatten_record(record, headers, expected):
+    result = flatten_record(record, headers)
+    assert result == expected
 
-#     expected_query = (
-#         "SELECT Id, Name, Email FROM Lead WHERE Name = 'John' LIMIT 5 OFFSET 20"
-#     )
-#     print(
-#         generate_user_filter_query(
-#             filter_clause, sobject, fields, limit_clause, offset_clause
-#         )
-#     )
-#     assert (
-#         generate_user_filter_query(
-#             filter_clause, sobject, fields, limit_clause, offset_clause
-#         )
-#         == expected_query
-#     )
 
-
-# def test_generate_user_filter_query_case_insensitivity():
-#     """Tests case-insensitivity for LIMIT and OFFSET."""
-#     filter_clause = "where name = 'John' offset 5 limit 20"
-#     sobject = "Task"
-#     fields = ["Id", "Subject"]
-#     limit_clause = 15
-#     offset_clause = 20
-
-#     expected_query = (
-#         "SELECT Id, Subject FROM Task where name = 'John' LIMIT 15 OFFSET 25"
-#     )
-#     assert (
-#         generate_user_filter_query(
-#             filter_clause, sobject, fields, limit_clause, offset_clause
-#         )
-#         == expected_query
-#     )
+@pytest.mark.parametrize(
+    "priority_fields, fields, expected",
+    [
+        # Test with priority fields matching
+        (
+            {"Id": "Id", "Name": "Name"},
+            ["Id", "Name", "Email"],
+            [HIGH_PRIORITY_VALUE, HIGH_PRIORITY_VALUE, LOW_PRIORITY_VALUE],
+        ),
+        # Test with no priority fields provided
+        (None, ["Id", "Name", "Email"], [1, 1, 1]),
+        # Test with empty priority fields dictionary
+        ({}, ["Id", "Name", "Email"], [1, 1, 1]),
+        # Test with some fields not in priority_fields
+        (
+            {"Id": "Id"},
+            ["Id", "Name", "Email"],
+            [HIGH_PRIORITY_VALUE, LOW_PRIORITY_VALUE, LOW_PRIORITY_VALUE],
+        ),
+    ],
+)
+def test_assign_weights(priority_fields, fields, expected):
+    result = assign_weights(priority_fields, fields)
+    assert result == expected

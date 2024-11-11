@@ -50,8 +50,12 @@ class SelectOptions(CCIDictModel):
     def validate_strategy(cls, value):
         if isinstance(value, Enum):
             return value
-        if value is not None:
-            return ENUM_VALUES.get(value.lower())
+
+        if value:
+            matched_strategy = ENUM_VALUES.get(value.lower())
+            if matched_strategy:
+                return matched_strategy
+
         raise ValueError(f"Invalid strategy value: {value}")
 
     @validator("priority_fields", pre=True)
@@ -260,6 +264,10 @@ def similarity_post_process(
         return [], error_message
 
     load_records = list(load_records)
+    # Replace None values in each row with empty strings
+    for idx, row in enumerate(load_records):
+        row = [value if value is not None else "" for value in row]
+        load_records[idx] = row
     load_record_count, query_record_count = len(load_records), len(query_records)
 
     complexity_constant = load_record_count * query_record_count
@@ -514,6 +522,7 @@ def vectorize_records(db_records, query_records, hash_features, weights):
     df_query = pd.DataFrame(query_records)
 
     # Determine field types and corresponding weights
+    # Modifies boolean columns to True or False
     (
         numerical_features,
         boolean_features,
@@ -522,6 +531,13 @@ def vectorize_records(db_records, query_records, hash_features, weights):
         boolean_weights,
         categorical_weights,
     ) = determine_field_types(df_db, weights)
+
+    # Modify query dataframe boolean columns to True or False
+    for col in df_query.columns:
+        if df_query[col].str.lower().isin(["true", "false"]).all():
+            df_query[col] = (
+                df_query[col].str.lower().map({"true": True, "false": False})
+            )
 
     # Fit StandardScaler on the numerical features of the database records
     scaler = StandardScaler()

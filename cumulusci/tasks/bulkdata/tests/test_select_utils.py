@@ -4,6 +4,7 @@ import pytest
 from cumulusci.tasks.bulkdata.select_utils import (
     SelectOperationExecutor,
     SelectStrategy,
+    add_limit_offset_to_user_filter,
     annoy_post_process,
     calculate_levenshtein_distance,
     determine_field_types,
@@ -21,7 +22,7 @@ def test_standard_generate_query_with_default_record_declaration():
     limit = 5
     offset = 2
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], limit=limit, offset=offset
+        sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
     )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
@@ -36,11 +37,28 @@ def test_standard_generate_query_without_default_record_declaration():
     limit = 3
     offset = None
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], limit=limit, offset=offset
+        sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
     )
 
     assert "WHERE" not in query  # No WHERE clause should be present
     assert f"LIMIT {limit}" in query
+    assert "OFFSET" not in query
+    assert fields == ["Id"]
+
+
+def test_standard_generate_query_with_user_filter():
+    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
+    sobject = "Contact"  # Assuming no declaration for this object
+    limit = 3
+    offset = None
+    user_filter = "WHERE Name IN ('Sample Contact')"
+    query, fields = select_operator.select_generate_query(
+        sobject=sobject, fields=[], user_filter=user_filter, limit=limit, offset=offset
+    )
+
+    assert "WHERE" in query
+    assert "Sample Contact" in query
+    assert "LIMIT" in query
     assert "OFFSET" not in query
     assert fields == ["Id"]
 
@@ -52,7 +70,7 @@ def test_random_generate_query_with_default_record_declaration():
     limit = 5
     offset = 2
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], limit=limit, offset=offset
+        sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
     )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
@@ -67,7 +85,7 @@ def test_random_generate_query_without_default_record_declaration():
     limit = 3
     offset = None
     query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], limit=limit, offset=offset
+        sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
     )
 
     assert "WHERE" not in query  # No WHERE clause should be present
@@ -83,7 +101,7 @@ def test_standard_post_process_with_records():
     num_records = 3
     sobject = "Contact"
     selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject
+        None, records, num_records, sobject, weights=[]
     )
 
     assert error_message is None
@@ -99,7 +117,7 @@ def test_standard_post_process_with_fewer_records():
     num_records = 3
     sobject = "Opportunity"
     selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject
+        None, records, num_records, sobject, weights=[]
     )
 
     assert error_message is None
@@ -116,7 +134,7 @@ def test_standard_post_process_with_no_records():
     num_records = 2
     sobject = "Lead"
     selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject
+        None, records, num_records, sobject, weights=[]
     )
 
     assert selected_records == []
@@ -130,7 +148,7 @@ def test_random_post_process_with_records():
     num_records = 3
     sobject = "Contact"
     selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject
+        None, records, num_records, sobject, weights=[]
     )
 
     assert error_message is None
@@ -145,7 +163,7 @@ def test_random_post_process_with_no_records():
     num_records = 2
     sobject = "Lead"
     selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject
+        None, records, num_records, sobject, weights=[]
     )
 
     assert selected_records == []
@@ -159,7 +177,7 @@ def test_similarity_generate_query_with_default_record_declaration():
     limit = 5
     offset = 2
     query, fields = select_operator.select_generate_query(
-        sobject, ["Name"], limit, offset
+        sobject, ["Name"], [], limit, offset
     )
 
     assert "WHERE" in query  # Ensure WHERE clause is included
@@ -174,13 +192,66 @@ def test_similarity_generate_query_without_default_record_declaration():
     limit = 3
     offset = None
     query, fields = select_operator.select_generate_query(
-        sobject, ["Name"], limit, offset
+        sobject, ["Name"], [], limit, offset
     )
 
     assert "WHERE" not in query  # No WHERE clause should be present
     assert fields == ["Id", "Name"]
     assert f"LIMIT {limit}" in query
     assert "OFFSET" not in query
+
+
+def test_similarity_generate_query_with_nested_fields():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
+    sobject = "Event"  # Assuming no declaration for this object
+    limit = 3
+    offset = None
+    fields = [
+        "Subject",
+        "Who.Contact.Name",
+        "Who.Contact.Email",
+        "Who.Lead.Name",
+        "Who.Lead.Company",
+    ]
+    query, query_fields = select_operator.select_generate_query(
+        sobject, fields, [], limit, offset
+    )
+
+    assert "WHERE" not in query  # No WHERE clause should be present
+    assert query_fields == [
+        "Id",
+        "Subject",
+        "Who.Contact.Name",
+        "Who.Contact.Email",
+        "Who.Lead.Name",
+        "Who.Lead.Company",
+    ]
+    assert f"LIMIT {limit}" in query
+    assert "TYPEOF Who" in query
+    assert "WHEN Contact" in query
+    assert "WHEN Lead" in query
+    assert "OFFSET" not in query
+
+
+def test_random_generate_query_with_user_filter():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
+    sobject = "Contact"  # Assuming no declaration for this object
+    limit = 3
+    offset = None
+    user_filter = "WHERE Name IN ('Sample Contact')"
+    query, fields = select_operator.select_generate_query(
+        sobject=sobject,
+        fields=["Name"],
+        user_filter=user_filter,
+        limit=limit,
+        offset=offset,
+    )
+
+    assert "WHERE" in query
+    assert "Sample Contact" in query
+    assert "LIMIT" in query
+    assert "OFFSET" not in query
+    assert fields == ["Id", "Name"]
 
 
 def test_levenshtein_distance():
@@ -284,7 +355,7 @@ def test_similarity_post_process_with_no_records():
     num_records = 2
     sobject = "Lead"
     selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject
+        None, records, num_records, sobject, weights=[1, 1, 1]
     )
 
     assert selected_records == []
@@ -305,6 +376,34 @@ def test_calculate_levenshtein_distance_basic():
         expected_distance
     ), "Basic distance calculation failed."
 
+    # Empty fields
+    record1 = ["hello", ""]
+    record2 = ["hullo", ""]
+    weights = [1.0, 1.0]
+
+    # Expected distance based on simple Levenshtein distances
+    # Levenshtein("hello", "hullo") = 1, Levenshtein("", "") = 0
+    expected_distance = (1 * 1.0 + 0 * 1.0) / 2  # Averaged over two fields
+
+    result = calculate_levenshtein_distance(record1, record2, weights)
+    assert result == pytest.approx(
+        expected_distance
+    ), "Basic distance calculation with empty fields failed."
+
+    # Partial empty fields
+    record1 = ["hello", "world"]
+    record2 = ["hullo", ""]
+    weights = [1.0, 1.0]
+
+    # Expected distance based on simple Levenshtein distances
+    # Levenshtein("hello", "hullo") = 1, Levenshtein("world", "") = 5
+    expected_distance = (1 * 1.0 + 5 * 0.05 * 1.0) / 2  # Averaged over two fields
+
+    result = calculate_levenshtein_distance(record1, record2, weights)
+    assert result == pytest.approx(
+        expected_distance
+    ), "Basic distance calculation with partial empty fields failed."
+
 
 def test_calculate_levenshtein_distance_weighted():
     record1 = ["cat", "dog"]
@@ -318,6 +417,26 @@ def test_calculate_levenshtein_distance_weighted():
     assert result == pytest.approx(
         expected_distance
     ), "Weighted distance calculation failed."
+
+
+def test_calculate_levenshtein_distance_records_length_doesnt_match():
+    record1 = ["cat", "dog", "cow"]
+    record2 = ["bat", "fog"]
+    weights = [2.0, 0.5]
+
+    with pytest.raises(ValueError) as e:
+        calculate_levenshtein_distance(record1, record2, weights)
+    assert "Records must have the same number of fields." in str(e.value)
+
+
+def test_calculate_levenshtein_distance_weights_length_doesnt_match():
+    record1 = ["cat", "dog"]
+    record2 = ["bat", "fog"]
+    weights = [2.0, 0.5, 3.0]
+
+    with pytest.raises(ValueError) as e:
+        calculate_levenshtein_distance(record1, record2, weights)
+    assert "Records must be same size as fields (weights)." in str(e.value)
 
 
 def test_replace_empty_strings_with_missing():
@@ -419,11 +538,11 @@ def test_mixed_types():
     assert determine_field_types(df, weights) == expected_output
 
 
-def test_vectorize_records_mixed_numerical_categorical():
+def test_vectorize_records_mixed_numerical_boolean_categorical():
     # Test data with mixed types: numerical and categorical only
-    db_records = [["1.0", "apple"], ["2.0", "banana"]]
-    query_records = [["1.5", "apple"], ["2.5", "cherry"]]
-    weights = [1.0, 1.0]  # Equal weights for numerical and categorical columns
+    db_records = [["1.0", "true", "apple"], ["2.0", "false", "banana"]]
+    query_records = [["1.5", "true", "apple"], ["2.5", "false", "cherry"]]
+    weights = [1.0, 1.0, 1.0]  # Equal weights for numerical and categorical columns
     hash_features = 4  # Number of hashing vectorizer features for categorical columns
 
     final_db_vectors, final_query_vectors = vectorize_records(
@@ -437,7 +556,7 @@ def test_vectorize_records_mixed_numerical_categorical():
     ), "Query vectors row count mismatch"
 
     # Expected dimensions: numerical (1) + categorical hashed features (4)
-    expected_feature_count = 1 + hash_features
+    expected_feature_count = 2 + hash_features
     assert (
         final_db_vectors.shape[1] == expected_feature_count
     ), "DB vectors column count mismatch"
@@ -478,3 +597,59 @@ def test_single_record_match_annoy_post_process():
     assert len(closest_records) == 2
     assert closest_records[0]["id"] == "q1"
     assert error is None
+
+
+@pytest.mark.parametrize(
+    "filter_clause, limit_clause, offset_clause, expected",
+    [
+        # Test: No existing LIMIT/OFFSET and no new clauses
+        ("SELECT * FROM users", None, None, " SELECT * FROM users"),
+        # Test: Existing LIMIT and no new limit provided
+        ("SELECT * FROM users LIMIT 100", None, None, "SELECT * FROM users LIMIT 100"),
+        # Test: Existing OFFSET and no new offset provided
+        ("SELECT * FROM users OFFSET 20", None, None, "SELECT * FROM users OFFSET 20"),
+        # Test: Existing LIMIT/OFFSET and new clauses provided
+        (
+            "SELECT * FROM users LIMIT 100 OFFSET 20",
+            50,
+            10,
+            "SELECT * FROM users LIMIT 50 OFFSET 30",
+        ),
+        # Test: Existing LIMIT, new limit larger than existing (should keep the smaller one)
+        ("SELECT * FROM users LIMIT 100", 150, None, "SELECT * FROM users LIMIT 100"),
+        # Test: New limit smaller than existing (should use the new one)
+        ("SELECT * FROM users LIMIT 100", 50, None, "SELECT * FROM users LIMIT 50"),
+        # Test: Existing OFFSET, adding a new offset (should sum the offsets)
+        ("SELECT * FROM users OFFSET 20", None, 30, "SELECT * FROM users OFFSET 50"),
+        # Test: Existing LIMIT/OFFSET and new values set to None
+        (
+            "SELECT * FROM users LIMIT 100 OFFSET 20",
+            None,
+            None,
+            "SELECT * FROM users LIMIT 100 OFFSET 20",
+        ),
+        # Test: Removing existing LIMIT and adding a new one
+        ("SELECT * FROM users LIMIT 200", 50, None, "SELECT * FROM users LIMIT 50"),
+        # Test: Removing existing OFFSET and adding a new one
+        ("SELECT * FROM users OFFSET 40", None, 20, "SELECT * FROM users OFFSET 60"),
+        # Edge case: Filter clause with mixed cases
+        (
+            "SELECT * FROM users LiMiT 100 oFfSeT 20",
+            50,
+            10,
+            "SELECT * FROM users LIMIT 50 OFFSET 30",
+        ),
+        # Test: Filter clause with trailing/leading spaces
+        (
+            "   SELECT * FROM users   LIMIT 100   OFFSET 20   ",
+            50,
+            10,
+            "SELECT * FROM users LIMIT 50 OFFSET 30",
+        ),
+    ],
+)
+def test_add_limit_offset_to_user_filter(
+    filter_clause, limit_clause, offset_clause, expected
+):
+    result = add_limit_offset_to_user_filter(filter_clause, limit_clause, offset_clause)
+    assert result.strip() == expected.strip()
