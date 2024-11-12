@@ -106,7 +106,7 @@ class BaseProjectKeychain(BaseConfig):
             if org_config.default:
                 del org_config.config["default"]
                 org_config.save()
-        sfdx("config unset target-org=")
+        sfdx("config unset target-org")
 
     # This implementation of get_default_org, set_default_org, and unset_default_org
     # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
