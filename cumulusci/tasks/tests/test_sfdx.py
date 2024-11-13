@@ -52,7 +52,7 @@ class TestSFDXBaseTask(MockLoggerMixin):
     def test_keychain_org_creds(self):
         """Keychain org creds are passed by env var"""
 
-        self.task_config.config["options"] = {"command": "force:org --help"}
+        self.task_config.config["options"] = {"command": "org --help"}
         access_token = "00d123"
         org_config = OrgConfig(
             {
