@@ -36,8 +36,8 @@ jobs:
               run: uv sync --group docs
             - name: Build Docs
               run: |
-                cd docs
-                uv run sphinx-build -b html . ./_build
+                  cd docs
+                  uv run sphinx-build -b html . ./_build
 
     unit_tests:
         name: "Unit tests: ${{ matrix.os }}-${{ matrix.python-version }}"
