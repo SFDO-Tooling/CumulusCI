@@ -95,7 +95,7 @@ jobs:
                   SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
             - name: Run robot tests
               run: |
-                  uv run coverage run --append $(which cci) task run robot \
+                  uv run cci task run robot \
                     --org dev \
                     -o name "CumulusCI" \
                     -o suites cumulusci/robotframework/tests \
