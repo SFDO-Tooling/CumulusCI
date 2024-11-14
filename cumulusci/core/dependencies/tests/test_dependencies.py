@@ -865,7 +865,7 @@ class TestUnmanagedZipURLDependency:
             context=mock.ANY,
         )
         sfdx_mock.assert_called_once_with(
-            "force:source:convert",
+            "project convert source",
             args=["-d", mock.ANY, "-r", "force-app"],
             capture_output=True,
             check_return=True,
@@ -908,3 +908,13 @@ class TestParseDependency:
             }
         )
         assert isinstance(u, UnmanagedZipURLDependency)
+
+        u = parse_dependency(
+            {
+                "github": "https://github.com/Test/TestRepo",
+                "ref": "aaaaaaaa",
+                "collision_check": False,
+                "namespace_inject": "ns",
+            }
+        )
+        assert isinstance(u, UnmanagedGitHubRefDependency)

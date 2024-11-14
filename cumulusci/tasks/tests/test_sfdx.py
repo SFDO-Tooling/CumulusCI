@@ -37,7 +37,7 @@ class TestSFDXBaseTask(MockLoggerMixin):
     def test_base_task(self):
         """The command is prefixed w/ sfdx"""
 
-        self.task_config.config["options"] = {"command": "force:org", "extra": "--help"}
+        self.task_config.config["options"] = {"command": "org", "extra": "--help"}
         task = SFDXBaseTask(self.project_config, self.task_config)
 
         try:
@@ -45,14 +45,14 @@ class TestSFDXBaseTask(MockLoggerMixin):
         except CommandException:
             pass
 
-        assert task.options["command"] == "force:org"
-        assert task._get_command() == "sfdx force:org --help"
+        assert task.options["command"] == "org"
+        assert task._get_command() == "sf org --help"
 
     @patch("cumulusci.tasks.command.Command._run_task", MagicMock(return_value=None))
     def test_keychain_org_creds(self):
         """Keychain org creds are passed by env var"""
 
-        self.task_config.config["options"] = {"command": "force:org --help"}
+        self.task_config.config["options"] = {"command": "org --help"}
         access_token = "00d123"
         org_config = OrgConfig(
             {
@@ -71,24 +71,26 @@ class TestSFDXBaseTask(MockLoggerMixin):
         task()
 
         org_config.refresh_oauth_token.assert_called_once()
-        assert "SFDX_INSTANCE_URL" in task._get_env()
-        assert "SFDX_DEFAULTUSERNAME" in task._get_env()
-        assert access_token in task._get_env()["SFDX_DEFAULTUSERNAME"]
+        print(task._get_env())
+        assert "SF_ORG_INSTANCE_URL" in task._get_env()
+        assert "SF_TARGET_ORG" in task._get_env()
+        assert access_token in task._get_env()["SF_TARGET_ORG"]
 
     def test_scratch_org_username(self):
         """Scratch Org credentials are passed by -u flag"""
-        self.task_config.config["options"] = {"command": "force:org --help"}
+        self.task_config.config["options"] = {"command": "org --help"}
         org_config = ScratchOrgConfig({"username": "test@example.com"}, "test")
 
         task = SFDXOrgTask(self.project_config, self.task_config, org_config)
-        assert "-u test@example.com" in task._get_command()
+        assert "-o test@example.com" in task._get_command()
 
 
 class TestSFDXJsonTask:
     def test_get_command(self):
         task = create_task(SFDXJsonTask)
         command = task._get_command()
-        assert command == "sfdx force:mdapi:deploy --json"
+        print(command)
+        assert command == "sf project deploy start --json"
 
     def test_process_output(self):
         task = create_task(SFDXJsonTask)

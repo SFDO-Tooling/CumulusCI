@@ -1,4 +1,4 @@
-import io
+import datetime
 import json
 import os
 from unittest import mock
@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 import responses
 
-from cumulusci.core.exceptions import CumulusCIException, SfdxOrgException
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce import DescribeMetadataTypes
 from cumulusci.tasks.salesforce.nonsourcetracking import (
     ListComponents,
@@ -85,128 +85,79 @@ class TestListNonSourceTrackable:
             assert non_source_trackable == ["Scontrol", "SharingRules"]
 
 
-@mock.patch("sarge.Command")
 class TestListComponents:
-    @pytest.mark.parametrize(
-        "return_code, result",
-        [
-            (
-                0,
-                b"""{
-  "status": 0,
-  "result": [],
-  "warnings": [
-    "No metadata found for type: SharingRules"
-  ]
-}""",
-            ),
-            (1, b""),
-        ],
-    )
-    def test_check_sfdx_output(self, cmd, create_task_fixture, return_code, result):
-        options = {"api_version": 44.0}
-        task = create_task_fixture(ListComponents, options)
-        cmd.return_value = mock.Mock(
-            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=return_code
-        )
-        task._init_task()
+    def test_init_task(self, create_task_fixture):
         with mock.patch.object(
-            ListNonSourceTrackable, "_run_task", return_value=["SharingRules"]
+            ListNonSourceTrackable,
+            "_run_task",
+            return_value=["SharingRules", "Scontrol"],
         ):
-            if return_code:
-                with pytest.raises(SfdxOrgException):
-                    task._run_task()
-            else:
-                assert task._run_task() == []
+            task = create_task_fixture(ListComponents, {})
+            task._init_task()
+            assert task.options["metadata_types"] == ["SharingRules", "Scontrol"]
 
-    @pytest.mark.parametrize(
-        "options",
-        [
-            {"api_version": 44.0, "metadata_types": "FlowDefinition"},
-            {
-                "api_version": 44.0,
-            },
-        ],
-    )
-    def test_check_sfdx_result(self, cmd, create_task_fixture, options):
+    def test_check_api_result(self, create_task_fixture):
+        options = {"metadata_types": "SharingRules"}
         task = create_task_fixture(ListComponents, options)
-        result = b"""{
-  "status": 0,
-  "result": [
-    {
-      "createdById": "0051y00000OdeZBAAZ",
-      "createdByName": "User User",
-      "createdDate": "2024-01-02T06:50:03.000Z",
-      "fileName": "flowDefinitions/alpha.flowDefinition",
-      "fullName": "alpha",
-      "id": "3001y000000ERX6AAO",
-      "lastModifiedById": "0051y00000OdeZBAAZ",
-      "lastModifiedByName": "User User",
-      "lastModifiedDate": "2024-01-02T06:50:07.000Z",
-      "manageableState": "unmanaged",
-      "namespacePrefix": "myalpha",
-      "type": "FlowDefinition"
-    },{
-      "createdById": "0051y00000OdeZBAAZ",
-      "createdByName": "User User",
-      "createdDate": "2024-01-02T06:50:03.000Z",
-      "fileName": "flowDefinitions/beta.flowDefinition",
-      "fullName": "beta",
-      "id": "3001y000000ERX6AAO",
-      "lastModifiedById": "0051y00000OdeZBAAZ",
-      "lastModifiedByName": "User User",
-      "lastModifiedDate": "2024-01-02T06:50:07.000Z",
-      "manageableState": "unmanaged",
-      "namespacePrefix": "myalpha",
-      "type": "FlowDefinition"
-    }
-  ],
-  "warnings": []
-}"""
-        cmd.return_value = mock.Mock(
-            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        expected = [
+            {
+                "MemberType": "SharingRules",
+                "MemberName": "Order",
+                "lastModifiedByName": "Automated process",
+                "lastModifiedDate": datetime.datetime(1970, 1, 1, 0, 0),
+            },
+            {
+                "MemberType": "SharingRules",
+                "MemberName": "BusinessBrand",
+                "lastModifiedByName": "User User",
+                "lastModifiedDate": datetime.datetime(1970, 1, 1, 0, 0),
+            },
+        ]
+        result = mock.Mock(
+            return_value={
+                "SharingRules": [
+                    {
+                        "createdById": "0055j000008HpiJAAS",
+                        "createdByName": "Alpha",
+                        "createdDate": datetime.datetime(1970, 1, 1, 0, 0),
+                        "fileName": "sharingRules/Order.sharingRules",
+                        "fullName": "Order",
+                        "id": None,
+                        "lastModifiedById": "0055j000008HpiJAAS",
+                        "lastModifiedByName": "Automated process",
+                        "lastModifiedDate": datetime.datetime(1970, 1, 1, 0, 0),
+                        "manageableState": None,
+                        "namespacePrefix": None,
+                        "type": "SharingRules",
+                    },
+                    {
+                        "createdById": "0055j000008HpiJAAS",
+                        "createdByName": "Beta",
+                        "createdDate": datetime.datetime(1970, 1, 1, 0, 0),
+                        "fileName": "sharingRules/BusinessBrand.sharingRules",
+                        "fullName": "BusinessBrand",
+                        "id": None,
+                        "lastModifiedById": "0055j000008HpiJAAS",
+                        "lastModifiedByName": "User User",
+                        "lastModifiedDate": datetime.datetime(1970, 1, 1, 0, 0),
+                        "manageableState": None,
+                        "namespacePrefix": None,
+                        "type": "SharingRules",
+                    },
+                ]
+            }
         )
         messages = []
         task._init_task()
         task.logger = mock.Mock()
         task.logger.info = messages.append
-        if "metadata_types" in options:
-            components = task._run_task()
-            assert cmd.call_count == 1
-            assert (
-                "sfdx force:mdapi:listmetadata -a 44.0 -m FlowDefinition --json"
-                in cmd.call_args[0][0]
-            )
-            assert components == [
-                {
-                    "MemberType": "FlowDefinition",
-                    "MemberName": "alpha",
-                    "lastModifiedByName": "User User",
-                    "lastModifiedDate": "2024-01-02T06:50:07.000Z",
-                },
-                {
-                    "MemberType": "FlowDefinition",
-                    "MemberName": "beta",
-                    "lastModifiedByName": "User User",
-                    "lastModifiedDate": "2024-01-02T06:50:07.000Z",
-                },
-            ]
-            assert (
-                "Found 2 non source trackable components in the org for the given types."
-                in messages
-            )
-        else:
-            with mock.patch.object(
-                ListNonSourceTrackable,
-                "_run_task",
-                return_value=["Index"],
-            ):
-                task._run_task()
-                assert cmd.call_count == 1
-                assert (
-                    "sfdx force:mdapi:listmetadata -a 44.0 -m Index --json"
-                    in cmd.call_args[0][0]
-                )
+        task.api_class = mock.Mock(return_value=result)
+        components = task._run_task()
+        assert components == expected
+        assert (
+            "Found 2 non source trackable components in the org for the given types."
+            in messages
+        )
 
 
 @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
@@ -219,7 +170,9 @@ class TestRetrieveComponents:
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
-            task = create_task_fixture(RetrieveComponents, {}, project_config)
+            task = create_task_fixture(
+                RetrieveComponents, {"metadata_types": "SharingRules"}, project_config
+            )
             assert not task.md_format
             assert task.options["path"] == "force-app"
 
@@ -229,39 +182,50 @@ class TestRetrieveComponents:
 
         with temporary_dir():
             task = create_task_fixture(
-                RetrieveComponents, {"include": "alpha", "namespace_tokenize": "ns"}
+                RetrieveComponents,
+                {
+                    "include": "alpha",
+                    "namespace_tokenize": "ns",
+                    "metadata_types": "SharingRules",
+                },
             )
             task._init_task()
+            messages = []
             with mock.patch.object(
                 ListComponents,
                 "_get_components",
                 return_value=[
                     {
-                        "MemberType": "FlowDefinition",
+                        "MemberType": "SharingRules",
                         "MemberName": "alpha",
-                        "lastModifiedByName": "User User",
-                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                        "lastModifiedByName": "Automated process",
+                        "lastModifiedDate": datetime.datetime(1970, 1, 1, 0, 0),
                     },
                     {
-                        "MemberType": "FlowDefinition",
-                        "MemberName": "beta",
+                        "MemberType": "SharingRules",
+                        "MemberName": "BusinessBrand",
                         "lastModifiedByName": "User User",
-                        "lastModifiedDate": "2024-01-02T06:50:07.000Z",
+                        "lastModifiedDate": datetime.datetime(1970, 1, 1, 0, 0),
                     },
                 ],
             ):
+                task.logger = mock.Mock()
+                task.logger.info = messages.append
                 task._run_task()
-
+                assert "SharingRules: alpha" in messages
+                assert "SharingRules: BusinessBrand" not in messages
                 assert sfdx_calls == [
-                    "force:mdapi:convert",
-                    "force:source:retrieve",
-                    "force:source:convert",
+                    "project convert mdapi",
+                    "project retrieve start",
+                    "project convert source",
                 ]
                 assert os.path.exists(os.path.join("src", "package.xml"))
 
     def test_run_task__no_changes(self, sfdx, create_task_fixture):
         with temporary_dir() as path:
-            task = create_task_fixture(RetrieveComponents, {"path": path})
+            task = create_task_fixture(
+                RetrieveComponents, {"path": path, "metadata_types": "SharingRules"}
+            )
             task._init_task()
             messages = []
             with mock.patch.object(ListComponents, "_get_components", return_value=[]):

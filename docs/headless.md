@@ -121,7 +121,7 @@ and then use it directly from CumulusCI.
 To do so, follow these steps.
 
 1. Retrieve your auth URL.
-1. Authorize the org using `sfdx auth:sfdxurl:store`.
+1. Authorize the org using `sf org login sfdx-url`.
 1. Run `cci org import <org name> <org name>`.
 
 ### JWT Flow Authorization

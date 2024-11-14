@@ -2,11 +2,10 @@ BEGIN TRANSACTION;
 CREATE TABLE "Account_rt_mapping" (
 	record_type_id VARCHAR(18) NOT NULL, 
 	developer_name VARCHAR(255),
-	is_person_type BOOLEAN,
 	PRIMARY KEY (record_type_id)
 );
-INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCMdIAM','Organization',0);
-INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCQqIAM','Subsidiary',0);
+INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCMdIAM','Organization');
+INSERT INTO "Account_rt_mapping" VALUES('012P0000000bCQqIAM','Subsidiary');
 CREATE TABLE accounts (
 	sf_id VARCHAR(255) NOT NULL, 
 	"Name" VARCHAR(255), 

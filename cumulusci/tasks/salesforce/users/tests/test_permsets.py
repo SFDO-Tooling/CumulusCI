@@ -448,19 +448,21 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                 ],
             },
@@ -517,19 +519,21 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSet.License1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSet.License2",
                     },
                 ],
             },
@@ -598,23 +602,26 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSetLicense2",
                     },
                 ],
             },
         )
+
         responses.add(
             method="POST",
             url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/sobjects/PermissionSetLicenseAssign/",
@@ -699,7 +706,7 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29",
             status=200,
             json={
                 "done": True,
@@ -708,15 +715,16 @@ class TestCreatePermissionSetLicense:
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSetLicense2",
                     },
                 ],
             },
         )
-
         with pytest.raises(CumulusCIException):
             task()
 

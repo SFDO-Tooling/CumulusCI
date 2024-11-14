@@ -133,7 +133,7 @@ class TestCreateTable:
             engine, metadata = create_db_file(tmp_db_path)
             t = create_table(account_mapping, metadata)
             assert t.name == "contacts"
-            assert isinstance(t.columns["id"].type, Integer)
+            assert isinstance(t.columns["id"].type, Unicode)
             assert isinstance(t.columns["first_name"].type, Unicode)
             assert isinstance(t.columns["last_name"].type, Unicode)
             assert isinstance(t.columns["email"].type, Unicode)
