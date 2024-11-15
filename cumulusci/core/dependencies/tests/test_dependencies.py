@@ -645,6 +645,7 @@ class TestUnmanagedGitHubRefDependency:
         assert mock_task.project_config == context
 
         api_deploy_mock.return_value.assert_called_once()
+        zf.close()
 
     def test_get_unmanaged(self):
         org = mock.Mock()
@@ -733,6 +734,7 @@ class TestUnmanagedZipURLDependency:
         assert mock_task.project_config == context
 
         api_deploy_mock.return_value.assert_called_once()
+        zf.close()
 
     def test_get_unmanaged(self):
         org = mock.Mock()
@@ -793,6 +795,7 @@ class TestUnmanagedZipURLDependency:
             },
             context=mock.ANY,
         )
+        zf.close()
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
@@ -827,6 +830,7 @@ class TestUnmanagedZipURLDependency:
             },
             context=mock.ANY,
         )
+        zf.close()
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
@@ -861,11 +865,12 @@ class TestUnmanagedZipURLDependency:
             context=mock.ANY,
         )
         sfdx_mock.assert_called_once_with(
-            "force:source:convert",
+            "project convert source",
             args=["-d", mock.ANY, "-r", "force-app"],
             capture_output=True,
             check_return=True,
         )
+        zf.close()
 
 
 class TestParseDependency:

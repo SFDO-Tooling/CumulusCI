@@ -2,6 +2,39 @@
 
 <!-- latest-start -->
 
+## v4.0.0 (2024-11-12)
+
+## What's Changed
+
+### Critical Changes 🛠
+
+-   Python versions 3.8, 3.9, and 3.10 are no longer supported.
+-   Switch to `sf` CLI commands [@lakshmi2506](https://github.com/lakshmi2506) in [#3829](https://github.com/SFDO-Tooling/CumulusCI/pull/3829)
+    -   Removed the `dx_pull` and `dx_push` tasks as the underlying commands were removed from `sf`
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v4.0.0
+
+<!-- latest-stop -->
+
+## v3.93.0 (2024-10-17)
+
+<!-- Release notes generated using configuration in .github/release.yml at main  -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   fix: escape stage name when running ensure_record_type task by [@leo-dcfa](https://github.com/leo-dcfa) in [#3827](https://github.com/SFDO-Tooling/CumulusCI/pull/3827)
+-   fix: Upgrade upload-artifact action by [@jstvz](https://github.com/jstvz) in [#3831](https://github.com/SFDO-Tooling/CumulusCI/pull/3831)
+-   Fix `TypeError` when permissionSetGroup has a mutingPermissionSet by [@lakshmi2506](https://github.com/lakshmi2506) in [#3834](https://github.com/SFDO-Tooling/CumulusCI/pull/3834)
+-   Add `check_components` preflight to detect metadata component conflicts (#3837) by [@vsbharath](https://github.com/vsbharath) in [#3837](https://github.com/SFDO-Tooling/CumulusCI/pull/3837)
+
+## New Contributors
+
+-   @leo-dcfa made their first contribution in [#3827](https://github.com/SFDO-Tooling/CumulusCI/pull/3827)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v3.93.0
+
 ## v3.92.0 (2024-09-18)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -17,8 +50,6 @@
 -   @chanyahn-st made their first contribution in [#3822](https://github.com/SFDO-Tooling/CumulusCI/pull/3822)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.91.0...v3.92.0
-
-<!-- latest-stop -->
 
 ## v3.91.0 (2024-08-22)
 

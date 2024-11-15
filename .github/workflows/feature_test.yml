@@ -22,17 +22,22 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 1
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               id: py
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
-                  cache: pip
-                  cache-dependency-path: "requirements/*.txt"
+                  python-version: 3.11
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
             - name: Install dependencies
-              run: pip install -r requirements_dev.txt
+              run: uv sync --group docs
             - name: Build Docs
-              run: make docs
+              run: |
+                  cd docs
+                  uv run sphinx-build -b html . ./_build
 
     unit_tests:
         name: "Unit tests: ${{ matrix.os }}-${{ matrix.python-version }}"
@@ -41,39 +46,39 @@ jobs:
             fail-fast: false
             matrix:
                 os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-                exclude:
-                    - os: macos-latest
-                      python-version: 3.8
-                include:
-                    - os: macos-13
-                      python-version: 3.8
+                python-version: ["3.11", "3.12", "3.13"]
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
                   python-version: "${{ matrix.python-version }}"
-                  cache: pip
-                  cache-dependency-path: "requirements/*.txt"
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
             - name: Install dependencies
-              run: pip install -r requirements_dev.txt
+              run: uv sync -p ${{ matrix.python-version }}
             - name: Run Pytest
-              run: pytest --cov-report= --cov=cumulusci
+              run: uv run pytest --cov-report= --cov=cumulusci
 
     robot_api:
         name: "Robot: No browser"
         runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v4
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
-                  cache: pip
-                  cache-dependency-path: "requirements/*.txt"
-            - name: Install Python dependencies
-              run: pip install -r requirements_dev.txt
+                  python-version: 3.11
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
+            - name: Install dependencies
+              run: uv sync -p 3.11
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -90,7 +95,7 @@ jobs:
                   SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
             - name: Run robot tests
               run: |
-                  coverage run --append $(which cci) task run robot \
+                  uv run cci task run robot \
                     --org dev \
                     -o name "CumulusCI" \
                     -o suites cumulusci/robotframework/tests \
@@ -98,7 +103,7 @@ jobs:
             - name: Delete scratch org
               if: always()
               run: |
-                  cci org scratch_delete dev
+                  uv run cci org scratch_delete dev
             - name: Store robot results
               if: failure()
               uses: actions/upload-artifact@v4

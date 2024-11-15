@@ -25,16 +25,16 @@ jobs:
         runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v2
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
+                  python-version: 3.11
                   cache: pip
-                  cache-dependency-path: "requirements/*.txt"
+                  cache-dependency-path: "pyproject.toml"
             - name: Install Python dependencies
               run: |
                   python -m pip install -U pip
-                  pip install -r requirements_dev.txt
+                  pip install .[test]
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -73,14 +73,14 @@ jobs:
                     #   org-shape: "prerelease"
         steps:
             - uses: actions/checkout@v2
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
+                  python-version: 3.11
                   cache: pip
-                  cache-dependency-path: "requirements/*.txt"
+                  cache-dependency-path: "pyproject.toml"
             - name: Install Python dependencies
-              run: pip install -r requirements_dev.txt
+              run: pip install .[test]
             - name: Install sfdx
               run: |
                   mkdir sfdx

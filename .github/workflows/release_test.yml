@@ -37,12 +37,12 @@ jobs:
         runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v3
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
+                  python-version: 3.11
                   cache: pip
-                  cache-dependency-path: "requirements/*.txt"
+                  cache-dependency-path: "pyproject.toml"
             - name: Install build tools
               run: pip install hatch
             - name: Test source tarball and binary wheel
@@ -71,14 +71,19 @@ jobs:
         concurrency: release
         steps:
             - uses: actions/checkout@v3
-            - name: Set up Python 3.8
+            - name: Set up Python 3.11
               uses: actions/setup-python@v4
               with:
-                  python-version: 3.8
+                  python-version: 3.11
                   cache: pip
-                  cache-dependency-path: "requirements/*.txt"
+                  cache-dependency-path: "pyproject.toml"
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
             - name: Install Python dependencies
-              run: pip install -r requirements_dev.txt
+              run: uv sync
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -95,17 +100,17 @@ jobs:
             - name: Run ci_feature flow
               run: |
                   cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
+                  uv run cci flow run ci_feature --org scratch --delete-org
             - name: Run ci_beta flow
               run: |
                   cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_beta --org scratch --delete-org
+                  uv run cci flow run ci_beta --org scratch --delete-org
             - name: Run ci_master flow
               run: |
                   cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
+                  uv run cci flow run ci_master --org scratch --delete-org
             - name: Run release_beta flow
               run: |
                   export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
                   cd CumulusCI-Test
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run release_beta --org packaging
+                  uv run cci flow run release_beta --org packaging
