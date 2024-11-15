@@ -81,16 +81,16 @@ jobs:
                   cache-dependency-path: "pyproject.toml"
             - name: Install Python dependencies
               run: pip install .[test]
-            - name: Install sfdx
+            - name: Install Salesforce CLI
               run: |
                   mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Initialize Browser/Playwright
               run: cci robot install_playwright
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins --core
+                  sf plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
                   sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
               env:

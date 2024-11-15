@@ -67,7 +67,7 @@ vcr: # remake VCR cassettes and run other integration tests
 	cci org scratch qa pytest
 	cci org scratch_delete pytest
 	find . -name \Test*.yaml | xargs rm
-	pytest --org qa --run-slow-tests -rs --replace-vcrs
+	uv run pytest --org qa --run-slow-tests -rs --replace-vcrs
 
 slow_tests: vcr # remake VCR cassettes and run other integration tests
 	cci org scratch_delete pytest
