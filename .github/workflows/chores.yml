@@ -12,7 +12,7 @@ jobs:
             hub_version: ${{ steps.devhub-api-version.outputs.hub_version }}
             cci_version: ${{ steps.cci-api-version.outputs.cci_version }}
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               with:
                   ref: main
             - name: Get Dev Hub API Version
@@ -34,7 +34,7 @@ jobs:
         env:
             VERSION: ${{ needs.check_api_versions.outputs.hub_version }}
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
                   ref: main

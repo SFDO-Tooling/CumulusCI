@@ -37,12 +37,12 @@ env:
 jobs:
     test_release:
         name: "Test SFDX CLI"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: SFDO-Tooling-Ubuntu
         concurrency: release
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
             - name: Set up Python 3.11
-              uses: actions/setup-python@v4
+              uses: actions/setup-python@v5
               with:
                   python-version: 3.11
                   cache: pip
@@ -54,7 +54,7 @@ jobs:
                   enable-cache: true
             - name: Install Python dependencies
               run: uv sync
-            - name: Install sfdx
+            - name: Install Salesforce CLI
               env:
                   CHANNEL: ${{ inputs.sfdx-release-channel }}
               run: |
