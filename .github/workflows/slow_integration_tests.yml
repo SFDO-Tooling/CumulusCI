@@ -57,7 +57,7 @@ jobs:
             - name: Delete scratch org
               if: always()
               run: |
-                  cci org scratch_delete pytest
+                  uv run cci org scratch_delete pytest
     robot_ui:
         name: "Robot: ${{ matrix.job-name }}"
         runs-on: SFDO-Tooling-Ubuntu
@@ -83,7 +83,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "pyproject.toml"
             - name: Install Python dependencies
-              run: pip install .[test]
+              run: pip install .
             - name: Install Salesforce CLI
               run: |
                   mkdir sfdx
