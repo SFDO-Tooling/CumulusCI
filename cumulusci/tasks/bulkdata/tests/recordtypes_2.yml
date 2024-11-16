@@ -1,0 +1,6 @@
+Insert Account:
+    sf_object: Account
+    table: Beta
+    fields:
+        Name: Name
+        RecordTypeId: RecordType

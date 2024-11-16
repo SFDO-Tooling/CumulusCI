@@ -9,6 +9,7 @@ from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, in
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.org_schema import get_org_schema
@@ -21,6 +22,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.query_transformers import (
+    ID_TABLE_NAME,
     AddLookupsToQuery,
     AddMappingFiltersToQuery,
     AddPersonAccountsToQuery,
@@ -28,9 +30,11 @@ from cumulusci.tasks.bulkdata.query_transformers import (
 )
 from cumulusci.tasks.bulkdata.step import (
     DEFAULT_BULK_BATCH_SIZE,
+    DataApi,
     DataOperationJobResult,
     DataOperationStatus,
     DataOperationType,
+    RestApiDmlOperation,
     get_dml_operation,
 )
 from cumulusci.tasks.bulkdata.upsert_utils import (
@@ -88,6 +92,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "org_shape_match_only": {
             "description": "When True, all path options are ignored and only a dataset matching the org shape name will be loaded. Defaults to False."
         },
+        "enable_rollback": {
+            "description": "When True, performs rollback operation incase of error. Defaults to False"
+        },
     }
     row_warning_limit = 10
 
@@ -115,6 +122,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["set_recently_viewed"] = process_bool_arg(
             self.options.get("set_recently_viewed", True)
         )
+        self.options["enable_rollback"] = process_bool_arg(
+            self.options.get("enable_rollback", False)
+        )
+        self._id_generators = {}
+        self._old_format = False
+        self.ID_TABLE_NAME = ID_TABLE_NAME
 
     def _init_dataset(self):
         """Find the dataset paths to use with the following sequence:
@@ -199,7 +212,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
-
+            self._initialize_id_table(self.reset_oids)
             start_step = self.options.get("start_step")
             started = False
             results = {}
@@ -261,13 +274,33 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         step, query = self.configure_step(mapping)
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
+            # Store the previous values of the records before upsert
+            # This is so that we can perform rollback
+            if (
+                mapping.action
+                in [
+                    DataOperationType.ETL_UPSERT,
+                    DataOperationType.UPSERT,
+                    DataOperationType.UPDATE,
+                ]
+                and self.options["enable_rollback"]
+            ):
+                UpdateRollback.prepare_for_rollback(
+                    self, step, self._stream_queried_data(mapping, local_ids, query)
+                )
             step.start()
             step.load_records(self._stream_queried_data(mapping, local_ids, query))
             step.end()
 
+            # Process Job Results
             if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
                 local_ids.seek(0)
                 self._process_job_results(mapping, step, local_ids)
+            elif (
+                step.job_result.status is DataOperationStatus.JOB_FAILURE
+                and self.options["enable_rollback"]
+            ):
+                Rollback._perform_rollback(self)
 
             return step.job_result
 
@@ -343,13 +376,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         batch_size = mapping.batch_size or DEFAULT_BULK_BATCH_SIZE
         for row in query.yield_per(batch_size):
             total_rows += 1
-            # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
+
             if mapping.anchor_date and (date_context[0] or date_context[1]):
                 row = adjust_relative_dates(
                     mapping, date_context, row, DataOperationType.INSERT
                 )
+
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
@@ -360,14 +394,16 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             yield row
 
         self.logger.info(
-            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
+            f"Prepared {total_rows} rows for {mapping.action.value} to {mapping.sf_object}."
         )
 
     def _load_record_types(self, sobjects, conn):
         """Persist record types for the given sObjects into the database."""
         for sobject in sobjects:
             table_name = sobject + "_rt_target_mapping"
-            self._extract_record_types(sobject, table_name, conn)
+            self._extract_record_types(
+                sobject, table_name, conn, self.org_config.is_person_accounts_enabled
+            )
 
     def _get_statics(self, mapping):
         """Return the static values (not column names) to be appended to
@@ -408,12 +444,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         query = self.session.query(*columns)
 
         classes = [
-            AddLookupsToQuery,
             AddRecordTypesToQuery,
             AddMappingFiltersToQuery,
             AddUpsertsToQuery,
         ]
-        transformers = [cls(mapping, self.metadata, model) for cls in classes]
+        transformers = [
+            AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
+        ]
+        transformers.extend([cls(mapping, self.metadata, model) for cls in classes])
 
         if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
             transformers.append(AddPersonAccountsToQuery(mapping, self.metadata, model))
@@ -448,26 +486,30 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             DataOperationType.UPSERT,
             DataOperationType.ETL_UPSERT,
         )
-        if is_insert_or_upsert:
-            id_table_name = self._initialize_id_table(mapping, self.reset_oids)
-            conn = self.session.connection()
 
-        results_generator = self._generate_results_id_map(step, local_ids)
+        conn = self.session.connection()
+        sf_id_results = self._generate_results_id_map(step, local_ids)
 
+        for i in range(len(sf_id_results)):
+            # Check for old_format of load sql files
+            if str(sf_id_results[i][0]).isnumeric():
+                self._old_format = True
+                # Set id column with new naming format (<sobject> - <counter>)
+                sf_id_results[i][0] = mapping.table + "-" + str(sf_id_results[i][0])
+            else:
+                break
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
         if is_insert_or_upsert and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
+            table = self.metadata.tables[self.ID_TABLE_NAME]
             sql_bulk_insert_from_records(
                 connection=conn,
-                table=self.metadata.tables[id_table_name],
+                table=table,
                 columns=("id", "sf_id"),
-                record_iterable=results_generator,
+                record_iterable=sf_id_results,
             )
-        else:
-            for r in results_generator:
-                pass  # Drain generator to validate results
 
         # Contact records for Person Accounts are inserted during an Account
         # sf_object step.  Insert records into the Contact ID table for
@@ -482,7 +524,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             if account_id_lookup:
                 sql_bulk_insert_from_records(
                     connection=conn,
-                    table=self.metadata.tables[id_table_name],
+                    table=self.metadata.tables[self.ID_TABLE_NAME],
                     columns=("id", "sf_id"),
                     record_iterable=self._generate_contact_id_map_for_person_accounts(
                         mapping, account_id_lookup, conn
@@ -494,18 +536,39 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
-        Raise BulkDataException on row errors if configured to do so."""
+        Raise BulkDataException on row errors if configured to do so.
+        Adds created records into insert_rollback Table
+        Performs rollback in case of any errors if enable_rollback is True"""
         error_checker = RowErrorChecker(
             self.logger, self.options["ignore_row_errors"], self.row_warning_limit
         )
         local_ids = (lid.strip("\n") for lid in local_ids)
+        sf_id_results = []
+        created_results = []
+        failed_results = []
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
-                yield (local_id, result.id)
+                sf_id_results.append([local_id, result.id])
+                if result.created:
+                    created_results.append([result.id])
             else:
-                error_checker.check_for_row_error(result, local_id)
+                failed_results.append([result, local_id])
 
-    def _initialize_id_table(self, mapping, should_reset_table):
+        # We record failed_results separately since if a unsuccesful record
+        # was in between, it would not store all the successful ids
+        for result, local_id in failed_results:
+            try:
+                error_checker.check_for_row_error(result, local_id)
+            except Exception as e:
+                if self.options["enable_rollback"]:
+                    CreateRollback.prepare_for_rollback(self, step, created_results)
+                    Rollback._perform_rollback(self)
+                raise e
+        if self.options["enable_rollback"]:
+            CreateRollback.prepare_for_rollback(self, step, created_results)
+        return sf_id_results
+
+    def _initialize_id_table(self, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
 
         The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
@@ -513,29 +576,22 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         If the table already exists, should_reset_table determines whether to
         drop and recreate it or not.
         """
-        id_table_name = f"{mapping['table']}_sf_ids"
 
-        already_exists = id_table_name in self.metadata.tables
+        already_exists = self.ID_TABLE_NAME in self.metadata.tables
 
         if already_exists and not should_reset_table:
-            return id_table_name
-
-        if not hasattr(self, "_initialized_id_tables"):
-            self._initialized_id_tables = set()
-        if id_table_name not in self._initialized_id_tables:
-            if already_exists:
-                self.metadata.remove(self.metadata.tables[id_table_name])
-            id_table = Table(
-                id_table_name,
-                self.metadata,
-                Column("id", Unicode(255), primary_key=True),
-                Column("sf_id", Unicode(18)),
-            )
-            if self.inspector.has_table(id_table_name):
-                id_table.drop()
-            id_table.create()
-            self._initialized_id_tables.add(id_table_name)
-        return id_table_name
+            return
+        elif already_exists:
+            self.metadata.remove(self.metadata.tables[self.ID_TABLE_NAME])
+        id_table = Table(
+            self.ID_TABLE_NAME,
+            self.metadata,
+            Column("id", Unicode(255), primary_key=True),
+            Column("sf_id", Unicode(18)),
+        )
+        if id_table.exists():
+            id_table.drop()
+        id_table.create()
 
     def _sqlite_load(self):
         """Read a SQLite script and initialize the in-memory database."""
@@ -565,6 +621,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.metadata = MetaData()
                 self.metadata.bind = connection
                 self.inspector = inspect(parent_engine)
+
+                # empty the record of initalized tables
+                Rollback._initialized_rollback_tables_api = {}
 
                 # initialize the automap mapping
                 self.base = automap_base(bind=connection, metadata=self.metadata)
@@ -723,17 +782,31 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # create a Map: Account SF ID --> Contact ID.  Outer join the
         # Account SF IDs table to get each Contact's associated
         # Account SF ID.
-        query = (
-            self.session.query(contact_id_column, account_sf_id_column)
-            .filter(
-                func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
-                == "true"
+        if self._old_format:
+            query = (
+                self.session.query(contact_id_column, account_sf_id_column)
+                .filter(
+                    func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
+                    == "true"
+                )
+                .outerjoin(
+                    account_sf_ids_table,
+                    account_sf_ids_table.columns["id"]
+                    == str(account_id_lookup.table) + "-" + account_id_column,
+                )
             )
-            .outerjoin(
-                account_sf_ids_table,
-                account_sf_ids_table.columns["id"] == account_id_column,
+        else:
+            query = (
+                self.session.query(contact_id_column, account_sf_id_column)
+                .filter(
+                    func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
+                    == "true"
+                )
+                .outerjoin(
+                    account_sf_ids_table,
+                    account_sf_ids_table.columns["id"] == account_id_column,
+                )
             )
-        )
 
         # Stream the results so we can process batches of 200 Contacts
         # in case we have large data volumes.
@@ -761,7 +834,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 contact_sf_id = record["Id"]
 
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
-                yield (contact_id, contact_sf_id)
+                if self._old_format:
+                    yield (contact_mapping.table + "-" + str(contact_id), contact_sf_id)
+                else:
+                    yield (contact_id, contact_sf_id)
 
     def _set_viewed(self) -> T.List["SetRecentlyViewedInfo"]:
         """Set items as recently viewed. Filter out custom objects without custom tabs."""
@@ -806,6 +882,141 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         )
                         results.append(SetRecentlyViewedInfo(mapped_item, e))
         return results
+
+
+class RollbackType(StrEnum):
+    """Enum to specify type of rollback"""
+
+    UPSERT = "upsert_rollback"
+    INSERT = "insert_rollback"
+
+
+class Rollback:
+    # Store the table name and it's corresponding API (rest or bulk)
+    _initialized_rollback_tables_api = {}
+
+    @staticmethod
+    def _create_tables_for_rollback(context, step, rollback_type: RollbackType) -> str:
+        """Create the tables required for upsert and insert rollback"""
+        table_name = f"{step.sobject}_{rollback_type}"
+
+        if table_name not in Rollback._initialized_rollback_tables_api:
+            common_columns = [Column("Id", Unicode(255), primary_key=True)]
+
+            additional_columns = (
+                [Column(field, Unicode(255)) for field in step.fields if field != "Id"]
+                if rollback_type is RollbackType.UPSERT
+                else []
+            )
+
+            columns = common_columns + additional_columns
+
+            # Create the table
+            rollback_table = Table(table_name, context.metadata, *columns)
+            rollback_table.create()
+
+            # Store the API in the initialized tables dictionary
+            if isinstance(step, RestApiDmlOperation):
+                Rollback._initialized_rollback_tables_api[table_name] = DataApi.REST
+            else:
+                Rollback._initialized_rollback_tables_api[table_name] = DataApi.BULK
+
+        return table_name
+
+    @staticmethod
+    def _perform_rollback(context):
+        """Perform total rollback"""
+        context.logger.info("--Initiated Rollback Procedure--")
+        for table in reversed(context.metadata.sorted_tables):
+            if table.name.endswith(RollbackType.INSERT):
+                CreateRollback._perform_rollback(context, table)
+            elif table.name.endswith(RollbackType.UPSERT):
+                UpdateRollback._perform_rollback(context, table)
+        context.logger.info("--Finished Rollback Procedure--")
+
+
+class UpdateRollback:
+    @staticmethod
+    def prepare_for_rollback(context, step, records):
+        """Retrieve previous values for records being updated"""
+        results, columns = step.get_prev_record_values(records)
+        if results:
+            table_name = Rollback._create_tables_for_rollback(
+                context, step, RollbackType.UPSERT
+            )
+            conn = context.session.connection()
+            sql_bulk_insert_from_records(
+                connection=conn,
+                table=context.metadata.tables[table_name],
+                columns=columns,
+                record_iterable=results,
+            )
+
+    @staticmethod
+    def _perform_rollback(context, table: Table) -> None:
+        """Perform rollback for updated records"""
+        sf_object = table.name.split(f"_{RollbackType.UPSERT.value}")[0]
+        records = context.session.query(table).all()
+
+        if records:
+            context.logger.info(f"Reverting upserts for {sf_object}")
+            api_options = {"update_key": "Id"}
+
+            # Use get_dml_operation to create an UPSERT step
+            step = get_dml_operation(
+                sobject=sf_object,
+                operation=DataOperationType.UPSERT,
+                api_options=api_options,
+                context=context,
+                fields=[column.name for column in table.columns],
+                api=Rollback._initialized_rollback_tables_api[table.name],
+                volume=len(records),
+            )
+            step.start()
+            step.load_records(records)
+            step.end()
+            context.logger.info("Done")
+
+
+class CreateRollback:
+    @staticmethod
+    def prepare_for_rollback(context, step, records):
+        """Store the sf_ids of all records that were created
+        to prepare for rollback"""
+        if records:
+            table_name = Rollback._create_tables_for_rollback(
+                context, step, RollbackType.INSERT
+            )
+            conn = context.session.connection()
+            sql_bulk_insert_from_records(
+                connection=conn,
+                table=context.metadata.tables[table_name],
+                columns=["Id"],
+                record_iterable=records,
+            )
+
+    @staticmethod
+    def _perform_rollback(context, table: Table) -> None:
+        """Perform rollback for insert operation"""
+        sf_object = table.name.split(f"_{RollbackType.INSERT.value}")[0]
+        records = context.session.query(table).all()
+
+        if records:
+            context.logger.info(f"Deleting {sf_object} records")
+            # Perform DELETE operation using get_dml_operation
+            step = get_dml_operation(
+                sobject=sf_object,
+                operation=DataOperationType.DELETE,
+                fields=["Id"],
+                api_options={},
+                context=context,
+                api=Rollback._initialized_rollback_tables_api[table.name],
+                volume=len(records),
+            )
+            step.start()
+            step.load_records(records)
+            step.end()
+            context.logger.info("Done")
 
 
 class StepResultInfo(T.NamedTuple):

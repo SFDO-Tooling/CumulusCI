@@ -13,7 +13,10 @@ import pytest
 import responses
 from requests.models import Response
 
-from cumulusci.core.exceptions import SalesforceCredentialsException
+from cumulusci.core.exceptions import (
+    CumulusCIUsageError,
+    SalesforceCredentialsException,
+)
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_PORT
 from cumulusci.oauth.client import (
     PORT_IN_USE_ERR,
@@ -72,9 +75,17 @@ def http_client(client_config):
 
 @contextmanager
 @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
-def httpd_thread(oauth_client):
+def httpd_thread(oauth_client, expected_error=None):
     # call OAuth object on another thread - this spawns local httpd
-    thread = threading.Thread(target=oauth_client.auth_code_flow)
+
+    def run_code_and_check_exception():
+        if expected_error:
+            with pytest.raises(expected_error):
+                oauth_client.auth_code_flow()
+        else:
+            oauth_client.auth_code_flow()
+
+    thread = threading.Thread(target=run_code_and_check_exception)
     thread.start()
     while thread.is_alive():
         if oauth_client.httpd:
@@ -156,14 +167,15 @@ class TestOAuth2Client:
         # use https for callback
         client.client_config.redirect_uri = "https://localhost:8080/callback"
         # squash CERTIFICATE_VERIFY_FAILED from urllib
-        # https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
-        ssl._create_default_https_context = ssl._create_unverified_context
+        # https://peps.python.org/pep-0476/
+        unverified_context = ssl._create_unverified_context()
 
         # call OAuth object on another thread - this spawns local httpd
         with httpd_thread(client) as oauth_client:
             # simulate callback from browser
             response = urllib.request.urlopen(
-                oauth_client.client_config.redirect_uri + "?code=123"
+                oauth_client.client_config.redirect_uri + "?code=123",
+                context=unverified_context,
             )
 
         assert oauth_client.response.json() == expected_response
@@ -191,7 +203,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        with httpd_thread(client):
+        with httpd_thread(client, OAuth2Error):
             # simulate callback from browser
             with pytest.raises(urllib.error.HTTPError):
                 urllib.request.urlopen(
@@ -203,7 +215,7 @@ class TestOAuth2Client:
         sys.platform.startswith("win"), reason="setup differs from windows"
     )
     def test_create_httpd__port_already_in_use(self, client):
-        with httpd_thread(client):
+        with httpd_thread(client, CumulusCIUsageError):
             with pytest.raises(
                 OAuth2Error, match=PORT_IN_USE_ERR.format(DEFAULT_CONNECTED_APP_PORT)
             ):
@@ -226,7 +238,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        with httpd_thread(client):
+        with httpd_thread(client, OAuth2Error):
             # simulate callback from browser
             with pytest.raises(urllib.error.HTTPError):
                 urllib.request.urlopen(client.client_config.redirect_uri + "?code=123")

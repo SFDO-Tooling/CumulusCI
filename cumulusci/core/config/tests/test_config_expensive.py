@@ -376,7 +376,7 @@ class TestScratchOrgConfig:
             with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 access_token = config.get_access_token(alias="dadvisor")
                 sfdx.assert_called_once_with(
-                    "force:org:display --targetusername=whatever@example.com --json"
+                    "org display --target-org=whatever@example.com --json"
                 )
                 assert access_token == "the-token"
 
@@ -606,6 +606,29 @@ class TestScratchOrgConfig:
         assert config.config["created"]
         assert config.scratch_org_type == "workspace"
 
+    def test_check_apiversion_error(self, Command):
+        out = b"""{
+            "context": "Create",
+            "commandName": "Create",
+            "message": "The requested resource does not exist",
+            "name": "NOT_FOUND"
+            }"""
+
+        Command.return_value = mock.Mock(
+            stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=1
+        )
+        config = ScratchOrgConfig(
+            {"config_file": "tmp.json", "email_address": "test@example.com"}, "test"
+        )
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write("{}")
+            with pytest.raises(
+                SfdxOrgException,
+                match="The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub.",
+            ):
+                config.create_org()
+
     def test_create_org_no_config_file(self, Command):
         config = ScratchOrgConfig({}, "test")
         with pytest.raises(ScratchOrgException, match="missing a config_file"):
@@ -769,7 +792,7 @@ class TestScratchOrgConfigPytest:
                 "noancestors": True,
                 "sfdx_alias": "project__org",
                 "default": True,
-                "instance": "NA01",
+                "release": "previous",
             },
             "test",
             mock_keychain,
@@ -780,17 +803,17 @@ class TestScratchOrgConfigPytest:
             "tmp.json",
             "-w",
             "120",
-            "--targetdevhubusername",
+            "--target-dev-hub",
             "fake@fake.devhub",
-            "-n",
-            "--noancestors",
-            "--durationdays",
+            "--no-namespace",
+            "--no-ancestors",
+            "--duration-days",
             "1",
+            "--release=previous",
             "-a",
             "project__org",
-            "adminEmail=test@example.com",
-            "-s",
-            "instance=NA01",
+            "--admin-email=test@example.com",
+            "--set-default",
         ]
 
     def test_build_org_create_args__email_in_scratch_def(self):

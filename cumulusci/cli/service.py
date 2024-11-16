@@ -204,7 +204,7 @@ class ConnectServiceCommand(click.MultiCommand):
             set_global_default = kwargs.pop("default", False)
 
             serv_conf = dict(
-                (k, v) for k, v in list(kwargs.items()) if v is not None
+                (k, v.strip()) for k, v in list(kwargs.items()) if v is not None
             )  # remove None values
 
             # A service can define a callable to validate the service config
@@ -305,7 +305,7 @@ def service_update(
         for attr in attributes:
             attr_name, attr_value = attr
             if attr_name in service_config.config:
-                service_config.config[attr_name] = attr_value
+                service_config.config[attr_name] = attr_value.strip()
                 attributes_were_updated = True
             else:
                 available_attributes = ", ".join(service_attributes)
@@ -324,7 +324,7 @@ def service_update(
             )
             if user_input != "":
                 attributes_were_updated = True
-                service_config.config[attr] = user_input
+                service_config.config[attr] = user_input.strip()
 
     if attributes_were_updated:
         runtime.keychain.set_service(service_type, service_name, service_config)
@@ -371,7 +371,7 @@ def get_service_data(service_config, sensitive_attributes) -> list:
                 click.style(k, bold=True),
                 (
                     (v[:5] + (len(v[5:]) * "*") if len(v) > 10 else "*" * len(v))
-                    if k in sensitive_attributes
+                    if k in sensitive_attributes and v is not None
                     else str(v)
                 ),
             ]

@@ -186,7 +186,7 @@ class GithubIssuesParser(IssuesParser):
 
     def __new__(cls, release_notes_generator, title, issue_regex=None):
         if not release_notes_generator.has_issues:
-            logging.getLogger(__file__).warn(
+            logging.getLogger(__file__).warning(
                 "Issues are disabled for this repository. Falling back to change notes parser."
             )
             return GithubLinesParser(release_notes_generator, title)

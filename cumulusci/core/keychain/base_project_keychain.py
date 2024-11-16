@@ -54,7 +54,9 @@ class BaseProjectKeychain(BaseConfig):
     #               Orgs                  #
     #######################################
 
-    def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
+    def create_scratch_org(
+        self, org_name, config_name, days=None, set_password=True, release=None
+    ):
         """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = self.project_config.lookup(f"orgs__scratch__{config_name}")
         if scratch_config is None:
@@ -65,16 +67,20 @@ class BaseProjectKeychain(BaseConfig):
         else:
             # Use scratch config days or default of 1 day
             scratch_config.setdefault("days", 1)
+        if release is not None:
+            scratch_config["release"] = release
         scratch_config["set_password"] = bool(set_password)
         scratch_config["scratch"] = True
         scratch_config.setdefault("namespaced", False)
         scratch_config["config_name"] = config_name
+
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
         org_config = ScratchOrgConfig(
             scratch_config, org_name, keychain=self, global_org=False
         )
+
         org_config.save()
 
     def set_org(self, org_config, global_org=False, save=True):
@@ -90,11 +96,7 @@ class BaseProjectKeychain(BaseConfig):
         org.config["default"] = True
         org.save()
         if org.created:
-            sfdx(
-                sarge.shell_format(
-                    "force:config:set defaultusername={}", org.sfdx_alias
-                )
-            )
+            sfdx(sarge.shell_format("force config set target-org={}", org.sfdx_alias))
 
     def unset_default_org(self):
         """unset the default orgs for tasks"""
@@ -104,7 +106,7 @@ class BaseProjectKeychain(BaseConfig):
             if org_config.default:
                 del org_config.config["default"]
                 org_config.save()
-        sfdx("force:config:set defaultusername=")
+        sfdx("config unset target-org")
 
     # This implementation of get_default_org, set_default_org, and unset_default_org
     # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain

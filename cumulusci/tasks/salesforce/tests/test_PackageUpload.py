@@ -178,26 +178,20 @@ class TestPackageUpload:
         assert task.options["major_version"] == expected_options["major_version"]
         assert task.options["minor_version"] == expected_options["minor_version"]
 
-    def test_positive_validate_versions_for_beta(self):
-        actual_options = {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version": "1",
-        }
-        expected_options = {
-            "name": "Test Release",
-            "production": False,
-            "description": "Test Description",
-            "password": "secret",
-            "post_install_url": "post.install.url",
-            "release_notes_url": "release.notes.url",
-            "major_version": "1",
-            "minor_version": "1",
-        }
+    test_positive_options_beta = [
+        generate_valid_version_options("1", None, "1", "1"),
+        generate_valid_version_options("1", "1", "1", "1"),
+        generate_valid_version_options(None, "1", "1", "1"),
+        generate_valid_version_options(None, None, "1", "1"),
+    ]
+
+    @pytest.mark.parametrize(
+        "actual_options,expected_options", test_positive_options_beta
+    )
+    def test_positive_validate_versions_for_beta(
+        self, actual_options, expected_options
+    ):
+
         task = create_task(PackageUpload, actual_options)
         task._get_one_record = mock.Mock(
             return_value={
@@ -225,6 +219,7 @@ class TestPackageUpload:
         generate_valid_version_options("1", "0", None, None, True),
         generate_valid_version_options(None, "1", None, None, True),
         generate_valid_version_options("ab", 0, None, None, True),
+        generate_valid_version_options("1", "ab", None, None, True),
     ]
 
     @pytest.mark.parametrize("actual_options", test_negative_options)
@@ -237,6 +232,26 @@ class TestPackageUpload:
                 "MinorVersion": 1,
                 "PatchVersion": 0,
                 "ReleaseState": "Released",
+            }
+        )
+        with pytest.raises(TaskOptionsError):
+            task._validate_versions()
+
+    test_negative_options_beta = [
+        generate_valid_version_options("1", "2", None, None, True),
+        generate_valid_version_options(None, "2", None, None, True),
+    ]
+
+    @pytest.mark.parametrize("actual_options", test_negative_options_beta)
+    def test_negative_validate_versions_beta(self, actual_options):
+        """Running Negative Tests for tests_validate_versions"""
+        task = create_task(PackageUpload, actual_options)
+        task._get_one_record = mock.Mock(
+            return_value={
+                "MajorVersion": 1,
+                "MinorVersion": 1,
+                "PatchVersion": 0,
+                "ReleaseState": "Beta",
             }
         )
         with pytest.raises(TaskOptionsError):
@@ -294,7 +309,7 @@ class TestPackageUpload:
         task._make_package_upload_request()
 
         assert task._upload_start_time == upload_start_time
-        assert task.logger.info.called_once_with(
+        task.logger.info.assert_called_once_with(
             f"Created PackageUploadRequest {upload_id} for Package {package_id}"
         )
 
@@ -332,27 +347,26 @@ class TestPackageUpload:
 
         task._handle_apex_test_failures()
 
-        assert task.logger.error.called_once_with("Failed Apex Test")
+        task.logger.error.assert_called_once_with("Failed Apex Tests:")
         assert task._get_apex_test_results_from_upload.call_count == 1
         assert task._log_failures.call_count == 1
 
-    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable")
+    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable", autospec=True)
     def test_log_failures(self, table):
-        table.echo = mock.Mock()
 
         task = create_task(PackageUpload, {"name": "Test Release"})
 
         table_data = [1, 2, 3, 4]
-        task._get_table_data = mock.Mock(return_value="[1,2,3,4]")
+        task._get_table_data = mock.Mock(return_value=table_data)
 
         results = "Test Results"
         task._log_failures(results)
 
-        assert table.called_once_with(
+        table.assert_called_once_with(
             table_data,
             "Failed Apex Tests",
         )
-        assert table.echo.called_once()
+        table.return_value.echo.assert_called()
 
     def test_get_table_data(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
@@ -500,7 +514,7 @@ class TestPackageUpload:
 
         task._log_package_upload_success()
 
-        assert task.logger.info.called_once_with(
+        task.logger.info.assert_called_once_with(
             f"Uploaded package version {version_number} with Id {version_id}"
         )
 

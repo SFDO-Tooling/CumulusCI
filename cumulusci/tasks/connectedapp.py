@@ -47,7 +47,7 @@ class CreateConnectedApp(SFDXBaseTask):
             "description": "The email address to associate with the connected app.  Defaults to email address from the github service if configured."
         },
         "username": {
-            "description": "Create the connected app in a different org.  Defaults to the defaultdevhubusername configured in sfdx.",
+            "description": "Create the connected app in a different org.  Defaults to the target-dev-hub configured in sfdx.",
             "required": False,
         },
         "connect": {
@@ -63,7 +63,7 @@ class CreateConnectedApp(SFDXBaseTask):
     def _init_options(self, kwargs):
         self.client_id = None
         self.client_secret = None
-        kwargs["command"] = "force:mdapi:deploy --wait {}".format(self.deploy_wait)
+        kwargs["command"] = "project deploy start --wait {}".format(self.deploy_wait)
         super(CreateConnectedApp, self)._init_options(kwargs)
 
         # Validate label
@@ -91,7 +91,7 @@ class CreateConnectedApp(SFDXBaseTask):
         self.logger.info("Getting username for the default devhub from sfdx")
         output = []
         self._run_command(
-            command="{} force:config:get defaultdevhubusername --json".format(SFDX_CLI),
+            command="{} force config get target-dev-hub --json".format(SFDX_CLI),
             env=self._get_env(),
             output_handler=output.append,
         )
@@ -109,7 +109,7 @@ class CreateConnectedApp(SFDXBaseTask):
         data = self._process_json_output(output)
         if "value" not in data["result"][0]:
             raise TaskOptionsError(
-                "No sfdx config found for defaultdevhubusername.  Please use the sfdx force:config:set to set the defaultdevhubusername and run again"
+                "No sfdx config found for target-dev-hub.  Please use the sf force config set to set the target-dev-hub and run again"
             )
         self.options["username"] = data["result"][0]["value"]
 
@@ -166,11 +166,11 @@ class CreateConnectedApp(SFDXBaseTask):
 
     def _get_command(self):
         command = super()._get_command()
-        # Default to sfdx defaultdevhubusername
+        # Default to sf target-dev-hub
         if "username" not in self.options:
             self._set_default_username()
-        command += " -u {}".format(self.options.get("username"))
-        command += " -d {}".format(self.tempdir)
+        command += " -o {}".format(self.options.get("username"))
+        command += " --metadata-dir {}".format(self.tempdir)
         return command
 
     def _run_task(self):

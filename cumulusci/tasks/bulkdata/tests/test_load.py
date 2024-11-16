@@ -6,6 +6,7 @@ import random
 import shutil
 import string
 import tempfile
+from collections import namedtuple
 from contextlib import nullcontext
 from datetime import date, timedelta
 from pathlib import Path
@@ -18,6 +19,12 @@ from sqlalchemy import Column, Table, Unicode, create_engine
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata import LoadData
+from cumulusci.tasks.bulkdata.load import (
+    CreateRollback,
+    Rollback,
+    RollbackType,
+    UpdateRollback,
+)
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
@@ -115,15 +122,140 @@ class TestLoadData:
 
             mock_describe_calls()
             task()
-
             assert step.records == [
-                ["TestHousehold", "1"],
+                ["TestHousehold", "TestHousehold", "1"],
                 ["Test", "User", "test@example.com", "001000000000000"],
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
             with create_engine(task.options["database_url"]).connect() as c:
-                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
-                assert hh_ids == ("1", "001000000000000")
+                hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
+                assert hh_ids == ("households-1", "001000000000000")
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test__insert_rollback(self, dml_mock):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "start_step": "Insert Contacts",
+                    "set_recently_viewed": False,
+                    "enable_rollback": True,
+                }
+            },
+        )
+        table = mock.Mock()
+        p = mock.PropertyMock(return_value=f"Contact_{RollbackType.INSERT}")
+        type(table).name = p
+        task._initialized_rollback_tables_api = {
+            f"Contact_{RollbackType.INSERT}": "rest"
+        }
+        task.metadata = mock.Mock(sorted_tables=[table])
+        task.session = mock.Mock(
+            query=mock.Mock(
+                return_value=mock.Mock(
+                    all=mock.Mock(return_value=[mock.Mock(sf_id="00001111")]),
+                )
+            )
+        )
+
+        Rollback._initialized_rollback_tables_api = {"Contact_insert_rollback": "rest"}
+        CreateRollback._perform_rollback(task, table)
+
+        dml_mock.assert_called_once_with(
+            sobject="Contact",
+            operation=(DataOperationType.DELETE),
+            fields=["Id"],
+            api_options={},
+            context=task,
+            api="rest",
+            volume=1,
+        )
+        dml_mock.return_value.start.assert_called_once()
+        dml_mock.return_value.end.assert_called_once()
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test__upsert_rollback(self, dml_mock):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "start_step": "Upsert Contacts",
+                    "set_recently_viewed": False,
+                    "enable_rollback": True,
+                }
+            },
+        )
+        table = mock.Mock()
+        p = mock.PropertyMock(return_value=f"Contact_{RollbackType.UPSERT}")
+        type(table).name = p
+        Column = namedtuple("Column", ["name"])
+        type(table).columns = [Column("Id"), Column("LastName")]
+        task._initialized_rollback_tables_api = {
+            f"Contact_{RollbackType.UPSERT}": "rest"
+        }
+        task.metadata = mock.Mock(sorted_tables=[table])
+        task.session = mock.Mock(
+            query=mock.Mock(
+                return_value=mock.Mock(
+                    all=mock.Mock(
+                        return_value=[mock.Mock(Id="00001111", LastName="TestName")]
+                    ),
+                )
+            )
+        )
+
+        Rollback._initialized_rollback_tables_api = {"Contact_upsert_rollback": "rest"}
+        UpdateRollback._perform_rollback(task, table)
+
+        dml_mock.assert_called_once_with(
+            sobject="Contact",
+            operation=(DataOperationType.UPSERT),
+            fields=["Id", "LastName"],
+            api_options={"update_key": "Id"},
+            context=task,
+            api="rest",
+            volume=1,
+        )
+        dml_mock.return_value.start.assert_called_once()
+        dml_mock.return_value.end.assert_called_once()
+
+    def test__perform_rollback(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "start_step": "Insert Contacts",
+                    "set_recently_viewed": False,
+                    "enable_rollback": True,
+                }
+            },
+        )
+        table_insert = mock.Mock()
+        p = mock.PropertyMock(return_value=f"Contact_{RollbackType.INSERT}")
+        type(table_insert).name = p
+        table_upsert = mock.Mock()
+        p = mock.PropertyMock(return_value=f"Account_{RollbackType.UPSERT}")
+        type(table_upsert).name = p
+        task.metadata = mock.Mock()
+        task.metadata.sorted_tables = [table_insert, table_upsert]
+
+        with mock.patch.object(
+            CreateRollback, "_perform_rollback"
+        ) as mock_insert_rollback, mock.patch.object(
+            UpdateRollback, "_perform_rollback"
+        ) as mock_upsert_rollback:
+            Rollback._perform_rollback(task)
+
+            mock_insert_rollback.assert_called_once_with(task, table_insert)
+            mock_upsert_rollback.assert_called_once_with(task, table_upsert)
 
     def test_run_task__start_step(self):
         task = _make_task(
@@ -138,6 +270,7 @@ class TestLoadData:
             },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
+        task._initialize_id_table = mock.Mock()
         task._init_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
@@ -165,6 +298,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         one = task.mapping["Insert Households"] = mock.Mock()
         two = task.mapping["Insert Contacts"] = mock.Mock()
@@ -191,6 +325,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
@@ -251,9 +386,8 @@ class TestLoadData:
         ]
         mock_describe_calls()
         task()
-
         assert step.records == [
-            ["TestHousehold", "1"],
+            [None, "TestHousehold", "1"],
             ["Test☃", "User", "test@example.com", "001000000000000"],
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
@@ -694,7 +828,6 @@ class TestLoadData:
                 ["001000000003", None],
             ]
         )
-
         local_ids = io.StringIO()
         records = list(
             task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
@@ -736,13 +869,22 @@ class TestLoadData:
         assert "RecordType" in str(e.value)
 
     def test_query_db__joins_self_lookups(self):
+        """SQL file in Old Format"""
         _validate_query_for_mapping_step(
             sql_path=Path(__file__).parent / "test_query_db__joins_self_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
             mapping_step_name="Update Accounts",
-            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", accounts_sf_ids_1.sf_id AS accounts_sf_ids_1_sf_id
-FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_sf_ids_1.id = accounts.parent_id ORDER BY accounts.parent_id
-        """,
+            expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(accounts.parent_id as varchar) ORDER BY accounts.parent_id""",
+            old_format=True,
+        )
+
+    def test_query_db__joins_polymorphic_lookups(self):
+        """SQL File in New Format (Polymorphic)"""
+        _validate_query_for_mapping_step(
+            sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
+            mapping=Path(__file__).parent / "test_query_db_joins_lookups.yml",
+            mapping_step_name="Update Event",
+            expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(events."WhoId" as varchar) ORDER BY events."WhoId" """,
         )
 
     @responses.activate
@@ -813,8 +955,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "contacts_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
@@ -881,8 +1022,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "contacts_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
@@ -953,8 +1093,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.models = {"requests": model}
         task.metadata = mock.Mock()
         task.metadata.tables = {
-            "requests_sf_ids": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
@@ -1008,13 +1147,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.mapping = {}
         with task._init_db():
             id_table = Table(
-                "test_sf_ids",
+                "cumulusci_id_table",
                 task.metadata,
                 Column("id", Unicode(255), primary_key=True),
             )
             id_table.create()
-            task._initialize_id_table({"table": "test"}, True)
-            new_id_table = task.metadata.tables["test_sf_ids"]
+            task._initialize_id_table(True)
+            new_id_table = task.metadata.tables["cumulusci_id_table"]
             assert not (new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
@@ -1025,14 +1164,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.mapping = {}
         with task._init_db():
             id_table = Table(
-                "test_sf_ids",
+                "cumulusci_id_table",
                 task.metadata,
                 Column("id", Unicode(255), primary_key=True),
             )
             id_table.create()
-            table_name = task._initialize_id_table({"table": "test"}, False)
-            assert table_name == "test_sf_ids"
-            new_id_table = task.metadata.tables["test_sf_ids"]
+            task._initialize_id_table(False)
+            new_id_table = task.metadata.tables["cumulusci_id_table"]
             assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
@@ -1047,6 +1185,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
+        task._initialize_id_table = mock.Mock()
         task.mapping = {"Test": MappingStep(sf_object="Account")}
 
         with pytest.raises(BulkDataException):
@@ -1082,7 +1221,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
-        task._initialize_id_table.assert_called_once_with(mapping, True)
         sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
@@ -1099,6 +1237,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
@@ -1131,7 +1270,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
-        task._initialize_id_table.assert_called_once_with(mapping, True)
         sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_called_once()
         assert len(task.logger.mock_calls) == 4
@@ -1164,7 +1302,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         ) as sql_bulk_insert_from_records:
             task._process_job_results(mapping, step, local_ids)
 
-        task.session.connection.assert_not_called()
+        task.session.connection.assert_called_once()
         task._initialize_id_table.assert_not_called()
         sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_not_called()
@@ -1176,6 +1314,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
@@ -1515,7 +1654,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
             mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
-
+        assert task._old_format is True
         sql_bulk_insert_from_records.assert_called_with(
             connection=task.session.connection.return_value,
             table=task.metadata.tables[task._initialize_id_table.return_value],
@@ -1529,37 +1668,46 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
+        task.session = mock.MagicMock()
+        task.metadata = mock.MagicMock()
         step = mock.Mock()
         step.get_results.return_value = iter(
             [
-                DataOperationResult("001000000000000", True, None),
-                DataOperationResult("001000000000001", True, None),
-                DataOperationResult("001000000000002", True, None),
+                DataOperationResult("001000000000000", True, None, True),
+                DataOperationResult("001000000000001", True, None, True),
+                DataOperationResult("001000000000002", True, None, True),
             ]
         )
 
-        generator = task._generate_results_id_map(
+        sf_id_list = task._generate_results_id_map(
             step, ["001000000000009", "001000000000010", "001000000000011"]
         )
 
-        assert list(generator) == [
-            ("001000000000009", "001000000000000"),
-            ("001000000000010", "001000000000001"),
-            ("001000000000011", "001000000000002"),
+        assert sf_id_list == [
+            ["001000000000009", "001000000000000"],
+            ["001000000000010", "001000000000001"],
+            ["001000000000011", "001000000000002"],
         ]
 
-    def test_generate_results_id_map__exception_failure(self):
+    def test_generate_results_id_map__exception_failure_without_rollback(self):
         task = _make_task(
             LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "enable_rollback": False,
+                }
+            },
         )
 
+        task.metadata = mock.MagicMock()
         step = mock.Mock()
         step.get_results.return_value = iter(
             [
-                DataOperationResult("001000000000000", True, None),
-                DataOperationResult(None, False, "error"),
-                DataOperationResult("001000000000002", True, None),
+                DataOperationResult("001000000000000", True, None, True),
+                DataOperationResult(None, False, "error", False),
+                DataOperationResult("001000000000002", True, None, True),
             ]
         )
 
@@ -1570,6 +1718,43 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 )
             )
 
+        assert "Error on record" in str(e.value)
+        assert "001000000000010" in str(e.value)
+
+    def test_generate_results_id_map__exception_failure_with_rollback(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "enable_rollback": True,
+                }
+            },
+        )
+
+        task.metadata = mock.MagicMock()
+        task.session = mock.MagicMock()
+        step = mock.Mock()
+        step.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None, True),
+                DataOperationResult(None, False, "error", False),
+                DataOperationResult("001000000000002", True, None, True),
+            ]
+        )
+
+        with pytest.raises(BulkDataException) as e, mock.patch(
+            "cumulusci.tasks.bulkdata.load.Rollback._perform_rollback"
+        ) as mock_rollback, mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as mock_insert_records:
+            task._generate_results_id_map(
+                step, ["001000000000009", "001000000000010", "001000000000011"]
+            )
+
+        mock_rollback.assert_called_once()
+        mock_insert_records.assert_called_once()
         assert "Error on record" in str(e.value)
         assert "001000000000010" in str(e.value)
 
@@ -1584,17 +1769,17 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                 }
             },
         )
-
+        task.metadata = mock.MagicMock()
         step = mock.Mock()
         step.get_results.return_value = iter(
             [DataOperationResult(None, False, None)] * 15
         )
 
         with mock.patch.object(task.logger, "warning") as warning:
-            generator = task._generate_results_id_map(
+            sf_id_list = task._generate_results_id_map(
                 step, ["001000000000009", "001000000000010", "001000000000011"] * 15
             )
-            _ = list(generator)  # generate the errors
+            _ = sf_id_list  # generate the errors
 
         assert len(warning.mock_calls) == task.row_warning_limit + 1 == 11
         assert "warnings suppressed" in str(warning.mock_calls[-1])
@@ -1608,14 +1793,105 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             ]
         )
 
-        generator = task._generate_results_id_map(
+        sf_id_list = task._generate_results_id_map(
             step, ["001000000000009", "001000000000010", "001000000000011"]
         )
 
-        assert list(generator) == [
-            ("001000000000009", "001000000000000"),
-            ("001000000000011", "001000000000002"),
+        assert sf_id_list == [
+            ["001000000000009", "001000000000000"],
+            ["001000000000011", "001000000000002"],
         ]
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test__execute_step__prev_record_values(self, mock_dml):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "enable_rollback": True,
+                }
+            },
+        )
+
+        ret_prev_records = [["TestName1", "Id1"], ["TestName2", "Id2"]]
+        ret_columns = ("Name", "Id")
+        conn = mock.Mock()
+        task.session = mock.Mock()
+        task.session.connection.return_value = conn
+        task.metadata = mock.MagicMock()
+        tables = {f"Account_{RollbackType.UPSERT}": "AccountUpsertTable"}
+        task.metadata.tables = tables
+        step = mock.Mock()
+        step.fields = ["Name"]
+        step.sobject = "Account"
+        query = mock.Mock()
+        task.configure_step = mock.Mock()
+        task.configure_step.return_value = (step, query)
+        step.get_prev_record_values.return_value = (ret_prev_records, ret_columns)
+        task._load_record_types = mock.Mock()
+        task._process_job_results = mock.Mock()
+        task._query_db = mock.Mock()
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as mock_insert_records:
+            task._execute_step(
+                MappingStep(
+                    **{
+                        "sf_object": "Account",
+                        "fields": {"Name": "Name"},
+                        "action": DataOperationType.UPSERT,
+                        "api": "rest",
+                        "update_key": ["Name"],
+                    }
+                )
+            )
+
+            mock_insert_records.assert_called_once_with(
+                connection=conn,
+                table="AccountUpsertTable",
+                columns=ret_columns,
+                record_iterable=ret_prev_records,
+            )
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test__execute_step__job_failure_rollback(self, mock_dml):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "enable_rollback": True,
+                }
+            },
+        )
+
+        task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
+        step = mock.Mock()
+        query = mock.Mock()
+        step.job_result.status = DataOperationStatus.JOB_FAILURE
+        task.configure_step = mock.Mock()
+        task.configure_step.return_value = (step, query)
+        task._load_record_types = mock.Mock()
+        task._process_job_results = mock.Mock()
+        task._query_db = mock.Mock()
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.Rollback._perform_rollback"
+        ) as mock_rollback:
+            task._execute_step(
+                MappingStep(
+                    **{
+                        "sf_object": "Account",
+                        "action": DataOperationType.INSERT,
+                        "fields": {"Name": "Name"},
+                        "api": "rest",
+                    }
+                )
+            )
+            mock_rollback.assert_called()
 
     @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
     def test_execute_step__record_type_mapping(self, dml_mock):
@@ -1666,6 +1942,31 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         """,
         )
 
+    def test_query_db__record_type_mapping__with_ispersontype(self):
+        _validate_query_for_mapping_step(
+            sql_path="cumulusci/tasks/bulkdata/tests/recordtypes_with_ispersontype.sql",
+            mapping="cumulusci/tasks/bulkdata/tests/recordtypes_with_ispersontype.yml",
+            mapping_step_name="Insert Accounts",
+            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", "Account_rt_target_mapping".record_type_id AS "Account_rt_target_mapping_record_type_id"
+                FROM accounts
+                LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
+                LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
+                AND "account_rt_target_mapping".is_person_type = "account_rt_mapping".is_person_type
+        """,
+        )
+
+    def test_query_db__record_type_mapping_table_from_tablename(self):
+        _validate_query_for_mapping_step(
+            sql_path="cumulusci/tasks/bulkdata/tests/recordtypes_2.sql",
+            mapping="cumulusci/tasks/bulkdata/tests/recordtypes_2.yml",
+            mapping_step_name="Insert Account",
+            expected="""SELECT "Beta".id AS "Beta_id", "Beta"."Name" AS "Beta_Name", "Account_rt_target_mapping".record_type_id AS "Account_rt_target_mapping_record_type_id"
+            FROM "Beta"
+            LEFT OUTER JOIN "Beta_rt_mapping" ON "Beta_rt_mapping".record_type_id = "Beta"."RecordType"
+            LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Beta_rt_mapping".developer_name
+        """,
+        )
+
     @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
     @responses.activate
     def test_init_db__record_type_mapping(self, base):
@@ -1704,11 +2005,12 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         conn = mock.Mock()
         task._extract_record_types = mock.Mock()
+        task.org_config._is_person_accounts_enabled = True
         task._load_record_types(["Account", "Contact"], conn)
         task._extract_record_types.assert_has_calls(
             [
-                mock.call("Account", "Account_rt_target_mapping", conn),
-                mock.call("Contact", "Contact_rt_target_mapping", conn),
+                mock.call("Account", "Account_rt_target_mapping", conn, True),
+                mock.call("Contact", "Contact_rt_target_mapping", conn, True),
             ]
         )
 
@@ -1767,8 +2069,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             ], step.records
 
             with create_engine(task.options["database_url"]).connect() as c:
-                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
-                assert hh_ids == ("1", "001000000000000")
+                hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
+                assert hh_ids == ("households-1", "001000000000000")
 
     @responses.activate
     def test_run__complex_lookups(self):
@@ -2151,8 +2453,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
     # code to test too little code. We'll test Person accounts in context
     # instead.
     # Delete this comment whenever it is convenient.
-
-    def test_generate_contact_id_map_for_person_accounts(self):
+    @pytest.mark.parametrize("old_format", [True, False])
+    def test_generate_contact_id_map_for_person_accounts(self, old_format):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, mapping_file)
@@ -2170,14 +2472,14 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task.metadata.tables = {
             "accounts": mock.Mock(),
             "contacts": mock.Mock(),
-            "accounts_sf_ids": mock.Mock(),
-            "contacts_sf_ids": mock.Mock(),
+            "cumulusci_id_table": mock.Mock(),
         }
         task.session = mock.Mock()
         task.session.query.return_value = task.session.query
         task.session.query.filter.return_value = task.session.query
         task.session.query.outerjoin.return_value = task.session.query
         task.sf = mock.Mock()
+        task._old_format = old_format
 
         # Set model mocks
         account_model.__table__ = mock.Mock()
@@ -2197,7 +2499,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             "id": mock.Mock(),
             "sf_id": mock.Mock(),
             "IsPersonAccount": mock.MagicMock(),
-            "account_id": mock.Mock,
+            "account_id": "string",
         }
 
         account_id_lookup = MappingLookup(
@@ -2212,6 +2514,12 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         account_id_column = getattr(
             contact_model, account_id_lookup.get_lookup_key_field(contact_model)
         )
+        setattr(
+            contact_model,
+            account_id_lookup.get_lookup_key_field(contact_model),
+            "Contact.account_id",
+        )
+
         account_sf_ids_table = account_id_lookup["aliased_table"]
         account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
@@ -2264,7 +2572,18 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         query_result.fetchmany.expected_calls = []
         task.sf.query_all.expected_calls = []
         for chunk in chunks:
-            expected.extend([(record["id"], record["sf_id"]) for record in chunk])
+            if task._old_format:
+                expected.extend(
+                    [
+                        (
+                            str(contact_mapping.table) + "-" + record["id"],
+                            record["sf_id"],
+                        )
+                        for record in chunk
+                    ]
+                )
+            else:
+                expected.extend([(record["id"], record["sf_id"]) for record in chunk])
 
             query_result.fetchmany.expected_calls.append(mock.call(200))
 
@@ -2327,7 +2646,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
 
         actual = [value for value in generator]
-
         assert expected == actual
 
         # Assert query executed
@@ -2528,6 +2846,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         )
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task.mapping = {}
         task.after_steps = {}
 
@@ -2550,6 +2869,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
+
         with pytest.raises(TaskOptionsError, match="Mapping file path required"):
             task()
 
@@ -2599,7 +2919,6 @@ class TestLoadDataIntegrationTests:
             {
                 "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
                 "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
-                "ignore_row_errors": True,
             },
         )
         with mock.patch("cumulusci.tasks.bulkdata.step.DEFAULT_BULK_BATCH_SIZE", 3):
@@ -2666,7 +2985,6 @@ class TestLoadDataIntegrationTests:
                 {
                     "sql_path": sql_path,
                     "mapping": mapping_path,
-                    "ignore_row_errors": True,
                 },
             )
             task()
@@ -2684,7 +3002,6 @@ class TestLoadDataIntegrationTests:
             {
                 "sql_path": cumulusci_test_repo_root / "datasets/sample.sql",
                 "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
-                "ignore_row_errors": True,
             },
         )
         task.logger = mock.Mock()
@@ -2696,7 +3013,9 @@ class TestLoadDataIntegrationTests:
         ]
 
 
-def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expected):
+def _validate_query_for_mapping_step(
+    sql_path, mapping, mapping_step_name, expected, old_format=False
+):
     """Validate the text of a SQL query"""
     task = _make_task(
         LoadData,
@@ -2712,6 +3031,7 @@ def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expec
     ), mock.patch.object(task, "sf", create=True):
         task._init_mapping()
     with task._init_db():
+        task._old_format = mock.Mock(return_value=old_format)
         query = task._query_db(task.mapping[mapping_step_name])
 
     def normalize(query):

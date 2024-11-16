@@ -1,4 +1,5 @@
 import functools
+from zipfile import ZipFile
 
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
@@ -52,6 +53,6 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
             )
         return src_zip
 
-    def _extract_zip(self, src_zip):
+    def _extract_zip(self, src_zip: ZipFile):
         src_zip = self._process_namespace(src_zip)
         src_zip.extractall(self.options["path"])
