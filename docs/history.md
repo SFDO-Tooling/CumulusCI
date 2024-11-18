@@ -2,6 +2,14 @@
 
 <!-- latest-start -->
 
+## v4.0.1 (2024-11-18)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.0...v4.0.1
+
+<!-- latest-stop -->
+
 ## v4.0.0 (2024-11-12)
 
 ## What's Changed
@@ -13,8 +21,6 @@
     -   Removed the `dx_pull` and `dx_push` tasks as the underlying commands were removed from `sf`
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v4.0.0
-
-<!-- latest-stop -->
 
 ## v3.93.0 (2024-10-17)
 
