@@ -4,7 +4,9 @@
 
 ## v4.0.1 (2024-11-18)
 
-<!-- Release notes generated using configuration in .github/release.yml at main -->
+### Issues Fixed 🩴
+
+-   Fixed a ModuleNotFoundError for docutils by adding the dependency `docutils` by [@jstvz](https://github.com/jstvz) in [#3558](https://github.com/SFDO-Tooling/CumulusCI/pull/3558).
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.0...v4.0.1
 
