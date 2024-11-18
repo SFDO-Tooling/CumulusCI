@@ -10,7 +10,9 @@ from cumulusci.tasks.bulkdata.select_utils import (
     determine_field_types,
     find_closest_record,
     levenshtein_distance,
+    reorder_records,
     replace_empty_strings_with_missing,
+    split_and_filter_fields,
     vectorize_records,
 )
 
@@ -100,8 +102,14 @@ def test_standard_post_process_with_records():
     records = [["001"], ["002"], ["003"]]
     num_records = 3
     sobject = "Contact"
-    selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject, weights=[]
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=None,
+        query_records=records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[],
+        fields=[],
+        threshold=None,
     )
 
     assert error_message is None
@@ -116,8 +124,14 @@ def test_standard_post_process_with_fewer_records():
     records = [["001"]]
     num_records = 3
     sobject = "Opportunity"
-    selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject, weights=[]
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=None,
+        query_records=records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[],
+        fields=[],
+        threshold=None,
     )
 
     assert error_message is None
@@ -133,8 +147,14 @@ def test_standard_post_process_with_no_records():
     records = []
     num_records = 2
     sobject = "Lead"
-    selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject, weights=[]
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=None,
+        query_records=records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[],
+        fields=[],
+        threshold=None,
     )
 
     assert selected_records == []
@@ -147,8 +167,14 @@ def test_random_post_process_with_records():
     records = [["001"], ["002"], ["003"]]
     num_records = 3
     sobject = "Contact"
-    selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject, weights=[]
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=None,
+        query_records=records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[],
+        fields=[],
+        threshold=None,
     )
 
     assert error_message is None
@@ -162,8 +188,14 @@ def test_random_post_process_with_no_records():
     records = []
     num_records = 2
     sobject = "Lead"
-    selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject, weights=[]
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=None,
+        query_records=records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[],
+        fields=[],
+        threshold=None,
     )
 
     assert selected_records == []
@@ -279,7 +311,7 @@ def test_find_closest_record_different_weights():
     weights = [2.0, 0.5]
 
     # With different weights, the first field will have more impact
-    closest_record = find_closest_record(load_record, query_records, weights)
+    closest_record, _ = find_closest_record(load_record, query_records, weights)
     assert closest_record == [
         "record1",
         "hello",
@@ -296,7 +328,7 @@ def test_find_closest_record_basic():
     ]
     weights = [1.0, 1.0]
 
-    closest_record = find_closest_record(load_record, query_records, weights)
+    closest_record, _ = find_closest_record(load_record, query_records, weights)
     assert closest_record == [
         "record1",
         "hello",
@@ -313,7 +345,7 @@ def test_find_closest_record_multiple_matches():
     ]
     weights = [1.0, 1.0]
 
-    closest_record = find_closest_record(load_record, query_records, weights)
+    closest_record, _ = find_closest_record(load_record, query_records, weights)
     assert closest_record == [
         "record2",
         "cat",
@@ -327,25 +359,29 @@ def test_similarity_post_process_with_records():
     sobject = "Contact"
     load_records = [["Tom Cruise", "62", "Actor"]]
     query_records = [
-        ["001", "Tom Hanks", "62", "Actor"],
+        ["001", "Bob Hanks", "62", "Actor"],
         ["002", "Tom Cruise", "63", "Actor"],  # Slight difference
         ["003", "Jennifer Aniston", "30", "Actress"],
     ]
 
     weights = [1.0, 1.0, 1.0]  # Adjust weights to match your data structure
 
-    selected_records, error_message = select_operator.select_post_process(
-        load_records, query_records, num_records, sobject, weights
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=weights,
+        fields=["Name", "Age", "Occupation"],
+        threshold=None,
     )
-
-    # selected_records, error_message = select_operator.select_post_process(
-    #     load_records, query_records, num_records, sobject
-    # )
 
     assert error_message is None
     assert len(selected_records) == num_records
     assert all(record["success"] for record in selected_records)
     assert all(record["created"] is False for record in selected_records)
+    x = [record["id"] for record in selected_records]
+    print(x)
     assert all(record["id"] in ["002"] for record in selected_records)
 
 
@@ -354,8 +390,14 @@ def test_similarity_post_process_with_no_records():
     records = []
     num_records = 2
     sobject = "Lead"
-    selected_records, error_message = select_operator.select_post_process(
-        None, records, num_records, sobject, weights=[1, 1, 1]
+    selected_records, _, error_message = select_operator.select_post_process(
+        load_records=None,
+        query_records=records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[1, 1, 1],
+        fields=[],
+        threshold=None,
     )
 
     assert selected_records == []
@@ -369,7 +411,7 @@ def test_calculate_levenshtein_distance_basic():
 
     # Expected distance based on simple Levenshtein distances
     # Levenshtein("hello", "hullo") = 1, Levenshtein("world", "word") = 1
-    expected_distance = (1 * 1.0 + 1 * 1.0) / 2  # Averaged over two fields
+    expected_distance = (1 / 5 * 1.0 + 1 / 5 * 1.0) / 2  # Averaged over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
     assert result == pytest.approx(
@@ -383,7 +425,7 @@ def test_calculate_levenshtein_distance_basic():
 
     # Expected distance based on simple Levenshtein distances
     # Levenshtein("hello", "hullo") = 1, Levenshtein("", "") = 0
-    expected_distance = (1 * 1.0 + 0 * 1.0) / 2  # Averaged over two fields
+    expected_distance = (1 / 5 * 1.0 + 0 * 1.0) / 2  # Averaged over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
     assert result == pytest.approx(
@@ -397,7 +439,9 @@ def test_calculate_levenshtein_distance_basic():
 
     # Expected distance based on simple Levenshtein distances
     # Levenshtein("hello", "hullo") = 1, Levenshtein("world", "") = 5
-    expected_distance = (1 * 1.0 + 5 * 0.05 * 1.0) / 2  # Averaged over two fields
+    expected_distance = (
+        1 / 5 * 1.0 + 5 / 5 * 0.05 * 1.0
+    ) / 2  # Averaged over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
     assert result == pytest.approx(
@@ -411,7 +455,9 @@ def test_calculate_levenshtein_distance_weighted():
     weights = [2.0, 0.5]
 
     # Levenshtein("cat", "bat") = 1, Levenshtein("dog", "fog") = 1
-    expected_distance = (1 * 2.0 + 1 * 0.5) / 2  # Weighted average over two fields
+    expected_distance = (
+        1 / 3 * 2.0 + 1 / 3 * 0.5
+    ) / 2.5  # Weighted average over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
     assert result == pytest.approx(
@@ -571,7 +617,13 @@ def test_annoy_post_process():
     query_records = [["q1", "Alice", "Engineer"], ["q2", "Charlie", "Artist"]]
     weights = [1.0, 1.0, 1.0]  # Example weights
 
-    closest_records, error = annoy_post_process(load_records, query_records, weights)
+    closest_records, insert_records = annoy_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        similarity_weights=weights,
+        all_fields=["Name", "Occupation"],
+        threshold=None,
+    )
 
     # Assert the closest records
     assert (
@@ -582,7 +634,97 @@ def test_annoy_post_process():
     )  # The first query record should match the first load record
 
     # No errors expected
-    assert error is None
+    assert not insert_records
+
+
+def test_annoy_post_process__insert_records():
+    # Test data
+    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
+    query_records = [["q1", "Alice", "Engineer"], ["q2", "Charlie", "Artist"]]
+    weights = [1.0, 1.0, 1.0]  # Example weights
+    threshold = 0.3
+
+    closest_records, insert_records = annoy_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        similarity_weights=weights,
+        all_fields=["Name", "Occupation"],
+        threshold=threshold,
+    )
+
+    # Assert the closest records
+    assert len(closest_records) == 2  # We expect two results (one record and one None)
+    assert (
+        closest_records[0]["id"] == "q1"
+    )  # The first query record should match the first load record
+    assert closest_records[1] is None  # The second query record should be None
+    assert insert_records[0] == [
+        "Bob",
+        "Doctor",
+    ]  # The first insert record should match the second load record
+
+
+def test_annoy_post_process__no_query_records():
+    # Test data
+    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
+    query_records = []
+    weights = [1.0, 1.0, 1.0]  # Example weights
+    threshold = 0.3
+
+    closest_records, insert_records = annoy_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        similarity_weights=weights,
+        all_fields=["Name", "Occupation"],
+        threshold=threshold,
+    )
+
+    # Assert the closest records
+    assert len(closest_records) == 2  # We expect two results (both None)
+    assert all(rec is None for rec in closest_records)  # Both should be None
+    assert insert_records[0] == [
+        "Alice",
+        "Engineer",
+    ]  # The first insert record should match the second load record
+    assert insert_records[1] == [
+        "Bob",
+        "Doctor",
+    ]  # The first insert record should match the second load record
+
+
+def test_annoy_post_process__insert_records_with_polymorphic_fields():
+    # Test data
+    load_records = [
+        ["Alice", "Engineer", "Alice_Contact", "abcd1234"],
+        ["Bob", "Doctor", "Bob_Contact", "qwer1234"],
+    ]
+    query_records = [
+        ["q1", "Alice", "Engineer", "Alice_Contact"],
+        ["q2", "Charlie", "Artist", "Charlie_Contact"],
+    ]
+    weights = [1.0, 1.0, 1.0, 1.0]  # Example weights
+    threshold = 0.3
+    all_fields = ["Name", "Occupation", "Contact.Name", "ContactId"]
+
+    closest_records, insert_records = annoy_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        similarity_weights=weights,
+        all_fields=all_fields,
+        threshold=threshold,
+    )
+
+    # Assert the closest records
+    assert len(closest_records) == 2  # We expect two results (one record and one None)
+    assert (
+        closest_records[0]["id"] == "q1"
+    )  # The first query record should match the first load record
+    assert closest_records[1] is None  # The second query record should be None
+    assert insert_records[0] == [
+        "Bob",
+        "Doctor",
+        "qwer1234",
+    ]  # The first insert record should match the second load record
 
 
 def test_single_record_match_annoy_post_process():
@@ -591,12 +733,18 @@ def test_single_record_match_annoy_post_process():
     query_records = [["q1", "Alice", "Engineer"]]
     weights = [1.0, 1.0, 1.0]
 
-    closest_records, error = annoy_post_process(load_records, query_records, weights)
+    closest_records, insert_records = annoy_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        similarity_weights=weights,
+        all_fields=["Name", "Occupation"],
+        threshold=None,
+    )
 
     # Both the load records should be matched with the only query record we have
     assert len(closest_records) == 2
     assert closest_records[0]["id"] == "q1"
-    assert error is None
+    assert not insert_records
 
 
 @pytest.mark.parametrize(
@@ -653,3 +801,206 @@ def test_add_limit_offset_to_user_filter(
 ):
     result = add_limit_offset_to_user_filter(filter_clause, limit_clause, offset_clause)
     assert result.strip() == expected.strip()
+
+
+def test_reorder_records_basic_reordering():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = ["job", "name"]
+
+    expected = [
+        ["Engineer", "Alice"],
+        ["Designer", "Bob"],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_partial_fields():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = ["age"]
+
+    expected = [
+        [30],
+        [25],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_missing_fields_in_new_fields():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = ["nonexistent", "job"]
+
+    expected = [
+        ["Engineer"],
+        ["Designer"],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_empty_records():
+    records = []
+    original_fields = ["name", "age", "job"]
+    new_fields = ["job", "name"]
+
+    expected = []
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_empty_new_fields():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = []
+
+    expected = [
+        [],
+        [],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_empty_original_fields():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = []
+    new_fields = ["job", "name"]
+
+    with pytest.raises(KeyError):
+        reorder_records(records, original_fields, new_fields)
+
+
+def test_reorder_records_no_common_fields():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = ["nonexistent_field"]
+
+    expected = [
+        [],
+        [],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_duplicate_fields_in_new_fields():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = ["job", "job", "name"]
+
+    expected = [
+        ["Engineer", "Engineer", "Alice"],
+        ["Designer", "Designer", "Bob"],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_reorder_records_all_fields_in_order():
+    records = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    original_fields = ["name", "age", "job"]
+    new_fields = ["name", "age", "job"]
+
+    expected = [
+        ["Alice", 30, "Engineer"],
+        ["Bob", 25, "Designer"],
+    ]
+    result = reorder_records(records, original_fields, new_fields)
+    assert result == expected
+
+
+def test_split_and_filter_fields_basic_case():
+    fields = [
+        "Account.Name",
+        "Account.Industry",
+        "Contact.Name",
+        "AccountId",
+        "ContactId",
+        "CreatedDate",
+    ]
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == ["AccountId", "ContactId", "CreatedDate"]
+    assert select_fields == [
+        "Account.Name",
+        "Account.Industry",
+        "Contact.Name",
+        "CreatedDate",
+    ]
+
+
+def test_split_and_filter_fields_all_non_lookup_fields():
+    fields = ["Name", "CreatedDate"]
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == ["Name", "CreatedDate"]
+    assert select_fields == fields
+
+
+def test_split_and_filter_fields_all_lookup_fields():
+    fields = ["Account.Name", "Account.Industry", "Contact.Name"]
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == []
+    assert select_fields == fields
+
+
+def test_split_and_filter_fields_empty_fields():
+    fields = []
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == []
+    assert select_fields == []
+
+
+def test_split_and_filter_fields_single_non_lookup_field():
+    fields = ["Id"]
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == ["Id"]
+    assert select_fields == ["Id"]
+
+
+def test_split_and_filter_fields_single_lookup_field():
+    fields = ["Account.Name"]
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == []
+    assert select_fields == ["Account.Name"]
+
+
+def test_split_and_filter_fields_multiple_unique_lookups():
+    fields = [
+        "Account.Name",
+        "Account.Industry",
+        "Contact.Email",
+        "Contact.Phone",
+        "Id",
+    ]
+    load_fields, select_fields = split_and_filter_fields(fields)
+    assert load_fields == ["Id"]
+    assert (
+        select_fields == fields
+    )  # No filtering applied since all components are unique

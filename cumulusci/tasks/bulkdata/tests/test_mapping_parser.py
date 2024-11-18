@@ -231,6 +231,35 @@ class TestMappingParser:
             parse_from_yaml(base_path)
         assert "Invalid strategy value: invalid_strategy" in str(e.value)
 
+    def test_select_options__invalid_threshold__non_float(self):
+        base_path = (
+            Path(__file__).parent / "mapping_select_invalid_threshold__non_float.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "value is not a valid float" in str(e.value)
+
+    def test_select_options__invalid_threshold__invalid_strategy(self):
+        base_path = (
+            Path(__file__).parent
+            / "mapping_select_invalid_threshold__invalid_strategy.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert (
+            "If a threshold is specified, the strategy must be set to 'similarity'."
+            in str(e.value)
+        )
+
+    def test_select_options__invalid_threshold__invalid_number(self):
+        base_path = (
+            Path(__file__).parent
+            / "mapping_select_invalid_threshold__invalid_number.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "Threshold must be between 0 and 1, got 1.5" in str(e.value)
+
     def test_select_options__missing_priority_fields(self):
         base_path = Path(__file__).parent / "mapping_select_missing_priority_fields.yml"
         with pytest.raises(ValueError) as e:

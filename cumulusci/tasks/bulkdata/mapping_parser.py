@@ -31,6 +31,7 @@ class MappingLookup(CCIDictModel):
     join_field: Optional[str] = None
     after: Optional[str] = None
     aliased_table: Optional[Any] = None
+    parent_tables: Optional[Any] = None
     name: Optional[str] = None  # populated by parent
 
     def get_lookup_key_field(self, model=None):

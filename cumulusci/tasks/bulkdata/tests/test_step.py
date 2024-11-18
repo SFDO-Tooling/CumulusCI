@@ -909,6 +909,7 @@ class TestBulkApiDmlOperation:
                 "Who.Contact.Email",
                 "Who.Lead.Name",
                 "Who.Lead.Company",
+                "WhoId",
             ],
             selection_strategy=SelectStrategy.SIMILARITY,
         )
@@ -921,15 +922,22 @@ class TestBulkApiDmlOperation:
 
         download_mock.return_value = io.StringIO(
             """[
-                {"Id": "003000000000001", "Subject": "Sample Event 1", "Who":{ "attributes": {"type": "Contact"}, "Name": "Sample Contact", "Email": "contact@example.com"}},
-                { "Id": "003000000000002", "Subject": "Sample Event 2", "Who":{ "attributes": {"type": "Lead"}, "Name": "Sample Lead", "Company": "Salesforce"}}
+                {"Id": "003000000000001", "Subject": "Sample Event 1", "Who":{ "attributes": {"type": "Contact"}, "Id": "abcd1234", "Name": "Sample Contact", "Email": "contact@example.com"}},
+                { "Id": "003000000000002", "Subject": "Sample Event 2", "Who":{ "attributes": {"type": "Lead"}, "Id": "qwer1234", "Name": "Sample Lead", "Company": "Salesforce"}}
             ]"""
         )
 
         records = iter(
             [
-                ["Sample Event 1", "Sample Contact", "contact@example.com", "", ""],
-                ["Sample Event 2", "", "", "Sample Lead", "Salesforce"],
+                [
+                    "Sample Event 1",
+                    "Sample Contact",
+                    "contact@example.com",
+                    "",
+                    "",
+                    "lkjh1234",
+                ],
+                ["Sample Event 2", "", "", "Sample Lead", "Salesforce", "poiu1234"],
             ]
         )
         step.start()
@@ -960,7 +968,7 @@ class TestBulkApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10},
             context=context,
-            fields=["Name", "Account.Name", "Account.AccountNumber"],
+            fields=["Name", "Account.Name", "Account.AccountNumber", "AccountId"],
             selection_strategy=SelectStrategy.SIMILARITY,
         )
 
@@ -972,15 +980,15 @@ class TestBulkApiDmlOperation:
 
         download_mock.return_value = io.StringIO(
             """[
-                {"Id": "003000000000001", "Name": "Sample Contact 1", "Account":{ "attributes": {"type": "Account"}, "Name": "Sample Account", "AccountNumber": 123456}},
+                {"Id": "003000000000001", "Name": "Sample Contact 1", "Account":{ "attributes": {"type": "Account"}, "Id": "abcd1234", "Name": "Sample Account", "AccountNumber": 123456}},
                 { "Id": "003000000000002", "Subject": "Sample Contact 2", "Account": null}
             ]"""
         )
 
         records = iter(
             [
-                ["Sample Contact 3", "Sample Account", "123456"],
-                ["Sample Contact 4", "", ""],
+                ["Sample Contact 3", "Sample Account", "123456", "poiu1234"],
+                ["Sample Contact 4", "", "", ""],
             ]
         )
         step.start()
@@ -1009,7 +1017,13 @@ class TestBulkApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10},
             context=context,
-            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            fields=[
+                "Name",
+                "Email",
+                "Account.Name",
+                "Account.AccountNumber",
+                "AccountId",
+            ],
             selection_strategy=SelectStrategy.SIMILARITY,
             selection_priority_fields={"Name": "Name", "Email": "Email"},
         )
@@ -1019,7 +1033,13 @@ class TestBulkApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10},
             context=context,
-            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            fields=[
+                "Name",
+                "Email",
+                "Account.Name",
+                "Account.AccountNumber",
+                "AccountId",
+            ],
             selection_strategy=SelectStrategy.SIMILARITY,
             selection_priority_fields={
                 "Account.Name": "Account.Name",
@@ -1044,6 +1064,7 @@ class TestBulkApiDmlOperation:
                 "Email": "bob@yahoo.org",
                 "Account": {
                     "attributes": {"type": "Account"},
+                    "Id": "abcd1234",
                     "Name": "Jawad TP",
                     "AccountNumber": 567890,
                 },
@@ -1054,6 +1075,7 @@ class TestBulkApiDmlOperation:
                 "Email": "tom@exmaple.com",
                 "Account": {
                     "attributes": {"type": "Account"},
+                    "Id": "qwer1234",
                     "Name": "Aditya B",
                     "AccountNumber": 123456,
                 },
@@ -1067,7 +1089,7 @@ class TestBulkApiDmlOperation:
 
         records = iter(
             [
-                ["Bob The Builder", "bob@yahoo.org", "Aditya B", "123456"],
+                ["Bob The Builder", "bob@yahoo.org", "Aditya B", "123456", "poiu1234"],
             ]
         )
         records_1, records_2 = tee(records)
@@ -2041,6 +2063,7 @@ class TestRestApiDmlOperation:
                 "Who.Contact.Email",
                 "Who.Lead.Name",
                 "Who.Lead.Company",
+                "WhoId",
             ],
             selection_strategy=SelectStrategy.SIMILARITY,
         )
@@ -2054,6 +2077,7 @@ class TestRestApiDmlOperation:
                             "Subject": "Sample Event 1",
                             "Who": {
                                 "attributes": {"type": "Contact"},
+                                "Id": "abcd1234",
                                 "Name": "Sample Contact",
                                 "Email": "contact@example.com",
                             },
@@ -2063,6 +2087,7 @@ class TestRestApiDmlOperation:
                             "Subject": "Sample Event 2",
                             "Who": {
                                 "attributes": {"type": "Lead"},
+                                "Id": "qwer1234",
                                 "Name": "Sample Lead",
                                 "Company": "Salesforce",
                             },
@@ -2075,8 +2100,15 @@ class TestRestApiDmlOperation:
 
         records = iter(
             [
-                ["Sample Event 1", "Sample Contact", "contact@example.com", "", ""],
-                ["Sample Event 2", "", "", "Sample Lead", "Salesforce"],
+                [
+                    "Sample Event 1",
+                    "Sample Contact",
+                    "contact@example.com",
+                    "",
+                    "",
+                    "poiu1234",
+                ],
+                ["Sample Event 2", "", "", "Sample Lead", "Salesforce", "lkjh1234"],
             ]
         )
         step.start()
@@ -2132,7 +2164,7 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10},
             context=task,
-            fields=["Name", "Account.Name", "Account.AccountNumber"],
+            fields=["Name", "Account.Name", "Account.AccountNumber", "AccountId"],
             selection_strategy=SelectStrategy.SIMILARITY,
         )
 
@@ -2145,6 +2177,7 @@ class TestRestApiDmlOperation:
                             "Name": "Sample Contact 1",
                             "Account": {
                                 "attributes": {"type": "Account"},
+                                "Id": "abcd1234",
                                 "Name": "Sample Account",
                                 "AccountNumber": 123456,
                             },
@@ -2162,8 +2195,8 @@ class TestRestApiDmlOperation:
 
         records = iter(
             [
-                ["Sample Contact 3", "Sample Account", "123456"],
-                ["Sample Contact 4", "", ""],
+                ["Sample Contact 3", "Sample Account", "123456", "poiu1234"],
+                ["Sample Contact 4", "", "", ""],
             ]
         )
         step.start()
@@ -2229,7 +2262,13 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10},
             context=task_1,
-            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            fields=[
+                "Name",
+                "Email",
+                "Account.Name",
+                "Account.AccountNumber",
+                "AccountId",
+            ],
             selection_strategy=SelectStrategy.SIMILARITY,
             selection_priority_fields={"Name": "Name", "Email": "Email"},
         )
@@ -2239,7 +2278,13 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.QUERY,
             api_options={"batch_size": 10},
             context=task_2,
-            fields=["Name", "Email", "Account.Name", "Account.AccountNumber"],
+            fields=[
+                "Name",
+                "Email",
+                "Account.Name",
+                "Account.AccountNumber",
+                "AccountId",
+            ],
             selection_strategy=SelectStrategy.SIMILARITY,
             selection_priority_fields={
                 "Account.Name": "Account.Name",
@@ -2256,6 +2301,7 @@ class TestRestApiDmlOperation:
                         "Email": "bob@yahoo.org",
                         "Account": {
                             "attributes": {"type": "Account"},
+                            "Id": "abcd1234",
                             "Name": "Jawad TP",
                             "AccountNumber": 567890,
                         },
@@ -2266,6 +2312,7 @@ class TestRestApiDmlOperation:
                         "Email": "tom@exmaple.com",
                         "Account": {
                             "attributes": {"type": "Account"},
+                            "Id": "qwer1234",
                             "Name": "Aditya B",
                             "AccountNumber": 123456,
                         },
@@ -2280,7 +2327,7 @@ class TestRestApiDmlOperation:
 
         records = iter(
             [
-                ["Bob The Builder", "bob@yahoo.org", "Aditya B", "123456"],
+                ["Bob The Builder", "bob@yahoo.org", "Aditya B", "123456", "poiu1234"],
             ]
         )
         records_1, records_2 = tee(records)
@@ -2803,6 +2850,7 @@ class TestGetOperationFunctions:
             selection_filter=None,
             selection_priority_fields=None,
             content_type=None,
+            threshold=None,
         )
 
         op = get_dml_operation(
@@ -2828,6 +2876,7 @@ class TestGetOperationFunctions:
             selection_filter=None,
             selection_priority_fields=None,
             content_type=None,
+            threshold=None,
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")

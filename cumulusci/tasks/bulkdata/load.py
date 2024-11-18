@@ -312,10 +312,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def process_lookup_fields(self, mapping, fields, polymorphic_fields):
         """Modify fields and priority fields based on lookup and polymorphic checks."""
+        # Store the lookups and their original order for re-insertion at the end
+        original_lookups = [name for name in fields if name in mapping.lookups]
+        max_insert_index = -1
         for name, lookup in mapping.lookups.items():
             if name in fields:
                 # Get the index of the lookup field before removing it
                 insert_index = fields.index(name)
+                max_insert_index = max(max_insert_index, insert_index)
                 # Remove the lookup field from fields
                 fields.remove(name)
 
@@ -351,7 +355,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             None,
                         )
                         if lookup_mapping_step:
-                            lookup_fields = lookup_mapping_step.get_load_field_list()
+                            lookup_fields = lookup_mapping_step.fields.keys()
                             # Insert fields in the format {relationship_name}.{ref_type}.{lookup_field}
                             for field in lookup_fields:
                                 fields.insert(
@@ -359,6 +363,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                                     f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}",
                                 )
                                 insert_index += 1
+                                max_insert_index = max(max_insert_index, insert_index)
                                 if lookup_in_priority_fields:
                                     mapping.select_options.priority_fields[
                                         f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}"
@@ -383,16 +388,23 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                     if lookup_mapping_step:
                         relationship_name = polymorphic_fields[name]["relationshipName"]
-                        lookup_fields = lookup_mapping_step.get_load_field_list()
+                        lookup_fields = lookup_mapping_step.fields.keys()
 
                         # Insert the new fields at the same position as the removed lookup field
                         for field in lookup_fields:
                             fields.insert(insert_index, f"{relationship_name}.{field}")
                             insert_index += 1
+                            max_insert_index = max(max_insert_index, insert_index)
                             if lookup_in_priority_fields:
                                 mapping.select_options.priority_fields[
                                     f"{relationship_name}.{field}"
                                 ] = f"{relationship_name}.{field}"
+
+        # Append the original lookups at the end in the same order
+        for name in original_lookups:
+            if name not in fields:
+                fields.insert(max_insert_index, name)
+                max_insert_index += 1
 
     def configure_step(self, mapping):
         """Create a step appropriate to the action"""
@@ -479,6 +491,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             selection_filter=mapping.select_options.filter,
             selection_priority_fields=mapping.select_options.priority_fields,
             content_type=content_type,
+            threshold=mapping.select_options.threshold,
         )
         return step, query
 
@@ -588,10 +601,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     mapping, self.mapping, self.metadata, model, self._old_format
                 )
             )
-        else:
-            transformers.append(
-                AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
-            )
+        transformers.append(
+            AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
+        )
 
         transformers.extend([cls(mapping, self.metadata, model) for cls in classes])
 

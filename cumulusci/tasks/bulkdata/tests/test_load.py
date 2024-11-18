@@ -835,13 +835,12 @@ class TestLoadData:
             "Subject",
             "Who.Contact.FirstName",
             "Who.Contact.LastName",
-            "Who.Contact.AccountId",
             "Who.Lead.LastName",
+            "WhoId",
         ]
         expected_priority_fields_keys = {
             "Who.Contact.FirstName",
             "Who.Contact.LastName",
-            "Who.Contact.AccountId",
             "Who.Lead.LastName",
         }
         with mock.patch(
@@ -886,6 +885,7 @@ class TestLoadData:
             "LastName",
             "Account.Name",
             "Account.AccountNumber",
+            "AccountId",
         ]
         expected_priority_fields_keys = {
             "FirstName",
@@ -989,7 +989,7 @@ class TestLoadData:
             sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db_joins_lookups_select.yml",
             mapping_step_name="Select Event",
-            expected='''SELECT events.id AS events_id, events."subject" AS "events_subject", "whoid_contacts_alias"."firstname" AS "whoid_contacts_alias_firstname", "whoid_contacts_alias"."lastname" AS "whoid_contacts_alias_lastname", '' AS "whoid_contacts_alias_accountid", "whoid_leads_alias"."lastname" AS "whoid_leads_alias_lastname" from events LEFT OUTER JOIN contacts AS "whoid_contacts_alias" ON "whoid_contacts_alias".id=events."whoid" LEFT OUTER JOIN leads AS "whoid_leads_alias" ON "whoid_leads_alias".id=events."whoid" ORDER BY events."whoid"''',
+            expected='''SELECT events.id AS events_id, events."subject" AS "events_subject", "whoid_contacts_alias"."firstname" AS "whoid_contacts_alias_firstname", "whoid_contacts_alias"."lastname" AS "whoid_contacts_alias_lastname", "whoid_leads_alias"."lastname" AS "whoid_leads_alias_lastname", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN contacts AS "whoid_contacts_alias" ON "whoid_contacts_alias".id=events."whoid" LEFT OUTER JOIN leads AS "whoid_leads_alias" ON "whoid_leads_alias".id=events."whoid" LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id=? || cast(events."whoid" as varchar) ORDER BY events."whoid"''',
         )
 
     def test_query_db__joins_polymorphic_lookups(self):

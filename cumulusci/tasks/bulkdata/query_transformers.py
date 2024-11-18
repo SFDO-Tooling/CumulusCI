@@ -106,14 +106,14 @@ class DynamicLookupQueryExtender(LoadQueryExtender):
         columns = []
         for lookup in self.lookups:
             tables = lookup.table if isinstance(lookup.table, list) else [lookup.table]
-            lookup.aliased_table = [
+            lookup.parent_tables = [
                 aliased(
                     self.metadata.tables[table], name=f"{lookup.name}_{table}_alias"
                 )
                 for table in tables
             ]
 
-            for aliased_table, table_name in zip(lookup.aliased_table, tables):
+            for parent_table, table_name in zip(lookup.parent_tables, tables):
                 # Find the mapping step for this polymorphic type
                 lookup_mapping_step = next(
                     (
@@ -124,24 +124,24 @@ class DynamicLookupQueryExtender(LoadQueryExtender):
                     None,
                 )
                 if lookup_mapping_step:
-                    load_fields = lookup_mapping_step.get_load_field_list()
+                    load_fields = lookup_mapping_step.fields.keys()
                     for field in load_fields:
                         if field in lookup_mapping_step.fields:
                             matching_column = next(
                                 (
                                     col
-                                    for col in aliased_table.columns
+                                    for col in parent_table.columns
                                     if col.name == lookup_mapping_step.fields[field]
                                 )
                             )
                             columns.append(
-                                matching_column.label(f"{aliased_table.name}_{field}")
+                                matching_column.label(f"{parent_table.name}_{field}")
                             )
                         else:
                             # Append an empty string if the field is not present
                             columns.append(
                                 literal_column("''").label(
-                                    f"{aliased_table.name}_{field}"
+                                    f"{parent_table.name}_{field}"
                                 )
                             )
         return columns
@@ -150,15 +150,15 @@ class DynamicLookupQueryExtender(LoadQueryExtender):
     def outerjoins_to_add(self):
         """Add outer joins for each lookup table directly, including handling for polymorphic lookups."""
 
-        def join_for_lookup(lookup, aliased_table):
+        def join_for_lookup(lookup, parent_table):
             key_field = lookup.get_lookup_key_field(self.model)
             value_column = getattr(self.model, key_field)
-            return (aliased_table, aliased_table.columns.id == value_column)
+            return (parent_table, parent_table.columns.id == value_column)
 
         joins = []
         for lookup in self.lookups:
-            for aliased_table in lookup.aliased_table:
-                joins.append(join_for_lookup(lookup, aliased_table))
+            for parent_table in lookup.parent_tables:
+                joins.append(join_for_lookup(lookup, parent_table))
         return joins
 
 

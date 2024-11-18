@@ -6,7 +6,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 from annoy import AnnoyIndex
-from pydantic import Field, validator
+from pydantic import Field, root_validator, validator
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.preprocessing import StandardScaler
 
@@ -45,6 +45,7 @@ class SelectOptions(CCIDictModel):
     filter: T.Optional[str] = None  # Optional filter for selection
     strategy: SelectStrategy = SelectStrategy.STANDARD  # Strategy for selection
     priority_fields: T.Dict[str, str] = Field({})
+    threshold: T.Optional[float] = None
 
     @validator("strategy", pre=True)
     def validate_strategy(cls, value):
@@ -66,6 +67,26 @@ class SelectOptions(CCIDictModel):
             values = {elem: elem for elem in values}
         return CaseInsensitiveDict(values)
 
+    @root_validator
+    def validate_threshold_and_strategy(cls, values):
+        threshold = values.get("threshold")
+        strategy = values.get("strategy")
+
+        if threshold is not None:
+            values["threshold"] = float(threshold)  # Convert to float
+
+            if not (0 <= values["threshold"] <= 1):
+                raise ValueError(
+                    f"Threshold must be between 0 and 1, got {values['threshold']}."
+                )
+
+            if strategy != SelectStrategy.SIMILARITY:
+                raise ValueError(
+                    "If a threshold is specified, the strategy must be set to 'similarity'."
+                )
+
+        return values
+
 
 class SelectOperationExecutor:
     def __init__(self, strategy: SelectStrategy):
@@ -84,6 +105,7 @@ class SelectOperationExecutor:
         limit: T.Union[int, None],
         offset: T.Union[int, None],
     ):
+        _, select_fields = split_and_filter_fields(fields=fields)
         # For STANDARD strategy
         if self.strategy == SelectStrategy.STANDARD:
             return standard_generate_query(
@@ -93,7 +115,7 @@ class SelectOperationExecutor:
         elif self.strategy == SelectStrategy.SIMILARITY:
             return similarity_generate_query(
                 sobject=sobject,
-                fields=fields,
+                fields=select_fields,
                 user_filter=user_filter,
                 limit=limit,
                 offset=offset,
@@ -108,9 +130,11 @@ class SelectOperationExecutor:
         self,
         load_records,
         query_records: list,
+        fields: list,
         num_records: int,
         sobject: str,
         weights: list,
+        threshold: T.Union[float, None],
     ):
         # For STANDARD strategy
         if self.strategy == SelectStrategy.STANDARD:
@@ -122,8 +146,10 @@ class SelectOperationExecutor:
             return similarity_post_process(
                 load_records=load_records,
                 query_records=query_records,
+                fields=fields,
                 sobject=sobject,
                 weights=weights,
+                threshold=threshold,
             )
         # For RANDOM strategy
         elif self.strategy == SelectStrategy.RANDOM:
@@ -158,12 +184,12 @@ def standard_generate_query(
 
 def standard_post_process(
     query_records: list, num_records: int, sobject: str
-) -> T.Tuple[T.List[dict], T.Union[str, None]]:
+) -> T.Tuple[T.List[dict], None, T.Union[str, None]]:
     """Processes the query results for the standard selection strategy"""
     # Handle case where query returns 0 records
     if not query_records:
         error_message = f"No records found for {sobject} in the target org."
-        return [], error_message
+        return [], None, error_message
 
     # Add 'success: True' to each record to emulate records have been inserted
     selected_records = [
@@ -177,7 +203,7 @@ def standard_post_process(
             selected_records.extend(original_records)
     selected_records = selected_records[:num_records]
 
-    return selected_records, None  # Return selected records and None for error
+    return selected_records, None, None  # Return selected records and None for error
 
 
 def similarity_generate_query(
@@ -255,13 +281,20 @@ def similarity_generate_query(
 
 
 def similarity_post_process(
-    load_records, query_records: list, sobject: str, weights: list
-) -> T.Tuple[T.List[dict], T.Union[str, None]]:
+    load_records,
+    query_records: list,
+    fields: list,
+    sobject: str,
+    weights: list,
+    threshold: T.Union[float, None],
+) -> T.Tuple[
+    T.List[T.Union[dict, None]], T.List[T.Union[list, None]], T.Union[str, None]
+]:
     """Processes the query results for the similarity selection strategy"""
     # Handle case where query returns 0 records
-    if not query_records:
+    if not query_records and not threshold:
         error_message = f"No records found for {sobject} in the target org."
-        return [], error_message
+        return [], [], error_message
 
     load_records = list(load_records)
     # Replace None values in each row with empty strings
@@ -272,23 +305,55 @@ def similarity_post_process(
 
     complexity_constant = load_record_count * query_record_count
 
-    closest_records = []
+    select_records = []
+    insert_records = []
 
     if complexity_constant < 1000:
-        closest_records = levenshtein_post_process(load_records, query_records, weights)
+        select_records, insert_records = levenshtein_post_process(
+            load_records, query_records, fields, weights, threshold
+        )
     else:
-        closest_records = annoy_post_process(load_records, query_records, weights)
+        select_records, insert_records = annoy_post_process(
+            load_records, query_records, fields, weights, threshold
+        )
 
-    return closest_records
+    return select_records, insert_records, None
 
 
 def annoy_post_process(
-    load_records: list, query_records: list, weights: list
-) -> T.Tuple[T.List[dict], T.Union[str, None]]:
+    load_records: list,
+    query_records: list,
+    all_fields: list,
+    similarity_weights: list,
+    threshold: T.Union[float, None],
+) -> T.Tuple[T.List[dict], list]:
     """Processes the query results for the similarity selection strategy using Annoy algorithm for large number of records"""
+    selected_records = []
+    insertion_candidates = []
+
+    # Split fields into load and select categories
+    load_field_list, select_field_list = split_and_filter_fields(fields=all_fields)
+    # Only select those weights for select field list
+    similarity_weights = [
+        similarity_weights[idx]
+        for idx, field in enumerate(all_fields)
+        if field in select_field_list
+    ]
+    load_shaped_records = reorder_records(
+        records=load_records, original_fields=all_fields, new_fields=load_field_list
+    )
+    select_shaped_records = reorder_records(
+        records=load_records, original_fields=all_fields, new_fields=select_field_list
+    )
+
+    if not query_records:
+        # Directly append to load record for insertion if target_records is empty
+        selected_records = [None for _ in load_records]
+        insertion_candidates = load_shaped_records
+        return selected_records, insertion_candidates
 
     query_records = replace_empty_strings_with_missing(query_records)
-    load_records = replace_empty_strings_with_missing(load_records)
+    select_shaped_records = replace_empty_strings_with_missing(select_shaped_records)
 
     hash_features = 100
     num_trees = 10
@@ -302,7 +367,10 @@ def annoy_post_process(
     }
 
     final_load_vectors, final_query_vectors = vectorize_records(
-        load_records, query_record_data, hash_features=hash_features, weights=weights
+        select_shaped_records,
+        query_record_data,
+        hash_features=hash_features,
+        weights=similarity_weights,
     )
 
     # Create Annoy index for nearest neighbor search
@@ -318,49 +386,89 @@ def annoy_post_process(
     # Find nearest neighbors for each query vector
     n_neighbors = 1
 
-    closest_records = []
-
     for i, load_vector in enumerate(final_load_vectors):
         # Get nearest neighbors' indices and distances
         nearest_neighbors = annoy_index.get_nns_by_vector(
             load_vector, n_neighbors, include_distances=True
         )
         neighbor_indices = nearest_neighbors[0]  # Indices of nearest neighbors
+        neighbor_distances = [
+            distance / 2 for distance in nearest_neighbors[1]
+        ]  # Distances sqrt(2(1-cos(u,v)))/2 lies between [0,1]
 
-        for neighbor_index in neighbor_indices:
+        for idx, neighbor_index in enumerate(neighbor_indices):
             # Retrieve the corresponding record from the database
             record = query_record_data[neighbor_index]
             closest_record_id = record_to_id_map[tuple(record)]
-            closest_records.append(
-                {"id": closest_record_id, "success": True, "created": False}
-            )
+            if threshold and (neighbor_distances[idx] >= threshold):
+                selected_records.append(None)
+                insertion_candidates.append(load_shaped_records[i])
+            else:
+                selected_records.append(
+                    {"id": closest_record_id, "success": True, "created": False}
+                )
 
-    return closest_records, None
+    return selected_records, insertion_candidates
 
 
 def levenshtein_post_process(
-    load_records: list, query_records: list, weights: list
-) -> T.Tuple[T.List[dict], T.Union[str, None]]:
-    """Processes the query results for the similarity selection strategy using Levenshtein algorithm for small number of records"""
-    closest_records = []
+    source_records: list,
+    target_records: list,
+    all_fields: list,
+    similarity_weights: list,
+    distance_threshold: T.Union[float, None],
+) -> T.Tuple[T.List[T.Optional[dict]], T.List[T.Optional[list]]]:
+    """Processes query results using Levenshtein algorithm for similarity selection with a small number of records."""
+    selected_records = []
+    insertion_candidates = []
 
-    for record in load_records:
-        closest_record = find_closest_record(record, query_records, weights)
-        closest_records.append(
-            {"id": closest_record[0], "success": True, "created": False}
+    # Split fields into load and select categories
+    load_field_list, select_field_list = split_and_filter_fields(fields=all_fields)
+    # Only select those weights for select field list
+    similarity_weights = [
+        similarity_weights[idx]
+        for idx, field in enumerate(all_fields)
+        if field in select_field_list
+    ]
+    load_shaped_records = reorder_records(
+        records=source_records, original_fields=all_fields, new_fields=load_field_list
+    )
+    select_shaped_records = reorder_records(
+        records=source_records, original_fields=all_fields, new_fields=select_field_list
+    )
+
+    if not target_records:
+        # Directly append to load record for insertion if target_records is empty
+        selected_records = [None for _ in source_records]
+        insertion_candidates = load_shaped_records
+        return selected_records, insertion_candidates
+
+    for select_record, load_record in zip(select_shaped_records, load_shaped_records):
+        closest_match, match_distance = find_closest_record(
+            select_record, target_records, similarity_weights
         )
 
-    return closest_records, None
+        if distance_threshold and match_distance > distance_threshold:
+            # Append load record for insertion if distance exceeds threshold
+            insertion_candidates.append(load_record)
+            selected_records.append(None)
+        elif closest_match:
+            # Append match details if distance is within threshold
+            selected_records.append(
+                {"id": closest_match[0], "success": True, "created": False}
+            )
+
+    return selected_records, insertion_candidates
 
 
 def random_post_process(
     query_records: list, num_records: int, sobject: str
-) -> T.Tuple[T.List[dict], T.Union[str, None]]:
+) -> T.Tuple[T.List[dict], None, T.Union[str, None]]:
     """Processes the query results for the random selection strategy"""
 
     if not query_records:
         error_message = f"No records found for {sobject} in the target org."
-        return [], error_message
+        return [], None, error_message
 
     selected_records = []
     for _ in range(num_records):  # Loop 'num_records' times
@@ -370,7 +478,7 @@ def random_post_process(
             {"id": random_record[0], "success": True, "created": False}
         )
 
-    return selected_records, None
+    return selected_records, None, None
 
 
 def find_closest_record(load_record: list, query_records: list, weights: list):
@@ -383,7 +491,7 @@ def find_closest_record(load_record: list, query_records: list, weights: list):
             closest_distance = distance
             closest_record = record
 
-    return closest_record
+    return closest_record, closest_distance
 
 
 def levenshtein_distance(str1: str, str2: str):
@@ -417,7 +525,6 @@ def calculate_levenshtein_distance(record1: list, record2: list, weights: list):
         raise ValueError("Records must be same size as fields (weights).")
 
     total_distance = 0
-    total_fields = 0
 
     for field1, field2, weight in zip(record1, record2, weights):
         field1 = field1.lower()
@@ -427,16 +534,19 @@ def calculate_levenshtein_distance(record1: list, record2: list, weights: list):
             # If both fields are blank, distance is 0
             distance = 0
         else:
-            distance = levenshtein_distance(field1, field2)
+            # Average distance per character
+            distance = levenshtein_distance(field1, field2) / max(
+                len(field1), len(field2)
+            )
             if len(field1) == 0 or len(field2) == 0:
                 # If one field is blank, reduce the impact of the distance
                 distance = distance * 0.05  # Fixed value for blank vs non-blank
 
         # Multiply the distance by the corresponding weight
         total_distance += distance * weight
-        total_fields += 1
 
-    return total_distance / total_fields if total_fields > 0 else 0
+    # Average distance per character with weights
+    return total_distance / sum(weights) if len(weights) else 0
 
 
 def add_limit_offset_to_user_filter(
@@ -600,3 +710,60 @@ def replace_empty_strings_with_missing(records):
         [(field if field != "" else "missing") for field in record]
         for record in records
     ]
+
+
+def split_and_filter_fields(fields: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    # List to store non-lookup fields (load fields)
+    load_fields = []
+
+    # Set to store unique first components of select fields
+    unique_components = set()
+    # Keep track of last flattened lookup index
+    last_flat_lookup_index = -1
+
+    # Iterate through the fields
+    for idx, field in enumerate(fields):
+        if "." in field:
+            # Split the field by '.' and add the first component to the set
+            first_component = field.split(".")[0]
+            unique_components.add(first_component)
+            last_flat_lookup_index = max(last_flat_lookup_index, idx)
+        else:
+            # Add the field to the load_fields list
+            load_fields.append(field)
+
+    # Number of unique components
+    num_unique_components = len(unique_components)
+
+    # Adjust select_fields by removing only the field at last_flat_lookup_index + 1
+    if last_flat_lookup_index + 1 < len(
+        fields
+    ) and last_flat_lookup_index + num_unique_components < len(fields):
+        select_fields = (
+            fields[: last_flat_lookup_index + 1]
+            + fields[last_flat_lookup_index + num_unique_components + 1 :]
+        )
+    else:
+        select_fields = fields
+
+    return load_fields, select_fields
+
+
+# Function to reorder records based on the new field list
+def reorder_records(records, original_fields, new_fields):
+    if not original_fields:
+        raise KeyError("original_fields should not be empty")
+    # Map the original field indices
+    field_index_map = {field: i for i, field in enumerate(original_fields)}
+    reordered_records = []
+
+    for record in records:
+        reordered_records.append(
+            [
+                record[field_index_map[field]]
+                for field in new_fields
+                if field in field_index_map
+            ]
+        )
+
+    return reordered_records
