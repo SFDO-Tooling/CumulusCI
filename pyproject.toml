@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "annoy",
     "click",
     "cryptography",
     "python-dateutil",
@@ -38,6 +39,8 @@ dependencies = [
     "lxml",
     "markdown-it-py==2.2.0", # resolve dependency conflict between prod/dev
     "MarkupSafe",
+    "numpy",
+    "pandas",
     "psutil",
     "pydantic<2",
     "PyJWT",
@@ -55,6 +58,7 @@ dependencies = [
     "sarge",
     "selenium<4",
     "simple-salesforce==1.11.4",
+    "scikit-learn",
     "snowfakery",
     "SQLAlchemy<2",
     "xmltodict",
