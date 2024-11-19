@@ -271,32 +271,20 @@ tasks:
             path: unpackaged/config/qa
         group: Salesforce Metadata
     dx:
-        description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
+        description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'package install'
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         group: Salesforce DX
     dx_convert_to:
         description: Converts src directory metadata format into sfdx format under force-app
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
         options:
-            command: "force:mdapi:convert -r src"
+            command: "project convert mdapi -r src"
         group: Salesforce DX
     dx_convert_from:
         description: Converts force-app directory in sfdx format into metadata format under src
         class_path: cumulusci.tasks.dx_convert_from.DxConvertFrom
         options:
             src_dir: src
-        group: Salesforce DX
-    dx_pull:
-        description: Uses sfdx to pull from a scratch org into the force-app directory
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: "force:source:pull"
-        group: Salesforce DX
-    dx_push:
-        description: Uses sfdx to push the force-app directory metadata into a scratch org
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: "force:source:push"
         group: Salesforce DX
     enable_einstein_prediction:
         description: Enable an Einstein Prediction Builder prediction.

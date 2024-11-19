@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import responses
+from responses.matchers import query_string_matcher
 from simple_salesforce import SalesforceGeneralError
 
 from cumulusci.core import exceptions as exc
@@ -73,9 +74,9 @@ class TestRunApexTests(MockLoggerMixin):
 
     def _mock_apex_class_query(self, name="TestClass_TEST", namespace=None):
         namespace_param = "null" if namespace is None else f"%27{namespace}%27"
-        url = (
-            self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+Name+"
+        url = self.base_tooling_url + "query/"
+        query_string = (
+            "q=SELECT+Id%2C+Name+"
             + f"FROM+ApexClass+WHERE+NamespacePrefix+%3D+{namespace_param}"
             + "+AND+%28Name+LIKE+%27%25_TEST%27%29"
         )
@@ -85,7 +86,10 @@ class TestRunApexTests(MockLoggerMixin):
             "totalSize": 1,
         }
         responses.add(
-            responses.GET, url, match_querystring=True, json=expected_response
+            responses.GET,
+            url,
+            match=[query_string_matcher(query_string)],
+            json=expected_response,
         )
 
     def _get_mock_test_query_results(self, methodnames, outcomes, messages):
@@ -163,16 +167,14 @@ class TestRunApexTests(MockLoggerMixin):
 
     def _get_mock_test_query_url(self, job_id):
         return (
-            self.base_tooling_url
-            + "query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql%0A++++++++FROM+ApexTestResults%29%0AFROM+ApexTestResult%0AWHERE+AsyncApexJobId%3D%27{}%27%0A".format(
-                job_id
-            )
+            self.base_tooling_url + "query/",
+            f"q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql%0A++++++++FROM+ApexTestResults%29%0AFROM+ApexTestResult%0AWHERE+AsyncApexJobId%3D%27{job_id}%27%0A",
         )
 
     def _get_mock_testqueueitem_status_query_url(self, job_id):
         return (
-            self.base_tooling_url
-            + f"query/?q=SELECT+Id%2C+Status%2C+ExtendedStatus%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27{job_id}%27+AND+Status+%3D+%27Failed%27"
+            (self.base_tooling_url + "query/"),
+            f"q=SELECT+Id%2C+Status%2C+ExtendedStatus%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27{job_id}%27+AND+Status+%3D+%27Failed%27",
         )
 
     def _mock_get_test_results(
@@ -182,44 +184,50 @@ class TestRunApexTests(MockLoggerMixin):
         job_id="JOB_ID1234567",
         methodname=["TestMethod"],
     ):
-        url = self._get_mock_test_query_url(job_id)
+        url, query_string = self._get_mock_test_query_url(job_id)
 
         expected_response = self._get_mock_test_query_results(
             methodname, [outcome], [message]
         )
         responses.add(
-            responses.GET, url, match_querystring=True, json=expected_response
+            responses.GET,
+            url,
+            match=[query_string_matcher(query_string)],
+            json=expected_response,
         )
 
     def _mock_get_test_results_multiple(
         self, method_names, outcomes, messages, job_id="JOB_ID1234567"
     ):
-        url = self._get_mock_test_query_url(job_id)
+        url, query_string = self._get_mock_test_query_url(job_id)
 
         expected_response = self._get_mock_test_query_results(
             method_names, outcomes, messages
         )
         responses.add(
-            responses.GET, url, match_querystring=True, json=expected_response
+            responses.GET,
+            url,
+            match=[query_string_matcher(query_string)],
+            json=expected_response,
         )
 
     def _mock_get_failed_test_classes(self, job_id="JOB_ID1234567"):
-        url = self._get_mock_testqueueitem_status_query_url(job_id)
+        url, query_string = self._get_mock_testqueueitem_status_query_url(job_id)
 
         responses.add(
             responses.GET,
             url,
-            match_querystring=True,
+            match=[query_string_matcher(query_string)],
             json={"totalSize": 0, "records": [], "done": True},
         )
 
     def _mock_get_failed_test_classes_failure(self, job_id="JOB_ID1234567"):
-        url = self._get_mock_testqueueitem_status_query_url(job_id)
+        url, query_string = self._get_mock_testqueueitem_status_query_url(job_id)
 
         responses.add(
             responses.GET,
             url,
-            match_querystring=True,
+            match=[query_string_matcher(query_string)],
             json={
                 "totalSize": 1,
                 "records": [
@@ -235,14 +243,15 @@ class TestRunApexTests(MockLoggerMixin):
         )
 
     def _mock_get_symboltable(self):
-        url = (
-            self.base_tooling_url
-            + "query/?q=SELECT+SymbolTable+FROM+ApexClass+WHERE+Name%3D%27TestClass_TEST%27"
+        url = self.base_tooling_url + "query/"
+        query_string = (
+            "q=SELECT+SymbolTable+FROM+ApexClass+WHERE+Name%3D%27TestClass_TEST%27"
         )
 
         responses.add(
             responses.GET,
             url,
+            match=[query_string_matcher(query_string)],
             json={
                 "records": [
                     {
@@ -265,9 +274,9 @@ class TestRunApexTests(MockLoggerMixin):
         responses.add(responses.GET, url, json={"records": []})
 
     def _mock_tests_complete(self, job_id="JOB_ID1234567"):
-        url = (
-            self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+Status%2C+"
+        url = self.base_tooling_url + "query/"
+        query_string = (
+            "q=SELECT+Id%2C+Status%2C+"
             + "ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27"
             + "{}%27".format(job_id)
         )
@@ -277,15 +286,18 @@ class TestRunApexTests(MockLoggerMixin):
             "records": [{"Status": "Completed"}],
         }
         responses.add(
-            responses.GET, url, match_querystring=True, json=expected_response
+            responses.GET,
+            url,
+            match=[query_string_matcher(query_string)],
+            json=expected_response,
         )
 
     def _mock_tests_processing(self, job_id="JOB_ID1234567"):
-        url = (
-            self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+Status%2C+"
+        url = self.base_tooling_url + "query/"
+        query_string = (
+            "q=SELECT+Id%2C+Status%2C+"
             + "ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27"
-            + "{}%27".format(job_id)
+            + f"{job_id}%27"
         )
         expected_response = {
             "done": True,
@@ -293,7 +305,10 @@ class TestRunApexTests(MockLoggerMixin):
             "records": [{"Status": "Processing", "ApexClassId": 1}],
         }
         responses.add(
-            responses.GET, url, match_querystring=True, json=expected_response
+            responses.GET,
+            url,
+            match=[query_string_matcher(query_string)],
+            json=expected_response,
         )
 
     def _mock_run_tests(self, success=True, body="JOB_ID1234567"):

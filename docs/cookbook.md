@@ -43,7 +43,7 @@ run_custom_command:
 The `dx` task lets you run an arbitrary `sfdx` command. You can perform
 this with `cci` on a terminal:
 
-    $ cci task run dx -o command 'force:api:limits:display'
+    $ cci task run dx -o command 'limits api display'
 
 Or you can utilize the same `class_path` as the `dx` task and make a
 custom task that can be executed by itself or as a step in a flow.
@@ -54,7 +54,7 @@ dx_limits:
     class_path: cumulusci.tasks.sfdx.SFDXBaseTask
     group: dx
     options:
-        command: sfdx force:limits:api:display
+        command: sf limits api display
 ```
 
 In this case, we actually utilize `SFDXBaseTask`, if you would like to
@@ -64,7 +64,7 @@ instead.
 ### Custom Deploy
 
 It is often useful to be able to define multiple custom deployment tasks
-that deployg a specific subset of your projects metadata. This is
+that deploy a specific subset of your projects metadata. This is
 particularly true when working with [unpackaged Metadata](unpackaged).
 
 Here is a custom task that is defined to only deploy only the metadata

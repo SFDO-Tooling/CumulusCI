@@ -69,5 +69,4 @@ org, e.g. a Dev Hub. Set with SFDX_CLIENT_ID.
 
 ## `SFDX_ORG_CREATE_ARGS`
 
-Extra arguments passed to `sfdx force:org:create`. Can be used to pass
-key-value pairs.
+Extra arguments passed to `sf org create scratch`.
