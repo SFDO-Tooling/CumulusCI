@@ -252,40 +252,95 @@ versa.
 
 ### Selects
 
-The "select" functionality enhances the mapping process by enabling direct record selection from the target Salesforce org for lookups. This is achieved by specifying the `select` action in the mapping file, particularly useful when dealing with objects dependent on non-insertable Salesforce objects.
+The `select` functionality is designed to streamline the mapping process by enabling the selection of specific records directly from Salesforce for lookups. This feature is particularly useful when dealing with non-insertable Salesforce objects and ensures that pre-existing records are used rather than inserting new ones. The selection process is highly customizable with various strategies, filters, and additional capabilities that provide flexibility and precision in data mapping.
 
 ```yaml
-Select Accounts:
+Account:
     sf_object: Account
-    action: select
-    selection_strategy: standard
-    selection_filter: WHERE Name IN ('Bluth Company', 'Camacho PLC')
     fields:
         - Name
-        - AccountNumber
-Insert Contacts:
+        - Description
+
+Contact:
     sf_object: Contact
-    action: insert
     fields:
         - LastName
+        - Email
     lookups:
         AccountId:
             table: Account
+
+Lead:
+    sf_object: Lead
+    fields:
+        - LastName
+        - Company
+
+Event:
+    sf_object: Event
+    action: select
+    select_options:
+        strategy: similarity
+        filter: WHERE Subject IN ('Sample Event')
+        priority_fields:
+            - Subject
+            - WhoId
+        threshold: 0.3
+    fields:
+        - Subject
+        - DurationInMinutes
+        - ActivityDateTime
+    lookups:
+        WhoId:
+            table:
+                - Contact
+                - Lead
+        WhatId:
+            table: Account
 ```
 
-The `Select Accounts` section in this YAML demonstrates how to fetch specific records from your Salesforce org. These selected Account records will then be referenced by the subsequent `Insert Contacts` section via lookups, ensuring that new Contacts are linked to the pre-existing Accounts chosen in the `select` step rather than relying on any newly inserted Account records.
+---
 
-#### Selection Strategy
+#### Selection Strategies
 
-The `selection_strategy` dictates how these records are chosen:
+-   **`standard` Strategy:**  
+     The `standard` selection strategy retrieves records from Salesforce in the same order as they appear, applying any specified filters and sorting criteria. This method ensures that records are selected without any prioritization based on similarity or randomness, offering a straightforward way to pull the desired data.
 
--   `standard`: This strategy fetches records from the org in the same order as they appear, respecting any filtering applied via `selection_filter`.
--   `similarity`: This strategy is employed when you want to find records in the org that closely resemble those defined in your SQL file.
--   `random`: As the name suggests, this strategy randomly selects records from the org.
+-   **`similarity` Strategy:**  
+     The `similarity` strategy is used when you need to find records in Salesforce that closely resemble the records defined in your SQL file. This strategy performs a similarity match between the records in the SQL file and those in Salesforce. In addition to comparing the fields of the record itself, this strategy includes the fields of parent records (up to one level) for a more granular and accurate match.
 
-#### Selection Filter
+-   **`random` Strategy:**  
+     The `random` selection strategy randomly assigns records picked from the target org. This method is useful when the selection order does not matter, and you simply need to fetch records in a randomized manner.
 
-The `selection_filter` acts as a versatile SOQL clause, providing fine-grained control over record selection. It allows filtering with `WHERE`, sorting with `ORDER BY`, limiting with `LIMIT`, and potentially utilizing other SOQL capabilities, ensuring you select the precise records needed for your chosen `selection_strategy`.
+---
+
+#### Selection Filters
+
+The selection `filter` provides a flexible way to refine the records selected by using any functionality supported by SOQL. This includes filtering, sorting, and limiting records based on specific conditions, such as using the `WHERE` clause to filter records by field values, the `ORDER BY` clause to sort records in ascending or descending order, and the `LIMIT` clause to restrict the number of records returned. Essentially, any feature available in SOQL for record selection is supported here, allowing you to tailor the selection process to your precise needs and ensuring only the relevant records are included in the mapping process.
+
+---
+
+#### Priority Fields
+
+The `priority_fields` feature enables you to specify a subset of fields in your mapping step that will have more weight during the similarity matching process. When similarity matching is performed, these priority fields will be given greater importance compared to other fields, allowing for a more refined match.
+
+This feature is particularly useful when certain fields are more critical in defining the identity or relevance of a record, ensuring that these fields have a stronger influence in the selection process.
+
+---
+
+#### Select + Insert
+
+This feature allows you to either select or insert records based on a similarity threshold. When using the `select` action with the `similarity` strategy, you can specify a `threshold` value between `0` and `1`, where `0` represents a perfect match and `1` signifies no similarity.
+
+-   **Select Records:**  
+     If a record from your SQL file has a similarity score below the threshold, it will be selected from the target org.
+
+-   **Insert Records:**  
+     If the similarity score exceeds the threshold, the record will be inserted into the target org instead of being selected.
+
+This feature is particularly useful during version upgrades, where records that closely match can be selected, while those that do not match sufficiently can be inserted into the target org.
+
+---
 
 ### Database Mapping
 
