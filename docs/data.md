@@ -250,6 +250,8 @@ Insert Accounts:
 Whenever `update_key` is supplied, the action must be `upsert` and vice
 versa.
 
+---
+
 ### Selects
 
 The `select` functionality is designed to streamline the mapping process by enabling the selection of specific records directly from Salesforce for lookups. This feature is particularly useful when dealing with non-insertable Salesforce objects and ensures that pre-existing records are used rather than inserting new ones. The selection process is highly customizable with various strategies, filters, and additional capabilities that provide flexibility and precision in data mapping.
