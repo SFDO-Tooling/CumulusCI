@@ -762,7 +762,7 @@ class TestLibdocPageObjects:
 
 
 class TestRobotPerformanceKeywords:
-    def setup(self):
+    def setup_method(self):
         self.datadir = os.path.dirname(__file__)
 
     @contextmanager

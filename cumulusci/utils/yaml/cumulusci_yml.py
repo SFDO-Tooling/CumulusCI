@@ -278,9 +278,6 @@ class ErrorDict(TypedDict):
     type: str
 
 
-has_shown_yaml_error_message = False
-
-
 def _log_yaml_errors(logger, errors: List[ErrorDict]):
     "Format and log a Pydantic-style error dictionary"
     global has_shown_yaml_error_message
@@ -289,18 +286,6 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
     for error in errors:
         loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
         logger.warning("  %s\n    %s", loc, error["msg"])
-    if not has_shown_yaml_error_message:
-        logger.error(
-            "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
-            "If you need to put non-standard data in your CumulusCI file "
-            "(for some form of project-specific setting), put it in "
-            "the `project: custom:` section of `cumulusci.yml` ."
-        )
-        logger.error(
-            "If you think your YAML has no error, please report the bug to the CumulusCI team."
-        )
-        logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/\n")
-        has_shown_yaml_error_message = True
 
 
 def cci_safe_load(
