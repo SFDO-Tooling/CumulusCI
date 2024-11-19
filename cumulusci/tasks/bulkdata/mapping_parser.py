@@ -91,9 +91,9 @@ class MappingStep(CCIDictModel):
     batch_size: int = None
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
-    bulk_mode: Optional[Literal["Serial", "Parallel"]] = (
-        None  # default should come from task options
-    )
+    bulk_mode: Optional[
+        Literal["Serial", "Parallel"]
+    ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
     select_options: Optional[SelectOptions] = Field(
