@@ -53,6 +53,7 @@ dependencies = [
     "rst2ansi>=0.1.5",
     "salesforce-bulk",
     "sarge",
+    "scikit-learn",
     "selenium<4",
     "simple-salesforce==1.11.4",
     "snowfakery>=4.0.0",
