@@ -7,7 +7,8 @@ import tempfile
 import time
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, List, NamedTuple, Optional
+from itertools import tee
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import requests
 import salesforce_bulk
@@ -15,13 +16,21 @@ import salesforce_bulk
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
+from cumulusci.tasks.bulkdata.select_utils import (
+    SelectOperationExecutor,
+    SelectRecordRetrievalMode,
+    SelectStrategy,
+    split_and_filter_fields,
+)
+from cumulusci.tasks.bulkdata.utils import DataApi, iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
 from cumulusci.utils.xml import lxml_parse_string
 
 DEFAULT_BULK_BATCH_SIZE = 10_000
 DEFAULT_REST_BATCH_SIZE = 200
 MAX_REST_BATCH_SIZE = 200
+HIGH_PRIORITY_VALUE = 3
+LOW_PRIORITY_VALUE = 0.5
 csv.field_size_limit(2**27)  # 128 MB
 
 
@@ -36,14 +45,7 @@ class DataOperationType(StrEnum):
     UPSERT = "upsert"
     ETL_UPSERT = "etl_upsert"
     SMART_UPSERT = "smart_upsert"  # currently undocumented
-
-
-class DataApi(StrEnum):
-    """Enum defining requested Salesforce data API for an operation."""
-
-    BULK = "bulk"
-    REST = "rest"
-    SMART = "smart"
+    SELECT = "select"
 
 
 class DataOperationStatus(StrEnum):
@@ -321,6 +323,11 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def select_records(self, records):
+        """Perform the requested DML operation on the supplied row iterator."""
+        pass
+
+    @abstractmethod
     def load_records(self, records):
         """Perform the requested DML operation on the supplied row iterator."""
         pass
@@ -338,7 +345,20 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
 class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     """Operation class for all DML operations run using the Bulk API."""
 
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self,
+        *,
+        sobject,
+        operation,
+        api_options,
+        context,
+        fields,
+        selection_strategy=SelectStrategy.STANDARD,
+        selection_filter=None,
+        selection_priority_fields=None,
+        content_type=None,
+        threshold=None,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -353,18 +373,27 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff, quoting=csv.QUOTE_ALL)
 
+        self.select_operation_executor = SelectOperationExecutor(selection_strategy)
+        self.selection_filter = selection_filter
+        self.weights = assign_weights(
+            priority_fields=selection_priority_fields, fields=fields
+        )
+        self.content_type = content_type if content_type else "CSV"
+        self.threshold = threshold
+
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
             self.operation.value,
-            contentType="CSV",
+            contentType=self.content_type,
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
             external_id_name=self.api_options.get("update_key"),
         )
 
     def end(self):
         self.bulk.close_job(self.job_id)
-        self.job_result = self._wait_for_job(self.job_id)
+        if not self.job_result:
+            self.job_result = self._wait_for_job(self.job_id)
 
     def get_prev_record_values(self, records):
         """Get the previous values of the records based on the update key
@@ -424,6 +453,161 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
+    def select_records(self, records):
+        """Executes a SOQL query to select records and adds them to results"""
+
+        self.select_results = []  # Store selected records
+        query_records = []
+        # Create a copy of the generator using tee
+        records, records_copy = tee(records)
+        # Count total number of records to fetch using the copy
+        total_num_records = sum(1 for _ in records_copy)
+        limit_clause = self._determine_limit_clause(total_num_records=total_num_records)
+
+        # Generate and execute SOQL query
+        # (not passing offset as it is not supported in Bulk)
+        (
+            select_query,
+            query_fields,
+        ) = self.select_operation_executor.select_generate_query(
+            sobject=self.sobject,
+            fields=self.fields,
+            user_filter=self.selection_filter if self.selection_filter else None,
+            limit=limit_clause,
+            offset=None,
+        )
+
+        # Execute the main select query using Bulk API
+        select_query_records = self._execute_select_query(
+            select_query=select_query, query_fields=query_fields
+        )
+
+        query_records.extend(select_query_records)
+        # Post-process the query results
+        (
+            selected_records,
+            insert_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            load_records=records,
+            query_records=query_records,
+            fields=self.fields,
+            num_records=total_num_records,
+            sobject=self.sobject,
+            weights=self.weights,
+            threshold=self.threshold,
+        )
+
+        # Log the number of selected and prepared for insertion records
+        num_selected = sum(1 for record in selected_records if record)
+        num_prepared = len(insert_records) if insert_records else 0
+
+        self.logger.info(
+            f"{num_selected} records selected."
+            + (
+                f" {num_prepared} records prepared for insertion."
+                if num_prepared > 0
+                else ""
+            )
+        )
+
+        if insert_records:
+            self._process_insert_records(insert_records, selected_records)
+
+        if not error_message:
+            self.select_results.extend(selected_records)
+
+        # Update job result based on selection outcome
+        self.job_result = DataOperationJobResult(
+            status=(
+                DataOperationStatus.SUCCESS
+                if len(self.select_results)
+                else DataOperationStatus.JOB_FAILURE
+            ),
+            job_errors=[error_message] if error_message else [],
+            records_processed=len(self.select_results),
+            total_row_errors=0,
+        )
+
+    def _process_insert_records(self, insert_records, selected_records):
+        """Processes and inserts records if necessary."""
+        insert_fields, _ = split_and_filter_fields(fields=self.fields)
+        insert_step = BulkApiDmlOperation(
+            sobject=self.sobject,
+            operation=DataOperationType.INSERT,
+            api_options=self.api_options,
+            context=self.context,
+            fields=insert_fields,
+        )
+        insert_step.start()
+        insert_step.load_records(insert_records)
+        insert_step.end()
+        # Retrieve insert results
+        insert_results = []
+        for batch_id in insert_step.batch_ids:
+            try:
+                results_url = f"{insert_step.bulk.endpoint}/job/{insert_step.job_id}/batch/{batch_id}/result"
+                # Download entire result file to a temporary file first
+                # to avoid the server dropping connections
+                with download_file(results_url, insert_step.bulk) as f:
+                    self.logger.info(f"Downloaded results for batch {batch_id}")
+                    reader = csv.reader(f)
+                    next(reader)  # Skip header row
+                    for row in reader:
+                        success = process_bool_arg(row[1])
+                        created = process_bool_arg(row[2])
+                        insert_results.append(
+                            {"id": row[0], "success": success, "created": created}
+                        )
+            except Exception as e:
+                raise BulkDataException(
+                    f"Failed to download results for batch {batch_id} ({str(e)})"
+                )
+
+        insert_index = 0
+        for idx, record in enumerate(selected_records):
+            if record is None:
+                selected_records[idx] = insert_results[insert_index]
+                insert_index += 1
+
+    def _determine_limit_clause(self, total_num_records):
+        """Determines the LIMIT clause based on the retrieval mode."""
+        if (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.ALL
+        ):
+            return None
+        elif (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.MATCH
+        ):
+            return total_num_records
+
+    def _execute_select_query(self, select_query: str, query_fields: List[str]):
+        """Executes the select Bulk API query, retrieves results in JSON, and converts to CSV format if needed."""
+        self.batch_id = self.bulk.query(self.job_id, select_query)
+        self.bulk.wait_for_batch(self.job_id, self.batch_id)
+        result_ids = self.bulk.get_query_batch_result_ids(
+            self.batch_id, job_id=self.job_id
+        )
+        select_query_records = []
+
+        for result_id in result_ids:
+            # Modify URI to request JSON format
+            uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}?format=json"
+            # Download JSON data
+            with download_file(uri, self.bulk) as f:
+                data = json.load(f)
+                # Get headers from fields, expanding nested structures for TYPEOF results
+                self.headers = query_fields
+
+                # Convert each record to a flat row
+                for record in data:
+                    flat_record = flatten_record(record, self.headers)
+                    select_query_records.append(flat_record)
+
+        return select_query_records
+
     def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
@@ -472,6 +656,29 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         return serialized
 
     def get_results(self):
+        """
+        Retrieves and processes the results of a Bulk API operation.
+        """
+
+        if self.operation is DataOperationType.QUERY:
+            yield from self._get_query_results()
+        else:
+            yield from self._get_batch_results()
+
+    def _get_query_results(self):
+        """Handles results for QUERY (select) operations"""
+        for row in self.select_results:
+            success = process_bool_arg(row["success"])
+            created = process_bool_arg(row["created"])
+            yield DataOperationResult(
+                row["id"] if success else "",
+                success,
+                "",
+                created,
+            )
+
+    def _get_batch_results(self):
+        """Handles results for other DataOperationTypes (insert, update, etc.)"""
         for batch_id in self.batch_ids:
             try:
                 results_url = (
@@ -481,29 +688,46 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 # to avoid the server dropping connections
                 with download_file(results_url, self.bulk) as f:
                     self.logger.info(f"Downloaded results for batch {batch_id}")
+                    yield from self._parse_batch_results(f)
 
-                    reader = csv.reader(f)
-                    next(reader)  # skip header
-
-                    for row in reader:
-                        success = process_bool_arg(row[1])
-                        created = process_bool_arg(row[2])
-                        yield DataOperationResult(
-                            row[0] if success else None,
-                            success,
-                            row[3] if not success else None,
-                            created,
-                        )
             except Exception as e:
                 raise BulkDataException(
                     f"Failed to download results for batch {batch_id} ({str(e)})"
                 )
 
+    def _parse_batch_results(self, f):
+        """Parses batch results from the downloaded file"""
+        reader = csv.reader(f)
+        next(reader)  # Skip header row
+
+        for row in reader:
+            success = process_bool_arg(row[1])
+            created = process_bool_arg(row[2])
+            yield DataOperationResult(
+                row[0] if success else None,
+                success,
+                row[3] if not success else None,
+                created,
+            )
+
 
 class RestApiDmlOperation(BaseDmlOperation):
     """Operation class for all DML operations run using the REST API."""
 
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self,
+        *,
+        sobject,
+        operation,
+        api_options,
+        context,
+        fields,
+        selection_strategy=SelectStrategy.STANDARD,
+        selection_filter=None,
+        selection_priority_fields=None,
+        content_type=None,
+        threshold=None,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -517,7 +741,9 @@ class RestApiDmlOperation(BaseDmlOperation):
             field["name"]: field
             for field in getattr(context.sf, sobject).describe()["fields"]
         }
-        self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+        self.boolean_fields = [
+            f for f in fields if "." not in f and describe[f]["type"] == "boolean"
+        ]
         self.api_options = api_options.copy()
         self.api_options["batch_size"] = (
             self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE
@@ -525,6 +751,14 @@ class RestApiDmlOperation(BaseDmlOperation):
         self.api_options["batch_size"] = min(
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
+
+        self.select_operation_executor = SelectOperationExecutor(selection_strategy)
+        self.selection_filter = selection_filter
+        self.weights = assign_weights(
+            priority_fields=selection_priority_fields, fields=fields
+        )
+        self.content_type = content_type
+        self.threshold = threshold
 
     def _record_to_json(self, rec):
         result = dict(zip(self.fields, rec))
@@ -623,12 +857,149 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         row_errors = len([res for res in self.results if not res["success"]])
         self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS
-            if not row_errors
-            else DataOperationStatus.ROW_FAILURE,
+            (
+                DataOperationStatus.SUCCESS
+                if not row_errors
+                else DataOperationStatus.ROW_FAILURE
+            ),
             [],
             len(self.results),
             row_errors,
+        )
+
+    def select_records(self, records):
+        """Executes a SOQL query to select records and adds them to results"""
+
+        self.results = []
+        query_records = []
+
+        # Create a copy of the generator using tee
+        records, records_copy = tee(records)
+
+        # Count total number of records to fetch using the copy
+        total_num_records = sum(1 for _ in records_copy)
+
+        # Set LIMIT condition
+        limit_clause = self._determine_limit_clause(total_num_records)
+
+        # Generate the SOQL query based on the selection strategy
+        (
+            select_query,
+            query_fields,
+        ) = self.select_operation_executor.select_generate_query(
+            sobject=self.sobject,
+            fields=self.fields,
+            user_filter=self.selection_filter or None,
+            limit=limit_clause,
+            offset=None,
+        )
+
+        # Execute the query and gather the records
+        query_records = self._execute_soql_query(select_query, query_fields)
+
+        # Post-process the query results for this batch
+        (
+            selected_records,
+            insert_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            load_records=records,
+            query_records=query_records,
+            fields=self.fields,
+            num_records=total_num_records,
+            sobject=self.sobject,
+            weights=self.weights,
+            threshold=self.threshold,
+        )
+
+        # Log the number of selected and prepared for insertion records
+        num_selected = sum(1 for record in selected_records if record)
+        num_prepared = len(insert_records) if insert_records else 0
+
+        self.logger.info(
+            f"{num_selected} records selected."
+            + (
+                f" {num_prepared} records prepared for insertion."
+                if num_prepared > 0
+                else ""
+            )
+        )
+
+        if insert_records:
+            self._process_insert_records(insert_records, selected_records)
+
+        if not error_message:
+            # Add selected records from this batch to the overall results
+            self.results.extend(selected_records)
+
+        # Update the job result based on the overall selection outcome
+        self._update_job_result(error_message)
+
+    def _determine_limit_clause(self, total_num_records):
+        """Determines the LIMIT clause based on the retrieval mode."""
+        if (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.ALL
+        ):
+            return None
+        elif (
+            self.select_operation_executor.retrieval_mode
+            == SelectRecordRetrievalMode.MATCH
+        ):
+            return total_num_records
+
+    def _execute_soql_query(self, select_query, query_fields):
+        """Executes the SOQL query and returns the flattened records."""
+        query_records = []
+        response = self.sf.restful(
+            requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
+        )
+        query_records.extend(self._flatten_response_records(response, query_fields))
+
+        while not response["done"]:
+            response = self.sf.query_more(
+                response["nextRecordsUrl"], identifier_is_url=True
+            )
+            query_records.extend(self._flatten_response_records(response, query_fields))
+
+        return query_records
+
+    def _flatten_response_records(self, response, query_fields):
+        """Flattens the response records and returns them as a list."""
+        return [flatten_record(record, query_fields) for record in response["records"]]
+
+    def _process_insert_records(self, insert_records, selected_records):
+        """Processes and inserts records if necessary."""
+        insert_fields, _ = split_and_filter_fields(fields=self.fields)
+        insert_step = RestApiDmlOperation(
+            sobject=self.sobject,
+            operation=DataOperationType.INSERT,
+            api_options=self.api_options,
+            context=self.context,
+            fields=insert_fields,
+        )
+        insert_step.start()
+        insert_step.load_records(insert_records)
+        insert_step.end()
+        insert_results = insert_step.results
+
+        insert_index = 0
+        for idx, record in enumerate(selected_records):
+            if record is None:
+                selected_records[idx] = insert_results[insert_index]
+                insert_index += 1
+
+    def _update_job_result(self, error_message):
+        """Updates the job result based on the selection outcome."""
+        self.job_result = DataOperationJobResult(
+            status=(
+                DataOperationStatus.SUCCESS
+                if len(self.results)
+                else DataOperationStatus.JOB_FAILURE
+            ),
+            job_errors=[error_message] if error_message else [],
+            records_processed=len(self.results),
+            total_row_errors=0,
         )
 
     def get_results(self):
@@ -712,6 +1083,11 @@ def get_dml_operation(
     context: Any,
     volume: int,
     api: Optional[DataApi] = DataApi.SMART,
+    selection_strategy: SelectStrategy = SelectStrategy.STANDARD,
+    selection_filter: Union[str, None] = None,
+    selection_priority_fields: Union[dict, None] = None,
+    content_type: Union[str, None] = None,
+    threshold: Union[float, None] = None,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
@@ -745,4 +1121,96 @@ def get_dml_operation(
         api_options=api_options,
         context=context,
         fields=fields,
+        selection_strategy=selection_strategy,
+        selection_filter=selection_filter,
+        selection_priority_fields=selection_priority_fields,
+        content_type=content_type,
+        threshold=threshold,
     )
+
+
+def extract_flattened_headers(query_fields):
+    """Extract headers from query fields, including handling of TYPEOF fields."""
+    headers = []
+
+    for field in query_fields:
+        if isinstance(field, dict):
+            # Handle TYPEOF / polymorphic fields
+            for lookup, references in field.items():
+                # Assuming each reference is a list of dictionaries
+                for ref_type in references:
+                    for ref_obj, ref_fields in ref_type.items():
+                        for nested_field in ref_fields:
+                            headers.append(
+                                f"{lookup}.{ref_obj}.{nested_field}"
+                            )  # Flatten the structure
+        else:
+            # Regular fields
+            headers.append(field)
+
+    return headers
+
+
+def flatten_record(record, headers):
+    """Flatten each record to match headers, handling nested fields."""
+    flat_record = []
+
+    for field in headers:
+        components = field.split(".")
+        value = ""
+
+        # Handle lookup fields with two or three components
+        if len(components) >= 2:
+            lookup_field = components[0]
+            lookup = record.get(lookup_field, None)
+
+            # Check if lookup field exists in the record
+            if lookup is None:
+                value = ""
+            else:
+                if len(components) == 2:
+                    # Handle fields with two components: {lookup}.{ref_field}
+                    ref_field = components[1]
+                    value = lookup.get(ref_field, "")
+                elif len(components) == 3:
+                    # Handle fields with three components: {lookup}.{ref_obj}.{ref_field}
+                    ref_obj, ref_field = components[1], components[2]
+                    # Check if the type matches the specified ref_obj
+                    if lookup.get("attributes", {}).get("type") == ref_obj:
+                        value = lookup.get(ref_field, "")
+                    else:
+                        value = ""
+
+        else:
+            # Regular fields or non-polymorphic fields
+            value = record.get(field, "")
+
+        # Set None values to empty string
+        if value is None:
+            value = ""
+        elif not isinstance(value, str):
+            value = str(value)
+
+        # Append the resolved value to the flattened record
+        flat_record.append(value)
+
+    return flat_record
+
+
+def assign_weights(
+    priority_fields: Union[Dict[str, str], None], fields: List[str]
+) -> list:
+    # If priority_fields is None or an empty dictionary, set all weights to 1
+    if not priority_fields:
+        return [1] * len(fields)
+
+    # Initialize the weight list with LOW_PRIORITY_VALUE
+    weights = [LOW_PRIORITY_VALUE] * len(fields)
+
+    # Iterate over the fields and assign weights based on priority_fields
+    for i, field in enumerate(fields):
+        if field in priority_fields:
+            # Set weight to HIGH_PRIORITY_VALUE if field is in priority_fields
+            weights[i] = HIGH_PRIORITY_VALUE
+
+    return weights

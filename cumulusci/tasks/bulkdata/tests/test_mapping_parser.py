@@ -17,6 +17,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
+from cumulusci.tasks.bulkdata.select_utils import SelectStrategy
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
 
@@ -212,6 +213,70 @@ class TestMappingParser:
             [4],
             date.today(),
         )
+
+    def test_select_options__success(self):
+        base_path = Path(__file__).parent / "mapping_select.yml"
+        result = parse_from_yaml(base_path)
+
+        step = result["Select Accounts"]
+        select_options = step.select_options
+        assert select_options
+        assert select_options.strategy == SelectStrategy.SIMILARITY
+        assert select_options.filter == "WHEN Name in ('Sample Account')"
+        assert select_options.priority_fields
+
+    def test_select_options__invalid_strategy(self):
+        base_path = Path(__file__).parent / "mapping_select_invalid_strategy.yml"
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "Invalid strategy value: invalid_strategy" in str(e.value)
+
+    def test_select_options__invalid_threshold__non_float(self):
+        base_path = (
+            Path(__file__).parent / "mapping_select_invalid_threshold__non_float.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "value is not a valid float" in str(e.value)
+
+    def test_select_options__invalid_threshold__invalid_strategy(self):
+        base_path = (
+            Path(__file__).parent
+            / "mapping_select_invalid_threshold__invalid_strategy.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert (
+            "If a threshold is specified, the strategy must be set to 'similarity'."
+            in str(e.value)
+        )
+
+    def test_select_options__invalid_threshold__invalid_number(self):
+        base_path = (
+            Path(__file__).parent
+            / "mapping_select_invalid_threshold__invalid_number.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "Threshold must be between 0 and 1, got 1.5" in str(e.value)
+
+    def test_select_options__missing_priority_fields(self):
+        base_path = Path(__file__).parent / "mapping_select_missing_priority_fields.yml"
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        print(str(e.value))
+        assert (
+            "Priority fields {'Email'} are not present in 'fields' or 'lookups'"
+            in str(e.value)
+        )
+
+    def test_select_options__no_priority_fields(self):
+        base_path = Path(__file__).parent / "mapping_select_no_priority_fields.yml"
+        result = parse_from_yaml(base_path)
+
+        step = result["Select Accounts"]
+        select_options = step.select_options
+        assert select_options.priority_fields == {}
 
     # Start of FLS/Namespace Injection Unit Tests
 

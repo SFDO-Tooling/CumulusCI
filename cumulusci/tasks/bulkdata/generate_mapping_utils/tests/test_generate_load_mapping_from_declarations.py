@@ -41,6 +41,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "sf_object": "Account",
                     "table": "Account",
                     "fields": ["Name", "Description"],
+                    "select_options": {},
                 }
             }
 
@@ -74,11 +75,13 @@ class TestGenerateLoadMappingFromDeclarations:
                         "sf_object": "Contact",
                         "table": "Contact",
                         "fields": ["FirstName", "LastName"],
+                        "select_options": {},
                     },
                     "Insert Account": {
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name", "Description"],
+                        "select_options": {},
                     },
                 }.items()
             )
@@ -111,6 +114,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "sf_object": "Account",
                     "table": "Account",
                     "fields": ["Name", "Description"],
+                    "select_options": {},
                 },
                 "Insert Contact": {
                     "sf_object": "Contact",
@@ -119,6 +123,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "lookups": {
                         "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
+                    "select_options": {},
                 },
             }
 
@@ -157,6 +162,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "sf_object": "Account",
                     "table": "Account",
                     "fields": ["Name", "Description"],
+                    "select_options": {},
                 },
                 "Insert Contact": {
                     "sf_object": "Contact",
@@ -165,11 +171,13 @@ class TestGenerateLoadMappingFromDeclarations:
                     "lookups": {
                         "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
+                    "select_options": {},
                 },
                 "Insert Lead": {
                     "sf_object": "Lead",
                     "table": "Lead",
                     "fields": ["LastName", "Company"],
+                    "select_options": {},
                 },
                 "Insert Event": {
                     "sf_object": "Event",
@@ -178,6 +186,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "lookups": {
                         "WhoId": {"table": ["Contact", "Lead"], "key_field": "WhoId"}
                     },
+                    "select_options": {},
                 },
             }
 
@@ -221,6 +230,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     },
                     "sf_object": "Account",
                     "table": "Account",
+                    "select_options": {},
                 },
                 "Insert Contact": {
                     "sf_object": "Contact",
@@ -229,6 +239,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "lookups": {
                         "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
+                    "select_options": {},
                 },
             }, mf
 
@@ -252,11 +263,13 @@ class TestGenerateLoadMappingFromDeclarations:
                 "sf_object": "Account",
                 "api": DataApi.REST,
                 "table": "Account",
+                "select_options": {},
             },
             "Insert Contact": {
                 "sf_object": "Contact",
                 "api": DataApi.BULK,
                 "table": "Contact",
+                "select_options": {},
             },
         }, mf
 
@@ -288,6 +301,7 @@ class TestGenerateLoadMappingFromDeclarations:
             "Insert Account": {
                 "sf_object": "Account",
                 "table": "Account",
+                "select_options": {},
             },
             "Upsert Account Name": {
                 "sf_object": "Account",
@@ -295,6 +309,7 @@ class TestGenerateLoadMappingFromDeclarations:
                 "action": DataOperationType.UPSERT,
                 "update_key": ("Name",),
                 "fields": ["Name"],
+                "select_options": {},
             },
             "Etl_Upsert Account AccountNumber_Name": {
                 "sf_object": "Account",
@@ -302,10 +317,12 @@ class TestGenerateLoadMappingFromDeclarations:
                 "action": DataOperationType.ETL_UPSERT,
                 "update_key": ("AccountNumber", "Name"),
                 "fields": ["AccountNumber", "Name"],
+                "select_options": {},
             },
             "Insert Contact": {
                 "sf_object": "Contact",
                 "table": "Contact",
+                "select_options": {},
             },
         }, mf
 

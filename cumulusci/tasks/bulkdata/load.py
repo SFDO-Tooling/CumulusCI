@@ -27,6 +27,7 @@ from cumulusci.tasks.bulkdata.query_transformers import (
     AddMappingFiltersToQuery,
     AddPersonAccountsToQuery,
     AddRecordTypesToQuery,
+    DynamicLookupQueryExtender,
 )
 from cumulusci.tasks.bulkdata.step import (
     DEFAULT_BULK_BATCH_SIZE,
@@ -289,7 +290,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     self, step, self._stream_queried_data(mapping, local_ids, query)
                 )
             step.start()
-            step.load_records(self._stream_queried_data(mapping, local_ids, query))
+            if mapping.action == DataOperationType.SELECT:
+                step.select_records(
+                    self._stream_queried_data(mapping, local_ids, query)
+                )
+            else:
+                step.load_records(self._stream_queried_data(mapping, local_ids, query))
             step.end()
 
             # Process Job Results
@@ -304,10 +310,108 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             return step.job_result
 
+    def process_lookup_fields(self, mapping, fields, polymorphic_fields):
+        """Modify fields and priority fields based on lookup and polymorphic checks."""
+        # Store the lookups and their original order for re-insertion at the end
+        original_lookups = [name for name in fields if name in mapping.lookups]
+        max_insert_index = -1
+        for name, lookup in mapping.lookups.items():
+            if name in fields:
+                # Get the index of the lookup field before removing it
+                insert_index = fields.index(name)
+                max_insert_index = max(max_insert_index, insert_index)
+                # Remove the lookup field from fields
+                fields.remove(name)
+
+                # Do the same for priority fields
+                lookup_in_priority_fields = False
+                if name in mapping.select_options.priority_fields:
+                    # Set flag to True
+                    lookup_in_priority_fields = True
+                    # Remove the lookup field from priority fields
+                    del mapping.select_options.priority_fields[name]
+
+                # Check if this lookup field is polymorphic
+                if (
+                    name in polymorphic_fields
+                    and len(polymorphic_fields[name]["referenceTo"]) > 1
+                ):
+                    # Convert to list if string
+                    if not isinstance(lookup.table, list):
+                        lookup.table = [lookup.table]
+                    # Polymorphic field handling
+                    polymorphic_references = lookup.table
+                    relationship_name = polymorphic_fields[name]["relationshipName"]
+
+                    # Loop through each polymorphic type (e.g., Contact, Lead)
+                    for ref_type in polymorphic_references:
+                        # Find the mapping step for this polymorphic type
+                        lookup_mapping_step = next(
+                            (
+                                step
+                                for step in self.mapping.values()
+                                if step.table == ref_type
+                            ),
+                            None,
+                        )
+                        if lookup_mapping_step:
+                            lookup_fields = lookup_mapping_step.fields.keys()
+                            # Insert fields in the format {relationship_name}.{ref_type}.{lookup_field}
+                            for field in lookup_fields:
+                                fields.insert(
+                                    insert_index,
+                                    f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}",
+                                )
+                                insert_index += 1
+                                max_insert_index = max(max_insert_index, insert_index)
+                                if lookup_in_priority_fields:
+                                    mapping.select_options.priority_fields[
+                                        f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}"
+                                    ] = f"{relationship_name}.{lookup_mapping_step.sf_object}.{field}"
+
+                else:
+                    # Non-polymorphic field handling
+                    lookup_table = lookup.table
+
+                    if isinstance(lookup_table, list):
+                        lookup_table = lookup_table[0]
+
+                    # Get the mapping step for the non-polymorphic reference
+                    lookup_mapping_step = next(
+                        (
+                            step
+                            for step in self.mapping.values()
+                            if step.table == lookup_table
+                        ),
+                        None,
+                    )
+
+                    if lookup_mapping_step:
+                        relationship_name = polymorphic_fields[name]["relationshipName"]
+                        lookup_fields = lookup_mapping_step.fields.keys()
+
+                        # Insert the new fields at the same position as the removed lookup field
+                        for field in lookup_fields:
+                            fields.insert(insert_index, f"{relationship_name}.{field}")
+                            insert_index += 1
+                            max_insert_index = max(max_insert_index, insert_index)
+                            if lookup_in_priority_fields:
+                                mapping.select_options.priority_fields[
+                                    f"{relationship_name}.{field}"
+                                ] = f"{relationship_name}.{field}"
+
+        # Append the original lookups at the end in the same order
+        for name in original_lookups:
+            if name not in fields:
+                fields.insert(max_insert_index, name)
+                max_insert_index += 1
+
     def configure_step(self, mapping):
         """Create a step appropriate to the action"""
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
+        num_records_in_target = None
+        content_type = None
 
         fields = mapping.get_load_field_list()
 
@@ -336,10 +440,44 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.check_simple_upsert(mapping)
             api_options["update_key"] = mapping.update_key[0]
             action = DataOperationType.UPSERT
+        elif mapping.action == DataOperationType.SELECT:
+            # Set content type to json
+            content_type = "JSON"
+            # Bulk process expects DataOpertionType to be QUERY
+            action = DataOperationType.QUERY
+            # Determine number of records in the target org
+            record_count_response = self.sf.restful(
+                f"limits/recordCount?sObjects={mapping.sf_object}"
+            )
+            sobject_map = {
+                entry["name"]: entry["count"]
+                for entry in record_count_response["sObjects"]
+            }
+            num_records_in_target = sobject_map.get(mapping.sf_object, None)
+
+            # Check for similarity selection strategy and modify fields accordingly
+            if mapping.select_options.strategy == "similarity":
+                # Describe the object to determine polymorphic lookups
+                describe_result = self.sf.restful(
+                    f"sobjects/{mapping.sf_object}/describe"
+                )
+                polymorphic_fields = {
+                    field["name"]: field
+                    for field in describe_result["fields"]
+                    if field["type"] == "reference"
+                }
+                self.process_lookup_fields(mapping, fields, polymorphic_fields)
         else:
             action = mapping.action
 
         query = self._query_db(mapping)
+
+        # Set volume
+        volume = (
+            num_records_in_target
+            if num_records_in_target is not None
+            else query.count()
+        )
 
         step = get_dml_operation(
             sobject=mapping.sf_object,
@@ -348,7 +486,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             context=self,
             fields=fields,
             api=mapping.api,
-            volume=query.count(),
+            volume=volume,
+            selection_strategy=mapping.select_options.strategy,
+            selection_filter=mapping.select_options.filter,
+            selection_priority_fields=mapping.select_options.priority_fields,
+            content_type=content_type,
+            threshold=mapping.select_options.threshold,
         )
         return step, query
 
@@ -448,9 +591,20 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             AddMappingFiltersToQuery,
             AddUpsertsToQuery,
         ]
-        transformers = [
+        transformers = []
+        if (
+            mapping.action == DataOperationType.SELECT
+            and mapping.select_options.strategy == "similarity"
+        ):
+            transformers.append(
+                DynamicLookupQueryExtender(
+                    mapping, self.mapping, self.metadata, model, self._old_format
+                )
+            )
+        transformers.append(
             AddLookupsToQuery(mapping, self.metadata, model, self._old_format)
-        ]
+        )
+
         transformers.extend([cls(mapping, self.metadata, model) for cls in classes])
 
         if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
@@ -481,10 +635,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
 
-        is_insert_or_upsert = mapping.action in (
+        is_insert_upsert_or_select = mapping.action in (
             DataOperationType.INSERT,
             DataOperationType.UPSERT,
             DataOperationType.ETL_UPSERT,
+            DataOperationType.SELECT,
         )
 
         conn = self.session.connection()
@@ -500,7 +655,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 break
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
-        if is_insert_or_upsert and (
+        if is_insert_upsert_or_select and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
             table = self.metadata.tables[self.ID_TABLE_NAME]
@@ -516,7 +671,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # person account Contact records so lookups to
         # person account Contact records get populated downstream as expected.
         if (
-            is_insert_or_upsert
+            is_insert_upsert_or_select
             and mapping.sf_object == "Contact"
             and self._can_load_person_accounts(mapping)
         ):
@@ -531,7 +686,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     ),
                 )
 
-        if is_insert_or_upsert:
+        if is_insert_upsert_or_select:
             self.session.commit()
 
     def _generate_results_id_map(self, step, local_ids):
