@@ -1,13 +1,23 @@
 BEGIN TRANSACTION;
 
+CREATE TABLE "accounts" (
+	id VARCHAR(255) NOT NULL, 
+	"Name" VARCHAR(255), 
+	"AccountNumber" VARCHAR(255), 
+	PRIMARY KEY (id)
+);
+INSERT INTO "accounts" VALUES("Account-1",'Bluth Company','123456');
+INSERT INTO "accounts" VALUES("Account-2",'Sampson PLC','567890');
+
 CREATE TABLE "contacts" (
 	id VARCHAR(255) NOT NULL, 
 	"FirstName" VARCHAR(255), 
-	"LastName" VARCHAR(255), 
+	"LastName" VARCHAR(255),
+	"AccountId" VARCHAR(255),
 	PRIMARY KEY (id)
 );
-INSERT INTO "contacts" VALUES("Contact-1",'Alpha','gamma');
-INSERT INTO "contacts" VALUES("Contact-2",'Temp','Bluth');
+INSERT INTO "contacts" VALUES("Contact-1",'Alpha','gamma', 'Account-2');
+INSERT INTO "contacts" VALUES("Contact-2",'Temp','Bluth', 'Account-1');
 
 CREATE TABLE "events" (
 	id VARCHAR(255) NOT NULL, 

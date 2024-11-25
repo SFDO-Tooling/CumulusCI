@@ -8,31 +8,19 @@ from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from pydantic import Field, ValidationError, root_validator, validator
-from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
 from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
+from cumulusci.tasks.bulkdata.select_utils import SelectOptions, SelectStrategy
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
+from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 logger = getLogger(__name__)
-
-
-class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
-    def __init__(self, *args, **kwargs):
-        self._canonical_keys = {}
-        super().__init__(*args, **kwargs)
-
-    def canonical_key(self, name):
-        return self._canonical_keys[name.lower()]
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        self._canonical_keys[key.lower()] = key
 
 
 class MappingLookup(CCIDictModel):
@@ -43,6 +31,7 @@ class MappingLookup(CCIDictModel):
     join_field: Optional[str] = None
     after: Optional[str] = None
     aliased_table: Optional[Any] = None
+    parent_tables: Optional[Any] = None
     name: Optional[str] = None  # populated by parent
 
     def get_lookup_key_field(self, model=None):
@@ -107,6 +96,9 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
+    select_options: Optional[SelectOptions] = Field(
+        default_factory=lambda: SelectOptions(strategy=SelectStrategy.STANDARD)
+    )
     update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
     @validator("bulk_mode", "api", "action", pre=True)
@@ -128,6 +120,27 @@ class MappingStep(CCIDictModel):
                 val, (str, list, tuple)
             ), "`update_key` should be a field name or list of field names."
             assert False, "Should be unreachable"  # pragma: no cover
+
+    @root_validator
+    def validate_priority_fields(cls, values):
+        select_options = values.get("select_options")
+        fields_ = values.get("fields_", {})
+        lookups = values.get("lookups", {})
+
+        if select_options and select_options.priority_fields:
+            priority_field_names = set(select_options.priority_fields.keys())
+            field_names = set(fields_.keys())
+            lookup_names = set(lookups.keys())
+
+            # Check if all priority fields are present in the fields
+            missing_fields = priority_field_names - field_names
+            missing_fields = missing_fields - lookup_names
+            if missing_fields:
+                raise ValueError(
+                    f"Priority fields {missing_fields} are not present in 'fields' or 'lookups'"
+                )
+
+        return values
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
@@ -673,7 +686,9 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
                 target_index = list(sf_objects.values()).index(target_objects[0])
-                if target_index > idx or target_index == idx:
+                if (
+                    target_index > idx or target_index == idx
+                ) and m.action != DataOperationType.SELECT:
                     # This is a non-polymorphic after step.
                     lookup.after = list(mapping.keys())[idx]
             else:
@@ -725,7 +740,7 @@ def validate_and_inject_mapping(
 
     if drop_missing:
         # Drop any steps with sObjects that are not present.
-        for (include, step_name) in zip(should_continue, list(mapping.keys())):
+        for include, step_name in zip(should_continue, list(mapping.keys())):
             if not include:
                 del mapping[step_name]
 
