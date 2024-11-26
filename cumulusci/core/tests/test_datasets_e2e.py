@@ -304,6 +304,7 @@ class TestDatasetsE2E:
                                 "after": "Insert Account",
                             }
                         },
+                        "select_options": {},
                     },
                     "Insert Event": {
                         "sf_object": "Event",
@@ -316,16 +317,19 @@ class TestDatasetsE2E:
                                 "after": "Insert Lead",
                             }
                         },
+                        "select_options": {},
                     },
                     "Insert Account": {
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name"],
+                        "select_options": {},
                     },
                     "Insert Lead": {
                         "sf_object": "Lead",
                         "table": "Lead",
                         "fields": ["Company", "LastName"],
+                        "select_options": {},
                     },
                 }
                 assert tuple(actual.items()) == tuple(expected.items()), actual.items()

@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import Field, validator
 
 from cumulusci.core.enums import StrEnum
-from cumulusci.tasks.bulkdata.step import DataApi
+from cumulusci.tasks.bulkdata.utils import DataApi
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 
 object_decl = re.compile(r"objects\((\w+)\)", re.IGNORECASE)

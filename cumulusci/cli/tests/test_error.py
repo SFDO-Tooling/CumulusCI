@@ -98,6 +98,7 @@ Environment Info: Rossian / x68_46
         )
         webbrowser_open.assert_called_once_with(expected_gist_url)
 
+    @pytest.mark.skipif(sys.version_info > (3, 11), reason="requires python3.10 or higher")
     @mock.patch("cumulusci.cli.error.platform")
     @mock.patch("cumulusci.cli.error.sys")
     @mock.patch("cumulusci.cli.error.datetime")

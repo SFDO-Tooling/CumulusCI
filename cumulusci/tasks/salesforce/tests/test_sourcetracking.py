@@ -188,11 +188,10 @@ class TestRetrieveChanges:
                 pathlib.Path, "is_dir", return_value=True
             ):
                 task._run_task()
-
                 assert sfdx_calls == [
-                    "force:mdapi:convert",
-                    "force:source:retrieve",
-                    "force:source:convert",
+                    "project convert mdapi",
+                    "project retrieve start",
+                    "project convert source",
                 ]
                 assert os.path.exists(os.path.join("src", "package.xml"))
                 mock_retrieve_profile.assert_called()

@@ -88,15 +88,19 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
 
                 elem.append("default", text="false")
 
-                if api_name in ["OpportunityStage", "CaseStatus"]:
+                if api_name == "CaseStatus":
                     elem.append("closed", str(entry["closed"]).lower())
 
-                if api_name == "OpportunityStage":
+                elif api_name == "OpportunityStage":
                     elem.append("won", str(entry["won"]).lower())
+                    elem.append("closed", str(entry["closed"]).lower())
                     elem.append("probability", str(entry["probability"]))
                     elem.append("forecastCategory", entry["forecastCategory"])
 
-                if api_name == "LeadStatus":
+                elif api_name == "LeadStatus":
                     elem.append("converted", str(entry["converted"]).lower())
-
+                else:
+                    for entry_key in entry:
+                        if entry_key not in ["fullName", "label", "default"]:
+                            elem.append(entry_key, str(entry[entry_key]))
         return metadata

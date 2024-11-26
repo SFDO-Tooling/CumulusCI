@@ -17,6 +17,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
+from cumulusci.tasks.bulkdata.select_utils import SelectStrategy
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
 
@@ -213,6 +214,70 @@ class TestMappingParser:
             date.today(),
         )
 
+    def test_select_options__success(self):
+        base_path = Path(__file__).parent / "mapping_select.yml"
+        result = parse_from_yaml(base_path)
+
+        step = result["Select Accounts"]
+        select_options = step.select_options
+        assert select_options
+        assert select_options.strategy == SelectStrategy.SIMILARITY
+        assert select_options.filter == "WHEN Name in ('Sample Account')"
+        assert select_options.priority_fields
+
+    def test_select_options__invalid_strategy(self):
+        base_path = Path(__file__).parent / "mapping_select_invalid_strategy.yml"
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "Invalid strategy value: invalid_strategy" in str(e.value)
+
+    def test_select_options__invalid_threshold__non_float(self):
+        base_path = (
+            Path(__file__).parent / "mapping_select_invalid_threshold__non_float.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "value is not a valid float" in str(e.value)
+
+    def test_select_options__invalid_threshold__invalid_strategy(self):
+        base_path = (
+            Path(__file__).parent
+            / "mapping_select_invalid_threshold__invalid_strategy.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert (
+            "If a threshold is specified, the strategy must be set to 'similarity'."
+            in str(e.value)
+        )
+
+    def test_select_options__invalid_threshold__invalid_number(self):
+        base_path = (
+            Path(__file__).parent
+            / "mapping_select_invalid_threshold__invalid_number.yml"
+        )
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        assert "Threshold must be between 0 and 1, got 1.5" in str(e.value)
+
+    def test_select_options__missing_priority_fields(self):
+        base_path = Path(__file__).parent / "mapping_select_missing_priority_fields.yml"
+        with pytest.raises(ValueError) as e:
+            parse_from_yaml(base_path)
+        print(str(e.value))
+        assert (
+            "Priority fields {'Email'} are not present in 'fields' or 'lookups'"
+            in str(e.value)
+        )
+
+    def test_select_options__no_priority_fields(self):
+        base_path = Path(__file__).parent / "mapping_select_no_priority_fields.yml"
+        result = parse_from_yaml(base_path)
+
+        step = result["Select Accounts"]
+        select_options = step.select_options
+        assert select_options.priority_fields == {}
+
     # Start of FLS/Namespace Injection Unit Tests
 
     def test_is_injectable(self):
@@ -322,6 +387,64 @@ class TestMappingParser:
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
+
+    def test_validate_fields_required(self):
+        ms = MappingStep(
+            sf_object="Account",
+            fields=["Id", "Name", "Test__c"],
+            action=DataOperationType.INSERT,
+        )
+        fields_describe = CaseInsensitiveDict(
+            {
+                "Name": {
+                    "createable": True,
+                    "nillable": False,
+                    "defaultedOnCreate": False,
+                    "defaultValue": None,
+                },
+                "npsp__Test__c": {
+                    "createable": True,
+                    "nillable": False,
+                    "defaultedOnCreate": False,
+                    "defaultValue": None,
+                },
+            }
+        )
+        ms._validate_field_dict(
+            describe=fields_describe,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
+        )
+        assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
+        assert ms.check_required(fields_describe)
+
+        def test_validate_fields_required_missing(self):
+            ms = MappingStep(
+                sf_object="Account",
+                fields=["Test__c"],
+                action=DataOperationType.INSERT,
+            )
+            fields_describe = CaseInsensitiveDict(
+                {
+                    "Name": {
+                        "createable": True,
+                        "nillable": False,
+                        "defaultedOnCreate": False,
+                        "defaultValue": None,
+                    },
+                    "Test__c": {
+                        "createable": True,
+                        "nillable": False,
+                        "defaultedOnCreate": False,
+                        "defaultValue": None,
+                    },
+                }
+            )
+            assert ms.fields_ == {"Test__c": "Test__c"}
+            assert not ms.check_required(fields_describe)
 
     def test_validate_field_dict__injection_duplicate_fields(self):
         ms = MappingStep(
@@ -930,7 +1053,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    AccountId:\n      table: Account"
                 )
             )
         )
@@ -1027,7 +1150,7 @@ class TestMappingParser:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
-                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    Id:\n      table: Account"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  fields:\n    - LastName\n  lookups:\n    Id:\n      table: Account"
                 )
             )
         )
@@ -1044,6 +1167,40 @@ class TestMappingParser:
                 inject_namespaces=False,
                 drop_missing=True,
             )
+
+    @responses.activate
+    def test_validate_and_inject_mapping_throws_exception_required_fields_missing(
+        self, caplog
+    ):
+        caplog.set_level(logging.ERROR)
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - ns__Description__c\n"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            sf=org_config.salesforce_client,
+            namespace="",
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=False,
+        )
+
+        expected_error_message = (
+            "One or more required fields are missing for loading on Account :{'Name'}"
+        )
+        error_logs = [
+            record.message for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert any(expected_error_message in error_log for error_log in error_logs)
 
     @responses.activate
     def test_validate_and_inject_mapping_injects_namespaces(self):
@@ -1206,7 +1363,7 @@ class TestMappingLookup:
             StringIO(
                 (
                     "Insert Accounts:\n  sf_object: account\n  table: account\n  fields:\n    - name\n"
-                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - fIRSTnAME\n  lookups:\n    accountid:\n      table: account"
+                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - LaSTnAME\n  lookups:\n    accountid:\n      table: account"
                 )
             )
         )

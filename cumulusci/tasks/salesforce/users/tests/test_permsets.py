@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from responses.matchers import json_params_matcher
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -68,7 +69,7 @@ class TestCreatePermissionSet:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -152,7 +153,7 @@ class TestCreatePermissionSet:
                 {"id": "0Pa000000000001", "success": True, "errors": []},
             ],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -383,7 +384,7 @@ class TestCreatePermissionSet:
                 },
             ],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -447,19 +448,21 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                 ],
             },
@@ -470,7 +473,7 @@ class TestCreatePermissionSetLicense:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -516,19 +519,21 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSet.License1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSet.License2",
                     },
                 ],
             },
@@ -543,7 +548,7 @@ class TestCreatePermissionSetLicense:
                 {"id": "0Pa000000000001", "success": True, "errors": []},
             ],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -597,23 +602,26 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSetLicense2",
                     },
                 ],
             },
         )
+
         responses.add(
             method="POST",
             url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/sobjects/PermissionSetLicenseAssign/",
@@ -627,7 +635,7 @@ class TestCreatePermissionSetLicense:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -698,7 +706,7 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id%2CDeveloperName%2CPermissionSetLicenseKey+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29+OR+PermissionSetLicenseKey+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29",
             status=200,
             json={
                 "done": True,
@@ -707,15 +715,16 @@ class TestCreatePermissionSetLicense:
                     {
                         "Id": "0PL000000000000",
                         "DeveloperName": "PermSetLicense1",
+                        "PermissionSetLicenseKey": "PermSetLicense1",
                     },
                     {
                         "Id": "0PL000000000001",
                         "DeveloperName": "PermSetLicense2",
+                        "PermissionSetLicenseKey": "PermSetLicense2",
                     },
                 ],
             },
         )
-
         with pytest.raises(CumulusCIException):
             task()
 
@@ -774,7 +783,7 @@ class TestCreatePermissionSetGroup:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -847,7 +856,7 @@ class TestCreatePermissionSetGroup:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [

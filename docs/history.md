@@ -2,6 +2,180 @@
 
 <!-- latest-start -->
 
+## v4.0.1 (2024-11-18)
+
+### Issues Fixed 🩴
+
+-   Fixed a ModuleNotFoundError for docutils by adding the dependency `docutils` by [@jstvz](https://github.com/jstvz) in [#3558](https://github.com/SFDO-Tooling/CumulusCI/pull/3558).
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.0...v4.0.1
+
+<!-- latest-stop -->
+
+## v4.0.0 (2024-11-12)
+
+## What's Changed
+
+### Critical Changes 🛠
+
+-   Python versions 3.8, 3.9, and 3.10 are no longer supported.
+-   Switch to `sf` CLI commands [@lakshmi2506](https://github.com/lakshmi2506) in [#3829](https://github.com/SFDO-Tooling/CumulusCI/pull/3829)
+    -   Removed the `dx_pull` and `dx_push` tasks as the underlying commands were removed from `sf`
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v4.0.0
+
+## v3.93.0 (2024-10-17)
+
+<!-- Release notes generated using configuration in .github/release.yml at main  -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   fix: escape stage name when running ensure_record_type task by [@leo-dcfa](https://github.com/leo-dcfa) in [#3827](https://github.com/SFDO-Tooling/CumulusCI/pull/3827)
+-   fix: Upgrade upload-artifact action by [@jstvz](https://github.com/jstvz) in [#3831](https://github.com/SFDO-Tooling/CumulusCI/pull/3831)
+-   Fix `TypeError` when permissionSetGroup has a mutingPermissionSet by [@lakshmi2506](https://github.com/lakshmi2506) in [#3834](https://github.com/SFDO-Tooling/CumulusCI/pull/3834)
+-   Add `check_components` preflight to detect metadata component conflicts (#3837) by [@vsbharath](https://github.com/vsbharath) in [#3837](https://github.com/SFDO-Tooling/CumulusCI/pull/3837)
+
+## New Contributors
+
+-   @leo-dcfa made their first contribution in [#3827](https://github.com/SFDO-Tooling/CumulusCI/pull/3827)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v3.93.0
+
+## v3.92.0 (2024-09-18)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   fix: Update input handlers with new Salesforce lightning-primitive tags by [@chanyahn-st](https://github.com/chanyahn-st) in [#3822](https://github.com/SFDO-Tooling/CumulusCI/pull/3822)
+
+## New Contributors
+
+-   @chanyahn-st made their first contribution in [#3822](https://github.com/SFDO-Tooling/CumulusCI/pull/3822)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.91.0...v3.92.0
+
+## v3.91.0 (2024-08-22)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix to Include All Keys in standardValue XML for add_standard_value_set_entries Task from Entries Option with Backward Compatibility by [@lakshmi2506](https://github.com/lakshmi2506) in [#3820](https://github.com/SFDO-Tooling/CumulusCI/pull/3820)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.1...v3.91.0
+
+## v3.90.1 (2024-08-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix to Suppress the required field check for the upsert action at mapping step by [@lakshmi2506](https://github.com/lakshmi2506) in [#3817](https://github.com/SFDO-Tooling/CumulusCI/pull/3817)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.90.0...v3.90.1
+
+## v3.90.0 (2024-07-15)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Add tasks to extract and upload files (Salesforce Files) by [@mjawadtp](https://github.com/mjawadtp) in [#3801](https://github.com/SFDO-Tooling/CumulusCI/pull/3801)
+-   Update the validation for loading to check the required fields as well by [@lakshmi2506](https://github.com/lakshmi2506) in [#3807](https://github.com/SFDO-Tooling/CumulusCI/pull/3807)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.89.0...v3.90.0
+
+## v3.89.0 (2024-06-20)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Added the `list_files` task to display files in an org by [@lakshmi2506](https://github.com/lakshmi2506) in [#3799](https://github.com/SFDO-Tooling/CumulusCI/pull/3799)
+-   The `api_names` option of the `assign_permission_set_licenses` task now accepts either `DeveloperName` or `PermissionSetLicenseKey` by [@lakshmi2506](https://github.com/lakshmi2506) in [#3798](https://github.com/SFDO-Tooling/CumulusCI/pull/3798)
+
+## v3.88.0 (2024-05-24)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Extend modal close wait with custom timeout by [@leboff](https://github.com/leboff) in [#3783](https://github.com/SFDO-Tooling/CumulusCI/pull/3783)
+-   Added check_output true to get the logs of metadata retrieval by [@lakshmi2506](https://github.com/lakshmi2506) in [#3789](https://github.com/SFDO-Tooling/CumulusCI/pull/3789)
+
+### Issues Fixed 🩴
+
+-   Fix retrieve unpackaged so it is usable in metadeploy by [@yippie](https://github.com/yippie) in [#3566](https://github.com/SFDO-Tooling/CumulusCI/pull/3566)
+
+## New Contributors
+
+-   @yippie made their first contribution in [#3566](https://github.com/SFDO-Tooling/CumulusCI/pull/3566)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.87.0...v3.88.0
+
+## v3.87.0 (2024-05-17)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Don't add fullname tag in 2GP package.xml by [@leboff](https://github.com/leboff) in [#3748](https://github.com/SFDO-Tooling/CumulusCI/pull/3748)
+
+## New Contributors
+
+-   @leboff made their first contribution in [#3748](https://github.com/SFDO-Tooling/CumulusCI/pull/3748)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.86.1...v3.87.0
+
+## v3.86.1 (2024-05-06)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.86.0...v3.86.1
+
+## v3.86.0 (2024-03-27)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   @W-15258380 - Reloading of login URL's from env before creating jwt session by [@lakshmi2506](https://github.com/lakshmi2506) in [#3765](https://github.com/SFDO-Tooling/CumulusCI/pull/3765)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.85.0...v3.86.0
+
+## v3.85.0 (2024-03-13)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Fix Invalid Lookups of namespaced fields by [@aditya-balachander](https://github.com/aditya-balachander) in [#3759](https://github.com/SFDO-Tooling/CumulusCI/pull/3759)
+-   Fix Id Not Specified on Update Call by [@aditya-balachander](https://github.com/aditya-balachander) in [#3761](https://github.com/SFDO-Tooling/CumulusCI/pull/3761)
+-   Fix dependency parsing errors caused by `collision_check` option by [@jstvz](https://github.com/jstvz) in [#3760](https://github.com/SFDO-Tooling/CumulusCI/pull/3760)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.3...v3.85.0
+
 ## v3.84.3 (2024-02-24)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,8 +187,6 @@
 -   Fix: Type Error while loading Contacts when PersonAccount is enabled by [@jkasturi-sf](https://github.com/jkasturi-sf) in [#3756](https://github.com/SFDO-Tooling/CumulusCI/pull/3756)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.84.2...v3.84.3
-
-<!-- latest-stop -->
 
 ## v3.84.2 (2024-02-20)
 
