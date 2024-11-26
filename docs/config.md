@@ -633,8 +633,9 @@ For example, override the default number of days from 7 to 15 in the
 
 ```yaml
 orgs:
-    dev:
-        days: 15
+    scratch:
+        dev:
+            days: 15
 ```
 
 ## Configuration Scopes
