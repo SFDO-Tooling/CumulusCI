@@ -883,30 +883,33 @@ class RestApiDmlOperation(BaseDmlOperation):
         limit_clause = self._determine_limit_clause(total_num_records)
 
         # Generate the SOQL query based on the selection strategy
-        select_query, query_fields = (
-            self.select_operation_executor.select_generate_query(
-                sobject=self.sobject,
-                fields=self.fields,
-                user_filter=self.selection_filter or None,
-                limit=limit_clause,
-                offset=None,
-            )
+        (
+            select_query,
+            query_fields,
+        ) = self.select_operation_executor.select_generate_query(
+            sobject=self.sobject,
+            fields=self.fields,
+            user_filter=self.selection_filter or None,
+            limit=limit_clause,
+            offset=None,
         )
 
         # Execute the query and gather the records
         query_records = self._execute_soql_query(select_query, query_fields)
 
         # Post-process the query results for this batch
-        selected_records, insert_records, error_message = (
-            self.select_operation_executor.select_post_process(
-                load_records=records,
-                query_records=query_records,
-                fields=self.fields,
-                num_records=total_num_records,
-                sobject=self.sobject,
-                weights=self.weights,
-                threshold=self.threshold,
-            )
+        (
+            selected_records,
+            insert_records,
+            error_message,
+        ) = self.select_operation_executor.select_post_process(
+            load_records=records,
+            query_records=query_records,
+            fields=self.fields,
+            num_records=total_num_records,
+            sobject=self.sobject,
+            weights=self.weights,
+            threshold=self.threshold,
         )
 
         # Log the number of selected and prepared for insertion records

@@ -2,6 +2,28 @@
 
 <!-- latest-start -->
 
+## v4.0.1 (2024-11-18)
+
+### Issues Fixed 🩴
+
+-   Fixed a ModuleNotFoundError for docutils by adding the dependency `docutils` by [@jstvz](https://github.com/jstvz) in [#3558](https://github.com/SFDO-Tooling/CumulusCI/pull/3558).
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.0...v4.0.1
+
+<!-- latest-stop -->
+
+## v4.0.0 (2024-11-12)
+
+## What's Changed
+
+### Critical Changes 🛠
+
+-   Python versions 3.8, 3.9, and 3.10 are no longer supported.
+-   Switch to `sf` CLI commands [@lakshmi2506](https://github.com/lakshmi2506) in [#3829](https://github.com/SFDO-Tooling/CumulusCI/pull/3829)
+    -   Removed the `dx_pull` and `dx_push` tasks as the underlying commands were removed from `sf`
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v4.0.0
+
 ## v3.93.0 (2024-10-17)
 
 <!-- Release notes generated using configuration in .github/release.yml at main  -->
@@ -20,8 +42,6 @@
 -   @leo-dcfa made their first contribution in [#3827](https://github.com/SFDO-Tooling/CumulusCI/pull/3827)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v3.93.0
-
-<!-- latest-stop -->
 
 ## v3.92.0 (2024-09-18)
 
