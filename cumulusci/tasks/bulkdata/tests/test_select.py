@@ -1,14 +1,6 @@
-import re
-from unittest import mock
-
 import pytest
-import responses
-import yaml
 
-from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata import LoadData
-from cumulusci.tasks.bulkdata.step import DataApi, DataOperationStatus
-from cumulusci.tests.util import CURRENT_SF_API_VERSION, mock_describe_calls
 
 
 class TestSelect:
