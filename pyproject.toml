@@ -7,7 +7,7 @@ name = "cumulusci"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
 license = { text = "BSD 3-Clause License" }
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [
     { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
 ]
@@ -18,17 +18,15 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "click",
+    "annoy",
+    "click>=8.1",
     "cryptography",
     "python-dateutil",
-    "docutils<0.17",
     "Faker",
     "fs",
     "github3.py",
@@ -36,8 +34,9 @@ dependencies = [
     "keyring<=23.0.1",
     "defusedxml",
     "lxml",
-    "markdown-it-py==2.2.0", # resolve dependency conflict between prod/dev
     "MarkupSafe",
+    "numpy",
+    "pandas",
     "psutil",
     "pydantic<2",
     "PyJWT",
@@ -45,38 +44,48 @@ dependencies = [
     "pyyaml",
     "requests",
     "requests-futures",
-    "rich",
+    "rich>=13.9.4",
     "robotframework",
+    "SQLAlchemy<2",
     "robotframework-pabot",
     "robotframework-requests",
     "robotframework-seleniumlibrary<6",
-    "rst2ansi",
+    "rst2ansi>=0.1.5",
     "salesforce-bulk",
     "sarge",
+    "scikit-learn",
     "selenium<4",
     "simple-salesforce==1.11.4",
-    "snowfakery",
-    "SQLAlchemy<2",
+    "snowfakery>=4.0.0",
     "xmltodict",
+    "docutils>=0.21.2",
 ]
 
-[project.optional-dependencies]
-docs = ["myst-parser", "Sphinx"]
-lint = ["black", "flake8<4", "isort", "pre-commit"]
-test = [
-    "coverage[toml]",
-    "factory-boy",
-    "furo",
-    "jsonschema",
-    "pytest<7.1 ", # https://github.com/pytest-dev/pytest/issues/9765
-    "pytest-cov",
-    "pytest-random-order",
-    "pytest-vcr",
-    "responses",
-    "testfixtures",
-    "tox",
-    "typeguard<=2.13.3", # TODO: Lots of changes required for v4
-    "vcrpy"
+[dependency-groups]
+docs = [
+    "myst-parser>=1.0.0",
+    "sphinx>=5.3.0",
+]
+dev = [
+    "coverage[toml]>=7.6.1",
+    "factory-boy>=3.3.1",
+    "furo>=2023.3.27",
+    "jsonschema>=4.23.0",
+    "pytest>=7.0.1",
+    "pytest-cov>=5.0.0",
+    "pytest-random-order>=1.1.1",
+    "pytest-vcr>=1.0.2",
+    "responses>=0.23.1",
+    "testfixtures>=8.3.0",
+    "tox>=4.20.0",
+    "typeguard<=2.13.3",          # TODO: Lots of changes required for v4
+    "vcrpy>=6.0.2",
+]
+lint = [
+    "black>=24.8.0",
+    "flake8<4",
+    "isort>=5.13.2",
+    "pre-commit>=3.5.0",
 ]
 
 [project.scripts]
@@ -102,16 +111,13 @@ include = [
 include = [
     "/cumulusci",
     "/requirements/*", # Needed by tox
-    "README.md", # needed by hatch-fancy-pypi-readme
-    "docs/history.md"
+    "README.md",       # needed by hatch-fancy-pypi-readme
+    "docs/history.md",
     # ditto
 ]
 
 [tool.hatch.build.targets.wheel]
-exclude = [
-    "*.sql",
-    "*.zip"
-]
+exclude = ["*.sql", "*.zip"]
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"
@@ -254,7 +260,7 @@ include = [
     'cumulusci/tests/util.py',
     'cumulusci/utils/waiting.py',
     'cumulusci/utils/xml/robot_xml.py',
-    'cumulusci/utils/ziputils.py'
+    'cumulusci/utils/ziputils.py',
 ]
 # Do not add to this list. Instead use
 # # pyright: strict
@@ -290,5 +296,5 @@ strict = [
     'cumulusci/tasks/release_notes/exceptions.py',
     'cumulusci/tasks/salesforce/BaseSalesforceTask.py',
     'cumulusci/tasks/vlocity/exceptions.py',
-    'cumulusci/utils/soql.py'
+    'cumulusci/utils/soql.py',
 ]

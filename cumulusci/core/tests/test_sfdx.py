@@ -23,14 +23,15 @@ class TestSfdx:
     def test_posix_quoting(self, Command):
         sfdx("cmd", args=["a'b"])
         cmd = Command.call_args[0][0]
-        assert cmd == r"sfdx cmd 'a'\''b'"
+        assert cmd == r"sf cmd 'a'\''b'"
 
     @mock.patch("platform.system", mock.Mock(return_value="Windows"))
     @mock.patch("sarge.Command")
     def test_windows_quoting(self, Command):
         sfdx("cmd", args=['a"b'], access_token="token")
         cmd = Command.call_args[0][0]
-        assert cmd == r'sfdx cmd "a\"b" -u token'
+        print(cmd)
+        assert cmd == r'sf cmd "a\"b" -o token'
 
     @mock.patch("platform.system", mock.Mock(return_value="Windows"))
     def test_shell_quote__str_with_space(self):
@@ -93,7 +94,7 @@ def test_convert_sfdx():
                 assert p is not None
 
     sfdx.assert_called_once_with(
-        "force:source:convert",
+        "project convert source",
         args=["-d", mock.ANY, "-r", path, "-n", "Test Package"],
         capture_output=True,
         check_return=True,
@@ -109,7 +110,7 @@ def test_convert_sfdx__cwd():
                 assert p is not None
 
     sfdx.assert_called_once_with(
-        "force:source:convert",
+        "project convert source",
         args=["-d", mock.ANY, "-n", "Test Package"],
         capture_output=True,
         check_return=True,

@@ -730,7 +730,6 @@ class TestOrgCommands:
             ],
             title="Connected Orgs",
         )
-
         assert scratch_table_call in cli_tbl.call_args_list
         assert connected_table_call in cli_tbl.call_args_list
         runtime.keychain.cleanup_org_cache_dirs.assert_called_once()

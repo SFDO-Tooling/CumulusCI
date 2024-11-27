@@ -1121,6 +1121,304 @@ class TestBulkApiDmlOperation:
             id="003000000000002", success=True, error="", created=False
         )
 
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_process_insert_records_success(self, download_mock):
+        # Mock context and insert records
+        context = mock.Mock()
+        insert_records = iter([["John", "Doe"], ["Jane", "Smith"]])
+        selected_records = [None, None]
+
+        # Mock insert fields splitting
+        insert_fields = ["FirstName", "LastName"]
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.split_and_filter_fields",
+            return_value=(insert_fields, None),
+        ) as split_mock:
+            step = BulkApiDmlOperation(
+                sobject="Contact",
+                operation=DataOperationType.QUERY,
+                api_options={"batch_size": 10},
+                context=context,
+                fields=["FirstName", "LastName"],
+            )
+
+            # Mock Bulk API
+            step.bulk.endpoint = "https://test"
+            step.bulk.create_insert_job.return_value = "JOB"
+            step.bulk.get_insert_batch_result_ids.return_value = ["RESULT"]
+
+            # Mock the downloaded CSV content with successful results
+            download_mock.return_value = io.StringIO(
+                "Id,Success,Created\n0011k00003E8xAaAAI,true,true\n0011k00003E8xAbAAJ,true,true\n"
+            )
+
+            # Mock sub-operation for BulkApiDmlOperation
+            insert_step = mock.Mock(spec=BulkApiDmlOperation)
+            insert_step.start = mock.Mock()
+            insert_step.load_records = mock.Mock()
+            insert_step.end = mock.Mock()
+            insert_step.batch_ids = ["BATCH1"]
+            insert_step.bulk = mock.Mock()
+            insert_step.bulk.endpoint = "https://test"
+            insert_step.job_id = "JOB"
+
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation",
+                return_value=insert_step,
+            ):
+                step._process_insert_records(insert_records, selected_records)
+
+                # Assertions for split fields and sub-operation
+                split_mock.assert_called_once_with(fields=["FirstName", "LastName"])
+                insert_step.start.assert_called_once()
+                insert_step.load_records.assert_called_once_with(insert_records)
+                insert_step.end.assert_called_once()
+
+                # Validate the download file interactions
+                download_mock.assert_called_once_with(
+                    "https://test/job/JOB/batch/BATCH1/result", insert_step.bulk
+                )
+
+                # Validate that selected_records is updated with insert results
+                assert selected_records == [
+                    {"id": "0011k00003E8xAaAAI", "success": True, "created": True},
+                    {"id": "0011k00003E8xAbAAJ", "success": True, "created": True},
+                ]
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_process_insert_records_failure(self, download_mock):
+        # Mock context and insert records
+        context = mock.Mock()
+        insert_records = iter([["John", "Doe"], ["Jane", "Smith"]])
+        selected_records = [None, None]
+
+        # Mock insert fields splitting
+        insert_fields = ["FirstName", "LastName"]
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.split_and_filter_fields",
+            return_value=(insert_fields, None),
+        ):
+            step = BulkApiDmlOperation(
+                sobject="Contact",
+                operation=DataOperationType.QUERY,
+                api_options={"batch_size": 10},
+                context=context,
+                fields=["FirstName", "LastName"],
+            )
+
+            # Mock failure during results download
+            download_mock.side_effect = Exception("Download failed")
+
+            # Mock sub-operation for BulkApiDmlOperation
+            insert_step = mock.Mock(spec=BulkApiDmlOperation)
+            insert_step.start = mock.Mock()
+            insert_step.load_records = mock.Mock()
+            insert_step.end = mock.Mock()
+            insert_step.batch_ids = ["BATCH1"]
+            insert_step.bulk = mock.Mock()
+            insert_step.bulk.endpoint = "https://test"
+            insert_step.job_id = "JOB"
+
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation",
+                return_value=insert_step,
+            ):
+                with pytest.raises(BulkDataException) as excinfo:
+                    step._process_insert_records(insert_records, selected_records)
+
+                # Validate that the exception is raised with the correct message
+                assert "Failed to download results for batch BATCH1" in str(
+                    excinfo.value
+                )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_similarity_strategy__insert_records(self, download_mock):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        # Add step with threshold
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["Name", "Email"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            threshold=0.3,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content with a single record
+        select_results = io.StringIO(
+            """[{"Id":"003000000000001", "Name":"Jawad", "Email":"mjawadtp@example.com"}]"""
+        )
+        insert_results = io.StringIO(
+            "Id,Success,Created\n003000000000002,true,true\n003000000000003,true,true\n"
+        )
+        download_mock.side_effect = [select_results, insert_results]
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        # Prepare input records
+        records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom", "cruise@example.com"],
+            ]
+        )
+
+        # Mock sub-operation for BulkApiDmlOperation
+        insert_step = mock.Mock(spec=BulkApiDmlOperation)
+        insert_step.start = mock.Mock()
+        insert_step.load_records = mock.Mock()
+        insert_step.end = mock.Mock()
+        insert_step.batch_ids = ["BATCH1"]
+        insert_step.bulk = mock.Mock()
+        insert_step.bulk.endpoint = "https://test"
+        insert_step.job_id = "JOB"
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation",
+            return_value=insert_step,
+        ):
+            # Execute the select_records operation
+            step.start()
+            step.select_records(records)
+            step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_similarity_strategy__insert_records__no_select_records(
+        self, download_mock
+    ):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        # Add step with threshold
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["Name", "Email"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            threshold=0.3,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content with a single record
+        select_results = io.StringIO("""[]""")
+        insert_results = io.StringIO(
+            "Id,Success,Created\n003000000000001,true,true\n003000000000002,true,true\n003000000000003,true,true\n"
+        )
+        download_mock.side_effect = [select_results, insert_results]
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        # Prepare input records
+        records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom", "cruise@example.com"],
+            ]
+        )
+
+        # Mock sub-operation for BulkApiDmlOperation
+        insert_step = mock.Mock(spec=BulkApiDmlOperation)
+        insert_step.start = mock.Mock()
+        insert_step.load_records = mock.Mock()
+        insert_step.end = mock.Mock()
+        insert_step.batch_ids = ["BATCH1"]
+        insert_step.bulk = mock.Mock()
+        insert_step.bulk.endpoint = "https://test"
+        insert_step.job_id = "JOB"
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation",
+            return_value=insert_step,
+        ):
+            # Execute the select_records operation
+            step.start()
+            step.select_records(records)
+            step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+
     def test_batch(self):
         context = mock.Mock()
 
@@ -2357,6 +2655,240 @@ class TestRestApiDmlOperation:
         # Prioritizes Account.Name and Account.AccountNumber
         assert results_2[0] == DataOperationResult(
             id="003000000000002", success=True, error="", created=False
+        )
+
+    @responses.activate
+    def test_process_insert_records_success(self):
+        # Mock describe calls
+        mock_describe_calls()
+
+        # Create a task and mock project config
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        # Prepare inputs
+        insert_records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom Cruise", "tomcruise@example.com"],
+            ]
+        )
+        selected_records = [None, None, None]
+
+        # Mock fields splitting
+        insert_fields = ["Name", "Email"]
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.split_and_filter_fields",
+            return_value=(insert_fields, None),
+        ) as split_mock:
+            # Mock the instance of RestApiDmlOperation
+            mock_rest_api_dml_operation = mock.create_autospec(
+                RestApiDmlOperation, instance=True
+            )
+            mock_rest_api_dml_operation.results = [
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+                {"id": "003000000000003", "success": True},
+            ]
+
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.RestApiDmlOperation",
+                return_value=mock_rest_api_dml_operation,
+            ):
+                # Call the function
+                step = RestApiDmlOperation(
+                    sobject="Contact",
+                    operation=DataOperationType.INSERT,
+                    api_options={"batch_size": 10},
+                    context=task,
+                    fields=["Name", "Email"],
+                )
+                step._process_insert_records(insert_records, selected_records)
+
+                # Assert the mocked splitting is called
+                split_mock.assert_called_once_with(fields=["Name", "Email"])
+
+                # Validate that `selected_records` is updated correctly
+                assert selected_records == [
+                    {"id": "003000000000001", "success": True},
+                    {"id": "003000000000002", "success": True},
+                    {"id": "003000000000003", "success": True},
+                ]
+
+                # Validate the operation sequence
+                mock_rest_api_dml_operation.start.assert_called_once()
+                mock_rest_api_dml_operation.load_records.assert_called_once_with(
+                    insert_records
+                )
+                mock_rest_api_dml_operation.end.assert_called_once()
+
+    @responses.activate
+    def test_process_insert_records_failure(self):
+        # Mock describe calls
+        mock_describe_calls()
+
+        # Create a task and mock project config
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        # Prepare inputs
+        insert_records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+            ]
+        )
+        selected_records = [None, None]
+
+        # Mock fields splitting
+        insert_fields = ["Name", "Email"]
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.split_and_filter_fields",
+            return_value=(insert_fields, None),
+        ) as split_mock:
+            # Mock the instance of RestApiDmlOperation
+            mock_rest_api_dml_operation = mock.create_autospec(
+                RestApiDmlOperation, instance=True
+            )
+            mock_rest_api_dml_operation.results = (
+                None  # Simulate no results due to an exception
+            )
+
+            # Simulate an exception during processing results
+            mock_rest_api_dml_operation.load_records.side_effect = BulkDataException(
+                "Simulated failure"
+            )
+
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.RestApiDmlOperation",
+                return_value=mock_rest_api_dml_operation,
+            ):
+                # Call the function and verify that it raises the expected exception
+                step = RestApiDmlOperation(
+                    sobject="Contact",
+                    operation=DataOperationType.INSERT,
+                    api_options={"batch_size": 10},
+                    context=task,
+                    fields=["Name", "Email"],
+                )
+                with pytest.raises(BulkDataException):
+                    step._process_insert_records(insert_records, selected_records)
+
+                # Assert the mocked splitting is called
+                split_mock.assert_called_once_with(fields=["Name", "Email"])
+
+                # Validate that `selected_records` remains unchanged
+                assert selected_records == [None, None]
+
+                # Validate the operation sequence
+                mock_rest_api_dml_operation.start.assert_called_once()
+                mock_rest_api_dml_operation.load_records.assert_called_once_with(
+                    insert_records
+                )
+                mock_rest_api_dml_operation.end.assert_not_called()
+
+    @responses.activate
+    def test_select_records_similarity_strategy__insert_records(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        # Create step with threshold
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10},
+            context=task,
+            fields=["Name", "Email"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            threshold=0.3,
+        )
+
+        results_select_call = {
+            "records": [
+                {
+                    "Id": "003000000000001",
+                    "Name": "Jawad",
+                    "Email": "mjawadtp@example.com",
+                },
+            ],
+            "done": True,
+        }
+
+        results_insert_call = [
+            {"id": "003000000000002", "success": True, "created": True},
+            {"id": "003000000000003", "success": True, "created": True},
+        ]
+
+        step.sf.restful = mock.Mock(
+            side_effect=[results_select_call, results_insert_call]
+        )
+        records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom Cruise", "tom@example.com"],
+            ]
+        )
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=True
+                )
+            )
+            == 1
         )
 
     @responses.activate

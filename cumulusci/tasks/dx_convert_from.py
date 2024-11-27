@@ -16,8 +16,8 @@ class DxConvertFrom(SFDXBaseTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        # append command  -d option to sfdx} force:source:convert
-        self.options["command"] = f"force:source:convert -d {self.options['src_dir']}"
+        # append command  -d option to sf} project convert source
+        self.options["command"] = f"project convert source -d {self.options['src_dir']}"
 
     def _run_task(self):
         src_dir = Path(self.options["src_dir"])
