@@ -11,7 +11,6 @@ from cumulusci.tasks.bulkdata.select_utils import (
     find_closest_record,
     levenshtein_distance,
     reorder_records,
-    replace_empty_strings_with_missing,
     split_and_filter_fields,
     vectorize_records,
 )
@@ -485,43 +484,9 @@ def test_calculate_levenshtein_distance_weights_length_doesnt_match():
     assert "Records must be same size as fields (weights)." in str(e.value)
 
 
-def test_replace_empty_strings_with_missing():
-    # Case 1: Normal case with some empty strings
-    records = [
-        ["Alice", "", "New York"],
-        ["Bob", "Engineer", ""],
-        ["", "Teacher", "Chicago"],
-    ]
-    expected = [
-        ["Alice", "missing", "New York"],
-        ["Bob", "Engineer", "missing"],
-        ["missing", "Teacher", "Chicago"],
-    ]
-    assert replace_empty_strings_with_missing(records) == expected
-
-    # Case 2: No empty strings, so the output should be the same as input
-    records = [["Alice", "Manager", "New York"], ["Bob", "Engineer", "San Francisco"]]
-    expected = [["Alice", "Manager", "New York"], ["Bob", "Engineer", "San Francisco"]]
-    assert replace_empty_strings_with_missing(records) == expected
-
-    # Case 3: List with all empty strings
-    records = [["", "", ""], ["", "", ""]]
-    expected = [["missing", "missing", "missing"], ["missing", "missing", "missing"]]
-    assert replace_empty_strings_with_missing(records) == expected
-
-    # Case 4: Empty list (should return an empty list)
-    records = []
-    expected = []
-    assert replace_empty_strings_with_missing(records) == expected
-
-    # Case 5: List with some empty sublists
-    records = [[], ["Alice", ""], []]
-    expected = [[], ["Alice", "missing"], []]
-    assert replace_empty_strings_with_missing(records) == expected
-
-
 def test_all_numeric_columns():
-    df = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
+    df_db = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
+    df_query = pd.DataFrame({"A": [4, 5, ""], "B": [4.5, 5.5, 6.5]})
     weights = [0.1, 0.2]
     expected_output = (
         ["A", "B"],  # numerical_features
@@ -531,11 +496,31 @@ def test_all_numeric_columns():
         [],  # boolean_weights
         [],  # categorical_weights
     )
-    assert determine_field_types(df, weights) == expected_output
+    assert determine_field_types(df_db, df_query, weights) == expected_output
+
+
+def test_numeric_columns__one_non_numeric():
+    df_db = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
+    df_query = pd.DataFrame({"A": [4, 5, 6], "B": ["abcd", 5.5, 6.5]})
+    weights = [0.1, 0.2]
+    expected_output = (
+        ["A"],  # numerical_features
+        [],  # boolean_features
+        [],  # categorical_features
+        [0.1],  # numerical_weights
+        [],  # boolean_weights
+        [],  # categorical_weights
+    )
+    assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
 def test_all_boolean_columns():
-    df = pd.DataFrame({"A": ["true", "false", "true"], "B": ["false", "true", "false"]})
+    df_db = pd.DataFrame(
+        {"A": ["true", "false", "true"], "B": ["false", "true", "false"]}
+    )
+    df_query = pd.DataFrame(
+        {"A": ["true", "false", "true"], "B": ["false", "true", "false"]}
+    )
     weights = [0.3, 0.4]
     expected_output = (
         [],  # numerical_features
@@ -545,12 +530,15 @@ def test_all_boolean_columns():
         [0.3, 0.4],  # boolean_weights
         [],  # categorical_weights
     )
-    assert determine_field_types(df, weights) == expected_output
+    assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
 def test_all_categorical_columns():
-    df = pd.DataFrame(
+    df_db = pd.DataFrame(
         {"A": ["apple", "banana", "cherry"], "B": ["dog", "cat", "mouse"]}
+    )
+    df_query = pd.DataFrame(
+        {"A": ["banana", "apple", "cherry"], "B": ["cat", "dog", "mouse"]}
     )
     weights = [0.5, 0.6]
     expected_output = (
@@ -561,15 +549,22 @@ def test_all_categorical_columns():
         [],  # boolean_weights
         [0.5, 0.6],  # categorical_weights
     )
-    assert determine_field_types(df, weights) == expected_output
+    assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
 def test_mixed_types():
-    df = pd.DataFrame(
+    df_db = pd.DataFrame(
         {
             "A": [1, 2, 3],
             "B": ["true", "false", "true"],
             "C": ["apple", "banana", "cherry"],
+        }
+    )
+    df_query = pd.DataFrame(
+        {
+            "A": [1, 3, ""],
+            "B": ["true", "true", "true"],
+            "C": ["apple", "", 3],
         }
     )
     weights = [0.7, 0.8, 0.9]
@@ -581,7 +576,7 @@ def test_mixed_types():
         [0.8],  # boolean_weights
         [0.9],  # categorical_weights
     )
-    assert determine_field_types(df, weights) == expected_output
+    assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
 def test_vectorize_records_mixed_numerical_boolean_categorical():
