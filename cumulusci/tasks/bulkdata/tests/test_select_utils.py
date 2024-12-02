@@ -485,8 +485,8 @@ def test_calculate_levenshtein_distance_weights_length_doesnt_match():
 
 
 def test_all_numeric_columns():
-    df_db = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
-    df_query = pd.DataFrame({"A": [4, 5, ""], "B": [4.5, 5.5, 6.5]})
+    df_db = pd.DataFrame({"A": ["1", "2", "3"], "B": ["4.5", " 5.5", "6.5"]})
+    df_query = pd.DataFrame({"A": ["4", "5", ""], "B": ["4.5", "5.5", "6.5"]})
     weights = [0.1, 0.2]
     expected_output = (
         ["A", "B"],  # numerical_features
@@ -500,16 +500,16 @@ def test_all_numeric_columns():
 
 
 def test_numeric_columns__one_non_numeric():
-    df_db = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
-    df_query = pd.DataFrame({"A": [4, 5, 6], "B": ["abcd", 5.5, 6.5]})
+    df_db = pd.DataFrame({"A": ["1", "2", "3"], "B": ["4.5", "5.5", "6.5"]})
+    df_query = pd.DataFrame({"A": ["4", "5", "6"], "B": ["abcd", "5.5", "6.5"]})
     weights = [0.1, 0.2]
     expected_output = (
         ["A"],  # numerical_features
         [],  # boolean_features
-        [],  # categorical_features
+        ["B"],  # categorical_features
         [0.1],  # numerical_weights
         [],  # boolean_weights
-        [],  # categorical_weights
+        [0.2],  # categorical_weights
     )
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
@@ -555,16 +555,16 @@ def test_all_categorical_columns():
 def test_mixed_types():
     df_db = pd.DataFrame(
         {
-            "A": [1, 2, 3],
+            "A": ["1", "2", "3"],
             "B": ["true", "false", "true"],
             "C": ["apple", "banana", "cherry"],
         }
     )
     df_query = pd.DataFrame(
         {
-            "A": [1, 3, ""],
+            "A": ["1", "3", ""],
             "B": ["true", "true", "true"],
-            "C": ["apple", "", 3],
+            "C": ["apple", "", "3"],
         }
     )
     weights = [0.7, 0.8, 0.9]
