@@ -397,7 +397,7 @@ def annoy_post_process(
             # Retrieve the corresponding record from the database
             record = query_record_data[neighbor_index]
             closest_record_id = record_to_id_map[tuple(record)]
-            if threshold and (neighbor_distances[idx] >= threshold):
+            if threshold is not None and (neighbor_distances[idx] >= threshold):
                 selected_records.append(None)
                 insertion_candidates.append(load_shaped_records[i])
             else:
@@ -445,7 +445,7 @@ def levenshtein_post_process(
             select_record, target_records, similarity_weights
         )
 
-        if distance_threshold and match_distance > distance_threshold:
+        if distance_threshold is not None and match_distance > distance_threshold:
             # Append load record for insertion if distance exceeds threshold
             insertion_candidates.append(load_record)
             selected_records.append(None)
