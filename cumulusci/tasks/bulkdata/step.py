@@ -478,9 +478,11 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         )
 
         # Execute the main select query using Bulk API
+        self.logger.info("Retrieving records from org...")
         select_query_records = self._execute_select_query(
             select_query=select_query, query_fields=query_fields
         )
+        self.logger.info(f"Retrieved {len(select_query_records)} from org")
 
         query_records.extend(select_query_records)
         # Post-process the query results
@@ -895,7 +897,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         )
 
         # Execute the query and gather the records
+        self.logger.info("Retrieving records from org...")
         query_records = self._execute_soql_query(select_query, query_fields)
+        self.logger.info(f"Retrieved {len(query_records)} from org")
 
         # Post-process the query results for this batch
         (
