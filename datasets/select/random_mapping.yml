@@ -1,0 +1,22 @@
+Account:
+    sf_object: Account
+    api: rest
+    fields:
+        - Name
+        - Description
+        - Phone
+        - AccountNumber
+    action: select
+    select_options:
+        strategy: random
+        # threshold: 0.3
+
+Contact:
+    sf_object: Contact
+    api: rest
+    fields:
+        - LastName
+        - Email
+    lookups:
+        AccountId:
+            table: Account
