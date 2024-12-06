@@ -38,3 +38,4 @@ For example:
 * Gustavo Tandeciarz (dcinzona)
 * Chandler Anderson (zenibako)
 * Ben French (BenjaminFrench)
+* Julian Joseph (julian88tex)
