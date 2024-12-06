@@ -78,7 +78,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
 
         wait = self.builtin.convert_to_boolean(wait)
         default_size = self.builtin.get_variable_value(
-            "${DEFAULT BROWSER SIZE}", "1280x1024"
+            "${DEFAULT BROWSER SIZE}", "1920x1080"
         )
         size = size or default_size
 
@@ -109,7 +109,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         context_id = self.browser.new_context(
             viewport={"width": width, "height": height}, recordVideo=record_video
         )
-        self.browser.set_browser_timeout("15 seconds")
+        self.browser.set_browser_timeout("90 seconds")
         page_details = self.browser.new_page(login_url)
 
         if wait:
@@ -218,3 +218,133 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         set, this keyword will have no effect on a running test.
         """
         return None
+    
+    def go_to_setup_admin_page(self, setup_page_url: str, sleep_length: int = 2):
+        """
+        Browses to a lightning setup URL, provide everything after lightning/setup/ in the URL
+
+        Args:
+            setup_page_url (str): Requires the section of the URL Path which comes after lightning/setup.
+            sleep_length (str): (Optional) Set the length of time (in seconds) which the robot will wait for the page to load. Defaults to 2 seconds.
+        """
+
+        # Handle empty URL
+        if not setup_page_url:
+            raise Exception("URL Text must be specified")
+
+        # Handle full url being passed in
+        if "lightning/setup" in setup_page_url:
+            startpos = setup_page_url.find('lightning/setup/') + len('lightning/setup/')
+            endpos = len(setup_page_url)
+            setup_page_url = setup_page_url[startpos:endpos]
+
+        # Go To Page
+        try:
+            if not str(self.browser.get_url()).endswith(f"/lightning/setup/{setup_page_url}"):
+                self.browser.go_to(f"{self.cumulusci.org.instance_url}/lightning/setup/{setup_page_url}", timeout="90s")
+
+            # Handlers for help messages and new feature modals
+            
+            if self.browser.get_element_count("button:has-text('Dismiss')") > 0:
+                for elem in self.browser.get_elements("button:has-text('Dismiss')"):
+                    try:
+                        self.browser.click(selector=elem, force=True, noWaitAfter=True)
+                    except:
+                        continue
+
+            if self.browser.get_element_count("div.modal-container:visible") > 0:
+                for elem in self.browser.get_elements("div.modal-container:visible >> button:has-text('Close this window')"):
+                    try:
+                        self.browser.click(selector=elem, force=True, noWaitAfter=True)
+                    except:
+                        continue
+
+            # Allow time for page load to complete
+            time.sleep(sleep_length)
+            
+        except Exception as e:
+            self.browser.take_screenshot()
+            raise e
+
+    def go_to_app(self, app_name: str):
+        """
+        Browses to the given app within the browser. For example "Sales" app.
+        
+        Args:
+            app_name (str): Name of the Lightning App. Not the API Name.
+        """
+
+        if not app_name:
+            print("No App Name Provided")
+            return
+        
+        # Browse to the App if found
+        application_id = self.find_id(object_api_name="AppDefinition", where_clause=f"Label = '{app_name}'", id_column_name="DurableId")
+        if application_id:
+            self.browser.go_to(f"{self.cumulusci.org.instance_url}/lightning/app/{application_id}", timeout='30s')
+
+
+    def iframe_handler(self):
+
+        """
+        Add to the start of selector statements to handle iframes within Lightning Pages. Note that it will return >>> at the end of the statement so account for that in your selector.
+        """
+
+        time.sleep(2)
+
+        # This is a double check to ensure that once the page has finished loading elements, no iframes have appeared.
+        if self.browser.get_element_count("iframe") == 0:
+            retries = 1
+            while retries < 3:
+                
+                if self.browser.get_element_count("iframe") == 0 and retries == 2:
+                    return ""
+                if self.browser.get_element_count("iframe") > 0:
+                    break
+                
+                retries += 1
+                time.sleep(1)
+
+        # Handles Console Layouts and Setup Pages where guidance prompts have opened
+        if self.browser.get_element_count("div.mainContentMark") == 1:
+            return "div.mainContentMark >> iframe >>>"
+
+        # Handles LEX Setup Pages with embedded Classic UI Settings Pages or older LEX Setup Pages
+        if self.browser.get_element_count("div.oneAlohaPage") == 1:
+            return "div.oneAlohaPage >> iframe >>>"
+
+        # Handles other situations
+        if self.browser.get_element_count("iframe") == 1 and (self.browser.get_element_count("div.oneAlohaPage") < 1 or self.browser.get_element_count("div.mainContentMark") < 1):
+            return "iframe >>>"
+
+        if self.browser.get_element_count("iframe") > 1 and (self.browser.get_element_count("div.oneAlohaPage") < 1 or self.browser.get_element_count("div.mainContentMark") < 1):
+            return "nth-match(iframe, 1) >>>"
+
+        return ""
+    
+    def compile_all_apex(self, wait_time=600):
+        """
+        Does an Apex Recompile of all Classes
+
+        Args:
+            wait_time: Max wait time for the compile to run in seconds. Default is 600 seconds. 
+        """
+
+        self.go_to_setup_admin_page("ApexClasses/home", 15)
+        self.browser.click(f"iframe >>> id=all_classes_page:theTemplate:messagesForm:compileAll")
+
+        itcnt=0
+        while itcnt < wait_time:
+            try:
+                completed_element_states = self.browser.get_element_states("iframe >>> h4:has-text('Compilation Complete')")
+
+                if "visible" in completed_element_states and "enabled" in completed_element_states:
+                    time.sleep(2)
+                    break
+
+            except Exception as apex_compile_automation_error:
+                self.browser.take_screenshot()
+                break
+
+            itcnt += 1
+            time.sleep(5)
