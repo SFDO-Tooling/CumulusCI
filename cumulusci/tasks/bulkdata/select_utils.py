@@ -352,9 +352,6 @@ def annoy_post_process(
         insertion_candidates = load_shaped_records
         return selected_records, insertion_candidates
 
-    query_records = replace_empty_strings_with_missing(query_records)
-    select_shaped_records = replace_empty_strings_with_missing(select_shaped_records)
-
     hash_features = 100
     num_trees = 10
 
@@ -400,7 +397,7 @@ def annoy_post_process(
             # Retrieve the corresponding record from the database
             record = query_record_data[neighbor_index]
             closest_record_id = record_to_id_map[tuple(record)]
-            if threshold and (neighbor_distances[idx] >= threshold):
+            if threshold is not None and (neighbor_distances[idx] >= threshold):
                 selected_records.append(None)
                 insertion_candidates.append(load_shaped_records[i])
             else:
@@ -448,7 +445,7 @@ def levenshtein_post_process(
             select_record, target_records, similarity_weights
         )
 
-        if distance_threshold and match_distance > distance_threshold:
+        if distance_threshold is not None and match_distance > distance_threshold:
             # Append load record for insertion if distance exceeds threshold
             insertion_candidates.append(load_record)
             selected_records.append(None)
@@ -589,7 +586,7 @@ def add_limit_offset_to_user_filter(
     return f" {filter_clause}"
 
 
-def determine_field_types(df, weights):
+def determine_field_types(df_db, df_query, weights):
     numerical_features = []
     boolean_features = []
     categorical_features = []
@@ -598,23 +595,35 @@ def determine_field_types(df, weights):
     boolean_weights = []
     categorical_weights = []
 
-    for col, weight in zip(df.columns, weights):
+    for col, weight in zip(df_db.columns, weights):
         # Check if the column can be converted to numeric
         try:
-            # Attempt to convert to numeric
-            df[col] = pd.to_numeric(df[col], errors="raise")
+            temp_df_db = pd.to_numeric(df_db[col], errors="raise")
+            temp_df_query = pd.to_numeric(df_query[col], errors="raise")
+            # Replace empty values with 0 for numerical features
+            df_db[col] = temp_df_db.fillna(0).replace("", 0)
+            df_query[col] = temp_df_query.fillna(0).replace("", 0)
             numerical_features.append(col)
             numerical_weights.append(weight)
         except ValueError:
             # Check for boolean values
-            if df[col].str.lower().isin(["true", "false"]).all():
+            if (
+                df_db[col].str.lower().isin(["true", "false"]).all()
+                and df_query[col].str.lower().isin(["true", "false"]).all()
+            ):
                 # Map to actual boolean values
-                df[col] = df[col].str.lower().map({"true": True, "false": False})
+                df_db[col] = df_db[col].str.lower().map({"true": True, "false": False})
+                df_query[col] = (
+                    df_query[col].str.lower().map({"true": True, "false": False})
+                )
                 boolean_features.append(col)
                 boolean_weights.append(weight)
             else:
                 categorical_features.append(col)
                 categorical_weights.append(weight)
+                # Replace empty values with 'missing' for categorical features
+                df_db[col] = df_db[col].replace("", "missing")
+                df_query[col] = df_query[col].replace("", "missing")
 
     return (
         numerical_features,
@@ -640,14 +649,7 @@ def vectorize_records(db_records, query_records, hash_features, weights):
         numerical_weights,
         boolean_weights,
         categorical_weights,
-    ) = determine_field_types(df_db, weights)
-
-    # Modify query dataframe boolean columns to True or False
-    for col in df_query.columns:
-        if df_query[col].str.lower().isin(["true", "false"]).all():
-            df_query[col] = (
-                df_query[col].str.lower().map({"true": True, "false": False})
-            )
+    ) = determine_field_types(df_db, df_query, weights)
 
     # Fit StandardScaler on the numerical features of the database records
     scaler = StandardScaler()
@@ -703,13 +705,6 @@ def vectorize_records(db_records, query_records, hash_features, weights):
     final_query_vectors = np.hstack(query_vectors)
 
     return final_db_vectors, final_query_vectors
-
-
-def replace_empty_strings_with_missing(records):
-    return [
-        [(field if field != "" else "missing") for field in record]
-        for record in records
-    ]
 
 
 def split_and_filter_fields(fields: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
