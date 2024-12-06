@@ -10,11 +10,11 @@ from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.github import MergeBranch
 from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
 from cumulusci.tests.util import DummyOrgConfig, create_project_config
+from cumulusci.utils.version_strings import LooseVersion
 
 
 class TestMergeBranch(MockUtilBase):
     def setup_method(self):
-
         # Set up the mock values
         self.repo = "TestRepo"
         self.owner = "TestOwner"
@@ -617,6 +617,47 @@ class TestMergeBranch(MockUtilBase):
         assert 2 == len(responses.calls)
 
     @responses.activate
+    def test_branches_to_merge__main_to_feature_and_next_release_version_number(self):
+        """Tests that when main branch is the source_branch
+        that all expected child branches and the *lowest numbered*
+        release branch using a version number are merged into."""
+
+        self._setup_mocks(
+            [
+                "main",
+                "feature/2.3",
+                "feature/3.4.0",
+                "feature/450",
+                "feature/work-a",
+                "feature/work-b",
+                "feature/work-a__child_a",
+                "feature/work-a__child_a__grandchild",
+                "feature/work-b__child_b",
+                "feature/orphan__with_child",
+                "feature/230__cool_feature",
+                "feature/230__cool_feature__child",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "main",
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+        expected_branches_to_merge = [
+            "feature/2.3",
+            "feature/work-a",
+            "feature/work-b",
+        ]
+        assert expected_branches_to_merge == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
     def test_branches_to_merge__no_prefix_merge_to_feature(self):
         """Tests that when source_branch is a branch other than main
         and doesn't start with 'feature/', that it is merged
@@ -756,6 +797,35 @@ class TestMergeBranch(MockUtilBase):
         actual_branches = [branch.name for branch in task._get_branches_to_merge()]
 
         assert ["feature/232", "feature/300"] == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
+    def test_merge_to_future_release_branches_version_number(self):
+        """Tests that commits to the main branch are merged to the expected feature branches"""
+        self._setup_mocks(
+            [
+                "main",
+                "feature/2.3",
+                "feature/2.4",
+                "feature/300",
+                "feature/work-item",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "feature/2.3",
+                    "branch_prefix": "feature/",
+                    "update_future_releases": True,
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert ["feature/2.4", "feature/300"] == actual_branches
         assert 2 == len(responses.calls)
 
     @responses.activate
@@ -1016,6 +1086,9 @@ class TestMergeBranch(MockUtilBase):
             f"{prefix}20302",
             f"{prefix}3810102",
             f"{prefix}9711112",
+            f"{prefix}0.1",
+            f"{prefix}1.0",
+            f"{prefix}1.2.3.456.789",
         ]
         invalid_release_branches = [
             f"{prefix}200_",
@@ -1023,8 +1096,11 @@ class TestMergeBranch(MockUtilBase):
             f"{prefix}230__child",
             f"{prefix}230__grand__child",
             f"{prefix}230a",
+            f"{prefix}2.3.0__child",
+            f"{prefix}2.3.0__grand__child",
             f"{prefix}r1",
             f"{prefix}R1",
+            f"{prefix}foo",
         ]
         task = self._create_task(
             task_config={
@@ -1069,7 +1145,7 @@ class TestMergeBranch(MockUtilBase):
         task._init_task()
 
         repo_branches = list(task.repo.branches())
-        assert task._get_next_release(repo_branches) == 88
+        assert task._get_next_release(repo_branches) == LooseVersion("88")
 
     @responses.activate
     def test_is_future_release_branch(self):
@@ -1090,23 +1166,24 @@ class TestMergeBranch(MockUtilBase):
         task._init_task()
 
         repo_branches = list(task.repo.branches())
-        assert task._get_next_release(repo_branches) == 8
+        expected_next_version = LooseVersion("8")
+        assert task._get_next_release(repo_branches) == expected_next_version
 
-        assert not task._is_future_release_branch("f", 8)
-        assert not task._is_future_release_branch("feature", 8)
-        assert not task._is_future_release_branch("feature/", 8)
-        assert not task._is_future_release_branch("feature/_", 8)
-        assert not task._is_future_release_branch("feature/0", 8)
-        assert not task._is_future_release_branch("feature/O", 8)
-        assert not task._is_future_release_branch("feature/7", 8)
-        assert not task._is_future_release_branch("feature/8", 8)
-        assert not task._is_future_release_branch("feature/9_", 8)
+        assert not task._is_future_release_branch("f", expected_next_version)
+        assert not task._is_future_release_branch("feature", expected_next_version)
+        assert not task._is_future_release_branch("feature/", expected_next_version)
+        assert not task._is_future_release_branch("feature/_", expected_next_version)
+        assert not task._is_future_release_branch("feature/0", expected_next_version)
+        assert not task._is_future_release_branch("feature/O", expected_next_version)
+        assert not task._is_future_release_branch("feature/7", expected_next_version)
+        assert not task._is_future_release_branch("feature/8", expected_next_version)
+        assert not task._is_future_release_branch("feature/9_", expected_next_version)
 
-        assert task._is_future_release_branch("feature/9", 8)
-        assert task._is_future_release_branch("feature/75", 8)
-        assert task._is_future_release_branch("feature/123", 8)
-        assert task._is_future_release_branch("feature/4567", 8)
-        assert task._is_future_release_branch("feature/10000", 8)
+        assert task._is_future_release_branch("feature/9", expected_next_version)
+        assert task._is_future_release_branch("feature/75", expected_next_version)
+        assert task._is_future_release_branch("feature/123", expected_next_version)
+        assert task._is_future_release_branch("feature/4567", expected_next_version)
+        assert task._is_future_release_branch("feature/10000", expected_next_version)
 
 
 def log_header():
