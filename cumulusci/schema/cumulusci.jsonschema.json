@@ -88,6 +88,10 @@
                     "title": "Class Path",
                     "type": "string"
                 },
+                "extends": {
+                    "title": "Extends",
+                    "type": "string"
+                },
                 "description": {
                     "title": "Description",
                     "type": "string"
