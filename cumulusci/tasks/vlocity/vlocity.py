@@ -27,7 +27,7 @@ VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
 LWC_RSS_NAME = "OmniStudioLightning"
 OMNI_NAMESPACE = "omnistudio"
 VBT_SF_ALIAS = "cci-vbt-target"
-SF_TOKEN_ENV = "SFDX_ACCESS_TOKEN"
+SF_TOKEN_ENV = "SF_ACCESS_TOKEN"
 VBT_TOKEN_ENV = "OMNIOUT_TOKEN"
 
 
