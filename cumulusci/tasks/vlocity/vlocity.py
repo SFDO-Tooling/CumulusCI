@@ -106,7 +106,9 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         # TODO: Use the sf v2 form of this command instead (when we migrate)
         token_store_cmd = [
             "sf",
-            "org login access-token",
+            "org",
+            "login",
+            "access-token",
             "--no-prompt",
             "--alias",
             f"{VBT_SF_ALIAS}",
