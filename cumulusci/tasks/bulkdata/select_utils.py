@@ -1,21 +1,36 @@
+import logging
 import random
 import re
 import typing as T
 from enum import Enum
 
-import numpy as np
-import pandas as pd
-from annoy import AnnoyIndex
 from pydantic import Field, root_validator, validator
-from sklearn.feature_extraction.text import HashingVectorizer
-from sklearn.preprocessing import StandardScaler
 
 from cumulusci.core.enums import StrEnum
 from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
     DEFAULT_DECLARATIONS,
 )
 from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict
+from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+
+logger = logging.getLogger(__name__)
+try:
+    import numpy as np
+    import pandas as pd
+    from annoy import AnnoyIndex
+    from sklearn.feature_extraction.text import HashingVectorizer
+    from sklearn.preprocessing import StandardScaler
+
+    OPTIONAL_DEPENDENCIES_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        f"Optional dependencies are missing. "
+        "Handling high volumes of records for the 'select' functionality will be significantly slower, "
+        "as optimizations for this feature are currently disabled. "
+        f"To enable optimized performance, install all required dependencies using: {get_cci_upgrade_command()}[select]\n"
+    )
+    OPTIONAL_DEPENDENCIES_AVAILABLE = False
 
 
 class SelectStrategy(StrEnum):
@@ -308,7 +323,7 @@ def similarity_post_process(
     select_records = []
     insert_records = []
 
-    if complexity_constant < 1000:
+    if complexity_constant < 1000 or not OPTIONAL_DEPENDENCIES_AVAILABLE:
         select_records, insert_records = levenshtein_post_process(
             load_records, query_records, fields, weights, threshold
         )
