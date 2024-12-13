@@ -21,7 +21,7 @@ https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/core/config/org_co
 -   `namespaced` : `true` if the org has a namespace
 -   `org_id` : orgid of the Salesforce org
 -   `org_type` : eg "Enterprise Edition" or "Developer Edition"
--   `organization_sobject` : whole Organization SObject (see the [Salesforce documentation for the Organization SObject](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_organization.htm))
+-   `organization_sobject` : The Organization object (see the [Salesforce documentation for the Organization SObject](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_organization.htm)) for the org.
 -   `scratch` : true indicates the org is a scratch org. False indicates it is a persistent org
 -   `start_url`: the frontdoor URL that results in an instant login, like `https://mydomain.my.salesforce.com/secur/frontdoor.jsp?sid=...`
 -   `user_id` : user id of the current Salesforce user
