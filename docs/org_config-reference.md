@@ -8,7 +8,7 @@ https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/core/config/org_co
 ## org_config Object Attributes
 
 -   `access_token` : access token currently used to authenticate with Salesforce
--   `installed_packages` : comma-separated list of package names; a dict mapping a namespace or package Id (033\*) to the installed package version(s) matching that identifier. All values are lists, because multiple second-generation packages may be installed with the same namespace. Beta version of a package are represented as "1.2.3b5", where 5 is the build number.
+-   `installed_packages` : comma-separated list of package names; a `dict` mapping a namespace or metadata package ID (starts with `033`) to the installed package version(s) matching that identifier. All values are lists, because multiple second-generation packages may be installed with the same namespace. The beta version of a package is represented as "1.2.3b5", where 5 is the build number.
 -   `instance_url` : eg `https://crazy-demo.scratch.my.salesforce.com`
 -   `instance_name` : eg `crazy-demo`
 -   `is_advanced_currency_management_enabled` : `true` or `false`
