@@ -1,6 +1,6 @@
 # org_config Object Reference
 
-The `org_config` object can be used in the `cumulusci.yml` file to read a large number number of attributes of the Salesforce org currently used. For example, in a [custom flow step](https://cumulusci.readthedocs.io/en/stable/config.html#add-a-flow-step), you can use a `when`clause to adapt the behavior of the new step to the type of org (scratch org or not) by referencing the `org_config.scratch` attribute.
+The `org_config` object can be used in the `cumulusci.yml` file to read a large number number of attributes of the Salesforce org currently used. For example, in a [custom flow step](https://cumulusci.readthedocs.io/en/stable/config.html#add-a-flow-step), you can use a `when` clause to adapt the behavior of the new step to the type of org (scratch org or not) by referencing the `org_config.scratch` attribute.
 
 The following information is documented here in the application's source code :
 https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/core/config/org_config.py
