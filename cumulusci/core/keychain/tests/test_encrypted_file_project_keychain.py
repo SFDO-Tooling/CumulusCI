@@ -328,7 +328,9 @@ class TestEncryptedFileProjectKeychain:
         github_service_path = Path(f"{keychain.global_config_dir}/services/github")
         self._write_file(
             Path(github_service_path / "alias.service"),
-            keychain._get_config_bytes(BaseConfig({"name": "foo"})).decode("utf-8"),
+            keychain._get_config_bytes(BaseConfig({"name4tests": "foo"})).decode(
+                "utf-8"
+            ),
         )
 
         # keychain.config["services"] = {}
@@ -340,14 +342,14 @@ class TestEncryptedFileProjectKeychain:
         ):
             keychain._load_service_files()
         github_service = keychain.get_service("github", "alias")
-        assert "foo" in github_service.config["name"]
+        assert "foo" in github_service.config["name4tests"]
 
     def test_load_services__from_env(self, keychain):
         service_config_one = ServiceConfig(
-            {"name": "foo1", "password": "1234", "token": "1234"}
+            {"name4tests": "foo1", "pw4tests": "1234", "token": "1234"}
         )
         service_config_two = ServiceConfig(
-            {"name": "foo2", "password": "5678", "token": "5678"}
+            {"name4tests": "foo2", "pw4tests": "5678", "token": "5678"}
         )
         with EnvironmentVarGuard() as env:
             env.set(
@@ -373,7 +375,7 @@ class TestEncryptedFileProjectKeychain:
         keychain.logger = mock.Mock()
         service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
         service_config = ServiceConfig(
-            {"name": "foo", "password": "1234", "token": "1234"}
+            {"name4tests": "foo", "pw4tests": "1234", "token": "1234"}
         )
         with EnvironmentVarGuard() as env:
             env.set(f"{service_prefix}github", json.dumps(service_config.config))
@@ -486,30 +488,40 @@ class TestEncryptedFileProjectKeychain:
             )
 
     def test_set_service__first_should_be_default(self, keychain):
-        keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
-        keychain.set_service("github", "bar_github", ServiceConfig({"name": "bar"}))
+        keychain.set_service(
+            "github", "foo_github", ServiceConfig({"name4tests": "foo"})
+        )
+        keychain.set_service(
+            "github", "bar_github", ServiceConfig({"name4tests": "bar"})
+        )
 
         github_service = keychain.get_service("github")
-        assert _simplify_config(github_service.config) == {"name": "foo"}
+        assert _simplify_config(github_service.config) == {"name4tests": "foo"}
 
     def test_set_default_service(self, keychain, withdifferentformats):
-        keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
-        keychain.set_service("github", "bar_github", ServiceConfig({"name": "bar"}))
+        keychain.set_service(
+            "github", "foo_github", ServiceConfig({"name4tests": "foo"})
+        )
+        keychain.set_service(
+            "github", "bar_github", ServiceConfig({"name4tests": "bar"})
+        )
 
         github_service = keychain.get_service("github")
-        assert _simplify_config(github_service.config) == {"name": "foo"}
+        assert _simplify_config(github_service.config) == {"name4tests": "foo"}
         # now set default to bar
         keychain.set_default_service("github", "bar_github")
         github_service = keychain.get_service("github")
-        assert _simplify_config(github_service.config) == {"name": "bar"}
+        assert _simplify_config(github_service.config) == {"name4tests": "bar"}
 
     def test_set_default_service__service_alredy_default(
         self, keychain, withdifferentformats
     ):
-        keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
+        keychain.set_service(
+            "github", "foo_github", ServiceConfig({"name4tests": "foo"})
+        )
         github_service = keychain.get_service("github")
         assert github_service.config == {
-            "name": "foo",
+            "name4tests": "foo",
             "serialization_format": withdifferentformats,
         }
 
@@ -517,7 +529,7 @@ class TestEncryptedFileProjectKeychain:
 
         github_service = keychain.get_service("github")
         assert github_service.config == {
-            "name": "foo",
+            "name4tests": "foo",
             "serialization_format": withdifferentformats,
         }
 
@@ -526,7 +538,9 @@ class TestEncryptedFileProjectKeychain:
             keychain.set_default_service("fooey", "alias")
 
     def test_set_default_service__no_such_alias(self, keychain):
-        keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
+        keychain.set_service(
+            "github", "foo_github", ServiceConfig({"name4tests": "foo"})
+        )
         with pytest.raises(ServiceNotConfigured):
             keychain.set_default_service("github", "wrong_alias")
 
@@ -1181,7 +1195,7 @@ class TestCleanupOrgCacheDir:
         self, keychain, key, withdifferentformats
     ):
         service_config = ServiceConfig(
-            {"name": "foo1", "password": "1234", "token": "1234"}
+            {"name4tests": "foo1", "pw4tests": "1234", "token": "1234"}
         )
 
         keychain.key = key
@@ -1215,7 +1229,10 @@ class TestCleanupOrgCacheDir:
             del keychain.config["orgs"]
             keychain._load_orgs()
             assert keychain.get_org("test_migration").password == "Kltpzyxm"
-            assert keychain.get_org("test_migration").serialization_format == "pickle"
+            assert (
+                keychain.get_org("test_migration").lookup("serialization_format")
+                == "pickle"
+            )
 
         with mock.patch(
             "cumulusci.core.keychain.serialization.SHOULD_SAVE_AS_JSON", True
@@ -1225,4 +1242,7 @@ class TestCleanupOrgCacheDir:
             del keychain.config["orgs"]
             keychain._load_orgs()
             assert keychain.get_org("test_migration").password == "Kltpzyxm"
-            assert keychain.get_org("test_migration").serialization_format == "json"
+            assert (
+                keychain.get_org("test_migration").lookup("serialization_format")
+                == "json"
+            )
