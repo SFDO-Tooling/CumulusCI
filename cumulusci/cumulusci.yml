@@ -33,6 +33,14 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.AddValueSetEntries
         options:
             namespace_inject: $project_config.project__package__namespace
+            entity: StandardValueSet
+    add_global_value_set_entries:
+        group: Metadata Transformations
+        description: Adds specified picklist entries to a Global Value Set.
+        class_path: cumulusci.tasks.metadata_etl.AddValueSetEntries
+        options:
+            namespace_inject: $project_config.project__package__namespace
+            entity: GlobalValueSet
     add_picklist_entries:
         group: Metadata Transformations
         description: Adds specified picklist entries to a custom picklist field.
