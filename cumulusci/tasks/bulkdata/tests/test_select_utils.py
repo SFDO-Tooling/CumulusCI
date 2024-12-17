@@ -403,6 +403,33 @@ def test_similarity_post_process_with_no_records():
     assert error_message == f"No records found for {sobject} in the target org."
 
 
+def test_similarity_post_process_with_no_records__zero_threshold():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
+    load_records = [["Aditya", "Salesforce"], ["Jawad", "Salesforce"]]
+    query_records = []
+    num_records = 2
+    sobject = "Lead"
+    (
+        selected_records,
+        insert_records,
+        error_message,
+    ) = select_operator.select_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[1, 1, 1],
+        fields=["LastName", "Company"],
+        threshold=0,
+    )
+
+    # Assert that it inserts everything
+    assert selected_records == [None, None]
+    assert insert_records[0] == ["Aditya", "Salesforce"]
+    assert insert_records[1] == ["Jawad", "Salesforce"]
+    assert error_message is None
+
+
 def test_calculate_levenshtein_distance_basic():
     record1 = ["hello", "world"]
     record2 = ["hullo", "word"]

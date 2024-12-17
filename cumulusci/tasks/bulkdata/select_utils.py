@@ -292,7 +292,7 @@ def similarity_post_process(
 ]:
     """Processes the query results for the similarity selection strategy"""
     # Handle case where query returns 0 records
-    if not query_records and not threshold:
+    if not query_records and threshold is None:
         error_message = f"No records found for {sobject} in the target org."
         return [], [], error_message
 
