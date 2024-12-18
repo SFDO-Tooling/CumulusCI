@@ -343,6 +343,12 @@ def annoy_post_process(
     threshold: T.Union[float, None],
 ) -> T.Tuple[T.List[dict], list]:
     """Processes the query results for the similarity selection strategy using Annoy algorithm for large number of records"""
+    # Add warning when threshold is 0
+    if threshold is not None and threshold == 0:
+        logger.warning(
+            "Warning: A threshold of 0 may miss exact matches in high volumes. Use a small value like 0.1 for better accuracy."
+        )
+
     selected_records = []
     insertion_candidates = []
 
