@@ -1,7 +1,7 @@
-import pandas as pd
 import pytest
 
 from cumulusci.tasks.bulkdata.select_utils import (
+    OPTIONAL_DEPENDENCIES_AVAILABLE,
     SelectOperationExecutor,
     SelectStrategy,
     add_limit_offset_to_user_filter,
@@ -14,6 +14,14 @@ from cumulusci.tasks.bulkdata.select_utils import (
     split_and_filter_fields,
     vectorize_records,
 )
+
+# Check for pandas availability
+try:
+    import pandas as pd
+
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
 
 
 # Test Cases for standard_generate_query
@@ -511,6 +519,10 @@ def test_calculate_levenshtein_distance_weights_length_doesnt_match():
     assert "Records must be same size as fields (weights)." in str(e.value)
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_all_numeric_columns():
     df_db = pd.DataFrame({"A": ["1", "2", "3"], "B": ["4.5", " 5.5", "6.5"]})
     df_query = pd.DataFrame({"A": ["4", "5", ""], "B": ["4.5", "5.5", "6.5"]})
@@ -526,6 +538,10 @@ def test_all_numeric_columns():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_numeric_columns__one_non_numeric():
     df_db = pd.DataFrame({"A": ["1", "2", "3"], "B": ["4.5", "5.5", "6.5"]})
     df_query = pd.DataFrame({"A": ["4", "5", "6"], "B": ["abcd", "5.5", "6.5"]})
@@ -541,6 +557,10 @@ def test_numeric_columns__one_non_numeric():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_all_boolean_columns():
     df_db = pd.DataFrame(
         {"A": ["true", "false", "true"], "B": ["false", "true", "false"]}
@@ -560,6 +580,10 @@ def test_all_boolean_columns():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_all_categorical_columns():
     df_db = pd.DataFrame(
         {"A": ["apple", "banana", "cherry"], "B": ["dog", "cat", "mouse"]}
@@ -579,6 +603,10 @@ def test_all_categorical_columns():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_mixed_types():
     df_db = pd.DataFrame(
         {
@@ -606,6 +634,10 @@ def test_mixed_types():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_vectorize_records_mixed_numerical_boolean_categorical():
     # Test data with mixed types: numerical and categorical only
     db_records = [["1.0", "true", "apple"], ["2.0", "false", "banana"]]
@@ -633,6 +665,10 @@ def test_vectorize_records_mixed_numerical_boolean_categorical():
     ), "Query vectors column count mismatch"
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_annoy_post_process():
     # Test data
     load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
@@ -659,6 +695,10 @@ def test_annoy_post_process():
     assert not insert_records
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_annoy_post_process__insert_records():
     # Test data
     load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
@@ -714,6 +754,10 @@ def test_annoy_post_process__no_query_records():
     ]  # The first insert record should match the second load record
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_annoy_post_process__insert_records_with_polymorphic_fields():
     # Test data
     load_records = [
@@ -749,6 +793,10 @@ def test_annoy_post_process__insert_records_with_polymorphic_fields():
     ]  # The first insert record should match the second load record
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_single_record_match_annoy_post_process():
     # Mock data where only the first query record matches the first load record
     load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]

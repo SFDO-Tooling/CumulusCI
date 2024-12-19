@@ -352,6 +352,9 @@ This parameter is **optional**; if not specified, no threshold will be applied a
 
 This feature is particularly useful during version upgrades, where records that closely match can be selected, while those that do not match sufficiently can be inserted into the target org.
 
+**Important Note:**  
+For high volumes of records, an approximation algorithm is applied to improve performance. In such cases, setting a threshold of `0` may not guarantee the selection of exact matches, as the algorithm can assign a small non-zero similarity score to exact matches. To ensure accurate selection, it is recommended to set the threshold to a small value slightly greater than `0`, such as `0.1`. This ensures both precision and efficiency in the selection process.
+
 ---
 
 #### Example
