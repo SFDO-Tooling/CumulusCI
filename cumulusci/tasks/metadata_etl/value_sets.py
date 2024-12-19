@@ -18,7 +18,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
 
         Example Usage
         -----------------------
-
+        Add entries to a Standard Value Set.
         .. code-block::  yaml
 
             task: add_standard_value_set_entries
@@ -32,9 +32,20 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                 ui_options:
                     name: Add values to Case Origin picklist
 
+        Add entries to a Global Value Set.
+        .. code-block::  yaml
+
+            task: add_global_value_set_entries
+            options:
+                api_names: CaseOrigin
+                entries:
+                    - fullName: New Account
+                      label: New Account
+                    - fullName: Questionable Contact
+                      label: Questionable Contact
         """
 
-    entity = "StandardValueSet"
+    entity = None
     task_options = {
         **MetadataSingleEntityTransformTask.task_options,
         "entries": {
@@ -50,9 +61,26 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
             "such as 'OpportunityStage', 'AccountType', 'CaseStatus', 'LeadStatus'",
             "required": True,
         },
+        "entity": {
+            "description": "The type of value set to affect. Defaults to 'StandardValueSet'.",
+            "required": False,
+        },
     }
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.entity = self.options.get("entity", "StandardValueSet")
+
     def _transform_entity(self, metadata: MetadataElement, api_name: str):
+        if self.entity == "StandardValueSet":
+            return self._transform_standard_value_set(metadata, api_name)
+        elif self.entity == "GlobalValueSet":
+            return self._transform_global_value_set(metadata, api_name)
+        else:
+            raise TaskOptionsError(f"Invalid entity type: {self.entity}")
+
+    def _transform_standard_value_set(self, metadata: MetadataElement, api_name: str):
         for entry in self.options.get("entries", []):
             if "fullName" not in entry or "label" not in entry:
                 raise TaskOptionsError(FULL_NAME_AND_LABEL_ERR)
@@ -103,4 +131,23 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                     for entry_key in entry:
                         if entry_key not in ["fullName", "label", "default"]:
                             elem.append(entry_key, str(entry[entry_key]))
+
+        return metadata
+
+    def _transform_global_value_set(self, metadata: MetadataElement, api_name: str):
+        for entry in self.options.get("entries", []):
+            if "fullName" not in entry or "label" not in entry:
+                raise TaskOptionsError(FULL_NAME_AND_LABEL_ERR)
+
+            existing_entry = metadata.findall(
+                "customValue", fullName=entry["fullName"]
+            )
+
+            if not existing_entry:
+                # Entry doesn't exist. Insert it.
+                elem = metadata.append(tag="customValue")
+                elem.append("fullName", text=entry["fullName"])
+                elem.append("label", text=entry["label"])
+                elem.append("default", text="false")
+
         return metadata
