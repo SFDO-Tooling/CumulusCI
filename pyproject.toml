@@ -23,7 +23,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "annoy",
     "click>=8.1",
     "cryptography",
     "python-dateutil",
@@ -35,8 +34,6 @@ dependencies = [
     "defusedxml",
     "lxml",
     "MarkupSafe",
-    "numpy",
-    "pandas",
     "psutil",
     "pydantic<2",
     "PyJWT",
@@ -53,7 +50,6 @@ dependencies = [
     "rst2ansi>=0.1.5",
     "salesforce-bulk",
     "sarge",
-    "scikit-learn",
     "selenium<4",
     "simple-salesforce==1.11.4",
     "snowfakery>=4.0.0",
@@ -86,6 +82,14 @@ lint = [
     "flake8<4",
     "isort>=5.13.2",
     "pre-commit>=3.5.0",
+]
+
+[project.optional-dependencies]
+select = [
+    "annoy",
+    "numpy",
+    "pandas",
+    "scikit-learn",
 ]
 
 [project.scripts]
