@@ -25,6 +25,7 @@ from cumulusci.tasks.bulkdata.step import (
     assign_weights,
     download_file,
     extract_flattened_headers,
+    filter_records,
     flatten_record,
     get_dml_operation,
     get_query_operation,
@@ -3875,3 +3876,42 @@ def test_flatten_record(record, headers, expected):
 def test_assign_weights(priority_fields, fields, expected):
     result = assign_weights(priority_fields, fields)
     assert result == expected
+
+
+def test_filter_records():
+    fields = ["Name", "AccountNumber", "Industry"]
+    records = [
+        ["Sample Account for Entitlements", "123", "Technology"],
+        ["Acme Corp", "456", "Retail"],
+        ["Test Company", "789", "Finance"],
+    ]
+
+    # Test 1: Exclude specific record
+    where_condition = "Name != 'Sample Account for Entitlements'"
+    expected_output = [
+        ["Acme Corp", "456", "Retail"],
+        ["Test Company", "789", "Finance"],
+    ]
+    assert filter_records(fields, records, where_condition) == expected_output
+
+    # Test 2: Include only specific Industry
+    where_condition = "Industry == 'Retail'"
+    expected_output = [["Acme Corp", "456", "Retail"]]
+    assert filter_records(fields, records, where_condition) == expected_output
+
+    # Test 3: No match
+    where_condition = "AccountNumber == '999'"
+    expected_output = []
+    assert filter_records(fields, records, where_condition) == expected_output
+
+    # Test 4: Multiple conditions
+    where_condition = "Name == 'Acme Corp' and Industry == 'Retail'"
+    expected_output = [["Acme Corp", "456", "Retail"]]
+    assert filter_records(fields, records, where_condition) == expected_output
+
+    # Test 5: Empty input
+    fields = []
+    records = []
+    where_condition = "Name != 'Nonexistent'"
+    expected_output = []
+    assert filter_records(fields, records, where_condition) == expected_output

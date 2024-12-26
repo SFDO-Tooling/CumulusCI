@@ -16,6 +16,9 @@ import salesforce_bulk
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
+    DEFAULT_DECLARATIONS,
+)
 from cumulusci.tasks.bulkdata.select_utils import (
     SelectOperationExecutor,
     SelectRecordRetrievalMode,
@@ -485,6 +488,13 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         self.logger.info(f"Retrieved {len(select_query_records)} from org")
 
         query_records.extend(select_query_records)
+
+        # Filter out default declarations
+        if not self.selection_filter and self.sobject in DEFAULT_DECLARATIONS:
+            records = filter_records(
+                self.fields, records, DEFAULT_DECLARATIONS[self.sobject].where
+            )
+
         # Post-process the query results
         (
             selected_records,
@@ -901,6 +911,12 @@ class RestApiDmlOperation(BaseDmlOperation):
         query_records = self._execute_soql_query(select_query, query_fields)
         self.logger.info(f"Retrieved {len(query_records)} from org")
 
+        # Filter out default declarations
+        if not self.selection_filter and self.sobject in DEFAULT_DECLARATIONS:
+            records = filter_records(
+                self.fields, records, DEFAULT_DECLARATIONS[self.sobject].where
+            )
+
         # Post-process the query results for this batch
         (
             selected_records,
@@ -1218,3 +1234,15 @@ def assign_weights(
             weights[i] = HIGH_PRIORITY_VALUE
 
     return weights
+
+
+# Parsing the where condition for default records
+def filter_records(fields: List[str], records, where_condition: str):
+    filtered_records = []
+    for record in records:
+        # Create a dictionary mapping fields to record values
+        record_dict = {field: value for field, value in zip(fields, record)}
+        # Use eval to dynamically evaluate the where condition
+        if eval(where_condition, {}, record_dict):
+            filtered_records.append(record)
+    return filtered_records
