@@ -11,7 +11,7 @@
 ### Changes 🎉
 
 - @W-17427085: Set ANNOY related dependencies to be optional by [@aditya-balachander](https://github.com/aditya-balachander) in [#3858](https://github.com/SFDO-Tooling/CumulusCI/pull/3858)
-- Update the documentation for SFDX_ORG_CREATE_ARGS environment variable by [@lakshmi2506](https://github.com/lakshmi2506) in [#3861](https://github.com/SFDO-Tooling/CumulusCI/pull/3861)
+- Update on the documentation for SFDX_ORG_CREATE_ARGS environment variable by [@lakshmi2506](https://github.com/lakshmi2506) in [#3861](https://github.com/SFDO-Tooling/CumulusCI/pull/3861)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1.dev0...v4.0.1.dev1
 
