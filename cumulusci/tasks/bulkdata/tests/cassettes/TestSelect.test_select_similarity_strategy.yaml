@@ -48,7 +48,7 @@ interactions:
              
     - request:
           method: GET
-          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id,%20Name,%20Description,%20Phone,%20AccountNumber%20FROM%20Account%20WHERE%20Name%20!=%20'Sample%20Account%20for%20Entitlements'
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id,%20Name,%20Description,%20Phone,%20AccountNumber%20FROM%20Account
           body: null
           headers: *id004
       response:
