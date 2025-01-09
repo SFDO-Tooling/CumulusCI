@@ -13,31 +13,6 @@
 -   Remove default declaration for select rows query by [@mjawadtp](https://github.com/mjawadtp) in
     [#3867](https://github.com/SFDO-Tooling/CumulusCI/pull/3867)
 
-**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1.dev1...v4.1.0
-
-<!-- latest-stop -->
-
-## v4.1.0.dev1 (2025-01-01)
-
-<!-- Release notes generated using configuration in .github/release.yml at main -->
-
-## What's Changed
-
-### Changes 🎉
-
--   @W-17427085: Set ANNOY related dependencies to be optional by [@aditya-balachander](https://github.com/aditya-balachander) in [#3858](https://github.com/SFDO-Tooling/CumulusCI/pull/3858)
--   Update on the documentation for SFDX_ORG_CREATE_ARGS environment variable by [@lakshmi2506](https://github.com/lakshmi2506) in [#3861](https://github.com/SFDO-Tooling/CumulusCI/pull/3861)
-
-**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1.dev0...v4.0.1.dev1
-
-## v4.0.1.dev0 (2024-12-16)
-
-<!-- Release notes generated using configuration in .github/release.yml at main -->
-
-## What's Changed
-
-### Changes 🎉
-
 -   @W-16485311: Core Logic for Selecting Records from Target Org by [@aditya-balachander](https://github.com/aditya-balachander) in [#3818](https://github.com/SFDO-Tooling/CumulusCI/pull/3818)
 -   Add integration tests for all selection strategies by [@mjawadtp](https://github.com/mjawadtp) in [#3851](https://github.com/SFDO-Tooling/CumulusCI/pull/3851)
 -   @W-17357226: Fix for issue where zero threshold defaulted to select by [@aditya-balachander](https://github.com/aditya-balachander) in [#3853](https://github.com/SFDO-Tooling/CumulusCI/pull/3853)
@@ -45,7 +20,9 @@
 -   fix: restore task and flow reference docs by [@jstvz](https://github.com/jstvz) in [#3856](https://github.com/SFDO-Tooling/CumulusCI/pull/3856)
 -   @W-17412267: Fix for records not being inserted when threshold 0 by [@aditya-balachander](https://github.com/aditya-balachander) in [#3857](https://github.com/SFDO-Tooling/CumulusCI/pull/3857)
 
-**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1...v4.0.1.dev0
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1...v4.1.0
+
+<!-- latest-stop -->🎉
 
 ## v4.0.1 (2024-11-18)
 
