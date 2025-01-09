@@ -22,7 +22,7 @@
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1...v4.1.0
 
-<!-- latest-stop -->🎉
+<!-- latest-stop -->
 
 ## v4.0.1 (2024-11-18)
 
