@@ -7,9 +7,6 @@ from enum import Enum
 from pydantic import Field, root_validator, validator
 
 from cumulusci.core.enums import StrEnum
-from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
-    DEFAULT_DECLARATIONS,
-)
 from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.yaml.model_parser import CCIDictModel
@@ -188,10 +185,6 @@ def standard_generate_query(
             filter_clause=user_filter, limit_clause=limit, offset_clause=offset
         )
     else:
-        # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-        declaration = DEFAULT_DECLARATIONS.get(sobject)
-        if declaration:
-            query += f" WHERE {declaration.where}"
         query += f" LIMIT {limit}" if limit else ""
         query += f" OFFSET {offset}" if offset else ""
     return query, ["Id"]
@@ -281,10 +274,6 @@ def similarity_generate_query(
             filter_clause=user_filter, limit_clause=limit, offset_clause=offset
         )
     else:
-        # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-        declaration = DEFAULT_DECLARATIONS.get(sobject)
-        if declaration:
-            query += f" WHERE {declaration.where}"
         query += f" LIMIT {limit}" if limit else ""
         query += f" OFFSET {offset}" if offset else ""
 
