@@ -10,7 +10,8 @@
 
 ### Changes 🎉
 
--  Remove default declaration for select rows query by [@mjawadtp](https://github.com/mjawadtp) in [#3867](https://github.com/SFDO-Tooling/CumulusCI/pull/3867)
+-   Remove default declaration for select rows query by [@mjawadtp](https://github.com/mjawadtp) in
+    [#3867](https://github.com/SFDO-Tooling/CumulusCI/pull/3867)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1.dev1...v4.1.0
 
