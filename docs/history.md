@@ -2,6 +2,79 @@
 
 <!-- latest-start -->
 
+## v4.1.0 (2025-01-09)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Remove default declaration for select rows query by [@mjawadtp](https://github.com/mjawadtp) in
+    [#3867](https://github.com/SFDO-Tooling/CumulusCI/pull/3867)
+-   @W-17427085: Set ANNOY related dependencies to be optional by [@aditya-balachander](https://github.com/aditya-balachander) in [#3858](https://github.com/SFDO-Tooling/CumulusCI/pull/3858)
+-   Update on the documentation for SFDX_ORG_CREATE_ARGS environment variable by [@lakshmi2506](https://github.com/lakshmi2506) in [#3861](https://github.com/SFDO-Tooling/CumulusCI/pull/3861)
+-   @W-16485311: Core Logic for Selecting Records from Target Org by [@aditya-balachander](https://github.com/aditya-balachander) in [#3818](https://github.com/SFDO-Tooling/CumulusCI/pull/3818)
+-   Add integration tests for all selection strategies by [@mjawadtp](https://github.com/mjawadtp) in [#3851](https://github.com/SFDO-Tooling/CumulusCI/pull/3851)
+-   @W-17357226: Fix for issue where zero threshold defaulted to select by [@aditya-balachander](https://github.com/aditya-balachander) in [#3853](https://github.com/SFDO-Tooling/CumulusCI/pull/3853)
+-   @W-17366392: Fix Omnistudio issues for the sf command format by [@lakshmi2506](https://github.com/lakshmi2506) in [#3855](https://github.com/SFDO-Tooling/CumulusCI/pull/3855)
+-   fix: restore task and flow reference docs by [@jstvz](https://github.com/jstvz) in [#3856](https://github.com/SFDO-Tooling/CumulusCI/pull/3856)
+-   @W-17412267: Fix for records not being inserted when threshold 0 by [@aditya-balachander](https://github.com/aditya-balachander) in [#3857](https://github.com/SFDO-Tooling/CumulusCI/pull/3857)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1.dev1...v4.1.0
+
+<!-- latest-stop -->
+
+## v4.1.0.dev1 (2025-01-01)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   @W-17427085: Set ANNOY related dependencies to be optional by [@aditya-balachander](https://github.com/aditya-balachander) in [#3858](https://github.com/SFDO-Tooling/CumulusCI/pull/3858)
+-   Update on the documentation for SFDX_ORG_CREATE_ARGS environment variable by [@lakshmi2506](https://github.com/lakshmi2506) in [#3861](https://github.com/SFDO-Tooling/CumulusCI/pull/3861)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1.dev0...v4.0.1.dev1
+
+## v4.0.1.dev0 (2024-12-16)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   @W-16485311: Core Logic for Selecting Records from Target Org by [@aditya-balachander](https://github.com/aditya-balachander) in [#3818](https://github.com/SFDO-Tooling/CumulusCI/pull/3818)
+-   Add integration tests for all selection strategies by [@mjawadtp](https://github.com/mjawadtp) in [#3851](https://github.com/SFDO-Tooling/CumulusCI/pull/3851)
+-   @W-17357226: Fix for issue where zero threshold defaulted to select by [@aditya-balachander](https://github.com/aditya-balachander) in [#3853](https://github.com/SFDO-Tooling/CumulusCI/pull/3853)
+-   @W-17366392: Fix Omnistudio issues for the sf command format by [@lakshmi2506](https://github.com/lakshmi2506) in [#3855](https://github.com/SFDO-Tooling/CumulusCI/pull/3855)
+-   fix: restore task and flow reference docs by [@jstvz](https://github.com/jstvz) in [#3856](https://github.com/SFDO-Tooling/CumulusCI/pull/3856)
+-   @W-17412267: Fix for records not being inserted when threshold 0 by [@aditya-balachander](https://github.com/aditya-balachander) in [#3857](https://github.com/SFDO-Tooling/CumulusCI/pull/3857)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.1...v4.1.0
+
+## v4.0.1 (2024-11-18)
+
+### Issues Fixed 🩴
+
+-   Fixed a ModuleNotFoundError for docutils by adding the dependency `docutils` by [@jstvz](https://github.com/jstvz) in [#3558](https://github.com/SFDO-Tooling/CumulusCI/pull/3558).
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.0.0...v4.0.1
+
+## v4.0.0 (2024-11-12)
+
+## What's Changed
+
+### Critical Changes 🛠
+
+-   Python versions 3.8, 3.9, and 3.10 are no longer supported.
+-   Switch to `sf` CLI commands [@lakshmi2506](https://github.com/lakshmi2506) in [#3829](https://github.com/SFDO-Tooling/CumulusCI/pull/3829)
+    -   Removed the `dx_pull` and `dx_push` tasks as the underlying commands were removed from `sf`
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v4.0.0
+
 ## v3.93.0 (2024-10-17)
 
 <!-- Release notes generated using configuration in .github/release.yml at main  -->
@@ -20,8 +93,6 @@
 -   @leo-dcfa made their first contribution in [#3827](https://github.com/SFDO-Tooling/CumulusCI/pull/3827)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.92.0...v3.93.0
-
-<!-- latest-stop -->
 
 ## v3.92.0 (2024-09-18)
 
@@ -1674,9 +1745,9 @@ Critical Changes:
         subfolders will see a change in resolution behavior. Previously,
         a dependency specified like this:
 
-            dependencies:
-                - github: https://github.com/SalesforceFoundation/NPSP
-                  subfolder: unpackaged/config/trial
+                    dependencies:
+                        - github: https://github.com/SalesforceFoundation/NPSP
+                          subfolder: unpackaged/config/trial
 
         would always deploy from the latest commit on the default
         branch. Now, this dependency will be resolved to a GitHub commit
@@ -1687,12 +1758,12 @@ Critical Changes:
     -   The `project__dependencies` section in `cumulusci.yml` no longer
         supports nested dependencies specified like this:
 
-            dependencies:
-                - namespace: "test"
-                  version: "1.0"
-                  dependencies:
-                    - namespace: "parent"
-                      version: "2.2"
+                    dependencies:
+                        - namespace: "test"
+                          version: "1.0"
+                          dependencies:
+                            - namespace: "parent"
+                              version: "2.2"
 
         All dependencies should be listed in install order.
 
@@ -1861,12 +1932,12 @@ Critical changes:
     -   The `project__dependencies` section in `cumulusci.yml` will no
         longer support nested dependencies specified like this :
 
-            dependencies:
-              - namespace: "test"
-                version: "1.0"
-                dependencies:
-                  - namespace: "parent"
-                    version: "2.2"
+                    dependencies:
+                      - namespace: "test"
+                        version: "1.0"
+                        dependencies:
+                          - namespace: "parent"
+                            version: "2.2"
 
     All dependencies should be listed in install order.
 
@@ -3473,33 +3544,33 @@ New features:
 
     : -
 
-            Added keywords for generating a collection of sObjects according to a template:
+                    Added keywords for generating a collection of sObjects according to a template:
 
-            :   -   `Generate Test Data`
-                -   `Salesforce Collection Insert`
-                -   `Salesforce Collection Update`
+                    :   -   `Generate Test Data`
+                        -   `Salesforce Collection Insert`
+                        -   `Salesforce Collection Update`
 
-        -
+                -
 
-            Changes to Page Objects:
+                    Changes to Page Objects:
 
-            :   -   More than one page object can be loaded at once.
-                    Once loaded, the keywords of a page object remain
-                    visible in the suite. Robot will give priority to
-                    keywords in the reverse order in which they were
-                    imported.
-                -   There is a new keyword, `Log Current Page Object`,
-                    which can be useful to see information about the
-                    most recently loaded page object.
-                -   There is a new keyword, `Get Page Object`, which
-                    will return the robot library for a given page
-                    object. This can be used in other keywords to access
-                    keywords from another page object if necessary.
-                -   The `Go To Page` keyword will now automatically load
-                    the page object for the given page.
+                    :   -   More than one page object can be loaded at once.
+                            Once loaded, the keywords of a page object remain
+                            visible in the suite. Robot will give priority to
+                            keywords in the reverse order in which they were
+                            imported.
+                        -   There is a new keyword, `Log Current Page Object`,
+                            which can be useful to see information about the
+                            most recently loaded page object.
+                        -   There is a new keyword, `Get Page Object`, which
+                            will return the robot library for a given page
+                            object. This can be used in other keywords to access
+                            keywords from another page object if necessary.
+                        -   The `Go To Page` keyword will now automatically load
+                            the page object for the given page.
 
-        -   Added a basic debugger for Robot tests. It can be enabled
-            using the `-o debug True` option to the robot task.
+                -   Added a basic debugger for Robot tests. It can be enabled
+                    using the `-o debug True` option to the robot task.
 
 -   Added support for deploying new metadata types
     `ProfilePasswordPolicy` and `ProfileSessionSetting`.
@@ -3574,8 +3645,8 @@ New features:
     permanently set this option, add this in
     `~/.cumulusci/cumulusci.yml`:
 
-        cli:
-            plain_output: True
+                cli:
+                    plain_output: True
 
 -   Added additional info to the `cci version` command, including the
     Python version, an upgrade check, and a warning on Python 2.
@@ -4856,12 +4927,12 @@ Resolving a few issues from beta77:
     below. In flows that need to inject the actual namespace prefix,
     override the [unmanaged]{.title-ref} option .. :
 
-        custom_deploy_task:
-            class_path: cumulusci.tasks.salesforce.Deploy
-            options:
-                path: your/custom/metadata
-                namespace_inject: $project_config.project__package__namespace
-                unmanaged: False
+                custom_deploy_task:
+                    class_path: cumulusci.tasks.salesforce.Deploy
+                    options:
+                        path: your/custom/metadata
+                        namespace_inject: $project_config.project__package__namespace
+                        unmanaged: False
 
 ### Enhancements
 
@@ -5576,13 +5647,13 @@ Resolving a few issues from beta77:
 -   **IMPORANT** This release changes the yaml structure for flows. The
     new structure now looks like this:
 
-        flows:
-            flow_name:
-                tasks:
-                    1:
-                        task: deploy
-                    2:
-                        task: run_tests
+                flows:
+                    flow_name:
+                        tasks:
+                            1:
+                                task: deploy
+                            2:
+                                task: run_tests
 
 -   See the new flow customization examples in the cookbook for examples
     of why this change was made and how to use it:

@@ -99,7 +99,7 @@ class TestCheckComponents:
                 assert components is not None
                 assert "ApexClass" not in components
         sfdx.assert_called_once_with(
-            "force:source:convert",
+            "project convert source",
             args=["-d", ANY, "-r", "force-app/main/default"],
             capture_output=True,
             check_return=True,

@@ -250,6 +250,136 @@ Insert Accounts:
 Whenever `update_key` is supplied, the action must be `upsert` and vice
 versa.
 
+---
+
+### Selects
+
+The `select` functionality is designed to streamline the mapping process by enabling the selection of specific records directly from Salesforce for lookups. This feature is particularly useful when dealing with non-insertable Salesforce objects and ensures that pre-existing records are used rather than inserting new ones. The selection process is highly customizable with various strategies, filters, and additional capabilities that provide flexibility and precision in data mapping.
+
+The following is an example of a `mapping.yaml` file where the `Event` sObject utilizes the `select` action:
+
+```yaml
+Account:
+    sf_object: Account
+    fields:
+        - Name
+        - Description
+
+Contact:
+    sf_object: Contact
+    fields:
+        - LastName
+        - Email
+    lookups:
+        AccountId:
+            table: Account
+
+Lead:
+    sf_object: Lead
+    fields:
+        - LastName
+        - Company
+
+Event:
+    sf_object: Event
+    action: select
+    select_options:
+        strategy: similarity
+        filter: WHERE Subject LIKE 'Meeting%'
+        priority_fields:
+            - Subject
+            - WhoId
+        threshold: 0.3
+    fields:
+        - Subject
+        - DurationInMinutes
+        - ActivityDateTime
+    lookups:
+        WhoId:
+            table:
+                - Contact
+                - Lead
+        WhatId:
+            table: Account
+```
+
+---
+
+#### Selection Strategies
+
+The `strategy` parameter determines how records are selected from the target org. It is **optional**; if no strategy is specified, the `standard` strategy will be applied by default.
+
+-   **`standard` Strategy:**  
+     The `standard` selection strategy retrieves records from target org in the same order as they appear, applying any specified filters and sorting criteria. This method ensures that records are selected without any prioritization based on similarity or randomness, offering a straightforward way to pull the desired data.
+
+-   **`similarity` Strategy:**  
+     The `similarity` strategy is used when you need to find records in the target org that closely resemble the records defined in your SQL file. This strategy performs a similarity match between the records in the SQL file and those in the target org. In addition to comparing the fields of the record itself, this strategy includes the fields of parent records (up to one level) for a more granular and accurate match.
+
+-   **`random` Strategy:**  
+     The `random` selection strategy randomly assigns records picked from the target org. This method is useful when the selection order does not matter, and you simply need to fetch records in a randomized manner.
+
+---
+
+#### Selection Filters
+
+The selection `filter` provides a flexible way to refine the records selected by using any functionality supported by SOQL. This includes filtering, sorting, and limiting records based on specific conditions, such as using the `WHERE` clause to filter records by field values, the `ORDER BY` clause to sort records in ascending or descending order, and the `LIMIT` clause to restrict the number of records returned. Essentially, any feature available in SOQL for record selection is supported here, allowing you to tailor the selection process to your precise needs and ensuring only the relevant records are included in the mapping process.
+
+This parameter is **optional**; and if not specified, no filter will apply.
+
+---
+
+#### Priority Fields
+
+The `priority_fields` feature enables you to specify a subset of fields in your mapping step that will have more weight during the similarity matching process. When similarity matching is performed, these priority fields will be given greater importance compared to other fields, allowing for a more refined match.
+
+This parameter is **optional**; and if not specified, all fields will be considered with same priority.
+
+This feature is particularly useful when certain fields are more critical in defining the identity or relevance of a record, ensuring that these fields have a stronger influence in the selection process.
+
+---
+
+#### Threshold
+
+This feature allows you to either select or insert records based on a similarity threshold. When using the `select` action with the `similarity` strategy, you can specify a `threshold` value between `0` and `1`, where `0` represents a perfect match and `1` signifies no similarity.
+
+-   **Select Records:**  
+     If a record from your SQL file has a similarity score below the threshold, it will be selected from the target org.
+
+-   **Insert Records:**  
+     If the similarity score exceeds the threshold, the record will be inserted into the target org instead of being selected.
+
+This parameter is **optional**; if not specified, no threshold will be applied and all records will default to be selected.
+
+This feature is particularly useful during version upgrades, where records that closely match can be selected, while those that do not match sufficiently can be inserted into the target org.
+
+**Important Note:**  
+For high volumes of records, an approximation algorithm is applied to improve performance. In such cases, setting a threshold of `0` may not guarantee the selection of exact matches, as the algorithm can assign a small non-zero similarity score to exact matches. To ensure accurate selection, it is recommended to set the threshold to a small value slightly greater than `0`, such as `0.1`. This ensures both precision and efficiency in the selection process.
+
+---
+
+#### Example
+
+To demonstrate the `select` functionality, consider the example of the `Event` entity, which utilizes the `similarity` strategy, a filter condition, and other advanced options to select matching records effectively as given in the yaml above.
+
+1. **Basic Object Configuration**:
+
+    - The `Account`, `Contact`, and `Lead` objects are configured for straightforward field mapping.
+    - A `lookup` is defined on the `Contact` object to map `AccountId` to the `Account` table.
+
+2. **Advanced `Event` Object Mapping**:
+    - **Action**: The `Event` object uses the `select` action, meaning records are selected rather than inserted.
+    - **Strategy**: The `similarity` strategy matches `Event` records in target org that are similar to those defined in the SQL file.
+    - **Filter**: Only `Event` records with a `Subject` field starting with "Meeting" are considered.
+    - **Priority Fields**: The `Subject` and `WhoId` fields are given more weight during similarity matching.
+    - **Threshold**: A similarity score of 0.3 is used to determine whether records are selected or inserted.
+    - **Lookups**:
+        - The `WhoId` field looks up records from either the `Contact` or `Lead` objects.
+        - The `WhatId` field looks up records from the `Account` object.
+
+This example highlights how the `select` functionality can be applied in real-world scenarios, such as selecting `Event` records that meet specific criteria while considering similarity, filters, and priority fields.
+
+---
+
 ### Database Mapping
 
 CumulusCI's definition format includes considerable flexibility for use

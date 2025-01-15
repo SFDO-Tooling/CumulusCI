@@ -1,0 +1,147 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - &id002
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id001
+    - *id002
+    - *id002
+
+    - &id003
+      include_file: GET_sobjects_Contact_describe.yaml
+    - *id001
+    - *id003
+    - *id003
+    - &id007
+      include_file: GET_sobjects_Opportunity_describe.yaml
+    - *id002
+    - &id008
+      include_file: GET_sobjects_Lead_describe.yaml  # Added interaction for Lead
+    - *id001
+    - &id009
+      include_file: GET_sobjects_Event_describe.yaml  # Added interaction for Event
+    - *id001
+    - *id008
+    - *id001
+    - *id009
+    - *id001
+
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/limits/recordCount?sObjects=Account
+          body: null
+          headers: &id004
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: &id006
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+            string: "{\n  \"sObjects\" : [ {\n    \"count\" : 3,\n    \"name\" : \"Account\"\n
+              \ } ]\n}"
+             
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id,%20Name,%20Description,%20Phone,%20AccountNumber%20FROM%20Account
+          body: null
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "{\n  \"totalSize\" : 10,\n  \"done\" : true,\n  \"records\" : [ {\n
+              \   \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMDQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\",\n    \"Name\" : \"Tom Cruise\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMEQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMEQA3\",\n    \"Name\" : \"Bob The Builder\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMFQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMFQA3\",\n    \"Name\" : \"Shah Rukh Khan\",\n
+              \   \"Description\" : \"Bollywood actor\",\n    \"Phone\" : \"12345612\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMGQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMGQA3\",\n    \"Name\" : \"Aamir Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMHQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMHQA3\",\n    \"Name\" : \"Salman Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1UzyQAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1UzyQAF\",\n    \"Name\" : \"Tom Cruise\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1UzzQAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1UzzQAF\",\n    \"Name\" : \"Bob The Builder\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1V00QAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1V00QAF\",\n    \"Name\" : \"Shah Rukh Khan\",\n
+              \   \"Description\" : \"Bollywood actor\",\n    \"Phone\" : \"12345612\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1V01QAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1V01QAF\",\n    \"Name\" : \"Aamir Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1V02QAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1V02QAF\",\n    \"Name\" : \"Salman Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  } ]\n}"
+
+
+
+
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"LastName": "Contact of Tom Cruise",
+      "AccountId": "0019H00000H1RMDQA3", "attributes": {"type": "Contact"}}, {"LastName":
+      "Contact of Bob the Builder", "AccountId": "0019H00000H1RMDQA3", "attributes":
+      {"type": "Contact"}}, {"LastName": "Contact of SRK", "AccountId": "0019H00000H1RMDQA3",
+      "attributes": {"type": "Contact"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"0039H00000BbbFBQAZ\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0039H00000BbbFCQAZ\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0039H00000BbbFDQAZ\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+    
+
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id%20FROM%20Account%20LIMIT%205
+          body: null
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "{\n  \"totalSize\" : 5,\n  \"done\" : true,\n  \"records\" : [ {\n
+              \   \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMDQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\"\n  }, {\n    \"attributes\" :
+              {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMEQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\"\n  }, {\n    \"attributes\" :
+              {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMFQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\"\n  }, {\n    \"attributes\" :
+              {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMGQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\"\n  }, {\n    \"attributes\" :
+              {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMHQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\"\n  } ]\n}"

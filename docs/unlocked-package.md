@@ -168,7 +168,7 @@ the GitHub release operations:
 $ cci task run promote_package_version --version_id 04t000000000000 --promote_dependencies True
 ```
 
-Alternatively, you can use the `sfdx force:package:version:promote`
+Alternatively, you can use the `sf package version promote`
 command to promote a 2GP package.
 
 ### Promote Dependencies

@@ -199,7 +199,7 @@ class TestFSResource(_TestFSResourceShared):
 
 
 class TestFSResourceTempdir(_TestFSResourceShared):
-    def setup(self):
+    def setup_method(self):
         self.tempdir = TemporaryDirectory()
         self.file = Path(self.tempdir.name) / "testfile.txt"
         self.file.touch()

@@ -12,23 +12,21 @@ jobs:
             hub_version: ${{ steps.devhub-api-version.outputs.hub_version }}
             cci_version: ${{ steps.cci-api-version.outputs.cci_version }}
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               with:
                   ref: main
-            - name: Set up Python
-              uses: actions/setup-python@v4
             - name: Get Dev Hub API Version
               id: devhub-api-version
               env:
                   HUB_URL: ${{ format('{0}/services/data', secrets.SFDO_HUB_URL) }}
               run: |
                   version=$(curl -s $HUB_URL | jq -r '.[-1] | .version')
-                  echo "::set-output name=hub_version::$version"
+                  echo "hub_version=$version" >> $GITHUB_OUTPUT
             - name: Get CURRENT_SF_API_VERSION
               id: cci-api-version
               run: |
                   version=$(yq '.project.package.api_version' cumulusci/cumulusci.yml)
-                  echo "::set-output name=cci_version::$version"
+                  echo "cci_version=$version" >> $GITHUB_OUTPUT
     update_api_versions:
         runs-on: SFDO-Tooling-Ubuntu
         needs: check_api_versions
@@ -36,7 +34,7 @@ jobs:
         env:
             VERSION: ${{ needs.check_api_versions.outputs.hub_version }}
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
                   ref: main
@@ -58,3 +56,15 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   gh pr create --fill --label 'auto-pr'
+    test_sfdx_release_candidate:
+        uses: ./.github/workflows/release_test_sfdx.yml
+        with:
+            sfdx-release-channel: stable-rc
+        secrets:
+            CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
+            CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+            CCITEST_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
+            SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+            SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
+            SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+            SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
