@@ -1,4 +1,3 @@
-import os
 import shutil
 import time
 import typing as T
@@ -584,8 +583,8 @@ class Snowfakery(BaseSalesforceApiTask):
             self.sets_finished_while_generating_template = num_records
 
         new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
-        # don't rename path if new_template_dir matches template_dir
-        if os.path.abspath(template_dir) != os.path.abspath(new_template_dir):
+        # rename only if new_template_dir does not match template_dir
+        if Path(template_dir).resolve() != Path(new_template_dir).resolve():
             shutil.move(template_dir, new_template_dir)
             template_dir = new_template_dir
 
