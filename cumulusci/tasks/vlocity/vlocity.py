@@ -27,7 +27,7 @@ VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
 LWC_RSS_NAME = "OmniStudioLightning"
 OMNI_NAMESPACE = "omnistudio"
 VBT_SF_ALIAS = "cci-vbt-target"
-SF_TOKEN_ENV = "SFDX_ACCESS_TOKEN"
+SF_TOKEN_ENV = "SF_ACCESS_TOKEN"
 VBT_TOKEN_ENV = "OMNIOUT_TOKEN"
 
 
@@ -106,7 +106,9 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         # TODO: Use the sf v2 form of this command instead (when we migrate)
         token_store_cmd = [
             "sf",
-            "org login access-token",
+            "org",
+            "login",
+            "access-token",
             "--no-prompt",
             "--alias",
             f"{VBT_SF_ALIAS}",

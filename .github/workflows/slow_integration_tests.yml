@@ -31,20 +31,23 @@ jobs:
                   python-version: 3.11
                   cache: pip
                   cache-dependency-path: "pyproject.toml"
-            - name: Install Python dependencies
-              run: |
-                  python -m pip install -U pip
-                  pip install .[test]
-            - name: Install sfdx
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
+            - name: Install dependencies
+              run: uv sync -p 3.11
+            - name: Install Salesforce CLI
               run: |
                   mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins --core
+                  sf plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-                  sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+                  sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --set-default-dev-hub --alias hub
               env:
                   SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
                   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -54,7 +57,7 @@ jobs:
             - name: Delete scratch org
               if: always()
               run: |
-                  cci org scratch_delete pytest
+                  uv run cci org scratch_delete pytest
     robot_ui:
         name: "Robot: ${{ matrix.job-name }}"
         runs-on: SFDO-Tooling-Ubuntu
@@ -80,26 +83,26 @@ jobs:
                   cache: pip
                   cache-dependency-path: "pyproject.toml"
             - name: Install Python dependencies
-              run: pip install .[test]
-            - name: Install sfdx
+              run: pip install .
+            - name: Install Salesforce CLI
               run: |
                   mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Initialize Browser/Playwright
               run: cci robot install_playwright
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins --core
+                  sf plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-                  sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+                  sf org login jwt --client-id $SFDX_CLIENT_ID --jwt-key-file sfdx.key --username $SFDX_HUB_USERNAME --set-default-dev-hub --alias hub
               env:
                   SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
                   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
                   SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
             - name: Run robot tests
               run: |
-                  coverage run --append $(which cci) task run robot \
+                  cci task run robot \
                     --org ${{ matrix.org-shape }} \
                     -o suites cumulusci/robotframework/tests/salesforce \
                     -o exclude no-browser \

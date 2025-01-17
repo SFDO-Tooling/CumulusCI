@@ -806,6 +806,111 @@ class TestLoadData:
                 ["001000000006", "001000000008"],
             ] == records
 
+    def test_process_lookup_fields_polymorphic(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": Path(__file__).parent
+                    / "test_query_db_joins_lookups.sql",
+                    "mapping": Path(__file__).parent
+                    / "test_query_db_joins_lookups_select.yml",
+                }
+            },
+        )
+        polymorphic_fields = {
+            "WhoId": {
+                "name": "WhoId",
+                "referenceTo": ["Contact", "Lead"],
+                "relationshipName": "Who",
+            },
+            "WhatId": {
+                "name": "WhatId",
+                "referenceTo": ["Account"],
+                "relationshipName": "What",
+            },
+        }
+
+        expected_fields = [
+            "Subject",
+            "Who.Contact.FirstName",
+            "Who.Contact.LastName",
+            "Who.Lead.LastName",
+            "WhoId",
+        ]
+        expected_priority_fields_keys = {
+            "Who.Contact.FirstName",
+            "Who.Contact.LastName",
+            "Who.Lead.LastName",
+        }
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
+        ), mock.patch.object(task, "sf", create=True):
+            task._init_mapping()
+        with task._init_db():
+            task._old_format = mock.Mock(return_value=False)
+            mapping = task.mapping["Select Event"]
+            fields = mapping.get_load_field_list()
+            task.process_lookup_fields(
+                mapping=mapping, fields=fields, polymorphic_fields=polymorphic_fields
+            )
+            assert fields == expected_fields
+            assert (
+                set(mapping.select_options.priority_fields.keys())
+                == expected_priority_fields_keys
+            )
+
+    def test_process_lookup_fields_non_polymorphic(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": Path(__file__).parent
+                    / "test_query_db_joins_lookups.sql",
+                    "mapping": Path(__file__).parent
+                    / "test_query_db_joins_lookups_select.yml",
+                }
+            },
+        )
+        non_polymorphic_fields = {
+            "AccountId": {
+                "name": "AccountId",
+                "referenceTo": ["Account"],
+                "relationshipName": "Account",
+            }
+        }
+
+        expected_fields = [
+            "FirstName",
+            "LastName",
+            "Account.Name",
+            "Account.AccountNumber",
+            "AccountId",
+        ]
+        expected_priority_fields_keys = {
+            "FirstName",
+            "Account.Name",
+            "Account.AccountNumber",
+        }
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
+        ), mock.patch.object(task, "sf", create=True):
+            task._init_mapping()
+        with task._init_db():
+            task._old_format = mock.Mock(return_value=False)
+            mapping = task.mapping["Select Contact"]
+            fields = mapping.get_load_field_list()
+            task.process_lookup_fields(
+                mapping=mapping,
+                fields=fields,
+                polymorphic_fields=non_polymorphic_fields,
+            )
+            assert fields == expected_fields
+            assert (
+                set(mapping.select_options.priority_fields.keys())
+                == expected_priority_fields_keys
+            )
+
     @responses.activate
     def test_stream_queried_data__adjusts_relative_dates(self):
         mock_describe_calls()
@@ -876,6 +981,15 @@ class TestLoadData:
             mapping_step_name="Update Accounts",
             expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(accounts.parent_id as varchar) ORDER BY accounts.parent_id""",
             old_format=True,
+        )
+
+    def test_query_db__joins_select_lookups(self):
+        """SQL File in New Format (Select)"""
+        _validate_query_for_mapping_step(
+            sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
+            mapping=Path(__file__).parent / "test_query_db_joins_lookups_select.yml",
+            mapping_step_name="Select Event",
+            expected='''SELECT events.id AS events_id, events."subject" AS "events_subject", "whoid_contacts_alias"."firstname" AS "whoid_contacts_alias_firstname", "whoid_contacts_alias"."lastname" AS "whoid_contacts_alias_lastname", "whoid_leads_alias"."lastname" AS "whoid_leads_alias_lastname", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN contacts AS "whoid_contacts_alias" ON "whoid_contacts_alias".id=events."whoid" LEFT OUTER JOIN leads AS "whoid_leads_alias" ON "whoid_leads_alias".id=events."whoid" LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id=? || cast(events."whoid" as varchar) ORDER BY events."whoid"''',
         )
 
     def test_query_db__joins_polymorphic_lookups(self):

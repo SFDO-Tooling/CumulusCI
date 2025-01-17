@@ -3,6 +3,7 @@ from functools import cached_property
 
 from sqlalchemy import String, and_, func, text
 from sqlalchemy.orm import Query, aliased
+from sqlalchemy.sql import literal_column
 
 from cumulusci.core.exceptions import BulkDataException
 
@@ -84,6 +85,81 @@ class AddLookupsToQuery(LoadQueryExtender):
                 )
 
         return [join_for_lookup(lookup) for lookup in self.lookups]
+
+
+class DynamicLookupQueryExtender(LoadQueryExtender):
+    """Dynamically adds columns and joins for all fields in lookup tables, handling polymorphic lookups"""
+
+    def __init__(
+        self, mapping, all_mappings, metadata, model, _old_format: bool
+    ) -> None:
+        super().__init__(mapping, metadata, model)
+        self._old_format = _old_format
+        self.all_mappings = all_mappings
+        self.lookups = [
+            lookup for lookup in self.mapping.lookups.values() if not lookup.after
+        ]
+
+    @cached_property
+    def columns_to_add(self):
+        """Add all relevant fields from lookup tables directly without CASE, with support for polymorphic lookups."""
+        columns = []
+        for lookup in self.lookups:
+            tables = lookup.table if isinstance(lookup.table, list) else [lookup.table]
+            lookup.parent_tables = [
+                aliased(
+                    self.metadata.tables[table], name=f"{lookup.name}_{table}_alias"
+                )
+                for table in tables
+            ]
+
+            for parent_table, table_name in zip(lookup.parent_tables, tables):
+                # Find the mapping step for this polymorphic type
+                lookup_mapping_step = next(
+                    (
+                        step
+                        for step in self.all_mappings.values()
+                        if step.table == table_name
+                    ),
+                    None,
+                )
+                if lookup_mapping_step:
+                    load_fields = lookup_mapping_step.fields.keys()
+                    for field in load_fields:
+                        if field in lookup_mapping_step.fields:
+                            matching_column = next(
+                                (
+                                    col
+                                    for col in parent_table.columns
+                                    if col.name == lookup_mapping_step.fields[field]
+                                )
+                            )
+                            columns.append(
+                                matching_column.label(f"{parent_table.name}_{field}")
+                            )
+                        else:
+                            # Append an empty string if the field is not present
+                            columns.append(
+                                literal_column("''").label(
+                                    f"{parent_table.name}_{field}"
+                                )
+                            )
+        return columns
+
+    @cached_property
+    def outerjoins_to_add(self):
+        """Add outer joins for each lookup table directly, including handling for polymorphic lookups."""
+
+        def join_for_lookup(lookup, parent_table):
+            key_field = lookup.get_lookup_key_field(self.model)
+            value_column = getattr(self.model, key_field)
+            return (parent_table, parent_table.columns.id == value_column)
+
+        joins = []
+        for lookup in self.lookups:
+            for parent_table in lookup.parent_tables:
+                joins.append(join_for_lookup(lookup, parent_table))
+        return joins
 
 
 class AddRecordTypesToQuery(LoadQueryExtender):
