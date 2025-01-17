@@ -19,7 +19,7 @@ https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/core/config/org_co
 -   `lightning_base_url` : base url ending with `.lightning.force.com`
 -   `namespace` : namespace of the org
 -   `namespaced` : `true` if the org has a namespace
--   `org_id` : orgid of the Salesforce org
+-   `org_id` : Organization ID of the Salesforce org
 -   `org_type` : eg "Enterprise Edition" or "Developer Edition"
 -   `organization_sobject` : The Organization object (see the [Salesforce documentation for the Organization SObject](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_organization.htm)) for the org.
 -   `scratch` : true indicates the org is a scratch org. False indicates it is a persistent org
