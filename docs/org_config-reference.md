@@ -39,7 +39,7 @@ https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/core/config/org_co
 
 ## org_config Object Methods
 
--   `has_minimum_package_version(package_identifier, version_identifier)`: True if the org has a version of the specified package that is equal to or newer than the supplied version identifier.
+-   `has_minimum_package_version(package_identifier, version_identifier)`: `true` if the org has a version of the specified package that is equal to or newer than the supplied version identifier.
     The package identifier may be either a namespace or a 033 package Id.
     The version identifier should be in "1.2.3" or "1.2.3b4" format.
 
