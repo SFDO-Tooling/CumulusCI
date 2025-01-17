@@ -24,7 +24,7 @@ https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/core/config/org_co
 -   `organization_sobject` : The Organization object (see the [Salesforce documentation for the Organization SObject](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_organization.htm)) for the org.
 -   `scratch` : `True` when the org is a scratch org.
 -   `start_url`: the frontdoor URL that results in an instant login, like `https://mydomain.my.salesforce.com/secur/frontdoor.jsp?sid=...`
--   `user_id` : user id of the current Salesforce user
+-   `user_id` : user ID of the current Salesforce user
 -   `userinfo`: user OAuth2 information (see https://help.salesforce.com/s/articleView?id=sf.remoteaccess_using_userinfo_endpoint.htm)
 -   `username` : username of the current Salesforce user
 
