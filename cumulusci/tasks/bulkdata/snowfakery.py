@@ -584,7 +584,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
         # rename only if new_template_dir does not match template_dir
-        if Path(template_dir).resolve() != Path(new_template_dir).resolve():
+        if template_dir.resolve() != new_template_dir.resolve():
             shutil.move(template_dir, new_template_dir)
             template_dir = new_template_dir
 
