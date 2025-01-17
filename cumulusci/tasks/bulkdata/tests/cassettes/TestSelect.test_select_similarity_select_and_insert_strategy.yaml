@@ -225,7 +225,7 @@ interactions:
     
     - request:
           method: GET
-          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id,%20TYPEOF%20Who%20WHEN%20Contact%20THEN%20LastName,%20Email%20WHEN%20Lead%20THEN%20LastName,%20Company%20ELSE%20Id%20END,%20TYPEOF%20What%20WHEN%20Account%20THEN%20Name,%20Description,%20Phone,%20AccountNumber%20ELSE%20Id%20END,%20Subject,%20DurationInMinutes,%20ActivityDateTime%20FROM%20Event
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id%2C%20TYPEOF%20Who%20WHEN%20Contact%20THEN%20LastName%2C%20Email%20WHEN%20Lead%20THEN%20LastName%2C%20Company%20ELSE%20Id%20END%2C%20TYPEOF%20What%20WHEN%20Account%20THEN%20Name%2C%20Description%2C%20Phone%2C%20AccountNumber%20ELSE%20Id%20END%2C%20Subject%2C%20DurationInMinutes%2C%20ActivityDateTime%20FROM%20Event
           body: null
           headers: *id004
       response:
