@@ -9,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from itertools import tee
 from typing import Any, Dict, List, NamedTuple, Optional, Union
+from urllib.parse import quote
 
 import requests
 import salesforce_bulk
@@ -955,9 +956,7 @@ class RestApiDmlOperation(BaseDmlOperation):
     def _execute_soql_query(self, select_query, query_fields):
         """Executes the SOQL query and returns the flattened records."""
         query_records = []
-        response = self.sf.restful(
-            requests.utils.requote_uri(f"query/?q={select_query}"), method="GET"
-        )
+        response = self.sf.restful(f"query/?q={quote(select_query)}", method="GET")
         query_records.extend(self._flatten_response_records(response, query_fields))
 
         while not response["done"]:
