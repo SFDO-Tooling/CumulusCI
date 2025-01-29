@@ -18,6 +18,7 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.http.requests_utils import init_requests_trust
 from cumulusci.utils.logging import tee_stdout_stderr
 
+from .checks import checks
 from .error import error
 from .flow import flow
 from .logger import get_tempfile_logger, init_logger
@@ -242,3 +243,4 @@ cli.add_command(task)
 cli.add_command(flow)
 cli.add_command(plan)
 cli.add_command(robot)
+cli.add_command(checks)
