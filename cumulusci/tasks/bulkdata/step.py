@@ -524,7 +524,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         self.job_result = DataOperationJobResult(
             status=(
                 DataOperationStatus.SUCCESS
-                if len(self.select_results)
+                if len(self.select_results) or not total_num_records
                 else DataOperationStatus.JOB_FAILURE
             ),
             job_errors=[error_message] if error_message else [],
@@ -938,7 +938,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             self.results.extend(selected_records)
 
         # Update the job result based on the overall selection outcome
-        self._update_job_result(error_message)
+        self._update_job_result(error_message, total_num_records)
 
     def _determine_limit_clause(self, total_num_records):
         """Determines the LIMIT clause based on the retrieval mode."""
@@ -992,12 +992,12 @@ class RestApiDmlOperation(BaseDmlOperation):
                 selected_records[idx] = insert_results[insert_index]
                 insert_index += 1
 
-    def _update_job_result(self, error_message):
+    def _update_job_result(self, error_message, total_num_records):
         """Updates the job result based on the selection outcome."""
         self.job_result = DataOperationJobResult(
             status=(
                 DataOperationStatus.SUCCESS
-                if len(self.results)
+                if len(self.results) or not total_num_records
                 else DataOperationStatus.JOB_FAILURE
             ),
             job_errors=[error_message] if error_message else [],
