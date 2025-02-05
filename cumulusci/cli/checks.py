@@ -89,7 +89,7 @@ def checks_run(runtime, plan_name, org):
     checks = plans[plan_name]["checks"]
 
     # Check if there are no checks available under the plan
-    if checks.length == 0:
+    if len(checks) == 0:
         raise click.UsageError(
             f"No checks exists for the '{plan_name}'. To view available checks run: `cci checks info`"
         )
