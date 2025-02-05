@@ -253,6 +253,43 @@ $ cci plan info config
   7      Express Setup - Advisor Sharing Metadata       No         Yes
 ```
 
+## Checks Info and Options
+
+Your project may have one or more defined MetaDeploy plans, though none
+come preconfigured with CumulusCI. The plans will have multiple preflight checks, for
+listing the checks on plan `<name>`, run the following command:
+
+```console
+$ cci checks info <name>
+```
+
+Information about each preflight check under a plan includes:
+
+-   Action
+-   Message
+-   When
+
+By default all of the above information is displayed.
+
+The following example shows the output of a typical plan, in this case a
+plan named 'install'.
+
+```console
+$ cci checks info install
+                    Plan Preflights
+
+  Action    Message                                                                                                                    When
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  error     You need ComplianceAdminAddOn licence in your Org to use this feature. Contact your Administrator.                         'ComplianceAdminPsl' not in tasks.get_available_permission_set_licenses()
+  error     You need ComplianceUserAddOn licence in your Org to use this feature. Contact your Administrator.                          'ComplianceUserPsl' not in tasks.get_available_permission_set_licenses()
+  error     You need BREDesigner Psl in your Org assigned Admin User to use this feature. Contact your Administrator.                  'BREDesigner' not in tasks.get_assigned_permission_set_licenses()
+  error     You need BRE Runtime Psl in your Org assigned Admin User to use this feature. Contact your Administrator.                  'BRERuntime' not in tasks.get_assigned_permission_set_licenses()
+  warning   You need Context Service AdminPsl in your Org assigned Admin User to use this feature. Contact your Administrator.         'ContextServiceAdminPsl' not in tasks.get_assigned_permission_set_licenses()
+  warning   You need Context Service Runtime Psl in your Org assigned to Admin User to use this feature. Contact your Administrator.   'ContextServiceRuntimePsl' not in tasks.get_assigned_permission_set_licenses()
+  error     You need Decision Explainer PSL in your Org to use this feature. Contact your Administrator.                               'DecisionExplainerPSL' not in tasks.get_available_permission_set_licenses()
+
+```
+
 ## Run Tasks and Flows
 
 Execute a specific task or flow with the `run` command.
@@ -271,6 +308,20 @@ You can see a list of available orgs by running `cci org list`.
 For example, the `run_tests` task executes Apex unit tests in a given
 org. Assuming there exists an org named `dev`, you can run this task
 against it with the command `cci task run run_tests --org dev`.
+
+## Run Checks
+
+Execute preflight checks for a plan with the `run` command.
+
+```console
+$ cci checks run <name> --org <org>
+```
+
+This command runs the preflight checks for the plan `<name>` against the org `<org>`.
+
+```{tip}
+You can see a list of available orgs by running `cci org list`.
+```
 
 ### Get Help Running Tasks
 
