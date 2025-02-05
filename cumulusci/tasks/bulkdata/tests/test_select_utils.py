@@ -1,7 +1,7 @@
-import pandas as pd
 import pytest
 
 from cumulusci.tasks.bulkdata.select_utils import (
+    OPTIONAL_DEPENDENCIES_AVAILABLE,
     SelectOperationExecutor,
     SelectStrategy,
     add_limit_offset_to_user_filter,
@@ -15,24 +15,16 @@ from cumulusci.tasks.bulkdata.select_utils import (
     vectorize_records,
 )
 
+# Check for pandas availability
+try:
+    import pandas as pd
 
-# Test Cases for standard_generate_query
-def test_standard_generate_query_with_default_record_declaration():
-    select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
-    sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
-    limit = 5
-    offset = 2
-    query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
-    )
-
-    assert "WHERE" in query  # Ensure WHERE clause is included
-    assert f"LIMIT {limit}" in query
-    assert f"OFFSET {offset}" in query
-    assert fields == ["Id"]
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
 
 
-def test_standard_generate_query_without_default_record_declaration():
+def test_standard_generate_query_without_filter():
     select_operator = SelectOperationExecutor(SelectStrategy.STANDARD)
     sobject = "Contact"  # Assuming no declaration for this object
     limit = 3
@@ -41,7 +33,6 @@ def test_standard_generate_query_without_default_record_declaration():
         sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
     )
 
-    assert "WHERE" not in query  # No WHERE clause should be present
     assert f"LIMIT {limit}" in query
     assert "OFFSET" not in query
     assert fields == ["Id"]
@@ -64,23 +55,7 @@ def test_standard_generate_query_with_user_filter():
     assert fields == ["Id"]
 
 
-# Test Cases for random generate query
-def test_random_generate_query_with_default_record_declaration():
-    select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
-    sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
-    limit = 5
-    offset = 2
-    query, fields = select_operator.select_generate_query(
-        sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
-    )
-
-    assert "WHERE" in query  # Ensure WHERE clause is included
-    assert f"LIMIT {limit}" in query
-    assert f"OFFSET {offset}" in query
-    assert fields == ["Id"]
-
-
-def test_random_generate_query_without_default_record_declaration():
+def test_random_generate_query():
     select_operator = SelectOperationExecutor(SelectStrategy.RANDOM)
     sobject = "Contact"  # Assuming no declaration for this object
     limit = 3
@@ -89,7 +64,6 @@ def test_random_generate_query_without_default_record_declaration():
         sobject=sobject, fields=[], user_filter="", limit=limit, offset=offset
     )
 
-    assert "WHERE" not in query  # No WHERE clause should be present
     assert f"LIMIT {limit}" in query
     assert "OFFSET" not in query
     assert fields == ["Id"]
@@ -201,23 +175,7 @@ def test_random_post_process_with_no_records():
     assert error_message == f"No records found for {sobject} in the target org."
 
 
-# Test Cases for Similarity Generate Query
-def test_similarity_generate_query_with_default_record_declaration():
-    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
-    sobject = "Account"  # Assuming Account has a declaration in DEFAULT_DECLARATIONS
-    limit = 5
-    offset = 2
-    query, fields = select_operator.select_generate_query(
-        sobject, ["Name"], [], limit, offset
-    )
-
-    assert "WHERE" in query  # Ensure WHERE clause is included
-    assert fields == ["Id", "Name"]
-    assert f"LIMIT {limit}" in query
-    assert f"OFFSET {offset}" in query
-
-
-def test_similarity_generate_query_without_default_record_declaration():
+def test_similarity_generate_query_no_nesting():
     select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
     sobject = "Contact"  # Assuming no declaration for this object
     limit = 3
@@ -226,7 +184,6 @@ def test_similarity_generate_query_without_default_record_declaration():
         sobject, ["Name"], [], limit, offset
     )
 
-    assert "WHERE" not in query  # No WHERE clause should be present
     assert fields == ["Id", "Name"]
     assert f"LIMIT {limit}" in query
     assert "OFFSET" not in query
@@ -403,6 +360,33 @@ def test_similarity_post_process_with_no_records():
     assert error_message == f"No records found for {sobject} in the target org."
 
 
+def test_similarity_post_process_with_no_records__zero_threshold():
+    select_operator = SelectOperationExecutor(SelectStrategy.SIMILARITY)
+    load_records = [["Aditya", "Salesforce"], ["Jawad", "Salesforce"]]
+    query_records = []
+    num_records = 2
+    sobject = "Lead"
+    (
+        selected_records,
+        insert_records,
+        error_message,
+    ) = select_operator.select_post_process(
+        load_records=load_records,
+        query_records=query_records,
+        num_records=num_records,
+        sobject=sobject,
+        weights=[1, 1, 1],
+        fields=["LastName", "Company"],
+        threshold=0,
+    )
+
+    # Assert that it inserts everything
+    assert selected_records == [None, None]
+    assert insert_records[0] == ["Aditya", "Salesforce"]
+    assert insert_records[1] == ["Jawad", "Salesforce"]
+    assert error_message is None
+
+
 def test_calculate_levenshtein_distance_basic():
     record1 = ["hello", "world"]
     record2 = ["hullo", "word"]
@@ -484,9 +468,13 @@ def test_calculate_levenshtein_distance_weights_length_doesnt_match():
     assert "Records must be same size as fields (weights)." in str(e.value)
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_all_numeric_columns():
-    df_db = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
-    df_query = pd.DataFrame({"A": [4, 5, ""], "B": [4.5, 5.5, 6.5]})
+    df_db = pd.DataFrame({"A": ["1", "2", "3"], "B": ["4.5", " 5.5", "6.5"]})
+    df_query = pd.DataFrame({"A": ["4", "5", ""], "B": ["4.5", "5.5", "6.5"]})
     weights = [0.1, 0.2]
     expected_output = (
         ["A", "B"],  # numerical_features
@@ -499,21 +487,29 @@ def test_all_numeric_columns():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_numeric_columns__one_non_numeric():
-    df_db = pd.DataFrame({"A": [1, 2, 3], "B": [4.5, 5.5, 6.5]})
-    df_query = pd.DataFrame({"A": [4, 5, 6], "B": ["abcd", 5.5, 6.5]})
+    df_db = pd.DataFrame({"A": ["1", "2", "3"], "B": ["4.5", "5.5", "6.5"]})
+    df_query = pd.DataFrame({"A": ["4", "5", "6"], "B": ["abcd", "5.5", "6.5"]})
     weights = [0.1, 0.2]
     expected_output = (
         ["A"],  # numerical_features
         [],  # boolean_features
-        [],  # categorical_features
+        ["B"],  # categorical_features
         [0.1],  # numerical_weights
         [],  # boolean_weights
-        [],  # categorical_weights
+        [0.2],  # categorical_weights
     )
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_all_boolean_columns():
     df_db = pd.DataFrame(
         {"A": ["true", "false", "true"], "B": ["false", "true", "false"]}
@@ -533,6 +529,10 @@ def test_all_boolean_columns():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_all_categorical_columns():
     df_db = pd.DataFrame(
         {"A": ["apple", "banana", "cherry"], "B": ["dog", "cat", "mouse"]}
@@ -552,19 +552,23 @@ def test_all_categorical_columns():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_mixed_types():
     df_db = pd.DataFrame(
         {
-            "A": [1, 2, 3],
+            "A": ["1", "2", "3"],
             "B": ["true", "false", "true"],
             "C": ["apple", "banana", "cherry"],
         }
     )
     df_query = pd.DataFrame(
         {
-            "A": [1, 3, ""],
+            "A": ["1", "3", ""],
             "B": ["true", "true", "true"],
-            "C": ["apple", "", 3],
+            "C": ["apple", "", "3"],
         }
     )
     weights = [0.7, 0.8, 0.9]
@@ -579,6 +583,10 @@ def test_mixed_types():
     assert determine_field_types(df_db, df_query, weights) == expected_output
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_vectorize_records_mixed_numerical_boolean_categorical():
     # Test data with mixed types: numerical and categorical only
     db_records = [["1.0", "true", "apple"], ["2.0", "false", "banana"]]
@@ -606,6 +614,10 @@ def test_vectorize_records_mixed_numerical_boolean_categorical():
     ), "Query vectors column count mismatch"
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_annoy_post_process():
     # Test data
     load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
@@ -632,6 +644,10 @@ def test_annoy_post_process():
     assert not insert_records
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_annoy_post_process__insert_records():
     # Test data
     load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
@@ -687,6 +703,10 @@ def test_annoy_post_process__no_query_records():
     ]  # The first insert record should match the second load record
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_annoy_post_process__insert_records_with_polymorphic_fields():
     # Test data
     load_records = [
@@ -722,6 +742,10 @@ def test_annoy_post_process__insert_records_with_polymorphic_fields():
     ]  # The first insert record should match the second load record
 
 
+@pytest.mark.skipif(
+    not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
+    reason="requires optional dependencies for annoy",
+)
 def test_single_record_match_annoy_post_process():
     # Mock data where only the first query record matches the first load record
     load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]

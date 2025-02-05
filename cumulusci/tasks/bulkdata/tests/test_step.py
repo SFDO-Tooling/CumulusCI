@@ -1232,7 +1232,9 @@ class TestBulkApiDmlOperation:
                 )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
-    def test_select_records_similarity_strategy__insert_records(self, download_mock):
+    def test_select_records_similarity_strategy__insert_records__non_zero_threshold(
+        self, download_mock
+    ):
         # Set up mock context and BulkApiDmlOperation
         context = mock.Mock()
         # Add step with threshold
@@ -1244,6 +1246,102 @@ class TestBulkApiDmlOperation:
             fields=["Name", "Email"],
             selection_strategy=SelectStrategy.SIMILARITY,
             threshold=0.3,
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content with a single record
+        select_results = io.StringIO(
+            """[{"Id":"003000000000001", "Name":"Jawad", "Email":"mjawadtp@example.com"}]"""
+        )
+        insert_results = io.StringIO(
+            "Id,Success,Created\n003000000000002,true,true\n003000000000003,true,true\n"
+        )
+        download_mock.side_effect = [select_results, insert_results]
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        # Prepare input records
+        records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom", "cruise@example.com"],
+            ]
+        )
+
+        # Mock sub-operation for BulkApiDmlOperation
+        insert_step = mock.Mock(spec=BulkApiDmlOperation)
+        insert_step.start = mock.Mock()
+        insert_step.load_records = mock.Mock()
+        insert_step.end = mock.Mock()
+        insert_step.batch_ids = ["BATCH1"]
+        insert_step.bulk = mock.Mock()
+        insert_step.bulk.endpoint = "https://test"
+        insert_step.job_id = "JOB"
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation",
+            return_value=insert_step,
+        ):
+            # Execute the select_records operation
+            step.start()
+            step.select_records(records)
+            step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_similarity_strategy__insert_records__zero_threshold(
+        self, download_mock
+    ):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        # Add step with threshold
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["Name", "Email"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            threshold=0,
         )
 
         # Mock Bulk API responses
@@ -2807,7 +2905,9 @@ class TestRestApiDmlOperation:
                 mock_rest_api_dml_operation.end.assert_not_called()
 
     @responses.activate
-    def test_select_records_similarity_strategy__insert_records(self):
+    def test_select_records_similarity_strategy__insert_records__non_zero_threshold(
+        self,
+    ):
         mock_describe_calls()
         task = _make_task(
             LoadData,
@@ -2830,6 +2930,91 @@ class TestRestApiDmlOperation:
             fields=["Name", "Email"],
             selection_strategy=SelectStrategy.SIMILARITY,
             threshold=0.3,
+        )
+
+        results_select_call = {
+            "records": [
+                {
+                    "Id": "003000000000001",
+                    "Name": "Jawad",
+                    "Email": "mjawadtp@example.com",
+                },
+            ],
+            "done": True,
+        }
+
+        results_insert_call = [
+            {"id": "003000000000002", "success": True, "created": True},
+            {"id": "003000000000003", "success": True, "created": True},
+        ]
+
+        step.sf.restful = mock.Mock(
+            side_effect=[results_select_call, results_insert_call]
+        )
+        records = iter(
+            [
+                ["Jawad", "mjawadtp@example.com"],
+                ["Aditya", "aditya@example.com"],
+                ["Tom Cruise", "tom@example.com"],
+            ]
+        )
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 3  # Expect 3 results (matching the input records count)
+        # Assert that all results have the expected ID, success, and created values
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000001", success=True, error="", created=False
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000002", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+        assert (
+            results.count(
+                DataOperationResult(
+                    id="003000000000003", success=True, error="", created=True
+                )
+            )
+            == 1
+        )
+
+    @responses.activate
+    def test_select_records_similarity_strategy__insert_records__zero_threshold(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        # Create step with threshold
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10},
+            context=task,
+            fields=["Name", "Email"],
+            selection_strategy=SelectStrategy.SIMILARITY,
+            threshold=0,
         )
 
         results_select_call = {

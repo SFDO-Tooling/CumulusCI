@@ -1,21 +1,33 @@
+import logging
 import random
 import re
 import typing as T
 from enum import Enum
 
-import numpy as np
-import pandas as pd
-from annoy import AnnoyIndex
 from pydantic import Field, root_validator, validator
-from sklearn.feature_extraction.text import HashingVectorizer
-from sklearn.preprocessing import StandardScaler
 
 from cumulusci.core.enums import StrEnum
-from cumulusci.tasks.bulkdata.extract_dataset_utils.hardcoded_default_declarations import (
-    DEFAULT_DECLARATIONS,
-)
 from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict
+from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+
+logger = logging.getLogger(__name__)
+try:
+    import numpy as np
+    import pandas as pd
+    from annoy import AnnoyIndex
+    from sklearn.feature_extraction.text import HashingVectorizer
+    from sklearn.preprocessing import StandardScaler
+
+    OPTIONAL_DEPENDENCIES_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        f"Optional dependencies are missing. "
+        "Handling high volumes of records for the 'select' functionality will be significantly slower, "
+        "as optimizations for this feature are currently disabled. "
+        f"To enable optimized performance, install all required dependencies using: {get_cci_upgrade_command()}[select]\n"
+    )
+    OPTIONAL_DEPENDENCIES_AVAILABLE = False
 
 
 class SelectStrategy(StrEnum):
@@ -173,10 +185,6 @@ def standard_generate_query(
             filter_clause=user_filter, limit_clause=limit, offset_clause=offset
         )
     else:
-        # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-        declaration = DEFAULT_DECLARATIONS.get(sobject)
-        if declaration:
-            query += f" WHERE {declaration.where}"
         query += f" LIMIT {limit}" if limit else ""
         query += f" OFFSET {offset}" if offset else ""
     return query, ["Id"]
@@ -266,10 +274,6 @@ def similarity_generate_query(
             filter_clause=user_filter, limit_clause=limit, offset_clause=offset
         )
     else:
-        # Get the WHERE clause from DEFAULT_DECLARATIONS if available
-        declaration = DEFAULT_DECLARATIONS.get(sobject)
-        if declaration:
-            query += f" WHERE {declaration.where}"
         query += f" LIMIT {limit}" if limit else ""
         query += f" OFFSET {offset}" if offset else ""
 
@@ -292,7 +296,7 @@ def similarity_post_process(
 ]:
     """Processes the query results for the similarity selection strategy"""
     # Handle case where query returns 0 records
-    if not query_records and not threshold:
+    if not query_records and threshold is None:
         error_message = f"No records found for {sobject} in the target org."
         return [], [], error_message
 
@@ -308,7 +312,7 @@ def similarity_post_process(
     select_records = []
     insert_records = []
 
-    if complexity_constant < 1000:
+    if complexity_constant < 1000 or not OPTIONAL_DEPENDENCIES_AVAILABLE:
         select_records, insert_records = levenshtein_post_process(
             load_records, query_records, fields, weights, threshold
         )
@@ -328,6 +332,12 @@ def annoy_post_process(
     threshold: T.Union[float, None],
 ) -> T.Tuple[T.List[dict], list]:
     """Processes the query results for the similarity selection strategy using Annoy algorithm for large number of records"""
+    # Add warning when threshold is 0
+    if threshold is not None and threshold == 0:
+        logger.warning(
+            "Warning: A threshold of 0 may miss exact matches in high volumes. Use a small value like 0.1 for better accuracy."
+        )
+
     selected_records = []
     insertion_candidates = []
 
@@ -397,7 +407,7 @@ def annoy_post_process(
             # Retrieve the corresponding record from the database
             record = query_record_data[neighbor_index]
             closest_record_id = record_to_id_map[tuple(record)]
-            if threshold and (neighbor_distances[idx] >= threshold):
+            if threshold is not None and (neighbor_distances[idx] >= threshold):
                 selected_records.append(None)
                 insertion_candidates.append(load_shaped_records[i])
             else:
@@ -445,7 +455,7 @@ def levenshtein_post_process(
             select_record, target_records, similarity_weights
         )
 
-        if distance_threshold and match_distance > distance_threshold:
+        if distance_threshold is not None and match_distance > distance_threshold:
             # Append load record for insertion if distance exceeds threshold
             insertion_candidates.append(load_record)
             selected_records.append(None)

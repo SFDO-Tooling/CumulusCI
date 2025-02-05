@@ -338,7 +338,10 @@ class MappingStep(CCIDictModel):
         self, operation: DataOperationType
     ) -> T.Tuple[str]:
         """Return a tuple of the permission types required to execute an operation"""
-        if operation is DataOperationType.QUERY:
+        if (
+            operation is DataOperationType.QUERY
+            or self.action is DataOperationType.SELECT
+        ):
             return ("queryable",)
         if (
             operation is DataOperationType.INSERT

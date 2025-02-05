@@ -63,6 +63,30 @@ jobs:
             - name: Run Pytest
               run: uv run pytest --cov-report= --cov=cumulusci
 
+    unit_tests_opt_deps:
+        name: "Unit tests with optional dependencies: ${{ matrix.os }}-${{ matrix.python-version }}"
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
+                python-version: ["3.11", "3.12", "3.13"]
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "${{ matrix.python-version }}"
+            - name: Set up uv
+              uses: SFDO-Tooling/setup-uv@main
+              with:
+                  version: "0.5.0"
+                  enable-cache: true
+            - name: Install dependencies
+              run: uv sync --all-extras -p ${{ matrix.python-version }}
+            - name: Run Pytest
+              run: uv run pytest --cov-report= --cov=cumulusci
+
     robot_api:
         name: "Robot: No browser"
         runs-on: SFDO-Tooling-Ubuntu
