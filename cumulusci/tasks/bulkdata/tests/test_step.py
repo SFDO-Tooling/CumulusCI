@@ -592,6 +592,47 @@ class TestBulkApiDmlOperation:
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_select_records_zero_load_records(self, download_mock):
+        # Set up mock context and BulkApiDmlOperation
+        context = mock.Mock()
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.QUERY,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=context,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.STANDARD,
+            content_type="JSON",
+        )
+
+        # Mock Bulk API responses
+        step.bulk.endpoint = "https://test"
+        step.bulk.create_query_job.return_value = "JOB"
+        step.bulk.query.return_value = "BATCH"
+        step.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        # Mock the downloaded CSV content with a single record
+        download_mock.return_value = io.StringIO('[{"Id":"003000000000001"}]')
+
+        # Mock the _wait_for_job method to simulate a successful job
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        # Prepare input records
+        records = iter([])
+
+        # Execute the select_records operation
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 0  # Expect 0 results (no records to process)
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_select_records_standard_strategy_failure__no_records(self, download_mock):
         # Set up mock context and BulkApiDmlOperation
         context = mock.Mock()
@@ -1926,6 +1967,45 @@ class TestRestApiDmlOperation:
             )
             == 3
         )
+
+    @responses.activate
+    def test_select_records_zero_load_records(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
+        task._init_task()
+
+        step = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.UPSERT,
+            api_options={"batch_size": 10, "update_key": "LastName"},
+            context=task,
+            fields=["LastName"],
+            selection_strategy=SelectStrategy.STANDARD,
+        )
+
+        results = {
+            "records": [],
+            "done": True,
+        }
+        step.sf.restful = mock.Mock()
+        step.sf.restful.return_value = results
+        records = iter([])
+        step.start()
+        step.select_records(records)
+        step.end()
+
+        # Get the results and assert their properties
+        results = list(step.get_results())
+        assert len(results) == 0  # Expect 0 results (matching the input records count)
 
     @responses.activate
     def test_select_records_standard_strategy_success_pagination(self):
