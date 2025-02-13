@@ -6,8 +6,8 @@ from cumulusci.core.config.project_config import (
     BaseProjectConfig,
     ProjectConfigPropertiesMixin,
 )
-from cumulusci.core.utils import merge_config
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.yaml.merge_cumulusci_yaml import merge_cumulus_config
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -80,7 +80,7 @@ class UniversalConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             config = {}
         UniversalConfig.config_global = config
 
-        UniversalConfig.config = merge_config(
+        UniversalConfig.config = merge_cumulus_config(
             {
                 "universal_config": UniversalConfig.config_universal,
                 "global_config": UniversalConfig.config_global,
