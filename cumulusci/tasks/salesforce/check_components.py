@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 from collections import defaultdict
+from itertools import chain
 from xml.etree.ElementTree import ParseError
 
 from defusedxml.minidom import parseString
@@ -116,11 +117,19 @@ class CheckComponents(BaseSalesforceTask):
                 components = metadata_tree.parse_package_xml_types(
                     "name", source_xml_tree
                 )
-
                 response_messages = self._get_api_object_responce(
                     package_xml_path, source_xml_tree.version.text
                 )
-                mdapi_components.update(components)
+                merged = {}
+                for key in set(components).union(mdapi_components):
+                    merged[key] = list(
+                        set(
+                            chain(
+                                components.get(key, []), mdapi_components.get(key, [])
+                            )
+                        )
+                    )
+                mdapi_components = merged
                 mdapi_response_messages.extend(response_messages)
                 continue
             self._copy_to_tempdir(path, temp_dir)
@@ -132,7 +141,13 @@ class CheckComponents(BaseSalesforceTask):
 
         # remove temp dir
         shutil.rmtree(temp_dir)
-        components.update(mdapi_components)
+        print(mdapi_components)
+        merged = {}
+        for key in set(components).union(mdapi_components):
+            merged[key] = list(
+                set(chain(components.get(key, []), mdapi_components.get(key, [])))
+            )
+        components = merged
         api_retrieve_unpackaged_response.extend(mdapi_response_messages)
         return [components, api_retrieve_unpackaged_response]
 
