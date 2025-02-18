@@ -120,13 +120,6 @@ class CheckComponents(BaseSalesforceTask):
                 response_messages = self._get_api_object_responce(
                     package_xml_path, source_xml_tree.version.text
                 )
-                print("heloo", components)
-                for message in response_messages:
-
-                    message_list = (
-                        message.firstChild.nextSibling.firstChild.nodeValue.split("'")
-                    )
-                    print(message_list)
                 mdapi_components.update(components)
                 mdapi_response_messages.extend(response_messages)
                 continue
