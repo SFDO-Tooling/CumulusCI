@@ -47,6 +47,34 @@ class CheckComponents(BaseSalesforceTask):
         paths = self.options.get("paths")
         plan_or_flow_name = self.options.get("name")
 
+        (
+            components,
+            api_retrieve_unpackaged_response,
+        ) = self.get_repo_existing_components(plan_or_flow_name, paths)
+
+        if not components:
+            self.logger.info("No components found in deploy path")
+            raise TaskOptionsError("No plan or paths options provided")
+
+        self.logger.debug("Components detected at source")
+        for component_type, component_names in components.items():
+            self.logger.debug(f"{component_type}: {', '.join(component_names)}")
+        # check common components
+        existing_components = process_common_components(
+            api_retrieve_unpackaged_response, components
+        )
+
+        if existing_components:
+            self.logger.info("Components exists in the target org:")
+            for component_type, component_names in existing_components.items():
+                self.logger.info(f"{component_type}: {', '.join(component_names)}")
+            self.return_values["existing_components"] = existing_components
+        else:
+            self.logger.info(
+                "No components from the deploy paths exist in the target org."
+            )
+
+    def get_repo_existing_components(self, plan_or_flow_name, paths=""):
         if paths:
             paths = process_list_arg(paths)
             self.logger.info(f"Using provided paths: {paths}")
@@ -71,7 +99,6 @@ class CheckComponents(BaseSalesforceTask):
             self.logger.debug(
                 f"deploy paths found in the plan or flow.{self.deploy_paths}"
             )
-
         # Temp dir to copy all deploy paths from task options
         temp_dir = tempfile.mkdtemp()
         self.logger.info(f"Temporary deploy directory created: {temp_dir}")
@@ -90,28 +117,7 @@ class CheckComponents(BaseSalesforceTask):
 
         # remove temp dir
         shutil.rmtree(temp_dir)
-
-        if not components:
-            self.logger.info(f"No components found in deploy path{path}")
-            raise TaskOptionsError("No plan or paths options provided")
-
-        self.logger.debug("Components detected at source")
-        for component_type, component_names in components.items():
-            self.logger.debug(f"{component_type}: {', '.join(component_names)}")
-        # check common components
-        existing_components = process_common_components(
-            api_retrieve_unpackaged_response, components
-        )
-
-        if existing_components:
-            self.logger.info("Components exists in the target org:")
-            for component_type, component_names in existing_components.items():
-                self.logger.info(f"{component_type}: {', '.join(component_names)}")
-            self.return_values["existing_components"] = existing_components
-        else:
-            self.logger.info(
-                "No components from the deploy paths exist in the target org."
-            )
+        return [components, api_retrieve_unpackaged_response]
 
     def _copy_to_tempdir(self, src_dir, temp_dir):
         for item in os.listdir(src_dir):
