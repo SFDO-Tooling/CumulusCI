@@ -141,13 +141,15 @@ class CheckComponents(BaseSalesforceTask):
 
         # remove temp dir
         shutil.rmtree(temp_dir)
-        print(mdapi_components)
         merged = {}
-        for key in set(components).union(mdapi_components):
-            merged[key] = list(
-                set(chain(components.get(key, []), mdapi_components.get(key, [])))
-            )
-        components = merged
+        if components:
+            for key in set(components).union(mdapi_components):
+                merged[key] = list(
+                    set(chain(components.get(key, []), mdapi_components.get(key, [])))
+                )
+            components = merged
+        else:
+            components = mdapi_components
         api_retrieve_unpackaged_response.extend(mdapi_response_messages)
         return [components, api_retrieve_unpackaged_response]
 
