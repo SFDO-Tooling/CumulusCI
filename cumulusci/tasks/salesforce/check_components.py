@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 from collections import defaultdict
+from itertools import chain
 from xml.etree.ElementTree import ParseError
 
 from defusedxml.minidom import parseString
@@ -60,6 +61,7 @@ class CheckComponents(BaseSalesforceTask):
         for component_type, component_names in components.items():
             self.logger.debug(f"{component_type}: {', '.join(component_names)}")
         # check common components
+        components.pop("Settings", None)
         existing_components = process_common_components(
             api_retrieve_unpackaged_response, components
         )
@@ -102,11 +104,33 @@ class CheckComponents(BaseSalesforceTask):
         # Temp dir to copy all deploy paths from task options
         temp_dir = tempfile.mkdtemp()
         self.logger.info(f"Temporary deploy directory created: {temp_dir}")
-
+        mdapi_components = {}
+        mdapi_response_messages = []
         for path in self.deploy_paths:
             full_path = os.path.join(self.project_config.repo_root, path)
             if not os.path.exists(full_path):
                 self.logger.info(f"Skipping path: '{path}' - path doesn't exist")
+                continue
+            elif "package.xml" in os.listdir(full_path):
+                package_xml_path = os.path.join(full_path, "package.xml")
+                source_xml_tree = metadata_tree.parse(package_xml_path)
+                components = metadata_tree.parse_package_xml_types(
+                    "name", source_xml_tree
+                )
+                response_messages = self._get_api_object_responce(
+                    package_xml_path, source_xml_tree.version.text
+                )
+                merged = {}
+                for key in set(components).union(mdapi_components):
+                    merged[key] = list(
+                        set(
+                            chain(
+                                components.get(key, []), mdapi_components.get(key, [])
+                            )
+                        )
+                    )
+                mdapi_components = merged
+                mdapi_response_messages.extend(response_messages)
                 continue
             self._copy_to_tempdir(path, temp_dir)
 
@@ -117,6 +141,21 @@ class CheckComponents(BaseSalesforceTask):
 
         # remove temp dir
         shutil.rmtree(temp_dir)
+        merged = {}
+        if components:
+            for key in set(components).union(mdapi_components):
+                merged[key] = list(
+                    set(chain(components.get(key, []), mdapi_components.get(key, [])))
+                )
+            components = merged
+        else:
+            components = mdapi_components
+
+        if api_retrieve_unpackaged_response:
+            api_retrieve_unpackaged_response.extend(mdapi_response_messages)
+        else:
+            api_retrieve_unpackaged_response = mdapi_response_messages
+
         return [components, api_retrieve_unpackaged_response]
 
     def _copy_to_tempdir(self, src_dir, temp_dir):
