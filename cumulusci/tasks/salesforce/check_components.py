@@ -150,7 +150,12 @@ class CheckComponents(BaseSalesforceTask):
             components = merged
         else:
             components = mdapi_components
-        api_retrieve_unpackaged_response.extend(mdapi_response_messages)
+
+        if api_retrieve_unpackaged_response:
+            api_retrieve_unpackaged_response.extend(mdapi_response_messages)
+        else:
+            api_retrieve_unpackaged_response = mdapi_response_messages
+
         return [components, api_retrieve_unpackaged_response]
 
     def _copy_to_tempdir(self, src_dir, temp_dir):
