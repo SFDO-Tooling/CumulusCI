@@ -27,7 +27,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, process_none_arg
 from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
@@ -182,7 +182,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
-            version_base=self.options.get("version_base"),
+            version_base=process_none_arg(self.options.get("version_base")),
             version_type=self.options.get("version_type") or VersionTypeEnum("build"),
         )
         self.options["skip_validation"] = process_bool_arg(
@@ -238,7 +238,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 context=self.context,
             )
 
-        ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
+        ancestor_id = self._resolve_ancestor_id(
+            process_none_arg(self.options.get("ancestor_id"))
+        )
 
         self.request_id = self._create_version_request(
             self.package_id,
