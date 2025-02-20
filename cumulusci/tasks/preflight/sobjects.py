@@ -17,9 +17,9 @@ class CheckSObjectsAvailable(BaseSalesforceApiTask):
                   action: error
                   message: "Enhanced Notes are not turned on."
     """
-    api_version = "48.0"
 
     def _run_task(self):
+
         self.return_values = {entry["name"] for entry in self.sf.describe()["sobjects"]}
 
         self.logger.info(

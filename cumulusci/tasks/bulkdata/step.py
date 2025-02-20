@@ -463,6 +463,18 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         records, records_copy = tee(records)
         # Count total number of records to fetch using the copy
         total_num_records = sum(1 for _ in records_copy)
+
+        # In the case that records are zero, return success
+        if total_num_records == 0:
+            self.logger.info(f"No records present for {self.sobject}")
+            self.job_result = DataOperationJobResult(
+                status=DataOperationStatus.SUCCESS,
+                job_errors=[],
+                records_processed=0,
+                total_row_errors=0,
+            )
+            return
+
         limit_clause = self._determine_limit_clause(total_num_records=total_num_records)
 
         # Generate and execute SOQL query
@@ -881,6 +893,17 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         # Count total number of records to fetch using the copy
         total_num_records = sum(1 for _ in records_copy)
+
+        # In the case that records are zero, return success
+        self.logger.info(f"No records present for {self.sobject}")
+        if total_num_records == 0:
+            self.job_result = DataOperationJobResult(
+                status=DataOperationStatus.SUCCESS,
+                job_errors=[],
+                records_processed=0,
+                total_row_errors=0,
+            )
+            return
 
         # Set LIMIT condition
         limit_clause = self._determine_limit_clause(total_num_records)
