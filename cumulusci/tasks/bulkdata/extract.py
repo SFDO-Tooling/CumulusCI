@@ -7,7 +7,6 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.core.exceptions import (
     BulkDataException,
-    ConfigError,
     CumulusCIException,
     TaskOptionsError,
 )
@@ -31,6 +30,8 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
+
+ID_TABLE_NAME = "cumulusci_sf_id_table"
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -76,6 +77,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("drop_missing_schema") or False
         )
         self._id_generators = {}
+        self.sf_id_table = ID_TABLE_NAME
 
     def _run_task(self):
         self._init_mapping()
@@ -248,7 +250,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
             ids_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=self.metadata.tables[mapping.get_sf_id_table()],
+                table=self.metadata.tables[self.sf_id_table],
                 columns=["sf_id", "id"],
                 record_iterable=f_ids,
             )
@@ -291,9 +293,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     self._convert_lookups_to_id(m, lookup_keys)
 
         # Drop sf_id tables
-        for m in self.mapping.values():
-            if not m.get_oid_as_pk():
-                self.metadata.tables[m.get_sf_id_table()].drop()
+        if ID_TABLE_NAME in self.metadata.tables:
+            self.metadata.tables[ID_TABLE_NAME].drop()
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name"""
@@ -313,7 +314,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 f"The following tables are missing in the mapping file: {missing_tables}"
             )
 
-        return mappings
+        else:
+            return True
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
@@ -327,9 +329,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
             model = self.models.get(mapping.table)
 
-            lookup_mappings = self._get_mapping_for_table(lookup_info.table) or throw(
-                f"Cannot find lookup mapping for {lookup_info.table}"
-            )
+            if not self._get_mapping_for_table(lookup_info.table):
+                raise f"Cannot find lookup mapping for {lookup_info.table}"
 
             key_field = lookup_info.get_lookup_key_field()
 
@@ -338,44 +339,57 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
 
             # Keep track of total mapping operations
-            total_mapping_operations = 0
+            deleted_rows = 0
 
-            for lookup_mapping in lookup_mappings:
-                lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
-                try:
-                    update_query = (
-                        self.session.query(model)
-                        .filter(key_attr.isnot(None), key_attr == lookup_model.sf_id)
-                        .update({key_attr: lookup_model.id}, synchronize_session=False)
+            lookup_model = self.models.get(ID_TABLE_NAME)
+            try:
+                (
+                    self.session.query(model)
+                    .filter(key_attr.isnot(None), key_attr == lookup_model.sf_id)
+                    .update({key_attr: lookup_model.id}, synchronize_session=False)
+                )
+                delete_query = (
+                    self.session.query(model)
+                    .filter(
+                        key_attr != "",
+                        key_attr.notin_(self.session.query(lookup_model.sf_id)),
                     )
-                    total_mapping_operations += update_query.rowcount
-                except NotImplementedError:
-                    # Some databases such as sqlite don't support multitable update
-                    mappings = []
-                    for row, lookup_id in self.session.query(
-                        model, lookup_model.id
-                    ).join(lookup_model, key_attr == lookup_model.sf_id):
-                        mappings.append({"id": row.id, key_field: lookup_id})
-                    total_mapping_operations += len(mappings)
-                    self.session.bulk_update_mappings(model, mappings)
-            # Count the total number of rows excluding those with no entry for that field
-            total_rows = (
-                self.session.query(model)
-                .filter(
-                    key_attr.isnot(None),  # Ensure key_attr is not None
-                    key_attr.isnot(""),  # Ensure key_attr is not an empty string
+                    .delete(synchronize_session=False)
                 )
-                .count()
-            )
+                deleted_rows = delete_query.rowcount
+            except NotImplementedError:
+                # Some databases such as sqlite don't support multitable update
+                mappings = []
+                deleted_rows = 0
+                for row, lookup_id in self.session.query(model, lookup_model.id).join(
+                    lookup_model, key_attr == lookup_model.sf_id
+                ):
+                    mappings.append({"id": row.id, key_field: lookup_id})
 
-            if total_mapping_operations != total_rows:
-                raise ConfigError(
-                    f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}. Mention all related tables for lookup: {lookup_key}"
-                )
+                for row in self.session.query(model).filter(
+                    key_attr != "",
+                    key_attr.notin_(self.session.query(lookup_model.sf_id)),
+                ):
+                    deleted_rows = deleted_rows + 1
+                    self.session.delete(row)
+
+                self.session.bulk_update_mappings(model, mappings)
+
+            if deleted_rows != 0:
+                print(f"({deleted_rows}) are deleted")
         self.session.commit()
 
     def _create_tables(self):
         """Create a table for each mapping step."""
+        if self.sf_id_table not in self.models:
+            sf_id_model_name = f"{self.sf_id_table}Model"
+            self.models[self.sf_id_table] = type(sf_id_model_name, (object,), {})
+            sf_id_fields = [
+                Column("id", Unicode(255), primary_key=True),
+                Column("sf_id", Unicode(24)),
+            ]
+            id_t = Table(self.sf_id_table, self.metadata, *sf_id_fields)
+            mapper(self.models[self.sf_id_table], id_t)
         for mapping in self.mapping.values():
             self._create_table(mapping)
         self.metadata.create_all()
@@ -393,20 +407,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # If multiple mappings point to the same table, don't recreate the table
             if mapping.get_source_record_type_table() not in self.models:
                 self._create_record_type_table(mapping.get_source_record_type_table())
-
-        if not mapping.get_oid_as_pk():
-            # If multiple mappings point to the same table, don't recreate the table
-            if mapping.get_sf_id_table() not in self.models:
-                sf_id_model_name = f"{mapping.get_sf_id_table()}Model"
-                self.models[mapping.get_sf_id_table()] = type(
-                    sf_id_model_name, (object,), {}
-                )
-                sf_id_fields = [
-                    Column("id", Unicode(255), primary_key=True),
-                    Column("sf_id", Unicode(24)),
-                ]
-                id_t = Table(mapping.get_sf_id_table(), self.metadata, *sf_id_fields)
-                mapper(self.models[mapping.get_sf_id_table()], id_t)
 
         mapper(self.models[mapping.table], t, **mapper_kwargs)
 

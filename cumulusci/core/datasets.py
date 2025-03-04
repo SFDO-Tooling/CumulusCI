@@ -124,7 +124,14 @@ class Dataset:
         )
         with self.mapping_file.open("w") as f:
             f.write(EDIT_MAPPING_WARNING)
-            yaml.safe_dump(mapping_data, f, sort_keys=False)
+            final_mapping_file = mapping_data.copy()
+            for mapping in mapping_data:
+                final_mapping_file[mapping]["action"] = "select"
+                final_mapping_file[mapping]["select_options"] = {
+                    "strategy": "similarity",
+                    "threshold": 0.01,
+                }
+            yaml.safe_dump(final_mapping_file, f, sort_keys=False)
 
     @contextmanager
     def temp_extract_mapping(

@@ -154,10 +154,6 @@ class MappingStep(CCIDictModel):
         """Returns the name of the record type table for the source org."""
         return f"{self.sf_object}_rt_mapping"
 
-    def get_sf_id_table(self):
-        """Returns the name of the table for storing Salesforce Ids."""
-        return f"{self.table}_sf_ids"
-
     def get_complete_field_map(self, include_id=False):
         """Return a field map that includes both `fields` and `lookups`.
         If include_id is True, add the Id field if not already present."""

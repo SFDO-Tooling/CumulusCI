@@ -8,7 +8,6 @@ from cumulusci.salesforce_api.org_schema import NOT_EXTRACTABLE, Field, Schema
 from cumulusci.utils.iterators import partition
 
 from .extract_yml import ExtractDeclaration, SFFieldGroupTypes, SFObjectGroupTypes
-from .hardcoded_default_declarations import DEFAULT_DECLARATIONS
 
 
 class SimplifiedExtractDeclaration(ExtractDeclaration):
@@ -80,7 +79,7 @@ def _simplify_sfobject_declarations(
     )
     atomic_declarations = list(atomic_declarations)
     normalized_atomic_declarations = _normalize_user_supplied_simple_declarations(
-        atomic_declarations, DEFAULT_DECLARATIONS
+        atomic_declarations, {}
     )
     atomized_declarations = _merge_group_declarations_with_simple_declarations(
         normalized_atomic_declarations, group_declarations, schema, opt_in_only
@@ -227,7 +226,7 @@ def synthesize_declaration_for_sobject(
 ) -> SimplifiedExtractDeclaration:
     """Fake a declaration for an sobject that was mentioned
     indirectly"""
-    default = DEFAULT_DECLARATIONS.get(sf_object)
+    default = {}
 
     if default:
         expanded_default = _expand_field_definitions(default, schema_fields)
@@ -252,9 +251,7 @@ def _normalize_user_supplied_simple_declarations(
 
     assert not duplicates, f"Duplicate declarations not allowed: {duplicates}"
     simple_declarations = {
-        decl.sf_object: _merge_declarations_with_defaults(
-            decl, default_declarations.get(decl.sf_object, _DEFAULT_DEFAULTS)
-        )
+        decl.sf_object: _merge_declarations_with_defaults(decl, {})
         for decl in simple_declarations
     }
     return list(simple_declarations.values())
