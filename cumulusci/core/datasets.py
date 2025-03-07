@@ -178,17 +178,16 @@ class Dataset:
             extract_mapping,
             decls,
         ):
+            loading_rules = self._parse_loading_rules_file(loading_rules_file)
+            self._save_load_mapping(list(decls.values()), opt_in_only, loading_rules)
             task = _make_task(
                 ExtractData,
                 project_config=self.project_config,
                 org_config=self.org_config,
                 sql_path=self.data_file,
-                mapping=str(extract_mapping),
+                mapping=str(self.mapping_file),
             )
             task()
-        loading_rules = self._parse_loading_rules_file(loading_rules_file)
-
-        self._save_load_mapping(list(decls.values()), opt_in_only, loading_rules)
         return task.return_values
 
     def _parse_loading_rules_file(

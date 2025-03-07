@@ -58,9 +58,12 @@ def _collect_dependencies_for_sobject(
                 if not references:
                     continue
 
-            targets = tuple(
-                target for target in references if target not in NOT_EXTRACTABLE
-            )
+            if (
+                not schema[source_sfobject].createable
+                and schema[source_sfobject].extractable
+            ) or (source_sfobject in NOT_EXTRACTABLE):
+                continue
+            targets = tuple(target for target in references)
             field_disallowed = not targets or not field_info.createable
             field_allowed = not (only_required_fields or field_disallowed)
             if field_info.requiredOnCreate or field_allowed:
@@ -90,11 +93,14 @@ def extend_declarations_to_include_referenced_tables(
         my_dependencies = dependencies.get(sf_object, ())
         for dep in my_dependencies:
             target_tables = dep.table_names_to
+            print(target_tables)
             for target_table in target_tables:
                 sobj = schema.get(target_table)
-                target_extractable = (
-                    target_table not in NOT_EXTRACTABLE and sobj and sobj.extractable
-                )
+                # target_extractable = (
+                #     target_table not in NOT_EXTRACTABLE and sobj and sobj.extractable
+                # )
+                target_extractable = sobj and sobj.extractable
+                # if (not schema[source_sfobject].createable and schema[source_sfobject].extractable) or source_sfobject in NOT_EXTRACTABLE:
                 if target_table not in decls and target_extractable:
                     required_fields = [
                         field.name

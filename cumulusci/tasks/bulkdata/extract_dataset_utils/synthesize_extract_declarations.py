@@ -1,10 +1,9 @@
 import collections
-import re
 import typing as T
 
 from pydantic import validator
 
-from cumulusci.salesforce_api.org_schema import NOT_EXTRACTABLE, Field, Schema
+from cumulusci.salesforce_api.org_schema import Field, Schema
 from cumulusci.utils.iterators import partition
 
 from .extract_yml import ExtractDeclaration, SFFieldGroupTypes, SFObjectGroupTypes
@@ -111,11 +110,8 @@ def _merge_group_declarations_with_simple_declarations(
     for decl_set in simplified_declarations:
         for decl in decl_set:
             already_specified = decl.sf_object in specific_sobject_decl_names
-            hard_banned = any(
-                re.match(pat, decl.sf_object, re.IGNORECASE) for pat in NOT_EXTRACTABLE
-            )
             opted_out = decl.sf_object in opt_in_only
-            if not (already_specified or hard_banned or opted_out):
+            if not (already_specified or opted_out):
                 simple_declarations.append(decl)
 
     return simple_declarations

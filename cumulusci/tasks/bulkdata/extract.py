@@ -292,7 +292,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 if lookup_keys:
                     self._convert_lookups_to_id(m, lookup_keys)
 
-        # Drop sf_id tables
         if ID_TABLE_NAME in self.metadata.tables:
             self.metadata.tables[ID_TABLE_NAME].drop()
 
