@@ -360,10 +360,24 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
             )
 
         try:
-            record_id = results["records"][0]["Id"]
+            # Extract the first column name using regular expression
+            column_name = re.search(r"\s*select\s+(\w+)", self.replace_record_id_query, re.IGNORECASE)
+            if column_name:
+                column_name = column_name.group(1)
+            else:
+                # Defaults to Id 
+                column_name = "Id"
+
+        except ValueError:
+            raise CumulusCIException(
+                "Unable to parse column name from replace_record_id_query. Please check format."
+            )
+
+        try:
+            record_id = results["records"][0][column_name]
         except KeyError:
             raise CumulusCIException(
-                "Results from the replace_record_id_query did not include an 'Id'. Please ensure the 'Id' field is included in your query's SELECT clause."
+                f"Results from the replace_record_id_query did not include an '{column_name}'. Please ensure the '{column_name}' field is included in your query's SELECT clause."
             )
         return record_id
 
