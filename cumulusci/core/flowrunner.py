@@ -78,6 +78,7 @@ from cumulusci.core.exceptions import (
     FlowInfiniteLoopError,
     TaskImportError,
 )
+from cumulusci.utils import cd
 from cumulusci.utils.version_strings import LooseVersion
 
 if TYPE_CHECKING:
@@ -458,6 +459,28 @@ class FlowCoordinator:
             previous_source = step.project_config.source
 
         return lines
+
+    def freeze(self, org_config) -> List[StepSpec]:
+        self.org_config = org_config
+        line = f"Initializing flow for freezing: {self.__class__.__name__}"
+        if self.name:
+            line = f"{line} ({self.name})"
+        self._rule()
+        self.logger.info(line)
+        self.logger.info(self.flow_config.description)
+        self._rule(new_line=True)
+        steps = []
+        for step in self.steps:
+            if step.skip:
+                continue
+            with cd(step.project_config.repo_root):
+                task = step.task_class(
+                    step.project_config,
+                    TaskConfig(step.task_config),
+                    name=step.task_name,
+                )
+                steps.extend(task.freeze(step))
+        return steps
 
     def run(self, org_config: OrgConfig):
         self.org_config = org_config
