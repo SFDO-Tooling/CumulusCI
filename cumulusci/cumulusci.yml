@@ -218,6 +218,9 @@ tasks:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
         class_path: cumulusci.tasks.bulkdata.DeleteData
         group: Data Operations
+    generate_data_from_datapy:
+        class_path: cumulusci.tasks.bulkdata.load_from_datapy.LoadFromDatapy
+        group: Data Operations
     update_data:
         description: Update records of an sObject matching a where-clause.
         class_path: cumulusci.tasks.bulkdata.update_data.UpdateData
