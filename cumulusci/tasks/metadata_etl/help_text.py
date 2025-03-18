@@ -6,18 +6,31 @@ from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
-class SetFieldHelpText(MetadataSingleEntityTransformTask):
-    entity = "CustomObject"
-    task_options = {
-        "fields": {
-            "description": "List of object fields to affect, in Object__c.Field__c form.",
-            "required": True,
-        },
-        "overwrite": {
-            "description": "If set to True, overwrite any differing Help Text found on the field. "
-            "By default, Help Text is set only if it is blank."
-        },
-        **MetadataSingleEntityTransformTask.task_options,
+class SetFieldHelpText(MetadataSingleEntityTransformTask):  
+    entity = "CustomObject"  
+    task_options = {  
+        "fields": {  
+            "description": (
+                "A list of dictionaries to specify which fields to modify. Each dictionary "
+                "should contain 'api_name' and 'help_text' keys. 'api_name' is the API name "
+                "of the field to modify in the form 'Object__c.Field__c' and 'help_text' is "
+                "the new help text to set. For example:\n"
+                "fields:\n"
+                "  - api_name: 'Account.Description'\n"
+                "    help_text: 'This is a description field for Account.'\n"
+                "  - api_name: 'Account.Name'\n"
+                "    help_text: 'This is the name field for Account.'\n"
+                "This option is typically specified in the cumulusci.yml file for the project."
+            ),
+            "required": True,  
+        },  
+        "overwrite": {  
+            "description": (
+                "If set to True, overwrite any existing Help Text found on the field. "
+                "By default, Help Text is only set if it is blank."
+            )
+        },  
+        **MetadataSingleEntityTransformTask.task_options,  
     }
 
     def _init_options(self, kwargs):
