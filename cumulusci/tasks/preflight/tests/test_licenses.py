@@ -41,7 +41,7 @@ class TestLicensePreflights:
         task()
 
         task._init_api.return_value.query.assert_called_once_with(
-            "SELECT PermissionSetLicenseKey FROM PermissionSetLicense"
+            "SELECT PermissionSetLicenseKey FROM PermissionSetLicense WHERE Status = 'Active'"
         )
         assert task.return_values == ["TEST1", "TEST2"]
 
