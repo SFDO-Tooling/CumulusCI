@@ -10,7 +10,7 @@ from unittest import mock
 import pytest
 import responses
 import yaml
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.dependencies.dependencies import (

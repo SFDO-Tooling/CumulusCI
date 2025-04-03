@@ -7,7 +7,7 @@ from multiprocessing import Queue
 from pathlib import Path
 from traceback import format_exc
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.config import (
     BaseConfig,

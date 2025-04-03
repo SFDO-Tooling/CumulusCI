@@ -3,7 +3,7 @@ import logging
 import zipfile
 from unittest import mock
 
-import pydantic
+import pydantic.v1
 import pytest
 
 from cumulusci.core.dependencies.dependencies import (
@@ -354,7 +354,7 @@ def test_install_dependency_installs_unmanaged():
             ]
         },
     )
-    task.dependencies[0].__config__.extra = pydantic.Extra.allow
+    task.dependencies[0].__config__.extra = pydantic.v1.Extra.allow
     task.dependencies[0].install = mock.Mock()
     task.org_config = mock.Mock()
 

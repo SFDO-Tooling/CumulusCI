@@ -6,10 +6,10 @@ import os
 from typing import List, Optional
 from zipfile import ZipFile
 
-import pydantic
+import pydantic.v1
 from github3.exceptions import NotFoundError
 from github3.repos.repo import Repository
-from pydantic.networks import AnyUrl
+from pydantic.v1.networks import AnyUrl
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
@@ -209,7 +209,7 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
     def is_resolved(self):
         return bool(self.ref)
 
-    @pydantic.root_validator
+    @pydantic.v1.root_validator
     def check_deprecated_fields(cls, values):
         if values.get("repo_owner") or values.get("repo_name"):
             logger.warning(
@@ -217,7 +217,7 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
             )
         return values
 
-    @pydantic.root_validator
+    @pydantic.v1.root_validator
     def check_complete(cls, values):
         assert values["ref"] is None, "Must not specify `ref` at creation."
 
@@ -283,13 +283,13 @@ class GitHubDynamicDependency(BaseGitHubDependency):
     def is_unmanaged(self):
         return self.unmanaged
 
-    @pydantic.validator("skip", pre=True)
+    @pydantic.v1.validator("skip", pre=True)
     def listify_skip(cls, v):
         if v and not isinstance(v, list):
             v = [v]
         return v
 
-    @pydantic.root_validator
+    @pydantic.v1.root_validator
     def check_unmanaged_values(cls, values):
         if not values.get("unmanaged") and (
             values.get("namespace_inject") or values.get("namespace_strip")
@@ -651,7 +651,7 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
     filename_token: Optional[str] = None
     namespace_token: Optional[str] = None
 
-    @pydantic.root_validator
+    @pydantic.v1.root_validator
     def validate(cls, values):
         return _validate_github_parameters(values)
 
@@ -740,7 +740,7 @@ def parse_dependency_pin(pin_dict: dict) -> Optional[DependencyPin]:
             pin = dependency_pin_class.parse_obj(pin_dict)
             if pin:
                 return pin
-        except pydantic.ValidationError:
+        except pydantic.v1.ValidationError:
             pass
 
 
@@ -786,5 +786,5 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
             dep = dependency_class.parse_obj(dep_dict)
             if dep:
                 return dep
-        except pydantic.ValidationError:
+        except pydantic.v1.ValidationError:
             pass

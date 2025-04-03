@@ -2,7 +2,7 @@ import pathlib
 from typing import List, Optional, Union
 
 from defusedxml.minidom import parseString
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from cumulusci.cli.ui import CliTable
 from cumulusci.core.dependencies.utils import TaskContext

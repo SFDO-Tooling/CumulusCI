@@ -1,6 +1,6 @@
 import typing as T
 
-import pydantic
+import pydantic.v1 as pydantic
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask

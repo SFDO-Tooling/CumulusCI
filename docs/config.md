@@ -197,7 +197,7 @@ For example:
 ```python
 from typing import Optional
 
-from pydantic import Json
+from pydantic.v1 import Json
 
 from cumulusci.core.tasks import BaseTask, CCIOptions
 from cumulusci.utils.options import Field

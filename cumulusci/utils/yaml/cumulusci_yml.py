@@ -9,8 +9,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic import Field, root_validator, validator
-from pydantic.types import DirectoryPath
+from pydantic.v1 import Field, root_validator, validator
+from pydantic.v1.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
 from cumulusci.core.enums import StrEnum

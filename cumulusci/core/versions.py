@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Union
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.enums import StrEnum
 

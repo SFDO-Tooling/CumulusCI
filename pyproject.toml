@@ -35,7 +35,7 @@ dependencies = [
     "lxml",
     "MarkupSafe",
     "psutil",
-    "pydantic<2",
+    "pydantic>2",
     "PyJWT",
     "pytz",
     "pyyaml",
@@ -52,7 +52,6 @@ dependencies = [
     "sarge",
     "selenium<4",
     "simple-salesforce==1.11.4",
-    "snowfakery>=4.0.0",
     "xmltodict",
     "docutils>=0.21.2",
 ]

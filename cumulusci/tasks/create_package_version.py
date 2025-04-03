@@ -5,7 +5,7 @@ import pathlib
 import zipfile
 from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic.v1 import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
@@ -323,7 +323,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             if existing_package["ContainerOptions"] != package_config.package_type:
                 raise PackageUploadFailure(
                     f"Duplicate Package: {existing_package['ContainerOptions']} package with id "
-                    f"{ existing_package['Id']} has the same name ({package_config.package_name}) "
+                    f"{existing_package['Id']} has the same name ({package_config.package_name}) "
                     "for this namespace but has a different package type"
                 )
             package_id = existing_package["Id"]

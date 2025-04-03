@@ -5,7 +5,7 @@ from unittest import mock
 from zipfile import ZipFile
 
 import pytest
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig

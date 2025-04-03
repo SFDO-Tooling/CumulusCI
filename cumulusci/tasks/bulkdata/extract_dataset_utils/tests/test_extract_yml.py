@@ -1,7 +1,7 @@
 from io import StringIO
 
 import pytest
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from cumulusci.tasks.bulkdata.extract_dataset_utils.extract_yml import (
     ExtractDeclaration,

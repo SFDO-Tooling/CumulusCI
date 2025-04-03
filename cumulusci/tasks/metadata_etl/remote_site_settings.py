@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-import pydantic
-from pydantic import BaseModel
+import pydantic.v1
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl.base import BaseMetadataSynthesisTask
@@ -76,7 +76,7 @@ class AddRemoteSiteSettings(BaseMetadataSynthesisTask):
         """Parse and return the options defined in RSSOptions"""
         try:
             return RSSOptions.parse_obj(self.options)
-        except pydantic.ValidationError as exc:
+        except pydantic.v1.ValidationError as exc:
             raise TaskOptionsError(f"Invalid options: {exc}")
 
     def _get_rss_xml_content(self, rss: RemoteSiteSetting) -> str:

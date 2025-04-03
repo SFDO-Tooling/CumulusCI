@@ -2,7 +2,7 @@ import collections
 import re
 import typing as T
 
-from pydantic import validator
+from pydantic.v1 import validator
 
 from cumulusci.salesforce_api.org_schema import NOT_EXTRACTABLE, Field, Schema
 from cumulusci.utils.iterators import partition

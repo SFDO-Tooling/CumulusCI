@@ -10,7 +10,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from lxml import etree as ET
-from pydantic import BaseModel, root_validator
+from pydantic.v1 import BaseModel, root_validator
 
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.enums import StrEnum

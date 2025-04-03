@@ -6,7 +6,7 @@ from unittest.mock import Mock
 from zipfile import ZipFile
 
 from github3.repos.repo import Repository
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.dependencies.dependencies import (
     Dependency,

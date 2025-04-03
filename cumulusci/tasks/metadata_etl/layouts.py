@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, root_validator
+from pydantic.v1 import BaseModel, root_validator
 from typing_extensions import Literal
 
 from cumulusci.core.exceptions import TaskOptionsError
