@@ -53,6 +53,7 @@ Option values/overrides can be passed in at a number of levels, in increasing or
 
 import copy
 import logging
+import re
 from collections import defaultdict
 from operator import attrgetter
 from typing import (
@@ -85,6 +86,7 @@ if TYPE_CHECKING:
 
 
 RETURN_VALUE_OPTION_PREFIX = "^^"
+RETURN_VALUE_SUBS_RE = re.compile(r"\^\^\S+")
 
 jinja2_env = ImmutableSandboxedEnvironment()
 
@@ -508,6 +510,15 @@ class FlowCoordinator:
             return
 
         if step.when:
+
+            ### get prior return values
+            prior_return_values = RETURN_VALUE_SUBS_RE.findall(step.when)
+            if prior_return_values is not None:
+                for value in prior_return_values:
+                    path, name = value[len(RETURN_VALUE_OPTION_PREFIX) :].rsplit(".", 1)
+                    result = self._find_result_by_path(path)
+                    step.when = step.when.replace(value, result.return_values.get(name))
+
             jinja2_context = {
                 "project_config": step.project_config,
                 "org_config": self.org_config,
