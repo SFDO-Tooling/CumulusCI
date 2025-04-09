@@ -86,7 +86,7 @@ def jwt_session(
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     token_url = urljoin(url, "services/oauth2/token")
-    response = requests.post(url=token_url, data=data, headers=headers)
+    response = requests.post(url=token_url, data=data, headers=headers, verify=False)
     if response.status_code != 200:
         raise SalesforceCredentialsException(
             f"Error retrieving access token: {response.text}"
