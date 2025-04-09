@@ -1,13 +1,22 @@
+import ssl
 from urllib.parse import urlparse
 
 import simple_salesforce
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from urllib3.poolmanager import PoolManager
 
 from cumulusci import __version__
 from cumulusci.core.exceptions import ServiceNotConfigured, ServiceNotValid
 
 CALL_OPTS_HEADER_KEY = "Sforce-Call-Options"
+
+
+def create_unverified_context():
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
 
 
 def get_simple_salesforce_connection(
@@ -17,6 +26,7 @@ def get_simple_salesforce_connection(
     # Retry on long-running metadeploy jobs
     retries = Retry(total=5, status_forcelist=(502, 503, 504), backoff_factor=0.3)
     adapter = HTTPAdapter(max_retries=retries)
+    adapter.poolmanager = PoolManager(ssl_context=create_unverified_context())
     instance = org_config.instance_url
 
     # Attempt to get the host and port from the URL

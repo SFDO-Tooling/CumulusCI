@@ -112,7 +112,8 @@ class OrgConfig(BaseConfig):
             if info != self.config:
                 self.config.update(info)
         self._load_userinfo()
-        self._load_orginfo()
+        if "dbl55.my.stm" not in self.instance_url:
+            self._load_orginfo()
 
     @contextmanager
     def save_if_changed(self):
@@ -166,10 +167,13 @@ class OrgConfig(BaseConfig):
     def salesforce_client(self):
         """Return a simple_salesforce.Salesforce instance authorized to this org.
         Does not perform a token refresh."""
+        session = requests.Session()
+        session.verify = False
         return Salesforce(
             instance=self.instance_url.replace("https://", ""),
             session_id=self.access_token,
             version=self.latest_api_version,
+            session=session,
         )
 
     @property
@@ -177,7 +181,7 @@ class OrgConfig(BaseConfig):
         if not self._latest_api_version:
             headers = {"Authorization": "Bearer " + self.access_token}
             response = requests.get(
-                self.instance_url + "/services/data", headers=headers
+                self.instance_url + "/services/data", headers=headers, verify=False
             )
             try:
                 version = safe_json_from_response(response)[-1]["version"]
@@ -228,7 +232,9 @@ class OrgConfig(BaseConfig):
     def _load_userinfo(self):
         headers = {"Authorization": "Bearer " + self.access_token}
         response = requests.get(
-            self.instance_url + "/services/oauth2/userinfo", headers=headers
+            self.instance_url + "/services/oauth2/userinfo",
+            headers=headers,
+            verify=False,
         )
         if response != self.config.get("userinfo", {}):
             config_data = safe_json_from_response(response)

@@ -11,6 +11,7 @@ import base64
 import http.client
 import io
 import re
+import ssl
 import time
 from collections import defaultdict
 from xml.sax.saxutils import escape
@@ -20,6 +21,7 @@ import requests
 from defusedxml.minidom import parseString
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from urllib3.poolmanager import PoolManager
 
 from cumulusci.core.exceptions import ApexTestException, CumulusCIException
 from cumulusci.salesforce_api import soap_envelopes
@@ -42,6 +44,13 @@ else:
 INVALID_CROSS_REF_ERROR = "INVALID_CROSS_REFERENCE_KEY: No package named"
 
 retry_policy = Retry(backoff_factor=0.3)
+
+
+def create_unverified_context():
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
 
 
 class BaseMetadataApiCall(object):
@@ -108,6 +117,7 @@ class BaseMetadataApiCall(object):
         auth_envelope = envelope.replace("###SESSION_ID###", session_id)
         session = requests.Session()
         http_adapter = HTTPAdapter(max_retries=retry_policy)
+        http_adapter.poolmanager = PoolManager(ssl_context=create_unverified_context())
         session.mount("https://", http_adapter)
         response = session.post(
             self._build_endpoint_url(),
