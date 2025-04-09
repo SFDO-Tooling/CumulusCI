@@ -78,23 +78,24 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
     if not url:
         raise ValueError(EMPTY_URL_MESSAGE)
 
-    url_parts = re.split("/|@|:", url.rstrip("/"))
+    from urllib.parse import urlparse
+    
+    formatted_url = f"ssh://{url}" if url.startswith("git") else url
+    parse_result = urlparse(formatted_url)
+    
+    host = parse_result.hostname
+    
+    url_parts = re.split("/|@|:", parse_result.path.rstrip("/").lstrip("/"))
     url_parts = list(filter(None, url_parts))
 
     name = url_parts[-1]
     if name.endswith(".git"):
         name = name[:-4]
 
-    owner = url_parts[-2]
+    owner = parse_result._hostinfo[-1] if url.startswith("git") else url_parts[-2]
 
-    host = url_parts[-3]
-    # Regular Expression to match domain of host com,org,in,app etc
-    domain_search_exp = re.compile(r"\.[a-zA-Z]+$")
-    # Need to consider "https://api.github.com/repos/owner/repo/" pattern
-    if (
-        "http" in url_parts[0]
-        and len(url_parts) > 4
-        and domain_search_exp.search(host) is None
-    ):
-        host = url_parts[-4]
+    if 'azure' in host and owner == 'v3':
+        owner = url_parts[0] # Set organization as the owner.
+    # TODO: With azure url we have project value in url, need to include that in return.
+        
     return (owner, name, host)
