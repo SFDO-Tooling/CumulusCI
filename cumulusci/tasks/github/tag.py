@@ -1,10 +1,6 @@
-from datetime import datetime
+from cumulusci.tasks.base_scm_task import BaseScmTask
 
-from cumulusci.core.github import get_tag_by_name
-from cumulusci.tasks.github.base import BaseGithubTask
-
-
-class CloneTag(BaseGithubTask):
+class CloneTag(BaseScmTask):
     task_options = {  # TODO: should use `class Options instead`
         "src_tag": {
             "description": "The source tag to clone.  Ex: beta/1.0-Beta_2",
@@ -18,20 +14,9 @@ class CloneTag(BaseGithubTask):
 
     def _run_task(self):
         src_tag_name = self.options["src_tag"]
-        repo = self.get_repo()
-        src_tag = get_tag_by_name(repo, src_tag_name)
+        
+        tag = self.create_tag()
 
-        tag = repo.create_tag(
-            tag=self.options["tag"],
-            message=f"Cloned from {src_tag_name}",
-            sha=src_tag.sha,
-            obj_type="commit",
-            tagger={
-                "name": self.github_config.username,
-                "email": self.github_config.email,
-                "date": f"{datetime.utcnow().isoformat()}Z",
-            },
-        )
         self.logger.info(f"Tag {self.options['tag']} created by cloning {src_tag_name}")
 
         return tag
