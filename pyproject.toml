@@ -29,6 +29,7 @@ dependencies = [
     "Faker",
     "fs",
     "github3.py",
+    "azure-devops",
     "jinja2",
     "keyring<=23.0.1",
     "defusedxml",

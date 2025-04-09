@@ -1431,6 +1431,17 @@ services:
                 required: True
                 sensitive: True
         validator: cumulusci.core.github.validate_service
+    azure_devops:
+        description: Configure connection for Azure DevOps Server
+        attributes:
+            organization_url:
+                description: "Azure DevOps organization url (Example: dev.azure.com/YOURORG)."
+                required: True
+            token:
+                description: Personal Access Token
+                required: True
+                sensitive: True
+        validator: cumulusci.core.azure_devops.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
         class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig
