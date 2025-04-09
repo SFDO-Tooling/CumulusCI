@@ -86,7 +86,7 @@ These permit downstream processing in tools like CCI and MetaCI.
 Note: `cci_metric` is not included in Robot's html statistical
 roll-ups.
 
-```robot
+```robotframework
 Set Test Metric    Max_CPU_Percent    30
 ```
 
@@ -102,7 +102,7 @@ keyword queries Salesforce for its recorded log of a job.
 
 For example, to query an Apex bulk job:
 
-```robot
+```robotframework
 ${time_in_seconds} =    Elapsed Time For Last Record
 ...             obj_name=AsyncApexJob
 ...             where=ApexClass.Name='BlahBlah'
@@ -215,7 +215,7 @@ By using an alias, you can reference the page object with either the
 alias or the actual object name. For example, if `object_name` is set as
 described above, the following two uses of `Go to page` are identical:
 
-```robot
+```robotframework
 Go to page  Listing  My Object
 Go to page  Listing  MyObject__c
 ```
@@ -593,7 +593,7 @@ if you were in the NPSP repository.
 For example, in a project which has been configured to use NPSP as a
 source, the `NPSP.robot` file can be imported into a test suite.
 
-```robot
+```robotframework
 *** Settings ***
 Resource   robot/Cumulus/resources/NPSP.robot
 ```

@@ -86,7 +86,7 @@ Options
     Require at least X percent code coverage across the org following the test run.
     Default: 90
 ```
-
+(add-a-custom-task)=
 ### Add a Custom Task
 
 To define a new task for your project, add the task name under the
@@ -534,7 +534,7 @@ will fetch the most recent production release, or the default branch if
 there are no releases. By specifying `resolution_strategy`, the behavior
 can be changed to match desired dependency resolution behavior, such as
 using beta releases or retrieving feature test packages from a commit
-status. See [](dependency-resolution) for
+status. See [](controlling-github-dependency-resolution) for
 more details about resolution strategies.
 
 ```{note}
@@ -723,7 +723,7 @@ in your cumulusci.yml file.
 
 ### Customizing Metadata Deployment
 
-CumulusCI's `deploy` task offers deep flexibility to customize your deployment process. Review [](deploy) for an in-depth guide.
+CumulusCI's `deploy` task offers deep flexibility to customize your deployment process. Review [](configure-metadata-deployment) for an in-depth guide.
 
 ```{toctree}
 ---

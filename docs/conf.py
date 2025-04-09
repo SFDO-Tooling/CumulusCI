@@ -100,6 +100,10 @@ release = cumulusci.__version__
 # directories to ignore when looking for source files.
 exclude_patterns = ["_build", "*/tests/"]
 
+# Exclude 'history.md' only in LaTeX builds
+if os.environ.get("SPHINX_OUTPUT_FORMAT") == "latex":
+    exclude_patterns.append("history.md")
+
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
 # default_role = None
@@ -222,20 +226,21 @@ html_extra_path = ["robot"]
 # This is the file name suffix for HTML files (e.g. ".xhtml").
 # html_file_suffix = None
 
+suppress_warnings = ["ref.duplicate_label"]
+
 # Output file base name for HTML help builder.
 htmlhelp_basename = "cumuluscidoc"
 
 
 # -- Options for LaTeX output ------------------------------------------
+latex_engine = "xelatex"
+
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    # 'papersize': 'letterpaper',
-    # The font size ('10pt', '11pt' or '12pt').
-    # 'pointsize': '10pt',
-    # Additional stuff for the LaTeX preamble.
-    # 'preamble': '',
+    'preamble': r'''\renewcommand{\familydefault}{\sfdefault}  % Set default font to sans-serif
+''',
 }
+
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
@@ -245,13 +250,16 @@ latex_documents = [
         "index",
         "cumulusci.tex",
         "CumulusCI Documentation",
-        """Kamalnath Devarakonda\\\\
-Sr Director Software Engineering\\\\
-kdevarakonda@salesforce.com""",
+        r"""
+        \parbox{\textwidth}{\raggedleft
+        {\fontsize{15}{12} Kamalnath Devarakonda}\\
+        {\fontsize{14}{12}\selectfont Sr. Director, Software Engineering}\\
+        {\fontsize{13}{12}\selectfont kdevarakonda@salesforce.com}
+        }
+        """,
         "manual",
     )
 ]
-
 # The name of an image file (relative to this directory) to place at
 # the top of the title page.
 # latex_logo = None
