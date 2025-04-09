@@ -229,7 +229,7 @@ class OAuth2Client(object):
             "code": auth_code,
         }
         return requests.post(
-            self.client_config.token_uri, headers=HTTP_HEADERS, data=data
+            self.client_config.token_uri, headers=HTTP_HEADERS, data=data, verify=False
         )
 
     def refresh_token(self, refresh_token):
@@ -240,7 +240,7 @@ class OAuth2Client(object):
             "refresh_token": refresh_token,
         }
         response = requests.post(
-            self.client_config.token_uri, headers=HTTP_HEADERS, data=data
+            self.client_config.token_uri, headers=HTTP_HEADERS, data=data, verify=False
         )
         self.validate_response(response)
         return safe_json_from_response(response)
