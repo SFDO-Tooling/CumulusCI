@@ -24,6 +24,7 @@ class ParallelHTTP:
 
     def __enter__(self, *args):
         self.session = FuturesSession(max_workers=self.max_workers)
+        self.session.verify = False
         return self
 
     def __exit__(self, *args):
