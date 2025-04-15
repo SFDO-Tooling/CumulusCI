@@ -27,7 +27,7 @@ class TestLicensePreflights:
         task._init_api.return_value.query.assert_called_once_with(
             "SELECT Id, LicenseDefinitionKey, TotalLicenses, UsedLicenses FROM UserLicense WHERE Status = 'Active'"
         )
-        # Only TEST1 and TEST3 have available licenses
+
         assert task.return_values == ["TEST1", "TEST2"]
 
     def test_assignable_license_preflight(self):
@@ -45,7 +45,7 @@ class TestLicensePreflights:
         task._init_api.return_value.query.assert_called_once_with(
             "SELECT Id, LicenseDefinitionKey, TotalLicenses, UsedLicenses FROM UserLicense WHERE Status = 'Active'"
         )
-        # Only TEST1 and TEST3 have available licenses
+        # Only TEST1 assignable licenses
         assert task.return_values == ["TEST1"]
 
     def test_psl_preflight(self):
