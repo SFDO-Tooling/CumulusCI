@@ -2,9 +2,9 @@ from unittest.mock import Mock
 
 from cumulusci.tasks.preflight.licenses import (
     GetAssignableLicenses,
+    GetAssignablePermissionSets,
     GetAvailableLicenses,
     GetAvailablePermissionSetLicenses,
-    GetAssignablePermissionSets,
     GetAvailablePermissionSets,
     GetPermissionLicenseSetAssignments,
 )
