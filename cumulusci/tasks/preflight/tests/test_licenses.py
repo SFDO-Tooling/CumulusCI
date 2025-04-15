@@ -14,14 +14,21 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 class TestLicensePreflights:
     def test_license_preflight(self):
         task = create_task(GetAvailableLicenses, {})
-        task.get_available_user_licenses = Mock(return_value={
-            "L1": {"LicenseDefinitionKey": "TEST1"},
-            "L3": {"LicenseDefinitionKey": "TEST3"},
-        })
+        task._init_api = Mock()
+        task._init_api.return_value.query.return_value = {
+            "totalSize": 2,
+            "records": [
+                {"Id": "L1", "LicenseDefinitionKey": "TEST1", "TotalLicenses": 100, "UsedLicenses": 90},
+                {"Id": "L2", "LicenseDefinitionKey": "TEST2", "TotalLicenses": 100, "UsedLicenses": 100},
+            ],
+        }
 
         task()
+        task._init_api.return_value.query.assert_called_once_with(
+            "SELECT Id, LicenseDefinitionKey, TotalLicenses, UsedLicenses FROM UserLicense WHERE Status = 'Active'"
+        )
         # Only TEST1 and TEST3 have available licenses
-        assert task.return_values == ["TEST1", "TEST3"]
+        assert task.return_values == ["TEST1", "TEST2"]
 
     def test_assignable_license_preflight(self):
         task = create_task(GetAssignableLicenses, {})
