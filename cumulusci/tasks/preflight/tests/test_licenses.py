@@ -18,8 +18,18 @@ class TestLicensePreflights:
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
             "records": [
-                {"Id": "L1", "LicenseDefinitionKey": "TEST1", "TotalLicenses": 100, "UsedLicenses": 90},
-                {"Id": "L2", "LicenseDefinitionKey": "TEST2", "TotalLicenses": 100, "UsedLicenses": 100},
+                {
+                    "Id": "L1",
+                    "LicenseDefinitionKey": "TEST1",
+                    "TotalLicenses": 100,
+                    "UsedLicenses": 90,
+                },
+                {
+                    "Id": "L2",
+                    "LicenseDefinitionKey": "TEST2",
+                    "TotalLicenses": 100,
+                    "UsedLicenses": 100,
+                },
             ],
         }
 
@@ -36,8 +46,18 @@ class TestLicensePreflights:
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
             "records": [
-                {"Id": "L1", "LicenseDefinitionKey": "TEST1", "TotalLicenses": 100, "UsedLicenses": 90},
-                {"Id": "L2", "LicenseDefinitionKey": "TEST2", "TotalLicenses": 100, "UsedLicenses": 100},
+                {
+                    "Id": "L1",
+                    "LicenseDefinitionKey": "TEST1",
+                    "TotalLicenses": 100,
+                    "UsedLicenses": 90,
+                },
+                {
+                    "Id": "L2",
+                    "LicenseDefinitionKey": "TEST2",
+                    "TotalLicenses": 100,
+                    "UsedLicenses": 100,
+                },
             ],
         }
 
@@ -82,7 +102,7 @@ class TestLicensePreflights:
                 {
                     "PermissionSetLicense": {
                         "MasterLabel": "Einstein Analytics Plus Admin",
-                        "DeveloperName": "EinsteinAnalyticsPlusAdmin"
+                        "DeveloperName": "EinsteinAnalyticsPlusAdmin",
                     },
                 },
             ],
@@ -121,8 +141,18 @@ class TestLicensePreflights:
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
             "records": [
-                {"Id": "L1", "LicenseDefinitionKey": "TEST1", "TotalLicenses": 100, "UsedLicenses": 90},
-                {"Id": "L2", "LicenseDefinitionKey": "TEST2", "TotalLicenses": 100, "UsedLicenses": 100},
+                {
+                    "Id": "L1",
+                    "LicenseDefinitionKey": "TEST1",
+                    "TotalLicenses": 100,
+                    "UsedLicenses": 90,
+                },
+                {
+                    "Id": "L2",
+                    "LicenseDefinitionKey": "TEST2",
+                    "TotalLicenses": 100,
+                    "UsedLicenses": 100,
+                },
             ],
         }
         task._init_api.return_value.query_all.return_value = {

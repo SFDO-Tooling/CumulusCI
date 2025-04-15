@@ -12,7 +12,9 @@ class BaseUserLicenseAwareTask(BaseSalesforceApiTask):
         }
 
     def _log_list(self, title, items):
-        self.logger.info(f"{title} ({len(items)}):\n" + "\n".join(f"- {item}" for item in items))
+        self.logger.info(
+            f"{title} ({len(items)}):\n" + "\n".join(f"- {item}" for item in items)
+        )
 
 
 class GetAvailableLicenses(BaseUserLicenseAwareTask):
@@ -70,7 +72,9 @@ class GetAvailablePermissionSets(BaseSalesforceApiTask):
 class GetAssignablePermissionSets(BaseUserLicenseAwareTask):
     def _run_task(self):
         license_data = self.get_available_user_licenses(is_assignable=True)
-        permsets = self.sf.query_all("SELECT LicenseId, Name FROM PermissionSet")["records"]
+        permsets = self.sf.query_all("SELECT LicenseId, Name FROM PermissionSet")[
+            "records"
+        ]
         available_permsets = [
             ps["Name"]
             for ps in permsets
