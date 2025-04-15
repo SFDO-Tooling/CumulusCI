@@ -45,14 +45,6 @@ jobs:
               uses: actions/setup-python@v5
               with:
                   python-version: 3.11
-                  cache: pip
-                  cache-dependency-path: "pyproject.toml"
-            - name: Check pip cache existence
-              run: |
-                  if [ ! -d ~/.cache/pip ]; then
-                      echo "No pip cache directory found, skipping cache step."
-                  fi
-
             - name: Set up uv
               uses: SFDO-Tooling/setup-uv@main
               with:
