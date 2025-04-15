@@ -1,8 +1,10 @@
 from unittest.mock import Mock
 
 from cumulusci.tasks.preflight.licenses import (
+    GetAssignableLicenses,
     GetAvailableLicenses,
     GetAvailablePermissionSetLicenses,
+    GetAssignablePermissionSets,
     GetAvailablePermissionSets,
     GetPermissionLicenseSetAssignments,
 )
@@ -12,20 +14,32 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 class TestLicensePreflights:
     def test_license_preflight(self):
         task = create_task(GetAvailableLicenses, {})
+        task.get_available_user_licenses = Mock(return_value={
+            "L1": {"LicenseDefinitionKey": "TEST1"},
+            "L3": {"LicenseDefinitionKey": "TEST3"},
+        })
+
+        task()
+        # Only TEST1 and TEST3 have available licenses
+        assert task.return_values == ["TEST1", "TEST3"]
+
+    def test_assignable_license_preflight(self):
+        task = create_task(GetAssignableLicenses, {})
         task._init_api = Mock()
         task._init_api.return_value.query.return_value = {
             "totalSize": 2,
             "records": [
-                {"LicenseDefinitionKey": "TEST1"},
-                {"LicenseDefinitionKey": "TEST2"},
+                {"Id": "L1", "LicenseDefinitionKey": "TEST1", "TotalLicenses": 100, "UsedLicenses": 90},
+                {"Id": "L2", "LicenseDefinitionKey": "TEST2", "TotalLicenses": 100, "UsedLicenses": 100},
             ],
         }
-        task()
 
+        task()
         task._init_api.return_value.query.assert_called_once_with(
-            "SELECT LicenseDefinitionKey FROM UserLicense"
+            "SELECT Id, LicenseDefinitionKey, TotalLicenses, UsedLicenses FROM UserLicense WHERE Status = 'Active'"
         )
-        assert task.return_values == ["TEST1", "TEST2"]
+        # Only TEST1 and TEST3 have available licenses
+        assert task.return_values == ["TEST1"]
 
     def test_psl_preflight(self):
         task = create_task(GetAvailablePermissionSetLicenses, {})
@@ -61,7 +75,7 @@ class TestLicensePreflights:
                 {
                     "PermissionSetLicense": {
                         "MasterLabel": "Einstein Analytics Plus Admin",
-                        "DeveloperName": "EinsteinAnalyticsPlusAdmin",
+                        "DeveloperName": "EinsteinAnalyticsPlusAdmin"
                     },
                 },
             ],
@@ -93,3 +107,31 @@ class TestLicensePreflights:
             "SELECT Name FROM PermissionSet"
         )
         assert task.return_values == ["TEST1", "TEST2"]
+
+    def test_assignable_permsets_preflight(self):
+        task = create_task(GetAssignablePermissionSets, {})
+        task._init_api = Mock()
+        task._init_api.return_value.query.return_value = {
+            "totalSize": 2,
+            "records": [
+                {"Id": "L1", "LicenseDefinitionKey": "TEST1", "TotalLicenses": 100, "UsedLicenses": 90},
+                {"Id": "L2", "LicenseDefinitionKey": "TEST2", "TotalLicenses": 100, "UsedLicenses": 100},
+            ],
+        }
+        task._init_api.return_value.query_all.return_value = {
+            "totalSize": 3,
+            "records": [
+                {"LicenseId": "L1", "Name": "TEST1"},
+                {"LicenseId": "L2", "Name": "TEST2"},
+                {"LicenseId": None, "Name": "TEST3"},
+            ],
+        }
+        task()
+
+        task._init_api.return_value.query.assert_called_once_with(
+            "SELECT Id, LicenseDefinitionKey, TotalLicenses, UsedLicenses FROM UserLicense WHERE Status = 'Active'"
+        )
+        task._init_api.return_value.query_all.assert_called_once_with(
+            "SELECT LicenseId, Name FROM PermissionSet"
+        )
+        assert task.return_values == ["TEST1", "TEST3"]
