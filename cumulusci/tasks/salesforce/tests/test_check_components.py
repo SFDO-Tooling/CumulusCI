@@ -1,4 +1,4 @@
-from unittest.mock import ANY, MagicMock, mock_open, patch
+from unittest.mock import ANY, MagicMock, Mock, mock_open, patch
 
 import pytest
 
@@ -11,6 +11,210 @@ from .util import create_task
 
 
 class TestCheckComponents:
+    @patch("os.path.exists", return_value=True)
+    @patch("os.remove")
+    @patch("os.path.isdir", return_value=True)
+    @patch("os.listdir", return_value=["package.xml"])
+    @patch("os.path.join", side_effect=lambda *args: "/".join(args))
+    @patch("cumulusci.core.sfdx.convert_sfdx_source")
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._is_plan",
+        return_value=False,
+    )
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._freeze_steps",
+        return_value=[],
+    )
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._collect_components_from_paths",
+        return_value=[{"Type1": ["Comp1"]}, []],
+    )
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._get_api_object_responce",
+        return_value=[],
+    )
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="""
+        <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+            <types>
+                <members>Delivery</members>
+                <name>ApexClass</name>
+            </types>
+            <types>
+                <members>Delivery__c</members>
+                <name>CustomObject</name>
+            </types>
+            <version>58.0</version>
+        </Package>
+    """,
+    )
+    @patch("cumulusci.utils.xml.metadata_tree.parse")
+    @patch(
+        "cumulusci.utils.xml.metadata_tree.parse_package_xml_types",
+        return_value={"Type2": ["Comp2"]},
+    )
+    def test_get_repo_existing_components(
+        self,
+        mock_metadata_parse,
+        mock_open_file,
+        mock_convert_sfdx_source,
+        mock_path_join,
+        mock_listdir,
+        mock_isdir,
+        mock_remove,
+        mock_path_exists,
+        mock_is_plan,
+        mock_freeze_steps,
+        mock_get_api_object,
+        mock_parse,
+        mock_collect_components,
+    ):
+        org_config = Mock(scratch=True, config={})
+        org_config.username = "test_user"
+        org_config.org_id = "test_org_id"
+        self.org_config = Mock(return_value=("test", org_config))
+        project_config = create_project_config()
+        flow_config = {
+            "test": {
+                "steps": {
+                    1: {
+                        "flow": "test2",
+                    }
+                }
+            },
+            "test2": {
+                "steps": {
+                    1: {
+                        "task": "deploy",
+                        "options": {"path": "force-app/main/default"},
+                    }
+                }
+            },
+        }
+        plan_config = {
+            "title": "Test Install",
+            "slug": "install",
+            "tier": "primary",
+            "steps": {1: {"flow": "test"}},
+        }
+        project_config.config["plans"] = {
+            "Test Install": plan_config,
+        }
+        project_config.config["flows"] = flow_config
+
+        task = create_task(CheckComponents, {"name": "test2"})
+        task.deploy_paths = ["test"]
+
+        (components, response_messages) = task.get_repo_existing_components("test2")
+        assert "Type1" in components
+        assert "Type2" in components
+        assert "Comp1" in components["Type1"]
+        assert "Comp2" in components["Type2"]
+
+    @patch("os.path.exists", return_value=True)
+    @patch("os.remove")
+    @patch("os.path.isdir", return_value=True)
+    @patch("os.listdir", return_value=["package.xml"])
+    @patch("os.path.join", side_effect=lambda *args: "/".join(args))
+    @patch("cumulusci.core.sfdx.convert_sfdx_source")
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._is_plan",
+        return_value=False,
+    )
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._freeze_steps",
+        return_value=[],
+    )
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._collect_components_from_paths",
+        return_value=[{"Type1": ["Comp1"]}, []],
+    )
+    @patch(
+        "cumulusci.tasks.salesforce.check_components.CheckComponents._get_api_object_responce",
+        return_value=[],
+    )
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="""
+        <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+            <types>
+                <members>Delivery</members>
+                <name>ApexClass</name>
+            </types>
+            <types>
+                <members>Delivery__c</members>
+                <name>CustomObject</name>
+            </types>
+            <version>58.0</version>
+        </Package>
+    """,
+    )
+    @patch("cumulusci.utils.xml.metadata_tree.parse")
+    @patch(
+        "cumulusci.utils.xml.metadata_tree.parse_package_xml_types",
+        return_value={"Type2": ["Comp2"]},
+    )
+    def test_get_repo_existing_components_paths_paramter(
+        self,
+        mock_metadata_parse,
+        mock_open_file,
+        mock_convert_sfdx_source,
+        mock_path_join,
+        mock_listdir,
+        mock_isdir,
+        mock_remove,
+        mock_path_exists,
+        mock_is_plan,
+        mock_freeze_steps,
+        mock_get_api_object,
+        mock_parse,
+        mock_collect_components,
+    ):
+        org_config = Mock(scratch=True, config={})
+        org_config.username = "test_user"
+        org_config.org_id = "test_org_id"
+        self.org_config = Mock(return_value=("test", org_config))
+        project_config = create_project_config()
+        flow_config = {
+            "test": {
+                "steps": {
+                    1: {
+                        "flow": "test2",
+                    }
+                }
+            },
+            "test2": {
+                "steps": {
+                    1: {
+                        "task": "deploy",
+                        "options": {"path": "force-app/main/default"},
+                    }
+                }
+            },
+        }
+        plan_config = {
+            "title": "Test Install",
+            "slug": "install",
+            "tier": "primary",
+            "steps": {1: {"flow": "test"}},
+        }
+        project_config.config["plans"] = {
+            "Test Install": plan_config,
+        }
+        project_config.config["flows"] = flow_config
+
+        task = create_task(CheckComponents, {"name": "test2"})
+        task.deploy_paths = ["test"]
+
+        (components, response_messages) = task.get_repo_existing_components("", "src")
+        assert "Type1" in components
+        assert "Type2" in components
+        assert "Comp1" in components["Type1"]
+        assert "Comp2" in components["Type2"]
+
     @patch("os.path.exists", return_value=True)
     @patch("os.remove")
     @patch("os.path.isdir", return_value=True)

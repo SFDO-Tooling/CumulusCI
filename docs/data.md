@@ -26,7 +26,7 @@ For example, the 'dev' dataset is for 'dev' orgs, and it is used
 instead of the default dataset if it exists.
 
 You can create a dataset by extracting data from an existing org
-or by authoring a [Snowfakery recipe](Generate-Fake-Data).
+or by authoring a [Snowfakery recipe](#generate-fake-data).
 Extracting from an existing org is easy for use-cases where the
 data already exists or can be readily created in an org. Snowfakery
 is better for cases where either a) you would like to dynamically
@@ -37,14 +37,14 @@ A Snowfakery dataset can consist of a single file with a name like
 `datasets/<datasetname>/<datasetname>.recipe.yml` . For example,
 `datasets/default/default.recipe.yml` or
 `datasets/qa/qa.recipe.yml`. The rest of what you need to know
-about Snowfakery is in the section [Generate Fake Data](Generate-Fake-Data).
+about Snowfakery is in the section [Generate Fake Data](#generate-fake-data).
 
 ### Extracting and Loading Sample Datasets
 
 In the simplest case, you can extract all data from an org
 using the task `capture_sample_data` like this:
 
-```s
+```console
 $ cci task run capture_sample_data --org orgname
 ```
 
@@ -54,7 +54,7 @@ org named `orgname` into the dataset named `default`.
 You can then load it into any target org (e.g.
 `org2`) like this:
 
-```s
+```console
 $ cci task run load_sample_data --org org2
 ```
 
@@ -88,11 +88,11 @@ If you want different datasets for different scratch org types
 loaded by those types by making datasets specific to each one.
 This data will load instead of the default dataset.
 
-```s
+```console
 $ cci task run capture_sample_data --dataset dev --org org1
 ```
 
-```s
+```console
 $ cci task run capture_sample_data --dataset qa --org org2
 ```
 
@@ -816,11 +816,13 @@ Extract the data for a dataset from an org and persist it to disk.
 
 `mapping` and either `sql_path` or `database_url` must be supplied.
 
-Example: :
+Example: 
+```console
+cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
+```
 
-    cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
-
-### <a name="data-load-dataset"></a> `load_dataset`
+(data-load-dataset)=
+###  `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,
 persist new Salesforce Ids to storage.
@@ -840,9 +842,11 @@ persist new Salesforce Ids to storage.
 
 `mapping` and either `sql_path` or `database_url` must be supplied.
 
-Example: :
+Example: 
 
-    cci task run load_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
+```console
+cci task run load_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
+```
 
 ### `generate_dataset_mapping`
 
@@ -908,9 +912,11 @@ after their target records become available.
 -   `namespace_prefix`: The namespace prefix to treat as belonging to
     the project, if any
 
-Example: :
+Example: 
 
-    cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns
+```console
+cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns
+```
 
 ### `load_custom_settings`
 
@@ -993,6 +999,8 @@ option:
 `$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity`
 
 You can learn more about Snowfakery syntax in the next section.
+
+(Generate-Fake-Data)=
 
 ## Generate Fake Data
 
