@@ -543,7 +543,13 @@ def temporary_dir(chdir=True):
 
     When the context manager exits it returns to the previous cwd
     and deletes the temporary directory.
+
+    To prevent 'No Such File or Directory' errors in concurrent environments,
+    this version ensures that each process records its original cwd *before*
+    creating the temporary directory. This avoids relying on a potentially
+    modified cwd when exiting.
     """
+    original_cwd = os.getcwd()
     d = tempfile.mkdtemp()
     try:
         with contextlib.ExitStack() as stack:
@@ -551,11 +557,28 @@ def temporary_dir(chdir=True):
                 stack.enter_context(cd(d))
             yield d
     finally:
+        # Always try to change back to the *originally recorded* cwd
+        try:
+            os.chdir(original_cwd)
+        except FileNotFoundError as e:
+            import logging
+
+            logging.getLogger(__file__).error(
+                f"Error changing back to original directory '{original_cwd}'. It may have been deleted or moved concurrently. Error: {e}"
+            )
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__file__).error(
+                f"Unexpected error changing back to original directory '{original_cwd}'. Error: {e}"
+            )
+
         if os.path.exists(d):
             try:
                 shutil.rmtree(d)
             except Exception as e:  # pragma: no cover
-                import logging  # needs to be local or cumulusci.utils.logging gets picked up
+                # needs to be local or cumulusci.utils.logging gets picked up
+                import logging
 
                 logging.getLogger(__file__).warn(
                     f"Cannot remove temporary directory {d} because: {e}"
