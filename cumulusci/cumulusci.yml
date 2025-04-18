@@ -317,6 +317,10 @@ tasks:
         description: Retrieves a list of the currently available license definition keys
         class_path: cumulusci.tasks.preflight.licenses.GetAvailableLicenses
         group: Salesforce Preflight Checks
+    get_assignable_licenses:
+        description: Retrieves a list of the currently assignable license definition keys based on unused licenses
+        class_path: cumulusci.tasks.preflight.licenses.GetAssignableLicenses
+        group: Salesforce Preflight Checks
     get_available_permission_set_licenses:
         description: Retrieves a list of the currently available Permission Set License definition keys
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
@@ -332,6 +336,10 @@ tasks:
     get_available_permission_sets:
         description: Retrieves a list of the currently available Permission Sets
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSets
+        group: Salesforce Preflight Checks
+    get_assignable_permission_sets:
+        description: Retrieves a list of the currently assignable Permission Sets based on unused associated user licenses
+        class_path: cumulusci.tasks.preflight.licenses.GetAssignablePermissionSets
         group: Salesforce Preflight Checks
     get_existing_record_types:
         description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
@@ -1488,7 +1496,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: "62.0"
+        api_version: "63.0"
     git:
         default_branch: master
         prefix_feature: feature/
