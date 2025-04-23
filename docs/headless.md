@@ -86,7 +86,7 @@ then the attributes: `callback_url`, `client_id`, and `client_secret`
 would need to be provided in the following format:
 
 ```json
-"{"callback_url": "<callback_url>", "client_id": "<client_id>", "client_secret": "<client_secret>"}"
+{"callback_url": "<callback_url>", "client_id": "<client_id>", "client_secret": "<client_secret>"}
 ```
 
 > The values `<callback_url>`, `<client_id>`, and `<client_secret>`
