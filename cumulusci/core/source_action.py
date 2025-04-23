@@ -1,19 +1,25 @@
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.source_control import SourceControlProvider
 from cumulusci.core.source_interface.reference import ReferenceInterface
 from cumulusci.core.source_interface.repository import RepositoryInterface
 from cumulusci.core.source_interface.tag import TagInterface
+from cumulusci.core.utils import import_global
 
 
 # This action is basically to identify the SourceControlProvider. Not an source action in itself.
 def get_provider(config) -> SourceControlProvider:
-    # Identify the provider and return.
-    # For testing
-    from cumulusci.core.source_control import GitHubProvider
+    """Returns the SourceControlProvider for the given config"""
+    service_type = config.lookup("project__service_type")
 
-    klass = GitHubProvider
+    if service_type is None:
+        service_type = "github"
 
-    provider = klass(config)
-    return provider
+    provider_path = config.services[service_type].get("class_path", None)
+    if provider_path is not None:
+        provider_klass = import_global(provider_path)
+        return provider_klass
+
+    raise CumulusCIException(f"Provider class for {service_type} not found in config")
 
 
 def get_repository(self) -> RepositoryInterface:
