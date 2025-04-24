@@ -1,5 +1,6 @@
-from cumulusci.core.source_action import get_tag_by_name
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
+from cumulusci.vcs.bootstrap import get_tag_by_name
+from cumulusci.vcs.models import AbstractGitTag, AbstractRepo
 
 
 class CloneTag(BaseSourceControlTask):
@@ -16,10 +17,10 @@ class CloneTag(BaseSourceControlTask):
 
     def _run_task(self):
         src_tag_name = self.options["src_tag"]
-        repo = self.get_repo()
-        src_tag = get_tag_by_name(repo, src_tag_name)
+        repo: AbstractRepo = self.get_repo()
+        src_tag: AbstractGitTag = get_tag_by_name(repo, src_tag_name)
 
-        tag = repo.create_tag(
+        tag: AbstractGitTag = repo.create_tag(
             tag_name=self.options["tag"],
             message=f"Cloned from {src_tag_name}",
             sha=src_tag.sha,

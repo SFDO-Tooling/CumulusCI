@@ -1413,7 +1413,7 @@ services:
                 required: True
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
                 sensitive: True
-        class_path: cumulusci.core.source_control.github.GitHubProvider
+        class_path: cumulusci.vcs.github.service.GitHubService
     github_enterprise:
         description: Configure connection for GitHub Enterprise Server
         attributes:
@@ -1430,7 +1430,7 @@ services:
                 description: Personal Access Token
                 required: True
                 sensitive: True
-        class_path: cumulusci.core.source_control.github.GitHubEnterpriceProvider
+        class_path: cumulusci.vcs.github.service.GitHubEnterpriseService
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
         class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig

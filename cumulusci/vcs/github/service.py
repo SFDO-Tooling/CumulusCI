@@ -35,6 +35,7 @@ from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiErro
     GithubException,
     ServiceNotConfigured,
 )
+from cumulusci.core.keychain import BaseProjectKeychain
 
 # from cumulusci.oauth.client import (
 #     OAuth2ClientConfig,
@@ -43,9 +44,8 @@ from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiErro
 #     get_device_oauth_token,
 # )
 from cumulusci.utils.git import parse_repo_url
-
-from ..source_interface.github.repository import RepositoryAdapter
-from .provider import SourceControlProvider
+from cumulusci.vcs.base import VCSService
+from cumulusci.vcs.github import GitHubRepository
 
 # from rich.console import Console
 
@@ -95,6 +95,15 @@ INSTALLATIONS = {}
 
 
 def _determine_github_client(host: str, client_params: dict) -> GitHub:
+    """Determine the appropriate GitHub client based on the host.
+
+    Args:
+        host (str): The host for the GitHub client.
+        client_params (dict): Parameters for the GitHub client.
+
+    Returns:
+        GitHub: The GitHub client instance.
+    """
     # also covers "api.github.com"
     is_github: bool = host in (None, "None") or "github.com" in host
     client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
@@ -314,18 +323,41 @@ def check_github_sso_auth(exc: ResponseError) -> str:
     return user_warning
 
 
-class GitHubProvider(SourceControlProvider):
+class GitHubService(VCSService):
+    service_type = "github"
+    _repo: GitHubRepository
+    github: GitHub
 
-    _repo: RepositoryAdapter
-
-    def __init__(self, config, name, keychain):
+    def __init__(self, config: dict, name: str, keychain: BaseProjectKeychain):
+        super().__init__(config, name, keychain)
         self.project_config = keychain.project_config
         self.github = get_github_api_for_repo(keychain, self.project_config.repo_url)
-        self.name = name
-        self._repo = None
+        self._repo: GitHubRepository = None
 
-    def validate_service(options: dict, keychain) -> dict:
-        # TODO: Implement validation logic
+    @property
+    def repo(self) -> GitHubRepository:
+        """Returns the GitHub repository associated with the service."""
+        return self._repo
+
+    @repo.setter
+    def repo(self, repo: GitHubRepository):
+        """Set the GitHub repository associated with the service.
+
+        Args:
+            repo (GitHubRepository): The GitHub repository instance to set.
+        """
+        self._repo = repo
+
+    def validate_service(cls, options: dict, keychain: BaseProjectKeychain) -> dict:
+        """Validates service for Github and GithubEnterprise.
+
+        Args:
+            options (dict): The options for the service validation.
+            keychain (BaseProjectKeychain): The keychain for accessing project credentials.
+
+        Returns:
+            dict: The validated options for the service.
+        """
         username = options["username"]
         token = options["token"]
         # Github service doesn't have "server_domain",
@@ -375,19 +407,16 @@ class GitHubProvider(SourceControlProvider):
 
         return options
 
-    @property
-    def repo(self):
-        return self._repo
-
-    @repo.setter
-    def repo(self, repo):
-        self._repo = repo
-
-    def get_repository(self) -> RepositoryAdapter:
+    def get_repository(self) -> GitHubRepository:
+        """Returns the GitHub repository."""
         if self.repo is None:
-            self.repo = RepositoryAdapter(self.github, self.project_config)
+            self.repo = GitHubRepository(self.github, self.project_config)
         return self.repo
 
 
-class GitHubEnterpriceProvider(GitHubProvider):
+class GitHubEnterpriseService(GitHubService):
     service_type = "github_enterprise"
+    _repo: GitHubRepository
+
+    def __init__(self, config: dict, name: str, keychain: BaseProjectKeychain):
+        super().__init__(config, name, keychain)
