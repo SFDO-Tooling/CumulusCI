@@ -186,7 +186,7 @@ Chrome Set Headless
     ...  This keyword is not intended to be used by test scripts
 
     [Arguments]  ${options}
-    Call Method  ${options}  set_headless  ${true}
+    Call Method  ${options}  add_argument  --headless
     Call Method  ${options}  add_argument  --disable-dev-shm-usage
     Call Method  ${options}  add_argument  --disable-background-timer-throttling
     [return]  ${options}

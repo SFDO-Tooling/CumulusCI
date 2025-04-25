@@ -13,6 +13,8 @@ import re
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from SeleniumLibrary.errors import ElementNotFound
+from selenium.webdriver.common.by import By
+
 
 from cumulusci.robotframework.form_handlers import get_form_handler
 from cumulusci.robotframework.pageobjects import BasePage, pageobject
@@ -261,7 +263,8 @@ class ModalMixin:
 
             # also, we use find_elements (plural) here because it will
             # return an empty list rather than throwing an error
-            modals = root.find_elements_by_xpath("//div[contains(@class, 'uiModal')]")
+            # modals = root.find_elements_by_xpath("//div[contains(@class, 'uiModal')]")
+            modals = root.find_element(By.XPATH, "//div[contains(@class, 'uiModal')]")
             # There should only ever be zero or one, but the Salesforce
             # UI never ceases to surprise me.
             modals = [m for m in modals if m.is_displayed()]

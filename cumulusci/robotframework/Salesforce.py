@@ -12,6 +12,7 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     WebDriverException,
 )
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
@@ -892,7 +893,8 @@ class Salesforce(FakerMixin, BaseLibrary):
             fieldset_prefix
             + f'//label[descendant-or-self::*[text()[normalize-space() = "{label}"]]]'
         )
-        labels = browser.find_elements_by_xpath(label_xpath)
+        labels = browser.find_elements(By.XPATH, label_xpath)
+
         if not labels:
             return []
 
