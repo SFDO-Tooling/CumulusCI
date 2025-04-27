@@ -134,18 +134,18 @@ default flows:
 Some teams deliver large releases several times a year. For this type of
 release cadence, Salesforce.org uses a special type of branch referred
 to as a release branch. Release branches are simply a feature branch
-named with a number. These long-lived branches are created off of the
-`main` branch, serve as the target branch for all features associated
-with that release and are eventually merged back to the `main` branch
-when a release occurs. To be able to clearly track what work is
-associated with a specific release, release branches must fulfill these
-criteria:
+named with a number or a version number. These long-lived branches are 
+created off of the `main` branch, serve as the target branch for all 
+features associated with that release and are eventually merged back to 
+the `main` branch when a release occurs. To be able to clearly track what 
+work is associated with a specific release, release branches must fulfill 
+these criteria:
 
 -   They are the parent branches of _all_ feature work associated with a
     release. That is, all feature branches associated with a release are
     child branches of the target release branch.
 -   Release branches use a strict naming format: `feature/release_num`
-    where `release_num` is a valid integer.
+    where `release_num` is a valid integer or a version number made up of valid integers separated by `.`.
 
 Using the `feature/` branch prefix for the release branch names allow
 those branches to stay in sync with the `main` branch. Like any other
@@ -332,6 +332,39 @@ those tests pass, the commit on `feature/003` is merged to
 convention described above. Commits **never** propagate in the opposite
 direction. (A commit to `feature/002` would never be merged to
 `feature/001` if it was an existing branch in the GitHub repository).
+
+Consider the following branches using version numbers in a GitHub repository:
+
+-   `main` - Source of Truth for Production
+-   `feature/9.25` - The next major production release
+-   `feature/9.25__feature1` - A single feature associated with release
+    `002`
+-   `feature/9.25__large_feature` - A large feature associated with
+    release `9.25`
+-   `feature/9.25__large_feature__child1` - First chunk of work for the
+    large feature
+-   `feature/9.25__large_feature__child2` - Second chunk of work for the
+    large feature
+-   `feature/10.0` - The release that comes after `9.25`
+-   `feature/10.0__feature1` - A single feature associated with release
+    `10.3`
+
+This scenario illustrates the different sort ordering applied when using
+the version number format for release branch names. If you used only 
+integers for the version numbers, `925` would sort after `100`. Using the 
+version number format of a series of integers separated by `.`, the sorting 
+is applied as you would expect for a version number where `9.25` is less 
+than `10.0`.
+
+In this scenario, CumulusCI ensures that when `feature/9.25` receives a
+commit, that that commit is also merged into `feature/10.0`. This kicks
+off tests in our CI system and ensures that functionality going into
+`feature/9.25` doesn't break work being done for future releases. Once
+those tests pass, the commit on `feature/10.0` is merged to
+`feature/9.25__feature1` because they adhere to the parent/child naming
+convention described above. Commits **never** propagate in the opposite
+direction. (A commit to `feature/9.25` would never be merged to
+`feature/9.24` if it was an existing branch in the GitHub repository).
 
 **Propagating commits to future release branches is turned off by
 default.** If you would like to enable this feature for your GitHub
