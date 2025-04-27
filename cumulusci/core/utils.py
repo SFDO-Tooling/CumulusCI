@@ -142,6 +142,11 @@ def process_list_of_pairs_dict_arg(arg):
     except TypeError as e:
         raise TaskOptionsError(e) from e
 
+def process_none_arg(arg):
+    if arg == "None":
+        return None
+    else:
+        return arg
 
 def decode_to_unicode(content):
     """decode ISO-8859-1 to unicode, when using sf api"""
