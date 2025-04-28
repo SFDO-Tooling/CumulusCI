@@ -94,11 +94,11 @@ adapter = HTTPAdapter(max_retries=retries)
 INSTALLATIONS = {}
 
 
-def _determine_github_client(host: str, client_params: dict) -> GitHub:
+def _determine_github_client(host: Union[str, None], client_params: dict) -> GitHub:
     """Determine the appropriate GitHub client based on the host.
 
     Args:
-        host (str): The host for the GitHub client.
+        host (Union[str, None]): The host for the GitHub client.
         client_params (dict): Parameters for the GitHub client.
 
     Returns:
@@ -153,7 +153,7 @@ def get_github_api_for_repo(keychain, repo_url, session=None) -> GitHub:
     return gh
 
 
-def get_auth_from_service(host, keychain) -> tuple:
+def get_auth_from_service(host, keychain) -> str:
     """
     Given a host extracted from a repo_url, returns the username and token for
     the first service with a matching server_domain
@@ -348,12 +348,13 @@ class GitHubService(VCSService):
         """
         self._repo = repo
 
-    def validate_service(cls, options: dict, keychain: BaseProjectKeychain) -> dict:
+    @classmethod
+    def validate_service(cls, options: dict, keychain) -> dict:
         """Validates service for Github and GithubEnterprise.
 
         Args:
             options (dict): The options for the service validation.
-            keychain (BaseProjectKeychain): The keychain for accessing project credentials.
+            keychain: The keychain for accessing project credentials.
 
         Returns:
             dict: The validated options for the service.

@@ -137,6 +137,14 @@ class MockUtilBase(GithubApiTestMixin):
             status=http.client.OK,
         )
 
+    def mock_refs(self, commit_sha, refname, type="commit"):
+        responses.add(
+            method=responses.GET,
+            url="{}/git/ref/{}".format(self.repo_url, commit_sha),
+            json=[self._get_expected_ref(commit_sha, refname, type)],
+            status=http.client.OK,
+        )
+
 
 class MockUtil(MockUtilBase):
     def __init__(self, owner, repo):

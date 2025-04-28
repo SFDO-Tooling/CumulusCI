@@ -23,29 +23,17 @@ class VCSService(ABC):
         self.keychain = keychain
 
     @property
-    def service_type(self):
-        """Returns the type of the VCS service.
-        This property should be defined by subclasses to provide
+    def service_type(self) -> str:
+        """Returns the service type of the VCS service.
+        This property should be overridden by subclasses to provide
         the specific service type. For example, it could return "github",
         "bitbucket", etc. The service type is used to identify the
         specific VCS service being used."""
-
-        if self._service_type is None:
+        if isinstance(self.__class__.service_type, property):
             raise NotImplementedError(
-                "Subclasses should provide their own implementation of service_type"
+                "Subclasses should define the service_type property"
             )
-
-        return self._service_type
-
-    @service_type.setter
-    @abstractmethod
-    def service_type(self, value: str):
-        """Sets the service type for the VCS service.
-
-        Args:
-            value (str): The type of the VCS service.
-        """
-        self._service_type = value
+        return self.__class__.service_type
 
     @classmethod
     @abstractmethod

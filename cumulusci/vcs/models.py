@@ -59,12 +59,11 @@ class AbstractRef(ABC):
 class AbstractGitTag(ABC):
 
     tag: object
-    _sha: str
+    _sha: str = None
 
     def __init__(self, tag, **kwargs) -> None:
         """Initializes the AbstractGitTag."""
         self.tag = tag
-        self.sha = None
 
     @property
     def sha(self) -> str:

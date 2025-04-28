@@ -13,16 +13,19 @@ from cumulusci.vcs.models import AbstractGitTag, AbstractRef, AbstractRepo
 
 class GitHubRef(AbstractRef):
     ref: Reference
+    sha: str
+    type: str
 
     def __init__(self, ref: Reference, **kwargs) -> None:
         super().__init__(ref, **kwargs)
         self.sha = ref.object.sha
+        self.type = ref.object.type
 
 
 class GitHubTag(AbstractGitTag):
     tag: Tag
 
-    def __init__(self, tag: Reference, **kwargs) -> None:
+    def __init__(self, tag: Tag, **kwargs) -> None:
         super().__init__(tag, **kwargs)
         self.sha = tag.sha
 
@@ -50,20 +53,20 @@ class GitHubRepository(AbstractRepo):
                 f"Could not find reference for 'tags/{tag_name}' on GitHub"
             )
 
-    def get_tag_by_ref(self, ref: str, tag_name: str = None) -> GitHubTag:
+    def get_tag_by_ref(self, ref: GitHubRef, tag_name: str = None) -> GitHubTag:
         """Fetches a tag by reference, name from the given repository"""
         try:
             tag = self.repo.tag(ref.sha)
             return GitHubTag(tag=tag)
         except NotFoundError:
-            msg = f"Could not find tag '{tag_name}' with SHA {ref.object.sha} on GitHub"
-            if ref.object.type != "tag":
+            msg = f"Could not find tag '{tag_name}' with SHA {ref.sha} on GitHub"
+            if ref.type != "tag":
                 msg += f"\n{tag_name} is not an annotated tag."
             raise GithubApiNotFoundError(msg)
 
     @catch_common_github_auth_errors
     def create_tag(
-        self, tag_name: str, message: str, sha: str, obj_type: str, tagger={}
+        self, tag_name: str, message: str, sha: str, obj_type: str, tagger: dict = {}
     ) -> GitHubTag:
         github_config = self.project_config.keychain.get_service("github")
 

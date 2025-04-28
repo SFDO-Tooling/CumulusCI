@@ -1,3 +1,4 @@
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import import_global
 from cumulusci.vcs.base import VCSService
@@ -21,17 +22,39 @@ def get_service(config) -> VCSService:
     Returns:
         VCSService: The VCS service provider class.
     """
-    service_type = config.lookup("project__service_type")
+    service_type: str = config.lookup("project__service_type")
 
     if service_type is None:
         service_type = "github"
 
-    provider_path = config.services[service_type].get("class_path", None)
-    if provider_path is not None:
-        provider_klass = import_global(provider_path)
-        return provider_klass
+    provider_klass = None
+    provider_path: str = config.services[service_type].get("class_path", None)
 
-    raise CumulusCIException(f"Provider class for {service_type} not found in config")
+    if provider_path is not None:
+        try:
+            provider_klass = import_global(provider_path)
+        except ImportError as e:
+            raise CumulusCIException(
+                f"Failed to import provider class from path '{provider_path}': {e}"
+            )
+    else:
+        raise CumulusCIException(
+            f"Provider class for {service_type} not found in config"
+        )
+
+    if issubclass(provider_klass, VCSService):
+        service_config: ServiceConfig = config.keychain.get_service(
+            provider_klass.service_type
+        )
+        vcs_service: VCSService = provider_klass(
+            {}, service_config.name, config.keychain
+        )
+
+        return vcs_service
+
+    raise CumulusCIException(
+        f"Provider class for {provider_path} is not a subclass of VCSService"
+    )
 
 
 def get_ref_for_tag(repo: AbstractRepo, tag_name: str) -> AbstractRef:
