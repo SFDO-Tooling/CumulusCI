@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from github3 import GitHub
 from github3.exceptions import NotFoundError
@@ -27,6 +27,7 @@ class GitHubTag(AbstractGitTag):
 
     def __init__(self, tag: Tag, **kwargs) -> None:
         super().__init__(tag, **kwargs)
+        self.tag = tag
         self.sha = tag.sha
 
 
@@ -72,7 +73,9 @@ class GitHubRepository(AbstractRepo):
 
         tagger["name"] = tagger.get("name", github_config.username)
         tagger["email"] = tagger.get("email", github_config.email)
-        tagger["date"] = tagger.get("date", f"{datetime.utcnow().isoformat()}Z")
+        tagger["date"] = tagger.get(
+            "date", f"{datetime.now(UTC).replace(tzinfo=None).isoformat()}Z"
+        )
 
         tag = self.repo.create_tag(
             tag=tag_name, message=message, sha=sha, obj_type=obj_type, tagger=tagger

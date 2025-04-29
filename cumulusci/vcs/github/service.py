@@ -410,8 +410,8 @@ class GitHubService(VCSService):
 
     def get_repository(self) -> GitHubRepository:
         """Returns the GitHub repository."""
-        if self.repo is None:
-            self.repo = GitHubRepository(self.github, self.project_config)
+        if self._repo is None:
+            self._repo = GitHubRepository(self.github, self.project_config)
         return self.repo
 
 
