@@ -44,6 +44,7 @@ dependencies = [
     "rich>=13.9.4",
     "robotframework",
     "SQLAlchemy<2",
+    "robotframework-browser",
     "robotframework-pabot",
     "robotframework-requests",
     "robotframework-seleniumlibrary",
