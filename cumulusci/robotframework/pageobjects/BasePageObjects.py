@@ -75,7 +75,7 @@ class ListingPage(BasePage):
             elements = self.selenium.get_webelements(xpath)
             if elements:
                 for element in elements:
-                    cb = element.find_element_by_tag_name("input")
+                    cb = element.find_element(By.TAG_NAME, "input")
                     if not cb.is_selected():
                         element.click()
             else:
@@ -105,7 +105,7 @@ class ListingPage(BasePage):
 
             if elements:
                 for element in elements:
-                    cb = element.find_element_by_tag_name("input")
+                    cb = element.find_element(By.TAG_NAME, "input")
                     if cb.is_selected():
                         self.builtin.log(f"clicking on element for {item}")
                         element.click()
@@ -255,7 +255,7 @@ class ModalMixin:
         """
         # search from the root of the document, unless a modal
         # is open
-        root = self.selenium.driver.find_element_by_tag_name("body")
+        root = self.selenium.driver.find_element(By.TAG_NAME, "body")
         with self._no_implicit_wait():
             # We don't want to wait, we just want to know if the
             # modal is alredy there or not. The caller should have
