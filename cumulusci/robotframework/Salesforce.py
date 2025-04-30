@@ -16,6 +16,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
+from selenium.webdriver.common.by import By
 from urllib3.exceptions import ProtocolError
 
 from cumulusci.robotframework import locator_manager
@@ -608,7 +609,7 @@ class Salesforce(FakerMixin, BaseLibrary):
         self.selenium.wait_until_page_contains_element(locator, timeout)
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
-        link = elem.find_element_by_xpath("../../..")
+        link = elem.find_element(By.XPATH, "../../..")
         self.selenium.set_focus_to_element(link)
         link.click()
         self.wait_until_modal_is_closed()
@@ -908,9 +909,7 @@ class Salesforce(FakerMixin, BaseLibrary):
                 # probably never be. Famous last words, right?
                 orig_wait = self.selenium.set_selenium_implicit_wait(0)
                 component = None
-                component = label_element.find_element_by_xpath(
-                    "./ancestor::*[starts-with(local-name(), 'lightning-')][1]"
-                )
+                component = label_element.find_element(By.XPATH, "./ancestor::*[starts-with(local-name(), 'lightning-')][1]")
             except NoSuchElementException:
                 component_id = label_element.get_attribute("for")
                 if component_id:

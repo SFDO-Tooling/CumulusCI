@@ -263,7 +263,6 @@ class ModalMixin:
 
             # also, we use find_elements (plural) here because it will
             # return an empty list rather than throwing an error
-            # modals = root.find_elements_by_xpath("//div[contains(@class, 'uiModal')]")
             modals = root.find_element(By.XPATH, "//div[contains(@class, 'uiModal')]")
             # There should only ever be zero or one, but the Salesforce
             # UI never ceases to surprise me.
@@ -275,7 +274,7 @@ class ModalMixin:
             # where "for" points to the associated input field. w00t! If we can,
             # use that. If not, fall back to an older strategy
             try:
-                label_element = root.find_element_by_xpath(f'//label[text()="{label}"]')
+                label_element = root.find_element(By.XPATH, f'//label[text()="{label}"]')
                 input_id = label_element.get_attribute("for")
                 element = root.find_element_by_id(input_id)
                 return element
@@ -288,7 +287,7 @@ class ModalMixin:
             # has a child element with the class 'form-element__label' and
             # text that matches the given label.
             locator = f".//*[contains(@class, 'slds-form-element') and .//*[contains(@class, 'form-element__label')]/descendant-or-self::text()='{label}']"
-            element = root.find_element_by_xpath(locator)
+            element = root.find_element(By.XPATH, locator)
             return element
 
         except NoSuchElementException:
