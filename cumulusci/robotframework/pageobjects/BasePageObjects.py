@@ -276,7 +276,7 @@ class ModalMixin:
             try:
                 label_element = root.find_element(By.XPATH, f'//label[text()="{label}"]')
                 input_id = label_element.get_attribute("for")
-                element = root.find_element_by_id(input_id)
+                element = root.find_element(By.ID, input_id)
                 return element
 
             except NoSuchElementException:

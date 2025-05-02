@@ -913,7 +913,7 @@ class Salesforce(FakerMixin, BaseLibrary):
             except NoSuchElementException:
                 component_id = label_element.get_attribute("for")
                 if component_id:
-                    component = browser.find_element_by_id(component_id)
+                    component = browser.find_element(By.ID, component_id)
                 # else find an input or textarea in a sibling or descendant?
             finally:
                 self.selenium.set_selenium_implicit_wait(orig_wait)
