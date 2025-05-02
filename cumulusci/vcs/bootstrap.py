@@ -1,3 +1,5 @@
+import logging
+
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import import_global
@@ -5,7 +7,7 @@ from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import AbstractGitTag, AbstractRef, AbstractRepo
 
 
-def get_service(config) -> VCSService:
+def get_service(config, logger: logging.Logger = None) -> VCSService:
     """Gets the VCS service based on the configuration.
     This function retrieves the VCS service type based on the CumulusCI
     configuration provided.
@@ -47,7 +49,7 @@ def get_service(config) -> VCSService:
             provider_klass.service_type
         )
         vcs_service: VCSService = provider_klass(
-            {}, service_config.name, config.keychain
+            {}, service_config.name, config.keychain, logger=logger
         )
 
         return vcs_service

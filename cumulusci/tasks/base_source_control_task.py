@@ -8,7 +8,9 @@ class BaseSourceControlTask(BaseTask):
     def _init_task(self):
         """Initialize the task by setting up the VCS service provider."""
         super()._init_task()
-        self.vcs_service: VCSService = get_service(self.project_config)
+        self.vcs_service: VCSService = get_service(
+            self.project_config, logger=self.logger
+        )
 
     def get_repo(self) -> AbstractRepo:
         """Returns the repository object for the VCS service."""

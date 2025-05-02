@@ -328,8 +328,17 @@ class GitHubService(VCSService):
     _repo: GitHubRepository
     github: GitHub
 
-    def __init__(self, config: dict, name: str, keychain: BaseProjectKeychain):
-        super().__init__(config, name, keychain)
+    def __init__(
+        self, config: dict, name: str, keychain: BaseProjectKeychain, **kwargs
+    ):
+        """Initializes the GitHub service with the given configuration, service name, and keychain.
+        Args:
+            config (dict): The configuration dictionary for the GitHub service.
+            name (str): The name or alias of the GitHub service.
+            keychain: The keychain object for managing credentials.
+            **kwargs: Additional keyword arguments.
+        """
+        super().__init__(config, name, keychain, **kwargs)
         self.project_config = keychain.project_config
         self.github = get_github_api_for_repo(keychain, self.project_config.repo_url)
         self._repo: GitHubRepository = None
@@ -411,7 +420,9 @@ class GitHubService(VCSService):
     def get_repository(self) -> GitHubRepository:
         """Returns the GitHub repository."""
         if self._repo is None:
-            self._repo = GitHubRepository(self.github, self.project_config)
+            self._repo = GitHubRepository(
+                self.github, self.project_config, logger=self.logger
+            )
         return self.repo
 
 

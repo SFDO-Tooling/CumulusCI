@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -10,17 +11,23 @@ class VCSService(ABC):
     Subclasses should provide their own implementations of the methods and properties defined here.
     """
 
-    def __init__(self, config: dict, name: str, keychain: BaseProjectKeychain):
+    logger: logging.Logger
+
+    def __init__(
+        self, config: dict, name: str, keychain: BaseProjectKeychain, **kwargs
+    ) -> None:
         """Initializes the VCS service with the given configuration, service name, and keychain.
 
         Args:
             config (dict): The configuration dictionary for the VCS service, The service type options.
             name (str): The name or alias of the VCS service.
             keychain: The keychain object for managing credentials.
+            **kwargs: Additional keyword arguments.
         """
         self.config = config
         self.name = name
         self.keychain = keychain
+        self.logger = kwargs.get("logger", logging.getLogger(__name__))
 
     @property
     def service_type(self) -> str:

@@ -7,29 +7,14 @@ import pytest
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
 from cumulusci.vcs.base import VCSService
-from cumulusci.vcs.models import AbstractRepo
-
-
-class DummyRepo(AbstractRepo):
-    def create_tag(self):
-        pass
-
-    def get_ref_for_tag(self):
-        pass
-
-    def get_tag_by_ref(self):
-        pass
-
-
-class ConcreteVCSService(VCSService):
-    service_type = "dummy"
-
-    @classmethod
-    def validate_service(cls, options, keychain):
-        return {"validated": True}
-
-    def get_repository(self):
-        return DummyRepo()
+from cumulusci.vcs.tests.dummy_service import (
+    ConcreteVCSService,
+    DummyBranch,
+    DummyComparison,
+    DummyPullRequest,
+    DummyRepo,
+    DummyTag,
+)
 
 
 class TestVCSBase:
@@ -49,9 +34,10 @@ class TestVCSBase:
         assert svc.keychain == keychain
 
     def test_service_type_property(self, keychain):
-        assert ConcreteVCSService.service_type == "dummy"
+        assert ConcreteVCSService.service_type == "github"
         ConcreteVCSService.service_type = "other"
         assert ConcreteVCSService.service_type == "other"
+        ConcreteVCSService.service_type = "github"
 
     def test_validate_service(self, keychain):
         result = ConcreteVCSService.validate_service({}, keychain)
@@ -86,3 +72,34 @@ class TestVCSBase:
         svc = NoServiceTypeVCS({}, "dummy", keychain)
         with pytest.raises(NotImplementedError):
             _ = svc.service_type
+
+    def test_abstract_git_tag(self):
+        dt = DummyTag(None)
+        assert dt.tag is None
+
+        dt.sha = "1234567890abcdef"
+        assert dt.sha == "1234567890abcdef"
+
+    def test_abstract_branch(self):
+        db = DummyBranch(DummyRepo(), "test-branch", branch="test-branch")
+        assert db.name == "test-branch"
+        assert isinstance(db.repo, DummyRepo)
+        assert db.branch == "test-branch"
+
+    def test_abstract_comparison(self):
+        dc = DummyComparison(DummyRepo(), "base", "head")
+        assert dc.base == "base"
+        assert dc.head == "head"
+        assert isinstance(dc.repo, DummyRepo)
+        assert dc.comparison is None
+
+        with pytest.raises(NotImplementedError):
+            dc.files
+
+    def test_abstract_pull_request(self):
+        dpr = DummyPullRequest(repo=DummyRepo(), pull_request="test-pr")
+        assert isinstance(dpr.repo, DummyRepo)
+        assert dpr.pull_request == "test-pr"
+
+        with pytest.raises(NotImplementedError):
+            dpr.base_ref
