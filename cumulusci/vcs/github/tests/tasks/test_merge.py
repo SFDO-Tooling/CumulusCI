@@ -8,8 +8,8 @@ from testfixtures import LogCapture
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
-from cumulusci.tasks.github import MergeBranch
 from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
+from cumulusci.tasks.vcs import MergeBranch
 from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 

@@ -66,10 +66,8 @@ class AbstractRepo(ABC):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod
-    def compare_commits(
-        self, base: str, head: str, commit: str
-    ) -> "AbstractComparison":
-        """Compares the given branch with the given commit.
+    def compare_commits(self, base: str, head: str) -> "AbstractComparison":
+        """Compares the given head with the given base.
         This method should be overridden by subclasses to provide
         the specific implementation for comparing commits.
         The method should return an instance of AbstractComparison."""
@@ -102,7 +100,7 @@ class AbstractRef(ABC):
 class AbstractGitTag(ABC):
 
     tag: object
-    _sha: str = None
+    _sha: str = ""
 
     def __init__(self, tag, **kwargs) -> None:
         """Initializes the AbstractGitTag."""

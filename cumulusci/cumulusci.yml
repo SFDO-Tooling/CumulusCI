@@ -349,16 +349,30 @@ tasks:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
         group: GitHub
+    vcs_clone_tag:
+        description: Clones a VCS tag under a new name.
+        class_path: cumulusci.tasks.vcs.CloneTag
+        group: VCS
     github_automerge_main:
         description: Merges the latest commit on the main branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         group: GitHub
+    vcs_automerge_main:
+        description: Merges the latest commit on the main branch into all open feature branches
+        class_path: cumulusci.tasks.vcs.MergeBranch
+        group: VCS
     github_automerge_feature:
         description: Merges the latest commit on a source branch to all child branches.
         class_path: cumulusci.tasks.github.MergeBranch
         options:
             source_branch: $project_config.repo_branch
         group: GitHub
+    vcs_automerge_feature:
+        description: Merges the latest commit on a source branch to all child branches.
+        class_path: cumulusci.tasks.vcs.MergeBranch
+        options:
+            source_branch: $project_config.repo_branch
+        group: VCS
     github_copy_subtree:
         description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
         class_path: cumulusci.tasks.github.publish.PublishSubtree
@@ -777,7 +791,7 @@ flows:
             4:
                 task: run_tests
             5:
-                task: github_automerge_feature
+                task: vcs_automerge_feature
                 when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
     ci_feature_beta_deps:
         group: Continuous Integration
@@ -800,7 +814,7 @@ flows:
             4:
                 task: run_tests
             5:
-                task: github_automerge_feature
+                task: vcs_automerge_feature
                 when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
     ci_feature_2gp:
         group: Continuous Integration
@@ -1200,7 +1214,7 @@ flows:
                     include_empty: True
                     version_id: ^^create_package_version.subscriber_package_version_id
             4:
-                task: github_automerge_main
+                task: vcs_automerge_main
     release_unlocked_beta:
         group: Release Operations
         description: Upload and release a beta 2gp unlocked package version
@@ -1233,7 +1247,7 @@ flows:
                     include_empty: True
                     version_id: ^^create_package_version.subscriber_package_version_id
             4:
-                task: github_automerge_main
+                task: vcs_automerge_main
     release_beta:
         group: Release Operations
         description: Upload and release a beta version of the metadata currently in packaging
@@ -1260,7 +1274,7 @@ flows:
                     include_empty: True
                     version_id: ^^upload_beta.version_id
             4:
-                task: github_automerge_main
+                task: vcs_automerge_main
     release_production:
         group: Release Operations
         description: Upload and release a production version of the metadata currently in packaging

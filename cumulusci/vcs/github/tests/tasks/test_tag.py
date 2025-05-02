@@ -3,9 +3,9 @@ import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.github import CloneTag
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
+from cumulusci.vcs.github import CloneTag
 
 
 class TestCloneTag(GithubApiTestMixin):
