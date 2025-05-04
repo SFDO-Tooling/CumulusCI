@@ -302,3 +302,5 @@ strict = [
     'cumulusci/tasks/vlocity/exceptions.py',
     'cumulusci/utils/soql.py',
 ]
+
+[project.entry-points."cumulusci.plugins"]
