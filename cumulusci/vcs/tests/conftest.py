@@ -28,4 +28,13 @@ def key():
 
 @pytest.fixture
 def service_config():
-    return ServiceConfig({"name": "bar@baz.biz", "password": "test123"})
+    return ServiceConfig(
+        {
+            "name": "bar@baz.biz",
+            "password": "test123",
+            "username": "username",
+            "email": "bar@baz.biz",
+            "token": "abcdef",
+        },
+        name="alias",
+    )

@@ -19,18 +19,20 @@ from cumulusci.vcs.tests.dummy_service import (
 
 class TestVCSBase:
     @pytest.fixture
-    def keychain(self):
+    def keychain(self, service_config):
         runtime = mock.Mock()
         runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
         runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service("github", "alias", service_config)
         return runtime.keychain
 
     def test_init_sets_attributes(self, keychain):
-        config = {"foo": "bar"}
-        name = "dummy"
-        svc = ConcreteVCSService(config, name, keychain)
+        config = keychain.project_config
+        config.keychain = keychain
+
+        svc = ConcreteVCSService(config, name="alias")
         assert svc.config == config
-        assert svc.name == name
+        assert svc.name == "alias"
         assert svc.keychain == keychain
 
     def test_service_type_property(self, keychain):
@@ -44,7 +46,9 @@ class TestVCSBase:
         assert result == {"validated": True}
 
     def test_get_repository_returns_repo(self, keychain):
-        svc = ConcreteVCSService({}, "dummy", keychain)
+        config = keychain.project_config
+        config.keychain = keychain
+        svc = ConcreteVCSService(config)
         repo = svc.get_repository()
         assert isinstance(repo, DummyRepo)
 
@@ -69,8 +73,11 @@ class TestVCSBase:
             def get_repository(self):
                 return DummyRepo()
 
-        svc = NoServiceTypeVCS({}, "dummy", keychain)
+        config = keychain.project_config
+        config.keychain = keychain
+
         with pytest.raises(NotImplementedError):
+            svc = NoServiceTypeVCS(config)
             _ = svc.service_type
 
     def test_abstract_git_tag(self):

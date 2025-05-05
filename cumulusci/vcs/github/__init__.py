@@ -1,4 +1,12 @@
-from cumulusci.vcs.github.adapter import GitHubRef, GitHubTag, GitHubRepository
+from cumulusci.vcs.github.adapter import (
+    GitHubRef,
+    GitHubTag,
+    GitHubRepository,
+    GitHubComparison,
+    GitHubCommit,
+    GitHubBranch,
+    GitHubPullRequest,
+)
 from cumulusci.vcs.github.service import GitHubService, GitHubEnterpriseService
 
 __all__ = (
@@ -7,4 +15,8 @@ __all__ = (
     "GitHubRef",
     "GitHubTag",
     "GitHubRepository",
+    "GitHubComparison",
+    "GitHubCommit",
+    "GitHubBranch",
+    "GitHubPullRequest",
 )

@@ -192,6 +192,16 @@ class GitHubRepository(AbstractRepo):
         self.repo: Repository = self.github.repository(
             self.project_config.repo_owner, self.project_config.repo_name
         )
+        self.service_type = kwargs.get("service_type") or "github"
+        self._service_config = kwargs.get("service_config")
+
+    @property
+    def service_config(self):
+        if not self._service_config:
+            self._service_config = self.project_config.keychain.get_service(
+                self.service_type
+            )
+        return self._service_config
 
     def get_ref_for_tag(self, tag_name: str) -> GitHubRef:
         """Gets a Reference object for the tag with the given name"""
@@ -219,10 +229,8 @@ class GitHubRepository(AbstractRepo):
         self, tag_name: str, message: str, sha: str, obj_type: str, tagger: dict = {}
     ) -> GitHubTag:
         # Create a tag on the given repository
-        github_config = self.project_config.keychain.get_service("github")
-
-        tagger["name"] = tagger.get("name", github_config.username)
-        tagger["email"] = tagger.get("email", github_config.email)
+        tagger["name"] = tagger.get("name", self.service_config.username)
+        tagger["email"] = tagger.get("email", self.service_config.email)
         tagger["date"] = tagger.get(
             "date", f"{datetime.now(UTC).replace(tzinfo=None).isoformat()}Z"
         )

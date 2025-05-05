@@ -8,7 +8,7 @@ import webbrowser
 
 # from string import Template
 # from typing import Callable, Optional, Union
-from typing import Union
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import github3
@@ -31,6 +31,7 @@ from requests.exceptions import RetryError
 from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiError,; GithubApiNotFoundError,
     GithubException,
     ServiceNotConfigured,
@@ -328,19 +329,16 @@ class GitHubService(VCSService):
     _repo: GitHubRepository
     github: GitHub
 
-    def __init__(
-        self, config: dict, name: str, keychain: BaseProjectKeychain, **kwargs
-    ):
-        """Initializes the GitHub service with the given configuration, service name, and keychain.
+    def __init__(self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs):
+        """Initializes the GitHub service with the given project configuration.
         Args:
-            config (dict): The configuration dictionary for the GitHub service.
-            name (str): The name or alias of the GitHub service.
-            keychain: The keychain object for managing credentials.
+            config (BaseProjectConfig): The configuration for the GitHub service.
+            name (str): The name or alias of the VCS service.
             **kwargs: Additional keyword arguments.
         """
-        super().__init__(config, name, keychain, **kwargs)
-        self.project_config = keychain.project_config
-        self.github = get_github_api_for_repo(keychain, self.project_config.repo_url)
+        super().__init__(config, **kwargs)
+
+        self.github = get_github_api_for_repo(self.keychain, self.config.repo_url)
         self._repo: GitHubRepository = None
 
     @property
@@ -421,7 +419,11 @@ class GitHubService(VCSService):
         """Returns the GitHub repository."""
         if self._repo is None:
             self._repo = GitHubRepository(
-                self.github, self.project_config, logger=self.logger
+                self.github,
+                self.config,
+                logger=self.logger,
+                service_type=self.service_type,
+                service_config=self.service_config,
             )
         return self.repo
 

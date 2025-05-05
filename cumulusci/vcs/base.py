@@ -1,6 +1,8 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import Optional
 
+from cumulusci.core.config import BaseProjectConfig, ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.vcs.models import AbstractRepo
 
@@ -12,22 +14,25 @@ class VCSService(ABC):
     """
 
     logger: logging.Logger
+    config: BaseProjectConfig
 
     def __init__(
-        self, config: dict, name: str, keychain: BaseProjectKeychain, **kwargs
+        self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs
     ) -> None:
         """Initializes the VCS service with the given configuration, service name, and keychain.
 
         Args:
-            config (dict): The configuration dictionary for the VCS service, The service type options.
-            name (str): The name or alias of the VCS service.
-            keychain: The keychain object for managing credentials.
+            config (BaseProjectConfig): The configuration for the GitHub service.
+            name (str): Optional: The name or alias of the VCS service.
             **kwargs: Additional keyword arguments.
         """
         self.config = config
-        self.name = name
-        self.keychain = keychain
-        self.logger = kwargs.get("logger", logging.getLogger(__name__))
+        self.service_config: ServiceConfig = config.keychain.get_service(
+            self.service_type, name
+        )
+        self.name: str = self.service_config.name
+        self.keychain: Optional["BaseProjectKeychain"] = config.keychain
+        self.logger = kwargs.get("logger") or logging.getLogger(__name__)
 
     @property
     def service_type(self) -> str:

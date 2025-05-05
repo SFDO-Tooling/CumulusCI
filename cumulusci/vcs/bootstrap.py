@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from cumulusci.core.config import BaseProjectConfig, ServiceConfig
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import import_global
 from cumulusci.vcs.base import VCSService
@@ -19,7 +19,7 @@ def get_service(
     under the "class_path" key. If the class path is not found, a CumulusCIException is raised.
 
     Args:
-        config (dict): The configuration dictionary for the VCS service.
+        config (BaseProjectConfig): The configuration dictionary for the VCS service.
 
     Raises:
         CumulusCIException: Raised when the provider class is not found in the config.
@@ -27,10 +27,7 @@ def get_service(
     Returns:
         VCSService: The VCS service provider class.
     """
-    service_type: str = config.lookup("project__service_type")
-
-    if service_type is None:
-        service_type = "github"
+    service_type: str = config.lookup("project__service_type") or "github"
 
     provider_klass = None
     provider_path: str = config.services[service_type].get("class_path", None)
@@ -48,12 +45,7 @@ def get_service(
         )
 
     if issubclass(provider_klass, VCSService):
-        service_config: ServiceConfig = config.keychain.get_service(
-            provider_klass.service_type
-        )
-        vcs_service: VCSService = provider_klass(
-            {}, service_config.name, config.keychain, logger=logger
-        )
+        vcs_service: VCSService = provider_klass(config, logger=logger)
 
         return vcs_service
 
