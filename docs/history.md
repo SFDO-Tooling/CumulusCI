@@ -10,9 +10,12 @@
 
 ### Changes
 
-- fix: Make get permset licenses return active only by [@jstvz](https://github.com/jstvz) in [#3888](https://github.com/SFDO-Tooling/CumulusCI/pull/3888)
-- Fixed Corner Scenario, Removed Debug Statements, Updated ChangeLog, and dded new tasks to retrieve assignable licenses and permission sets
 - Add new tasks get_assignable_permission_sets and get_assignable_licenses by [@vsbharath](https://github.com/vsbharath) in [#3892](https://github.com/SFDO-Tooling/CumulusCI/pull/3892)
+
+### Issues Fixed
+
+- fix: Make get permset licenses return active only by [@jstvz](https://github.com/jstvz) in [#3888](https://github.com/SFDO-Tooling/CumulusCI/pull/3888)
+- fix: Read the docs configuration by LaTeX into PDF by [@dcinzona](https://github.com/dcinzona) in [#3891](https://github.com/SFDO-Tooling/CumulusCI/pull/3891) 
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.3.0.dev0...v4.4.0
 
