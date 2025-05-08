@@ -381,6 +381,10 @@ tasks:
         description: Look up 2gp package dependencies for a version id recorded in a commit status.
         class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
         group: GitHub
+    vcs_package_data:
+        description: Look up 2gp package dependencies for a version id recorded in a commit status.
+        class_path: cumulusci.tasks.vcs.commit_status.GetPackageDataFromCommitStatus
+        group: VCS
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
@@ -1083,7 +1087,7 @@ flows:
         description: Install the 2GP package for the current commit
         steps:
             1:
-                task: github_package_data
+                task: vcs_package_data
                 options:
                     context: $project_config.project__git__2gp_context
             2:
@@ -1091,17 +1095,17 @@ flows:
                 options:
                     update_dependencies:
                         resolution_strategy: commit_status
-                        dependencies: ^^github_package_data.dependencies
+                        dependencies: ^^vcs_package_data.dependencies
             3:
                 task: install_managed
                 options:
-                    version: ^^github_package_data.version_id
+                    version: ^^vcs_package_data.version_id
     install_unlocked_commit:
         group: Install / Uninstall
         description: Install the unlocked package for the current commit
         steps:
             1:
-                task: github_package_data
+                task: vcs_package_data
                 options:
                     context: $project_config.project__git__unlocked_context
             2:
@@ -1109,11 +1113,11 @@ flows:
                 options:
                     update_dependencies:
                         resolution_strategy: unlocked
-                        dependencies: ^^github_package_data.dependencies
+                        dependencies: ^^vcs_package_data.dependencies
             3:
                 task: install_managed
                 options:
-                    version: ^^github_package_data.version_id
+                    version: ^^vcs_package_data.version_id
     install_beta:
         group: Org Setup
         description: Install and configure the latest beta version

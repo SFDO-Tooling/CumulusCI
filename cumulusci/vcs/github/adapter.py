@@ -1,11 +1,12 @@
 import http.client
 from datetime import UTC, datetime
-from typing import Union
+from re import Pattern
+from typing import Optional, Union
 
-import github3.exceptions
 from github3 import GitHub, GitHubError
-from github3.exceptions import NotFoundError
+from github3.exceptions import NotFoundError, UnprocessableEntity
 from github3.git import Reference, Tag
+from github3.repos.commit import RepoCommit
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.project_config import BaseProjectConfig
@@ -73,7 +74,15 @@ class GitHubComparison(AbstractComparison):
 class GitHubCommit(AbstractRepoCommit):
     """GitHub comparison object for comparing commits."""
 
-    pass
+    commit: RepoCommit
+
+    def get_statuses(self, context: str, regex_match: Pattern[str]) -> Optional[str]:
+        for status in self.commit.status().statuses:
+            if status.state == "success" and status.context == context:
+                match = regex_match.search(status.description)
+                if match:
+                    return match.group(1)
+        return None
 
 
 class GitHubBranch(AbstractBranch):
@@ -85,7 +94,7 @@ class GitHubBranch(AbstractBranch):
     def get_branch(self) -> None:
         try:
             self.branch = self.repo.repo.branch(self.name)
-        except github3.exceptions.NotFoundError:
+        except NotFoundError:
             message = f"Branch {self.name} not found"
             raise GithubApiNotFoundError(message)
         return
@@ -100,7 +109,7 @@ class GitHubBranch(AbstractBranch):
                 GitHubBranch(git_repo, branch.name, branch=branch)
                 for branch in branches
             ]
-        except github3.exceptions.NotFoundError:
+        except NotFoundError:
             raise GithubApiNotFoundError("Could not find branches on GitHub")
 
 
@@ -134,7 +143,7 @@ class GitHubPullRequest(AbstractPullRequest):
                 GitHubPullRequest(repo=git_repo, pull_request=pull_request)
                 for pull_request in pull_requests
             ]
-        except github3.exceptions.NotFoundError:
+        except NotFoundError:
             raise GithubApiNotFoundError("Could not find pull requests on GitHub")
 
     @classmethod
@@ -157,7 +166,7 @@ class GitHubPullRequest(AbstractPullRequest):
                 maintainer_can_modify=maintainer_can_modify,
             )
             return GitHubPullRequest(repo=git_repo, pull_request=pull_request)
-        except github3.exceptions.NotFoundError:
+        except NotFoundError:
             raise GithubApiNotFoundError("Could not create pull request on GitHub")
 
     @property
@@ -309,7 +318,7 @@ class GitHubRepository(AbstractRepo):
                 maintainer_can_modify=maintainer_can_modify,
             )
             return pull_request
-        except github3.exceptions.UnprocessableEntity as e:
+        except UnprocessableEntity as e:
             error_msg = options.get(
                 "error_message",
                 f"Error creating pull request to merge {head} into {base}",
@@ -318,3 +327,14 @@ class GitHubRepository(AbstractRepo):
         except Exception as e:
             self.logger.error(f"An unexpected error occurred: {str(e)}")
         return None
+
+    def get_commit(self, commit_sha: str) -> GitHubCommit:
+        """Given a SHA1 hash, retrieve a Commit object from the REST API."""
+        try:
+            commit = self.repo.commit(commit_sha)
+            return GitHubCommit(commit=commit)
+        except (NotFoundError, UnprocessableEntity):
+            # GitHub returns 422 for nonexistent commits in at least some circumstances.
+            raise GithubApiNotFoundError(
+                f"Could not find commit {commit_sha} on GitHub"
+            )

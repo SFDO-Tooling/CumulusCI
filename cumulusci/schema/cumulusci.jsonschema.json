@@ -402,6 +402,10 @@
                 "custom": {
                     "title": "Custom",
                     "type": "object"
+                },
+                "service_type": {
+                    "title": "Service Type",
+                    "type": "string"
                 }
             },
             "additionalProperties": false

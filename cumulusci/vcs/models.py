@@ -1,5 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
+from re import Pattern
+from typing import Optional
 
 
 class AbstractRepo(ABC):
@@ -30,7 +32,7 @@ class AbstractRepo(ABC):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod
-    def get_tag_by_ref(self, ref: str, tag_name: str = None) -> "AbstractGitTag":
+    def get_tag_by_ref(self, ref: object, tag_name: str = None) -> "AbstractGitTag":
         """Gets a Git Tag for with the given ref.
         This method should be overridden by subclasses to provide
         the specific implementation for retrieving the tag.
@@ -81,6 +83,41 @@ class AbstractRepo(ABC):
         This method should be overridden by subclasses to provide
         the specific implementation for merging commits.
         The method should return an instance of AbstractRepoCommit."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def pull_requests(self, **kwargs) -> list["AbstractPullRequest"]:
+        """Fetches all pull requests from the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving pull requests.
+        The method should return a list of instances of classes that implement
+        the AbstractPullRequest interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def create_pull(
+        self,
+        title: str,
+        base: str,
+        head: str,
+        body: str = None,
+        maintainer_can_modify: bool = None,
+        options: dict = {},
+    ) -> "AbstractPullRequest":
+        """Creates a pull request in the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for creating pull requests.
+        The method should return an instance of a class that implements
+        the AbstractPullRequest interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def get_commit(self, commit_sha: str) -> "AbstractRepoCommit":
+        """Gets a commit object for the given commit SHA.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the commit.
+        The method should return an instance of a class that implements
+        the AbstractRepoCommit interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
 
@@ -158,6 +195,15 @@ class AbstractBranch(ABC):
         the AbstractBranch interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @abstractmethod
+    def get_commit(self, commit_sha: str) -> "AbstractRepoCommit":
+        """Gets a commit object for the given commit SHA.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the commit.
+        The method should return an instance of a class that implements
+        the AbstractRepoCommit interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
 
 class AbstractComparison(ABC):
     """Abstract base class for comparisons.
@@ -214,6 +260,14 @@ class AbstractRepoCommit(ABC):
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRepoCommit."""
         self.commit = kwargs.get("commit", None)
+
+    @abstractmethod
+    def get_statuses(self, context: str, regex_match: Pattern[str]) -> Optional[str]:
+        """Gets the statuses for the commit.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the statuses.
+        The method should return a string if a match is found, otherwise None."""
+        raise NotImplementedError("Subclasses should implement this method.")
 
 
 class AbstractPullRequest(ABC):

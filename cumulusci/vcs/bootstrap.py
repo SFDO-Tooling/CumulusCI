@@ -1,11 +1,17 @@
 import logging
+import re
 from typing import Optional
 
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import import_global
 from cumulusci.vcs.base import VCSService
-from cumulusci.vcs.models import AbstractGitTag, AbstractRef, AbstractRepo
+from cumulusci.vcs.models import (
+    AbstractGitTag,
+    AbstractRef,
+    AbstractRepo,
+    AbstractRepoCommit,
+)
 
 
 def get_service(
@@ -63,3 +69,20 @@ def get_tag_by_name(repo: AbstractRepo, tag_name: str) -> AbstractGitTag:
     """Fetches a tag by name from the given repository"""
     ref: AbstractRef = get_ref_for_tag(repo, tag_name)
     return repo.get_tag_by_ref(ref, tag_name)
+
+
+VERSION_ID_RE: re.Pattern[str] = re.compile(r"version_id: (\S+)")
+
+
+def get_version_id_from_commit(
+    repo: AbstractRepo, commit_sha: str, context: str
+) -> Optional[str]:
+    """Fetches the version ID from a commit status"""
+    commit = get_commit(repo, commit_sha)
+    version_id = commit.get_statuses(context, regex_match=VERSION_ID_RE)
+    return version_id
+
+
+def get_commit(repo: AbstractRepo, commit_sha: str) -> Optional[AbstractRepoCommit]:
+    """Given a SHA1 hash, retrieve a AbstractRepoCommit object."""
+    return repo.get_commit(commit_sha)
