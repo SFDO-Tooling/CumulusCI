@@ -81,7 +81,6 @@ class GitHubBranch(AbstractBranch):
 
     def __init__(self, repo: "GitHubRepository", branch_name: str, **kwargs) -> None:
         super().__init__(repo, branch_name, **kwargs)
-        self.repo = repo
 
     def get_branch(self) -> None:
         try:

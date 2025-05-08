@@ -12,11 +12,13 @@ class AbstractRepo(ABC):
 
     repo: object
     logger: logging.Logger
+    options: dict
 
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRepo."""
         self.repo = kwargs.get("repo", None)
         self.logger = kwargs.get("logger", None)
+        self.options = kwargs.get("options", {})
 
     @abstractmethod
     def get_ref_for_tag(self, tag_name: str) -> "AbstractRef":

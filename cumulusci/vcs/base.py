@@ -15,6 +15,9 @@ class VCSService(ABC):
 
     logger: logging.Logger
     config: BaseProjectConfig
+    service_config: ServiceConfig
+    name: str
+    keychain: Optional[BaseProjectKeychain]
 
     def __init__(
         self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs
@@ -27,11 +30,9 @@ class VCSService(ABC):
             **kwargs: Additional keyword arguments.
         """
         self.config = config
-        self.service_config: ServiceConfig = config.keychain.get_service(
-            self.service_type, name
-        )
-        self.name: str = self.service_config.name
-        self.keychain: Optional["BaseProjectKeychain"] = config.keychain
+        self.service_config = config.keychain.get_service(self.service_type, name)
+        self.name = self.service_config.name or name
+        self.keychain = config.keychain
         self.logger = kwargs.get("logger") or logging.getLogger(__name__)
 
     @property
@@ -59,7 +60,7 @@ class VCSService(ABC):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod
-    def get_repository(self) -> AbstractRepo:
+    def get_repository(self, options: dict = {}) -> AbstractRepo:
         """Returns the repository object for the VCS service.
         This method should be overridden by subclasses to provide
         the specific implementation for retrieving the repository.

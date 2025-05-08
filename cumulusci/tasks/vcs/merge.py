@@ -241,7 +241,7 @@ class MergeBranch(BaseSourceControlTask):
             self.logger.info(
                 f"Merged {compare.behind_by} commits into branch: {branch_name}"
             )
-        else:
+        elif ret is None:
             if self.options["create_pull_request_on_conflict"]:
                 self._create_conflict_pull_request(branch_name, source)
             else:

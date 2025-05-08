@@ -36,7 +36,6 @@ from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiErro
     GithubException,
     ServiceNotConfigured,
 )
-from cumulusci.core.keychain import BaseProjectKeychain
 
 # from cumulusci.oauth.client import (
 #     OAuth2ClientConfig,
@@ -336,7 +335,7 @@ class GitHubService(VCSService):
             name (str): The name or alias of the VCS service.
             **kwargs: Additional keyword arguments.
         """
-        super().__init__(config, **kwargs)
+        super().__init__(config, name=name, **kwargs)
 
         self.github = get_github_api_for_repo(self.keychain, self.config.repo_url)
         self._repo: GitHubRepository = None
@@ -415,7 +414,7 @@ class GitHubService(VCSService):
 
         return options
 
-    def get_repository(self) -> GitHubRepository:
+    def get_repository(self, options: dict = {}) -> GitHubRepository:
         """Returns the GitHub repository."""
         if self._repo is None:
             self._repo = GitHubRepository(
@@ -424,6 +423,7 @@ class GitHubService(VCSService):
                 logger=self.logger,
                 service_type=self.service_type,
                 service_config=self.service_config,
+                options=options,
             )
         return self.repo
 
@@ -432,5 +432,5 @@ class GitHubEnterpriseService(GitHubService):
     service_type = "github_enterprise"
     _repo: GitHubRepository
 
-    def __init__(self, config: dict, name: str, keychain: BaseProjectKeychain):
-        super().__init__(config, name, keychain)
+    def __init__(self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs):
+        super().__init__(config, name=name, **kwargs)

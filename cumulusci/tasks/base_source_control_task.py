@@ -14,4 +14,4 @@ class BaseSourceControlTask(BaseTask):
 
     def get_repo(self) -> AbstractRepo:
         """Returns the repository object for the VCS service."""
-        return self.vcs_service.get_repository()
+        return self.vcs_service.get_repository(options=self.options)
