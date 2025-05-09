@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from re import Pattern
-from typing import Optional
+from typing import Optional, Union
 
 
 class AbstractRepo(ABC):
@@ -15,12 +15,16 @@ class AbstractRepo(ABC):
     repo: object
     logger: logging.Logger
     options: dict
+    repo_name: str
+    repo_owner: str
 
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRepo."""
         self.repo = kwargs.get("repo", None)
         self.logger = kwargs.get("logger", None)
         self.options = kwargs.get("options", {})
+        self.repo_name = kwargs.get("repo_name", None)
+        self.repo_owner = kwargs.get("repo_owner", None)
 
     @abstractmethod
     def get_ref_for_tag(self, tag_name: str) -> "AbstractRef":
@@ -42,7 +46,13 @@ class AbstractRepo(ABC):
 
     @abstractmethod
     def create_tag(
-        self, tag_name: str, message: str, sha: str, obj_type: str, tagger={}
+        self,
+        tag_name: str,
+        message: str,
+        sha: str,
+        obj_type: str,
+        tagger={},
+        lightweight: Optional[bool] = False,
     ) -> "AbstractGitTag":
         """Create a Git Tag object for the tag with the given name.
         This method should be overridden by subclasses to provide
@@ -120,6 +130,83 @@ class AbstractRepo(ABC):
         the AbstractRepoCommit interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @abstractmethod
+    def default_branch(self) -> "AbstractBranch":
+        """Gets the default branch of the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the default branch.
+        The method should return an instance of AbstractBranch."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def archive(self, format: str, zip_content: Union[str, object], ref=None) -> bytes:
+        """Archives the repository content as a zip file."""
+        self.logger.debug("Archiving repository content")
+        # This method should be overridden by subclasses to provide
+        # the specific implementation for archiving the repository.
+        # The method should return a bytes object representing the archived content.
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def full_name(self) -> str:
+        """Gets the full name of the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the full name.
+        The method should return a string representing the full name of the repository."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def release_from_tag(self, tag_name: str) -> "AbstractRelease":
+        """Gets a Release object for the tag with the given name.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the release.
+        The method should return an instance of a class that implements
+        the AbstractRelease interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def create_release(
+        self,
+        tag_name: str,
+        name: str,
+        body: str = None,
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> "AbstractRelease":
+        """Creates a release in the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for creating releases.
+        The method should return an instance of a class that implements
+        the AbstractRelease interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+
+class AbstractRelease(ABC):
+    """Abstract base class for releases.
+    This is the abstract base class for defining git releases.
+
+    Raises:
+        NotImplementedError: Raised when a subclass does not implement the required method.
+    """
+
+    release: object
+
+    def __init__(self, **kwargs) -> None:
+        """Initializes the AbstractRelease."""
+        self.release = kwargs.get("release", None)
+
+    @property
+    @abstractmethod
+    def body(self) -> str:
+        """Gets the body of the release."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def prerelease(self) -> bool:
+        """Checks if the release is a pre-release."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
 
 class AbstractRef(ABC):
     """Abstract base class for Refs.
@@ -141,9 +228,9 @@ class AbstractGitTag(ABC):
     tag: object
     _sha: str = ""
 
-    def __init__(self, tag, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         """Initializes the AbstractGitTag."""
-        self.tag = tag
+        self.tag = kwargs.get("tag", None)
 
     @property
     def sha(self) -> str:
@@ -158,6 +245,12 @@ class AbstractGitTag(ABC):
             value (str): The SHA for the git tag.
         """
         self._sha = value
+
+    @property
+    @abstractmethod
+    def message(self) -> str:
+        """Gets the message of the tag."""
+        raise NotImplementedError("Subclasses should implement this method.")
 
 
 class AbstractBranch(ABC):
@@ -193,15 +286,6 @@ class AbstractBranch(ABC):
         the specific implementation for retrieving the branches.
         The method should return a list of instances of classes that implement
         the AbstractBranch interface."""
-        raise NotImplementedError("Subclasses should provide their own implementation")
-
-    @abstractmethod
-    def get_commit(self, commit_sha: str) -> "AbstractRepoCommit":
-        """Gets a commit object for the given commit SHA.
-        This method should be overridden by subclasses to provide
-        the specific implementation for retrieving the commit.
-        The method should return an instance of a class that implements
-        the AbstractRepoCommit interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
 

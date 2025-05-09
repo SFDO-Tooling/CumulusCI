@@ -73,6 +73,12 @@ class TestVCSBase:
             def get_repository(self):
                 return DummyRepo()
 
+            def get_committer(self):
+                pass
+
+            def get_service_for_url(cls, url):
+                return cls()
+
         config = keychain.project_config
         config.keychain = keychain
 

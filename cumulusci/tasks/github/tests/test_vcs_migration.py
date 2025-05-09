@@ -1,5 +1,9 @@
-from cumulusci.tasks.github import CloneTag, MergeBranch
-from cumulusci.tasks.github.commit_status import GetPackageDataFromCommitStatus
+from cumulusci.tasks.github import (
+    CloneTag,
+    GetPackageDataFromCommitStatus,
+    MergeBranch,
+    PublishSubtree,
+)
 
 
 class TestVCSMigration:
@@ -19,3 +23,7 @@ class TestVCSMigration:
         assert (
             GetPackageDataFromCommitStatus.__name__ == "GetPackageDataFromCommitStatus"
         )
+
+    def test_publish_subtree(self):
+        assert PublishSubtree.__module__ == "cumulusci.tasks.github.publish"
+        assert PublishSubtree.__name__ == "PublishSubtree"

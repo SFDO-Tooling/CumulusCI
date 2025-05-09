@@ -5,6 +5,7 @@ from typing import Optional
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.vcs.models import AbstractRepo
+from cumulusci.vcs.utils import AbstractCommitDir
 
 
 class VCSService(ABC):
@@ -59,6 +60,17 @@ class VCSService(ABC):
         The method should raise an exception if the validation fails."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @classmethod
+    @abstractmethod
+    def get_service_for_url(
+        cls, project_config: BaseProjectConfig, url: str, options: dict = {}
+    ) -> "VCSService":
+        """Returns the service configuration for the given URL.
+        This method should be overridden by subclasses to provide
+        specific logic for retrieving the service configuration.
+        The method should raise an exception if the validation fails."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
     @abstractmethod
     def get_repository(self, options: dict = {}) -> AbstractRepo:
         """Returns the repository object for the VCS service.
@@ -66,4 +78,9 @@ class VCSService(ABC):
         the specific implementation for retrieving the repository.
         The method should return an instance of a class that implements
         the AbstractRepo interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def get_committer(self, repo: AbstractRepo) -> AbstractCommitDir:
+        """Returns the committer for the VCS repository."""
         raise NotImplementedError("Subclasses should provide their own implementation")

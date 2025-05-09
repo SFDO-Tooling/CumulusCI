@@ -78,11 +78,43 @@ def get_version_id_from_commit(
     repo: AbstractRepo, commit_sha: str, context: str
 ) -> Optional[str]:
     """Fetches the version ID from a commit status"""
-    commit = get_commit(repo, commit_sha)
-    version_id = commit.get_statuses(context, regex_match=VERSION_ID_RE)
-    return version_id
+    commit: Optional[AbstractRepoCommit] = get_commit(repo, commit_sha)
+    if commit is not None:
+        version_id = commit.get_statuses(context, regex_match=VERSION_ID_RE)
+        return version_id
+    return None
 
 
 def get_commit(repo: AbstractRepo, commit_sha: str) -> Optional[AbstractRepoCommit]:
     """Given a SHA1 hash, retrieve a AbstractRepoCommit object."""
     return repo.get_commit(commit_sha)
+
+
+def get_service_for_url(
+    config: BaseProjectConfig, url: str, options: dict = {}
+) -> VCSService:
+    """Gets the VCS service for a given URL."""
+    class_services = {
+        k: v for k, v in config.services.items() if v.get("class_path") is not None
+    }
+
+    for service_name, service_config in class_services.items():
+        provider_path: str = service_config.get("class_path", None)
+        provider_klass = None
+
+        if provider_path is None:
+            return None
+
+        try:
+            provider_klass = import_global(provider_path)
+        except ImportError as e:
+            raise CumulusCIException(
+                f"Failed to import provider class from path '{provider_path}': {e}"
+            )
+
+        if hasattr(provider_klass, "get_service_for_url"):
+            vcs_service: VCSService = provider_klass.get_service_for_url(
+                config, url, options
+            )
+            return vcs_service
+    raise CumulusCIException(f"Service for URL '{url}' not found.")

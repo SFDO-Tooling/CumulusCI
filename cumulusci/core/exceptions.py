@@ -190,7 +190,13 @@ class ScratchOrgException(SfdxOrgException):
     pass
 
 
-class GithubException(CumulusCIException):
+class VcsException(CumulusCIException):
+    """Raise for errors related to version control systems"""
+
+    pass
+
+
+class GithubException(VcsException):
     """Raise for errors related to GitHub"""
 
     pass
@@ -200,7 +206,11 @@ class GithubApiError(CumulusCIException):
     pass
 
 
-class GithubApiNotFoundError(CumulusCIException):
+class VcsNotFoundError(CumulusCIException):
+    pass
+
+
+class GithubApiNotFoundError(VcsNotFoundError):
     pass
 
 

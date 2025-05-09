@@ -16,6 +16,7 @@ from typing import Union
 import requests
 import sarge
 
+from cumulusci.vcs.models import AbstractRepo
 from cumulusci.core.exceptions import CumulusCIException
 from .xml import (  # noqa
     elementtree_parse_file,
@@ -156,6 +157,34 @@ def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
         raise CumulusCIException(
             f"Unable to download an archive of the Git ref {ref} from "
             f"{github_repo.full_name}. This can mean that the ref has "
+            "not been pushed to the server, that CumulusCI's credential "
+            "does not have permission to access it, or that your access "
+            "is restricted by an IP address allow list."
+        )
+    zip_file = zipfile.ZipFile(zip_content)
+    path = sorted(zip_file.namelist())[0]
+    if subfolder:
+        path = path + subfolder
+    zip_file = zip_subfolder(zip_file, path)
+    return zip_file
+
+
+def download_extract_vcs_from_repo(
+    vcs_repo: AbstractRepo, subfolder: str = None, ref: str = None
+) -> zipfile.ZipFile:
+    # Download a zip archive from a VCS repository.
+    # If subfolder is specified, it will be extracted from the zip file.
+    # If ref is specified, it will be used to download the archive.
+    # If ref is not specified, the default branch of the repository will be used.
+    # If the archive cannot be downloaded, a CumulusCIException will be raised.
+    # The function returns a zipfile.ZipFile object containing the downloaded archive.
+    if not ref:
+        ref = vcs_repo.default_branch
+    zip_content = io.BytesIO()
+    if not vcs_repo.archive("zipball", zip_content, ref=ref):
+        raise CumulusCIException(
+            f"Unable to download an archive of the Git ref {ref} from "
+            f"{vcs_repo.full_name}. This can mean that the ref has "
             "not been pushed to the server, that CumulusCI's credential "
             "does not have permission to access it, or that your access "
             "is restricted by an IP address allow list."
@@ -430,7 +459,7 @@ def get_option_usage_string(name, option):
     """
     usage_str = option.get("usage")
     if not usage_str:
-        usage_str = f"--{name} {name.replace('_','').upper()}"
+        usage_str = f"--{name} {name.replace('_', '').upper()}"
     return usage_str
 
 

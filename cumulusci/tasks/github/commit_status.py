@@ -6,7 +6,7 @@ from cumulusci.utils.deprecation import warn_moved
 class GetPackageDataFromCommitStatus(
     GetPackageDataFromCommitStatusTask.GetPackageDataFromCommitStatus
 ):
-    """Deprecated: use cumulusci.tasks.vcs.tag.MergeBranch instead"""
+    """Deprecated: use cumulusci.tasks.vcs.commit_status.GetPackageDataFromCommitStatus instead"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

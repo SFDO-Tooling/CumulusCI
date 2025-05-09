@@ -7,17 +7,20 @@ from github3 import GitHub, GitHubError
 from github3.exceptions import NotFoundError, UnprocessableEntity
 from github3.git import Reference, Tag
 from github3.repos.commit import RepoCommit
+from github3.repos.release import Release
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.exceptions import GithubApiNotFoundError, GithubException
 from cumulusci.core.github import catch_common_github_auth_errors
+from cumulusci.utils.git import parse_repo_url
 from cumulusci.vcs.models import (
     AbstractBranch,
     AbstractComparison,
     AbstractGitTag,
     AbstractPullRequest,
     AbstractRef,
+    AbstractRelease,
     AbstractRepo,
     AbstractRepoCommit,
 )
@@ -37,10 +40,14 @@ class GitHubRef(AbstractRef):
 class GitHubTag(AbstractGitTag):
     tag: Tag
 
-    def __init__(self, tag: Tag, **kwargs) -> None:
-        super().__init__(tag, **kwargs)
-        self.tag = tag
-        self.sha = tag.sha
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.sha = self.tag.sha if self.tag else None
+
+    @property
+    def message(self) -> str:
+        """Gets the message of the tag."""
+        return self.tag.message if self.tag else ""
 
 
 class GitHubComparison(AbstractComparison):
@@ -111,6 +118,27 @@ class GitHubBranch(AbstractBranch):
             ]
         except NotFoundError:
             raise GithubApiNotFoundError("Could not find branches on GitHub")
+
+
+class GitHubRelease(AbstractRelease):
+    """GitHub release object for creating and managing releases."""
+
+    release: Release
+
+    @property
+    def tag_name(self) -> str:
+        """Gets the tag name of the release."""
+        return self.release.tag_name if self.release else ""
+
+    @property
+    def body(self) -> Union[str, None]:
+        """Gets the body of the release."""
+        return self.release.body if self.release else None
+
+    @property
+    def prerelease(self) -> bool:
+        """Checks if the release is a pre-release."""
+        return self.release.prerelease if self.release else False
 
 
 class GitHubPullRequest(AbstractPullRequest):
@@ -197,11 +225,19 @@ class GitHubRepository(AbstractRepo):
         super().__init__(**kwargs)
         self.github: GitHub = github
         self.project_config: BaseProjectConfig = project_config
-        self.repo: Repository = self.github.repository(
-            self.project_config.repo_owner, self.project_config.repo_name
-        )
         self.service_type = kwargs.get("service_type") or "github"
         self._service_config = kwargs.get("service_config")
+
+        self._init_repo()
+
+    def _init_repo(self) -> None:
+        """Initializes the repository object."""
+        repo_url = self.options.get("repository_url", None)
+        if repo_url is not None:
+            self.repo_owner, self.repo_name, host = parse_repo_url(repo_url)
+        self.repo_owner = self.repo_owner or self.project_config.repo_owner
+        self.repo_name = self.repo_name or self.project_config.repo_name
+        self.repo: Repository = self.github.repository(self.repo_owner, self.repo_name)
 
     @property
     def service_config(self):
@@ -234,7 +270,13 @@ class GitHubRepository(AbstractRepo):
 
     @catch_common_github_auth_errors
     def create_tag(
-        self, tag_name: str, message: str, sha: str, obj_type: str, tagger: dict = {}
+        self,
+        tag_name: str,
+        message: str,
+        sha: str,
+        obj_type: str,
+        tagger: dict = {},
+        lightweight: Optional[bool] = False,
     ) -> GitHubTag:
         # Create a tag on the given repository
         tagger["name"] = tagger.get("name", self.service_config.username)
@@ -244,7 +286,12 @@ class GitHubRepository(AbstractRepo):
         )
 
         tag = self.repo.create_tag(
-            tag=tag_name, message=message, sha=sha, obj_type=obj_type, tagger=tagger
+            tag=tag_name,
+            message=message,
+            sha=sha,
+            obj_type=obj_type,
+            tagger=tagger,
+            lightweight=lightweight,
         )
         return GitHubTag(tag=tag)
 
@@ -337,4 +384,50 @@ class GitHubRepository(AbstractRepo):
             # GitHub returns 422 for nonexistent commits in at least some circumstances.
             raise GithubApiNotFoundError(
                 f"Could not find commit {commit_sha} on GitHub"
+            )
+
+    def release_from_tag(self, tag_name: str) -> GitHubRelease:
+        """Fetches a release from the given tag name."""
+        try:
+            release: Release = self.repo.release_from_tag(tag_name)
+        except NotFoundError:
+            message = f"Release for {tag_name} not found"
+            raise GithubException(message)
+        return GitHubRelease(release=release)
+
+    def default_branch(self) -> Optional[GitHubBranch]:
+        """Returns the default branch of the repository."""
+        return GitHubBranch(self, self.repo.default_branch) if self.repo else None
+
+    def archive(self, format: str, zip_content: Union[str, object], ref=None) -> bytes:
+        """Archives the repository content as a zip file."""
+        try:
+            archive = self.repo.archive(format, zip_content, ref)
+            return archive
+        except NotFoundError:
+            raise GithubApiNotFoundError(
+                f"Could not find archive for {zip_content} for service {self.service_type}"
+            )
+
+    def full_name(self) -> str:
+        """Returns the full name of the repository."""
+        return self.repo.full_name if self.repo else ""
+
+    def create_release(
+        self,
+        tag_name: str,
+        name: str = None,
+        body: str = None,
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> GitHubRelease:
+        """Creates a release on the given repository."""
+        try:
+            release = self.repo.create_release(
+                tag_name, name=name, body=body, draft=draft, prerelease=prerelease
+            )
+            return GitHubRelease(release=release)
+        except NotFoundError:
+            raise GithubApiNotFoundError(
+                f"Could not create release for {tag_name} on GitHub"
             )

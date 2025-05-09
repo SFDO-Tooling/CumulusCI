@@ -31,11 +31,12 @@ from requests.exceptions import RetryError
 from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, ServiceConfig
 from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiError,; GithubApiNotFoundError,
     GithubException,
     ServiceNotConfigured,
 )
+from cumulusci.tasks.github.util import CommitDir
 
 # from cumulusci.oauth.client import (
 #     OAuth2ClientConfig,
@@ -336,8 +337,8 @@ class GitHubService(VCSService):
             **kwargs: Additional keyword arguments.
         """
         super().__init__(config, name=name, **kwargs)
-
-        self.github = get_github_api_for_repo(self.keychain, self.config.repo_url)
+        repo_url = kwargs.get("repository_url", self.config.repo_url)
+        self.github = get_github_api_for_repo(self.keychain, repo_url)
         self._repo: GitHubRepository = None
 
     @property
@@ -414,6 +415,27 @@ class GitHubService(VCSService):
 
         return options
 
+    @classmethod
+    def get_service_for_url(
+        cls, project_config: BaseProjectConfig, url: str, options: dict = {}
+    ) -> "GitHubService":
+        """Returns the service configuration for the given URL."""
+        _owner, _repo_name, host = parse_repo_url(url)
+
+        if host is None or host == "None" or "github.com" in host:
+            service_config = project_config.keychain.get_service(cls.service_type)
+
+            vcs_service = GitHubService(
+                project_config,
+                name=service_config.name,
+                service_config=service_config,
+                logger=project_config.logger,
+                repository_url=url,
+            )
+
+            return vcs_service
+        project_config.logger.info(f"No Github service configured for domain {host}.")
+
     def get_repository(self, options: dict = {}) -> GitHubRepository:
         """Returns the GitHub repository."""
         if self._repo is None:
@@ -427,6 +449,10 @@ class GitHubService(VCSService):
             )
         return self.repo
 
+    def get_committer(self, repo: GitHubRepository) -> CommitDir:
+        """Returns the committer for the GitHub repository."""
+        return CommitDir(repo.repo, logger=self.logger)
+
 
 class GitHubEnterpriseService(GitHubService):
     service_type = "github_enterprise"
@@ -434,3 +460,34 @@ class GitHubEnterpriseService(GitHubService):
 
     def __init__(self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs):
         super().__init__(config, name=name, **kwargs)
+
+    @classmethod
+    def get_service_for_url(
+        cls, project_config: BaseProjectConfig, url: str, options: dict = {}
+    ) -> "GitHubEnterpriseService":
+        """Returns the service configuration for the given URL."""
+        _owner, _repo_name, host = parse_repo_url(url)
+
+        configured_services: list[
+            ServiceConfig
+        ] = project_config.keychain.get_services_for_type(cls.service_type)
+        service_by_host = {
+            service.server_domain: service for service in configured_services
+        }
+
+        # Check when connecting to server, but not when creating new service as this would always catch
+        if list(service_by_host.keys()).count(host) == 0:
+            project_config.logger.info(
+                f"No Github Enterprise service configured for domain {host}."
+            )
+            return None
+
+        service_config = service_by_host[host]
+        vcs_service = GitHubEnterpriseService(
+            project_config,
+            name=service_config.name,
+            service_config=service_config,
+            logger=project_config.logger,
+            repository_url=url,
+        )
+        return vcs_service

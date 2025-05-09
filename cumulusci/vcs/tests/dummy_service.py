@@ -8,6 +8,7 @@ from cumulusci.vcs.models import (
     AbstractRepo,
     AbstractRepoCommit,
 )
+from cumulusci.vcs.utils import AbstractCommitDir
 
 
 class ConcreteVCSService(VCSService):
@@ -20,9 +21,27 @@ class ConcreteVCSService(VCSService):
     def get_repository(self):
         return DummyRepo()
 
+    @classmethod
+    def get_service_for_url(cls, url):
+        return cls()
+
+    def get_committer(self, repo: AbstractRepo) -> AbstractCommitDir:
+        return DummyCommitDir()
+
+
+class DummyCommitDir(AbstractCommitDir):
+    pass
+
 
 class DummyTag(AbstractGitTag):
-    pass
+    def __init__(self, tag, **kwargs):
+        super().__init__(**kwargs)
+        self.tag = tag
+        self.sha = "1234567890abcdef"
+
+    @property
+    def message(self) -> str:
+        return "Dummy tag message"
 
 
 class DummyRef(AbstractRef):
@@ -61,6 +80,30 @@ class DummyRepo(AbstractRepo):
         pass
 
     def merge(self):
+        pass
+
+    def archive(self):
+        pass
+
+    def create_pull(self):
+        pass
+
+    def create_release(self):
+        pass
+
+    def default_branch(self):
+        pass
+
+    def full_name(self):
+        pass
+
+    def get_commit(self):
+        pass
+
+    def pull_requests(self):
+        pass
+
+    def release_from_tag(self):
         pass
 
 
