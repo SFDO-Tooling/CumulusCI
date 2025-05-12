@@ -362,8 +362,8 @@ class AbstractPullRequest(ABC):
         NotImplementedError: Raised when a subclass does not implement the required method.
     """
 
-    repo: AbstractRepo
-    pull_request: object
+    repo: Union[AbstractRepo, None]
+    pull_request: Union[object, None]
 
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractPullRequest."""
@@ -386,6 +386,12 @@ class AbstractPullRequest(ABC):
     @abstractmethod
     def number(self) -> int:
         """Gets the pull request number."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def title(self) -> str:
+        """Gets the pull title."""
         raise NotImplementedError("Subclasses should implement this method.")
 
     @property

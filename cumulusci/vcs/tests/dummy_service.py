@@ -127,5 +127,9 @@ class DummyPullRequest(AbstractPullRequest):
     def number(self):
         pass
 
+    @property
+    def title(self) -> str:
+        return "Dummy pull request title"
+
     def pull_requests(self):
         pass

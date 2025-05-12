@@ -3,6 +3,7 @@ from cumulusci.tasks.github import (
     GetPackageDataFromCommitStatus,
     MergeBranch,
     PublishSubtree,
+    PullRequests,
 )
 
 
@@ -27,3 +28,7 @@ class TestVCSMigration:
     def test_publish_subtree(self):
         assert PublishSubtree.__module__ == "cumulusci.tasks.github.publish"
         assert PublishSubtree.__name__ == "PublishSubtree"
+
+    def test_pull_requests(self):
+        assert PullRequests.__module__ == "cumulusci.tasks.github.pull_request"
+        assert PullRequests.__name__ == "PullRequests"

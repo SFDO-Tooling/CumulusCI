@@ -203,6 +203,11 @@ class GitHubPullRequest(AbstractPullRequest):
         return self.pull_request.number if self.pull_request else None
 
     @property
+    def title(self) -> str:
+        """Gets the pull request title."""
+        return self.pull_request.title if self.pull_request else ""
+
+    @property
     def base_ref(self) -> str:
         """Gets the base reference of the pull request."""
         return self.pull_request.base.ref if self.pull_request else ""

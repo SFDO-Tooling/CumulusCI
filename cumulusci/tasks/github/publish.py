@@ -3,7 +3,7 @@ import cumulusci.tasks.vcs.publish as PublishSubtreeTask
 from cumulusci.utils.deprecation import warn_moved
 
 
-class GetPackageDataFromCommitStatus(PublishSubtreeTask.PublishSubtree):
+class PublishSubtree(PublishSubtreeTask.PublishSubtree):
     """Deprecated: use cumulusci.tasks.vcs.publish.PublishSubtree instead"""
 
     def __init__(self, *args, **kwargs):
