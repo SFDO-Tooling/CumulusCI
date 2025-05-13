@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 from re import Pattern
 from typing import Optional, Union
 
@@ -20,7 +21,7 @@ class AbstractRepo(ABC):
 
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRepo."""
-        self.repo = kwargs.get("repo", None)
+        self.repo = kwargs.get("repo")
         self.logger = kwargs.get("logger", None)
         self.options = kwargs.get("options", {})
         self.repo_name = kwargs.get("repo_name", None)
@@ -180,6 +181,15 @@ class AbstractRepo(ABC):
         the AbstractRelease interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @abstractmethod
+    def releases(self) -> list["AbstractRelease"]:
+        """Fetches all releases from the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving releases.
+        The method should return a list of instances of classes that implement
+        the AbstractRelease interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
 
 class AbstractRelease(ABC):
     """Abstract base class for releases.
@@ -194,6 +204,12 @@ class AbstractRelease(ABC):
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRelease."""
         self.release = kwargs.get("release", None)
+
+    @property
+    @abstractmethod
+    def tag_name(self) -> str:
+        """Gets the tag name of the release."""
+        raise NotImplementedError("Subclasses should implement this method.")
 
     @property
     @abstractmethod
@@ -217,6 +233,12 @@ class AbstractRelease(ABC):
     @abstractmethod
     def html_url(self) -> str:
         """Gets the HTML URL of the release."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def created_at(self) -> datetime:
+        """Gets the creation date of the release."""
         raise NotImplementedError("Subclasses should implement this method.")
 
 

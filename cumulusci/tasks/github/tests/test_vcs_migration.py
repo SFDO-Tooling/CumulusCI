@@ -5,6 +5,7 @@ from cumulusci.tasks.github import (
     MergeBranch,
     PublishSubtree,
     PullRequests,
+    ReleaseReport,
 )
 
 
@@ -37,3 +38,7 @@ class TestVCSMigration:
     def test_release(self):
         assert CreateRelease.__module__ == "cumulusci.tasks.github.release"
         assert CreateRelease.__name__ == "CreateRelease"
+
+    def test_release_report(self):
+        assert ReleaseReport.__module__ == "cumulusci.tasks.github.release_report"
+        assert ReleaseReport.__name__ == "ReleaseReport"

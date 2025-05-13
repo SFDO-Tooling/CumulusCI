@@ -3,8 +3,7 @@ from cumulusci.tasks.vcs.commit_status import GetPackageDataFromCommitStatus
 from cumulusci.tasks.vcs.publish import PublishSubtree
 from cumulusci.tasks.vcs.pull_request import PullRequests
 from cumulusci.tasks.vcs.release import CreateRelease
-
-# from cumulusci.tasks.github.release_report import ReleaseReport
+from cumulusci.tasks.vcs.release_report import ReleaseReport
 from cumulusci.tasks.vcs.tag import CloneTag
 
 
@@ -15,4 +14,5 @@ __all__ = (
     "PublishSubtree",
     "PullRequests",
     "CreateRelease",
+    "ReleaseReport",
 )

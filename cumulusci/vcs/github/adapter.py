@@ -150,6 +150,11 @@ class GitHubRelease(AbstractRelease):
         """Gets the HTML URL of the release."""
         return self.release.html_url if self.release else ""
 
+    @property
+    def created_at(self) -> datetime:
+        """Gets the creation date of the release."""
+        return self.release.created_at if self.release else None
+
 
 class GitHubPullRequest(AbstractPullRequest):
     """GitHub pull request object for creating and managing pull requests."""
@@ -446,3 +451,29 @@ class GitHubRepository(AbstractRepo):
             raise GithubApiNotFoundError(
                 f"Could not create release for {tag_name} on GitHub"
             )
+
+    def releases(self) -> list[GitHubRelease]:
+        """Fetches all releases from the given repository."""
+        try:
+            releases = self.repo.releases()
+            return [GitHubRelease(release=release) for release in releases]
+        except NotFoundError:
+            raise GithubApiNotFoundError("Could not find releases on GitHub")
+        except UnprocessableEntity:
+            raise GithubApiNotFoundError(
+                "Could not find releases on GitHub. Check if the repository is archived."
+            )
+        except GitHubError as e:
+            if e.code == http.client.UNAUTHORIZED:
+                raise GithubApiNotFoundError(
+                    "Could not find releases on GitHub. Check your authentication."
+                )
+            else:
+                raise GithubApiNotFoundError(
+                    f"Could not find releases on GitHub: {e.message}"
+                )
+        except Exception as e:
+            raise GithubApiNotFoundError(
+                f"An unexpected error occurred while fetching releases: {str(e)}"
+            )
+        return []

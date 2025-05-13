@@ -106,6 +106,9 @@ class DummyRepo(AbstractRepo):
     def release_from_tag(self):
         pass
 
+    def releases(self):
+        pass
+
 
 class DummyComparison(AbstractComparison):
     def compare(self):
