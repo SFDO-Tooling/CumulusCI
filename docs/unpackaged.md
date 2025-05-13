@@ -315,7 +315,7 @@ directory where metadata for QA configuration is kept.
 ```yaml
 retrieve_qa_config:
     description: Retrieves changes to QA configuration metadata
-    class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+    extends: retrieve_changes
     options:
         path: unpackaged/config/qa
         namespace_tokenize: $project_config.project__package__namespace
@@ -336,7 +336,7 @@ Projects that use `unpackaged/config/qa` often define a
 ```yaml
 deploy_qa_config:
     description: Deploys additional fields used for QA purposes only
-    class_path: cumulusci.tasks.salesforce.Deploy
+    extends: deploy
     options:
         path: unpackaged/config/qa
 ```
