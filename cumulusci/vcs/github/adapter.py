@@ -11,7 +11,7 @@ from github3.repos.release import Release
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.exceptions import GithubApiNotFoundError, GithubException
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import catch_common_github_auth_errors
 from cumulusci.utils.git import parse_repo_url
 from cumulusci.vcs.models import (
@@ -139,6 +139,16 @@ class GitHubRelease(AbstractRelease):
     def prerelease(self) -> bool:
         """Checks if the release is a pre-release."""
         return self.release.prerelease if self.release else False
+
+    @property
+    def name(self) -> str:
+        """Gets the name of the release."""
+        return self.release.name if self.release else ""
+
+    @property
+    def html_url(self) -> str:
+        """Gets the HTML URL of the release."""
+        return self.release.html_url if self.release else ""
 
 
 class GitHubPullRequest(AbstractPullRequest):
@@ -397,7 +407,7 @@ class GitHubRepository(AbstractRepo):
             release: Release = self.repo.release_from_tag(tag_name)
         except NotFoundError:
             message = f"Release for {tag_name} not found"
-            raise GithubException(message)
+            raise GithubApiNotFoundError(message)
         return GitHubRelease(release=release)
 
     def default_branch(self) -> Optional[GitHubBranch]:

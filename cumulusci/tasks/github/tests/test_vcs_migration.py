@@ -1,5 +1,6 @@
 from cumulusci.tasks.github import (
     CloneTag,
+    CreateRelease,
     GetPackageDataFromCommitStatus,
     MergeBranch,
     PublishSubtree,
@@ -32,3 +33,7 @@ class TestVCSMigration:
     def test_pull_requests(self):
         assert PullRequests.__module__ == "cumulusci.tasks.github.pull_request"
         assert PullRequests.__name__ == "PullRequests"
+
+    def test_release(self):
+        assert CreateRelease.__module__ == "cumulusci.tasks.github.release"
+        assert CreateRelease.__name__ == "CreateRelease"

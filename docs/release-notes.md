@@ -59,11 +59,11 @@ that come with CumulusCI.
 In some cases, you may wish to use static text as your release notes instead of aggregating them
 from Pull Request content. You can do that by making customizations in your `cumulusci.yml`.
 
-Customize the `github_release` task to include your static content:
+Customize the `vcs_release` task to include your static content:
 
 ```yaml
 tasks:
-    github_release:
+    vcs_release:
         options:
             release_content: |
                 # This is my top-level heading

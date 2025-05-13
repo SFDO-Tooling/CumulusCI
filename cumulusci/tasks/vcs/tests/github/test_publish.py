@@ -9,7 +9,6 @@ import responses
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import (
     GithubApiNotFoundError,
-    GithubException,
     TaskOptionsError,
     VcsException,
 )
@@ -511,7 +510,7 @@ class TestPublishSubtree(GithubApiTestMixin):
             "force-app",
         ]
         task = PublishSubtree(self.project_config, task_config)
-        with pytest.raises(GithubException) as exc:
+        with pytest.raises(GithubApiNotFoundError) as exc:
             task()
         assert str(exc.value) == "Release for release/1.0 not found"
 

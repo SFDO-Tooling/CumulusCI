@@ -103,7 +103,7 @@ def get_service_for_url(
         provider_klass = None
 
         if provider_path is None:
-            return None
+            continue
 
         try:
             provider_klass = import_global(provider_path)

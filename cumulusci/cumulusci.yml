@@ -394,13 +394,17 @@ tasks:
         class_path: cumulusci.tasks.github.PullRequests
         group: GitHub
     vcs_pull_requests:
-        description: Lists open pull requests in project Github repository
+        description: Lists open pull requests in project VCS repository
         class_path: cumulusci.tasks.vcs.PullRequests
         group: VCS
     github_release:
         description: Creates a Github release for a given managed package version number
         class_path: cumulusci.tasks.github.CreateRelease
         group: GitHub
+    vcs_release:
+        description: Creates a VCS release for a given managed package version number
+        class_path: cumulusci.tasks.vcs.CreateRelease
+        group: VCS
     gather_release_notes:
         description: Generates release notes by getting the latest release of each repository
         class_path: cumulusci.tasks.release_notes.task.AllGithubReleaseNotes
@@ -1209,7 +1213,7 @@ flows:
                     force_upload: True
                     create_unlocked_dependency_packages: False
             2:
-                task: github_release
+                task: vcs_release
                 options:
                     version: ^^create_package_version.version_number
                     version_id: ^^create_package_version.subscriber_package_version_id
@@ -1222,7 +1226,7 @@ flows:
                 options:
                     link_pr: True
                     publish: True
-                    tag: ^^github_release.tag_name
+                    tag: ^^vcs_release.tag_name
                     include_empty: True
                     version_id: ^^create_package_version.subscriber_package_version_id
             4:
@@ -1242,7 +1246,7 @@ flows:
                     force_upload: True
                     create_unlocked_dependency_packages: False
             2:
-                task: github_release
+                task: vcs_release
                 options:
                     version: ^^create_package_version.version_number
                     version_id: ^^create_package_version.subscriber_package_version_id
@@ -1255,7 +1259,7 @@ flows:
                 options:
                     link_pr: True
                     publish: True
-                    tag: ^^github_release.tag_name
+                    tag: ^^vcs_release.tag_name
                     include_empty: True
                     version_id: ^^create_package_version.subscriber_package_version_id
             4:
@@ -1269,7 +1273,7 @@ flows:
                 options:
                     name: Automated beta release
             2:
-                task: github_release
+                task: vcs_release
                 options:
                     version: ^^upload_beta.version_number
                     version_id: ^^upload_beta.version_id
@@ -1282,7 +1286,7 @@ flows:
                 options:
                     link_pr: True
                     publish: True
-                    tag: ^^github_release.tag_name
+                    tag: ^^vcs_release.tag_name
                     include_empty: True
                     version_id: ^^upload_beta.version_id
             4:
@@ -1294,7 +1298,7 @@ flows:
             1:
                 task: upload_production
             2:
-                task: github_release
+                task: vcs_release
                 options:
                     version: ^^upload_production.version_number
                     version_id: ^^upload_production.version_id
@@ -1306,7 +1310,7 @@ flows:
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     publish: True
-                    tag: ^^github_release.tag_name
+                    tag: ^^vcs_release.tag_name
                     version_id: ^^upload_production.version_id
     release_2gp_production:
         group: Release Operations
@@ -1315,7 +1319,7 @@ flows:
             1:
                 task: promote_package_version
             2:
-                task: github_release
+                task: vcs_release
                 options:
                     version: ^^promote_package_version.version_number
                     version_id: ^^promote_package_version.version_id
@@ -1327,7 +1331,7 @@ flows:
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     publish: True
-                    tag: ^^github_release.tag_name
+                    tag: ^^vcs_release.tag_name
                     version_id: ^^promote_package_version.version_id
     release_unlocked_production:
         group: Release Operations
@@ -1336,7 +1340,7 @@ flows:
             1:
                 task: promote_package_version
             2:
-                task: github_release
+                task: vcs_release
                 options:
                     version: ^^promote_package_version.version_number
                     version_id: ^^promote_package_version.version_id
@@ -1348,7 +1352,7 @@ flows:
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     publish: True
-                    tag: ^^github_release.tag_name
+                    tag: ^^vcs_release.tag_name
                     version_id: ^^promote_package_version.version_id
     build_feature_test_package:
         group: Release Operations

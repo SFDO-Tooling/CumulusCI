@@ -207,6 +207,18 @@ class AbstractRelease(ABC):
         """Checks if the release is a pre-release."""
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Gets the name of the release."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def html_url(self) -> str:
+        """Gets the HTML URL of the release."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
 
 class AbstractRef(ABC):
     """Abstract base class for Refs.
