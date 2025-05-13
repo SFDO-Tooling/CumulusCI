@@ -21,7 +21,7 @@ class CreateRelease(BaseSourceControlTask):
         },
         "message": {"description": "The message to attach to the created git tag"},
         "release_content": {
-            "description": "The content to include as the release body. Note: github_release_notes will overwrite this content, if used."
+            "description": "The content to include as the release body. Note: vcs_release_notes will overwrite this content, if used."
         },
         "dependencies": {
             "description": "List of dependencies to record in the tag message."

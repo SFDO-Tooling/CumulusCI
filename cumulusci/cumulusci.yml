@@ -345,6 +345,10 @@ tasks:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
         group: GitHub
+    vcs_parent_pr_notes:
+        description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
+        class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+        group: VCS
     github_clone_tag:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
@@ -409,10 +413,18 @@ tasks:
         description: Generates release notes by getting the latest release of each repository
         class_path: cumulusci.tasks.release_notes.task.AllGithubReleaseNotes
         group: GitHub
+    vcs_gather_release_notes:
+        description: Generates release notes by getting the latest release of each repository
+        class_path: cumulusci.tasks.release_notes.task.AllVcsReleaseNotes
+        group: VCS
     github_release_notes:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
         group: GitHub
+    vcs_release_notes:
+        description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
+        class_path: cumulusci.tasks.release_notes.task.VcsReleaseNotes
+        group: VCS
     github_release_report:
         description: Parses GitHub release notes to report various info
         class_path: cumulusci.tasks.github.ReleaseReport
@@ -791,7 +803,7 @@ flows:
         description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
         steps:
             0.5:
-                task: github_parent_pr_notes
+                task: vcs_parent_pr_notes
                 options:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
@@ -814,7 +826,7 @@ flows:
         description: This flow is deprecated. Please use ci_feature instead.
         steps:
             0.5:
-                task: github_parent_pr_notes
+                task: vcs_parent_pr_notes
                 options:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
@@ -1221,7 +1233,7 @@ flows:
                     package_type: 2GP
                     tag_prefix: $project_config.project__git__prefix_beta
             3:
-                task: github_release_notes
+                task: vcs_release_notes
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     link_pr: True
@@ -1254,7 +1266,7 @@ flows:
                     package_type: 2GP
                     tag_prefix: $project_config.project__git__prefix_beta
             3:
-                task: github_release_notes
+                task: vcs_release_notes
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     link_pr: True
@@ -1281,7 +1293,7 @@ flows:
                     package_type: 1GP
                     tag_prefix: $project_config.project__git__prefix_beta
             3:
-                task: github_release_notes
+                task: vcs_release_notes
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     link_pr: True
@@ -1306,7 +1318,7 @@ flows:
                     package_type: 1GP
                     tag_prefix: $project_config.project__git__prefix_release
             3:
-                task: github_release_notes
+                task: vcs_release_notes
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     publish: True
@@ -1327,7 +1339,7 @@ flows:
                     package_type: 2GP
                     tag_prefix: $project_config.project__git__prefix_release
             3:
-                task: github_release_notes
+                task: vcs_release_notes
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     publish: True
@@ -1348,7 +1360,7 @@ flows:
                     package_type: 2GP
                     tag_prefix: $project_config.project__git__prefix_release
             3:
-                task: github_release_notes
+                task: vcs_release_notes
                 ignore_failure: True # Attempt to generate release notes but don't fail build
                 options:
                     publish: True

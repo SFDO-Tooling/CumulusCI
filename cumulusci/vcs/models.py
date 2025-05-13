@@ -27,6 +27,12 @@ class AbstractRepo(ABC):
         self.repo_name = kwargs.get("repo_name", None)
         self.repo_owner = kwargs.get("repo_owner", None)
 
+    @property
+    @abstractmethod
+    def owner_login(self) -> str:
+        """Returns the login of the repository owner."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
     @abstractmethod
     def get_ref_for_tag(self, tag_name: str) -> "AbstractRef":
         """Gets a Reference object for the tag with the given name.
@@ -189,6 +195,33 @@ class AbstractRepo(ABC):
         The method should return a list of instances of classes that implement
         the AbstractRelease interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def latest_release(self) -> Optional["AbstractRelease"]:
+        """Gets the latest release from the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the latest release.
+        The method should return an instance of a class that implements
+        the AbstractRelease interface."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def has_issues(self) -> bool:
+        """Checks if the repository supports issues.
+        This method should be overridden by subclasses to provide
+        the specific implementation for checking if the repository supports issues.
+        The method should return True if the repository supports issues, otherwise False."""
+        raise NotImplementedError(
+            "Subclasses should implement the has_issues method to check if the repository supports issues."
+        )
+
+    @abstractmethod
+    def get_pr_issue_labels(self, pull_request: "AbstractPullRequest") -> list[str]:
+        """Gets the issue labels for the given pull request.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the labels.
+        The method should return a list of labels associated with the pull request."""
+        raise NotImplementedError("Subclasses should implement this method.")
 
 
 class AbstractRelease(ABC):
@@ -429,11 +462,19 @@ class AbstractPullRequest(ABC):
         raise NotImplementedError("Subclasses should implement this method.")
 
     @property
+    @abstractmethod
     def base_ref(self) -> str:
         """Gets the base reference of the pull request."""
         raise NotImplementedError("Subclasses should implement this method.")
 
     @property
+    @abstractmethod
     def head_ref(self) -> str:
         """Gets the head reference of the pull request."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def merged_at(self) -> datetime:
+        """Gets the date when the pull request was merged."""
         raise NotImplementedError("Subclasses should implement this method.")

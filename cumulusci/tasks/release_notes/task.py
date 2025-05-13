@@ -1,19 +1,20 @@
-from cumulusci.core.github import (
-    get_pull_requests_by_commit,
+import copy
+
+from cumulusci.core.github import markdown_link_to_pr
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
+from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
+from cumulusci.utils.deprecation import warn_moved
+from cumulusci.vcs.bootstrap import (
     get_pull_requests_with_base_branch,
     is_label_on_pull_request,
     is_pull_request_merged,
-    markdown_link_to_pr,
 )
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.tasks.release_notes.generator import (
-    GithubReleaseNotesGenerator,
-    ParentPullRequestNotesGenerator,
-)
+from cumulusci.vcs.models import AbstractPullRequest, AbstractRepo
 
 
-class AllGithubReleaseNotes(BaseGithubTask):
+class AllVcsReleaseNotes(BaseSourceControlTask):
+    filename: str = "vcs_release_notes.html"
 
     task_options = {
         "repos": {
@@ -30,8 +31,12 @@ class AllGithubReleaseNotes(BaseGithubTask):
         body = ""
         for project in self.options["repos"]:
             if project["owner"] and project["repo"]:
+                options = copy.deepcopy(self.options)
+                options["repo_owner"] = project["owner"]
+                options["repo_name"] = project["repo"]
+
                 release = (
-                    self.github.repository(project["owner"], project["repo"])
+                    self.vcs_service.get_repository(options=options)
                     .latest_release()
                     .body
                 )
@@ -41,7 +46,7 @@ class AllGithubReleaseNotes(BaseGithubTask):
                 release_project_header = (
                     f"""<h1 id="{project['repo']}">{project['repo']}</h1>"""
                 )
-                release_html = self.github.markdown(
+                release_html = self.vcs_service.markdown(
                     release,
                     mode="gfm",
                     context="{}/{}".format(project["owner"], project["repo"]),
@@ -51,12 +56,24 @@ class AllGithubReleaseNotes(BaseGithubTask):
         head = "<head><title>Release Notes</title></head>"
         body = f"<body>{table_of_contents}{body}</body>"
         result = f"<html>{head}{body}</html>"
-        with open("github_release_notes.html", "w") as f:
+        with open(self.filename, "w") as f:
             f.write(result)
 
 
-class GithubReleaseNotes(BaseGithubTask):
+class AllGithubReleaseNotes(AllVcsReleaseNotes):
+    """Deprecated: use cumulusci.tasks.release_notes.task.AllVcsReleaseNotes instead"""
 
+    filename: str = "github_release_notes.html"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warn_moved(
+            "cumulusci.tasks.release_notes.task.AllVcsReleaseNotes",
+            f"{__name__}.AllGithubReleaseNotes",
+        )
+
+
+class VcsReleaseNotes(BaseSourceControlTask):
     task_options = {
         "tag": {
             "description": (
@@ -94,38 +111,36 @@ class GithubReleaseNotes(BaseGithubTask):
         },
     }
 
-    def _run_task(self):
-        github_info = {
-            "github_owner": self.project_config.repo_owner,
-            "github_repo": self.project_config.repo_name,
-            "github_username": self.github_config.username,
-            "github_password": self.github_config.password,
-            "default_branch": self.project_config.project__git__default_branch,
-            "prefix_beta": self.project_config.project__git__prefix_beta,
-            "prefix_prod": self.project_config.project__git__prefix_release,
-        }
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.options["link_pr"] = process_bool_arg(self.options.get("link_pr", False))
+        self.options["publish"] = process_bool_arg(self.options.get("publish", False))
+        self.options["include_empty"] = process_bool_arg(
+            self.options.get("include_empty", False)
+        )
+        self.options["trial_info"] = self.options.get("trial_info", False)
+        self.options["sandbox_date"] = self.options.get("sandbox_date", None)
+        self.options["production_date"] = self.options.get("production_date", None)
 
-        generator = GithubReleaseNotesGenerator(
-            self.github,
-            github_info,
-            self.project_config.project__git__release_notes__parsers.values(),
-            self.options["tag"],
-            self.options.get("last_tag"),
-            process_bool_arg(self.options.get("link_pr", False)),
-            process_bool_arg(self.options.get("publish", False)),
-            self.get_repo().has_issues,
-            process_bool_arg(self.options.get("include_empty", False)),
-            version_id=self.options.get("version_id"),
-            trial_info=self.options.get("trial_info", False),
-            sandbox_date=self.options.get("sandbox_date", None),
-            production_date=self.options.get("production_date", None),
+    def _run_task(self):
+        release_notes: BaseReleaseNotesGenerator = (
+            self.vcs_service.release_notes_generator(self.options)
+        )
+        self.logger.info("\n" + release_notes())
+
+
+class GithubReleaseNotes(VcsReleaseNotes):
+    """Deprecated: use cumulusci.tasks.release_notes.task.VcsReleaseNotes instead"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warn_moved(
+            "cumulusci.tasks.release_notes.task.VcsReleaseNotes",
+            f"{__name__}.GithubReleaseNotes",
         )
 
-        release_notes = generator()
-        self.logger.info("\n" + release_notes)
 
-
-class ParentPullRequestNotes(BaseGithubTask):
+class ParentPullRequestNotes(BaseSourceControlTask):
     task_docs = """
     Aggregate change notes from child pull request(s) to a corresponding parent pull request.
 
@@ -141,7 +156,7 @@ class ParentPullRequestNotes(BaseGithubTask):
 
     If you have a pull request on branch feature/myFeature that you would like to rebuild notes
     for use the branch_name and force options:
-        cci task run github_parent_pr_notes --branch-name feature/myFeature --force True
+        cci task run vcs_parent_pr_notes --branch-name feature/myFeature --force True
     """
     UNAGGREGATED_PR_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
 
@@ -170,14 +185,14 @@ class ParentPullRequestNotes(BaseGithubTask):
         self.options["force"] = self.options.get("force")
 
     def _setup_self(self):
-        self.repo = self.get_repo()
-        self.commit = self.repo.commit(self.project_config.repo_commit)
+        self.repo: AbstractRepo = self.get_repo()
+        self.commit = self.repo.get_commit(self.project_config.repo_commit)
         self.branch_name = self.options.get("branch_name")
         self.force_rebuild_change_notes = process_bool_arg(
             self.options["force"] or False
         )
-        self.generator = ParentPullRequestNotesGenerator(
-            self.github, self.repo, self.project_config
+        self.generator: BaseReleaseNotesGenerator = (
+            self.vcs_service.parent_pr_notes_generator(self.repo)
         )
 
     def _run_task(self):
@@ -224,9 +239,9 @@ class ParentPullRequestNotes(BaseGithubTask):
             self.logger.info(f"Pull request not found for branch {self.branch_name}.")
 
     def _get_child_branch_name_from_merge_commit(self):
-        pull_requests = get_pull_requests_by_commit(
-            self.github, self.repo, self.commit.sha
-        )
+        pull_requests: list[
+            AbstractPullRequest
+        ] = self.repo.get_pull_requests_by_commit(self.commit.sha)
         merged_prs = list(filter(is_pull_request_merged, pull_requests))
 
         child_branch_name = None

@@ -4,7 +4,8 @@ from typing import Optional
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.vcs.models import AbstractRepo
+from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
+from cumulusci.vcs.models import AbstractRelease, AbstractRepo
 from cumulusci.vcs.utils import AbstractCommitDir
 
 
@@ -84,3 +85,29 @@ class VCSService(ABC):
     def get_committer(self, repo: AbstractRepo) -> AbstractCommitDir:
         """Returns the committer for the VCS repository."""
         raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def markdown(
+        self, release: AbstractRelease, mode: str = "", context: str = ""
+    ) -> str:
+        """Returns the markdown for the release.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the markdown.
+        The method should return a string containing the markdown."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def release_notes_generator(self) -> BaseReleaseNotesGenerator:
+        """Returns the release notes generator for the VCS service."""
+        raise NotImplementedError(
+            "Subclasses should define the release_notes_generator property"
+        )
+
+    @abstractmethod
+    def parent_pr_notes_generator(
+        self, repo: AbstractRepo
+    ) -> BaseReleaseNotesGenerator:
+        """Returns the parent PR notes generator for the VCS service."""
+        raise NotImplementedError(
+            "Subclasses should define the parent_pr_notes_generator property"
+        )

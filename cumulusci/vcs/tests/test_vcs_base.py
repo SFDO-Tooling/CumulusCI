@@ -79,6 +79,15 @@ class TestVCSBase:
             def get_service_for_url(cls, url):
                 return cls()
 
+            def markdown(self):
+                pass
+
+            def parent_pr_notes_generator(self):
+                pass
+
+            def release_notes_generator(self):
+                pass
+
         config = keychain.project_config
         config.keychain = keychain
 

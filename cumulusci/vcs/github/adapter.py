@@ -6,6 +6,9 @@ from typing import Optional, Union
 from github3 import GitHub, GitHubError
 from github3.exceptions import NotFoundError, UnprocessableEntity
 from github3.git import Reference, Tag
+from github3.issues.issue import ShortIssue
+from github3.issues.label import ShortLabel
+from github3.pulls import PullRequest, ShortPullRequest
 from github3.repos.commit import RepoCommit
 from github3.repos.release import Release
 from github3.repos.repo import Repository
@@ -14,6 +17,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import catch_common_github_auth_errors
 from cumulusci.utils.git import parse_repo_url
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.vcs.models import (
     AbstractBranch,
     AbstractComparison,
@@ -201,7 +205,7 @@ class GitHubPullRequest(AbstractPullRequest):
     ) -> "GitHubPullRequest":
         """Creates a pull request on the given repository."""
         try:
-            pull_request = git_repo.repo.create_pull(
+            pull_request: PullRequest = git_repo.repo.create_pull(
                 title,
                 base,
                 head,
@@ -232,6 +236,11 @@ class GitHubPullRequest(AbstractPullRequest):
         """Gets the head reference of the pull request."""
         return self.pull_request.head.ref if self.pull_request else ""
 
+    @property
+    def merged_at(self) -> datetime:
+        """Gets the merged date of the short pull request."""
+        return self.pull_request.merged_at if self.pull_request else None
+
 
 class GitHubRepository(AbstractRepo):
 
@@ -255,8 +264,17 @@ class GitHubRepository(AbstractRepo):
         repo_url = self.options.get("repository_url", None)
         if repo_url is not None:
             self.repo_owner, self.repo_name, host = parse_repo_url(repo_url)
-        self.repo_owner = self.repo_owner or self.project_config.repo_owner
-        self.repo_name = self.repo_name or self.project_config.repo_name
+
+        self.repo_owner = (
+            self.repo_owner
+            or self.options.get("repo_owner")
+            or self.project_config.repo_owner
+        )
+        self.repo_name = (
+            self.repo_name
+            or self.options.get("repo_name")
+            or self.project_config.repo_name
+        )
         self.repo: Repository = self.github.repository(self.repo_owner, self.repo_name)
 
     @property
@@ -266,6 +284,11 @@ class GitHubRepository(AbstractRepo):
                 self.service_type
             )
         return self._service_config
+
+    @property
+    def owner_login(self) -> str:
+        """Returns the owner login of the repository."""
+        return self.repo.owner.login if self.repo else ""
 
     def get_ref_for_tag(self, tag_name: str) -> GitHubRef:
         """Gets a Reference object for the tag with the given name"""
@@ -477,3 +500,43 @@ class GitHubRepository(AbstractRepo):
                 f"An unexpected error occurred while fetching releases: {str(e)}"
             )
         return []
+
+    def latest_release(self) -> Optional[GitHubRelease]:
+        """Fetches the latest release from the given repository."""
+        release = self.repo.latest_release()
+        if release:
+            return GitHubRelease(release=release)
+        return None
+
+    def has_issues(self) -> bool:
+        """Checks if the repository has issues enabled."""
+        return self.repo.has_issues() if self.repo else False
+
+    def get_pull_requests_by_commit(self, commit_sha) -> list[GitHubPullRequest]:
+        """Fetches all pull requests associated with the given commit SHA."""
+        endpoint = (
+            self.github.session.base_url
+            + f"/repos/{self.repo.owner.login}/{self.repo.name}/commits/{commit_sha}/pulls"
+        )
+        response = self.github.session.get(
+            endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
+        )
+        json_list = safe_json_from_response(response)
+
+        for json in json_list:
+            json["body_html"] = ""
+            json["body_text"] = ""
+
+        pull_requests = [
+            GitHubPullRequest(
+                repo=self.repo, pull_request=ShortPullRequest(json, self.github)
+            )
+            for json in json_list
+        ]
+        return pull_requests
+
+    def get_pr_issue_labels(self, pull_request: GitHubPullRequest) -> list[str]:
+        """Fetches all labels associated with the given pull request."""
+        issue: ShortIssue = self.repo.issue(pull_request.number)
+        labels: ShortLabel = issue.labels()
+        return [label.name for label in labels] if labels else []

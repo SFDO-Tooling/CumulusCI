@@ -6,6 +6,7 @@ from cumulusci.vcs.github.adapter import (
     GitHubCommit,
     GitHubBranch,
     GitHubPullRequest,
+    GitHubRelease,
 )
 from cumulusci.vcs.github.service import GitHubService, GitHubEnterpriseService
 
@@ -19,4 +20,5 @@ __all__ = (
     "GitHubCommit",
     "GitHubBranch",
     "GitHubPullRequest",
+    "GitHubRelease",
 )

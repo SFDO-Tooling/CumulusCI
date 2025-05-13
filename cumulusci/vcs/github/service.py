@@ -37,6 +37,10 @@ from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiErro
     ServiceNotConfigured,
 )
 from cumulusci.tasks.github.util import CommitDir
+from cumulusci.tasks.release_notes.generator import (
+    GithubReleaseNotesGenerator,
+    ParentPullRequestNotesGenerator,
+)
 
 # from cumulusci.oauth.client import (
 #     OAuth2ClientConfig,
@@ -46,7 +50,7 @@ from cumulusci.tasks.github.util import CommitDir
 # )
 from cumulusci.utils.git import parse_repo_url
 from cumulusci.vcs.base import VCSService
-from cumulusci.vcs.github import GitHubRepository
+from cumulusci.vcs.github import GitHubRelease, GitHubRepository
 
 # from rich.console import Console
 
@@ -452,6 +456,52 @@ class GitHubService(VCSService):
     def get_committer(self, repo: GitHubRepository) -> CommitDir:
         """Returns the committer for the GitHub repository."""
         return CommitDir(repo.repo, logger=self.logger)
+
+    def markdown(
+        self, release: GitHubRelease, mode: str = "gfm", context: str = ""
+    ) -> str:
+        """Converts the given text to GitHub-flavored Markdown."""
+        release_html = self.github.markdown(
+            release,
+            mode=mode,
+            context=context,
+        )
+        return release_html
+
+    def release_notes_generator(self, options: dict) -> GithubReleaseNotesGenerator:
+        github_info = {
+            "github_owner": self.config.repo_owner,
+            "github_repo": self.config.repo_name,
+            "github_username": self.service_config.username,
+            "github_password": self.service_config.password,
+            "default_branch": self.config.project__git__default_branch,
+            "prefix_beta": self.config.project__git__prefix_beta,
+            "prefix_prod": self.config.project__git__prefix_release,
+        }
+
+        generator = GithubReleaseNotesGenerator(
+            self.github,
+            github_info,
+            self.config.project__git__release_notes__parsers.values(),
+            options["tag"],
+            options.get("last_tag"),
+            options.get("link_pr"),
+            options.get("publish"),
+            self.get_repository().has_issues,
+            options.get("include_empty"),
+            version_id=options.get("version_id"),
+            trial_info=options.get("trial_info", False),
+            sandbox_date=options.get("sandbox_date", None),
+            production_date=options.get("production_date", None),
+        )
+
+        return generator
+
+    def parent_pr_notes_generator(
+        self, repo: GitHubRepository
+    ) -> ParentPullRequestNotesGenerator:
+        """Returns the parent pull request notes generator for the GitHub repository."""
+        return ParentPullRequestNotesGenerator(self.github, repo.repo, self.config)
 
 
 class GitHubEnterpriseService(GitHubService):

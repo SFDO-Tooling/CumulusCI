@@ -794,7 +794,7 @@ release_unlocked_production:
                 package_type: 2GP
                 tag_prefix: $project_config.project__git__prefix_release
         3:
-            task: github_release_notes
+            task: vcs_release_notes
             ignore_failure: True
             options:
                 publish: True
@@ -809,7 +809,7 @@ with the `^^promote_package_version.version_number` syntax. Here, `dependencies`
 is of type list and it uses the list from `promote_package_version` task as an
 option value with `^^promote_package_version.dependencies` syntax.
 
-Similarly, the `github_release_notes` task uses the `version_id` set by the
+Similarly, the `vcs_release_notes` task uses the `version_id` set by the
 `promote_package_version` task as an option value with the
 `^^promote_package_version.version_number` syntax and uses the `tag` set by
 `vcs_release` task as an option value with the `^^vcs_release.tag_name`

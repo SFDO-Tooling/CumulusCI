@@ -8,6 +8,7 @@ from cumulusci.core.utils import import_global
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
     AbstractGitTag,
+    AbstractPullRequest,
     AbstractRef,
     AbstractRepo,
     AbstractRepoCommit,
@@ -118,3 +119,30 @@ def get_service_for_url(
             )
             return vcs_service
     raise CumulusCIException(f"Service for URL '{url}' not found.")
+
+
+def get_pull_requests_with_base_branch(
+    repo: AbstractRepo,
+    base_branch_name: str,
+    head: Optional[str] = None,
+    state: Optional[str] = None,
+) -> list:
+    """Returns a list of pull requests with the given base branch"""
+    if head:
+        head = repo.owner_login + ":" + head
+    return list(repo.pull_requests(base=base_branch_name, head=head, state=state))
+
+
+def is_pull_request_merged(pull_request: AbstractPullRequest) -> bool:
+    """Takes a AbstractPullRequest object"""
+    return pull_request.merged_at is not None
+
+
+def is_label_on_pull_request(
+    repo: AbstractRepo, pull_request: AbstractPullRequest, label_name: str
+) -> bool:
+    """Returns True if the given label is on the pull request with the given
+    pull request number. False otherwise."""
+    labels = list(repo.get_pr_issue_labels(pull_request))
+
+    return any(label_name == issue_label for issue_label in labels)

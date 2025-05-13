@@ -1,3 +1,5 @@
+from typing import Optional
+
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
     AbstractBranch,
@@ -27,6 +29,15 @@ class ConcreteVCSService(VCSService):
 
     def get_committer(self, repo: AbstractRepo) -> AbstractCommitDir:
         return DummyCommitDir()
+
+    def markdown(self):
+        pass
+
+    def parent_pr_notes_generator(self):
+        pass
+
+    def release_notes_generator(self):
+        pass
 
 
 class DummyCommitDir(AbstractCommitDir):
@@ -109,6 +120,18 @@ class DummyRepo(AbstractRepo):
     def releases(self):
         pass
 
+    def get_pr_issue_labels(self):
+        pass
+
+    def has_issues(self):
+        pass
+
+    def latest_release(self):
+        pass
+
+    def owner_login(self):
+        pass
+
 
 class DummyComparison(AbstractComparison):
     def compare(self):
@@ -136,3 +159,15 @@ class DummyPullRequest(AbstractPullRequest):
 
     def pull_requests(self):
         pass
+
+    @property
+    def base_ref(self) -> Optional[str]:
+        super().base_ref()
+
+    @property
+    def head_ref(self) -> str:
+        return "Dummy pull request title"
+
+    @property
+    def merged_at(self) -> str:
+        return "Dummy pull request title"
