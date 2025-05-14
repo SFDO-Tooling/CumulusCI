@@ -168,6 +168,13 @@ class DynamicDependency(Dependency, abc.ABC):
     def is_flattened(self):
         return False
 
+    @property
+    @abc.abstractmethod
+    def url(self) -> str:
+        raise NotImplementedError(
+            "DynamicDependency subclasses must implement a url property."
+        )
+
     def resolve(
         self,
         context: BaseProjectConfig,
@@ -208,6 +215,10 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
     @property
     def is_resolved(self):
         return bool(self.ref)
+
+    @property
+    def url(self) -> str:
+        return self.github or super().url
 
     @pydantic.root_validator
     def check_deprecated_fields(cls, values):
@@ -776,13 +787,9 @@ def add_dependency_class(new_class):
     """
     if new_class not in AVAILABLE_DEPENDENCY_CLASSES:
         AVAILABLE_DEPENDENCY_CLASSES.append(new_class)
-        logger.info(
-            f"dependency_config: Added '{new_class}'. Current list: {AVAILABLE_DEPENDENCY_CLASSES}"
-        )
+        logger.info(f"dependency_config: Added '{new_class}'.")
     else:
-        logger.warning(
-            f"dependency_config: '{new_class}' already exists. Current list: {AVAILABLE_DEPENDENCY_CLASSES}"
-        )
+        logger.warning(f"dependency_config: '{new_class}' already exists.")
 
 
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:

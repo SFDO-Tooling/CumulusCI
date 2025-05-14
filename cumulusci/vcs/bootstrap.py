@@ -1,3 +1,5 @@
+import functools
+import io
 import logging
 import re
 from typing import Optional
@@ -5,6 +7,7 @@ from typing import Optional
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import import_global
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
     AbstractGitTag,
@@ -146,3 +149,21 @@ def is_label_on_pull_request(
     labels = list(repo.get_pr_issue_labels(pull_request))
 
     return any(label_name == issue_label for issue_label in labels)
+
+
+def get_repo_from_url(
+    self, config: BaseProjectConfig, url: str, options: dict = {}
+) -> AbstractRepo:
+    vcs_service: VCSService = get_service_for_url(config, url, options)
+    options.update({"repository_url": url})
+    return vcs_service.get_repository(options=options)
+
+
+@functools.lru_cache(50)
+def get_remote_project_config(repo: AbstractRepo, ref: str) -> BaseProjectConfig:
+    contents = repo.file_contents("cumulusci.yml", ref=ref)
+    contents_io = io.StringIO(contents.decoded.decode("utf-8"))
+    contents_io.url = (
+        f"cumulusci.yml from {repo.repo_owner}/{repo.repo_name}"  # for logging
+    )
+    return BaseProjectConfig(None, cci_safe_load(contents_io))

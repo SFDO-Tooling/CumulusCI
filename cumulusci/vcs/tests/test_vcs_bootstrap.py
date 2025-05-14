@@ -33,6 +33,7 @@ class TestVCSBase:
 
     def test_get_service_missing_class_path(self):
         config = MagicMock()
+        config.get_project_service.return_value = ("github", None)
         config.lookup.return_value = "github"
         config.services = {"github": {}}
         with pytest.raises(CumulusCIException) as e:

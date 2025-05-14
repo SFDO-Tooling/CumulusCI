@@ -507,6 +507,21 @@ class TestBaseProjectConfig:
         assert service == "github"
         assert alias is None
 
+    def test_get_package_data(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {
+                "project": {
+                    "package": {"namespace": "foo"},
+                }
+            },
+        )
+
+        assert BaseProjectConfig.get_package_data(config) == (
+            "Package",
+            "foo",
+        )
+
     def test_get_project_service_type_alias(self):
         config = BaseProjectConfig(
             UniversalConfig(),

@@ -159,6 +159,11 @@ class GitHubRelease(AbstractRelease):
         """Gets the creation date of the release."""
         return self.release.created_at if self.release else None
 
+    @property
+    def draft(self) -> bool:
+        """Checks if the release is a draft."""
+        return self.release.draft if self.release else False
+
 
 class GitHubPullRequest(AbstractPullRequest):
     """GitHub pull request object for creating and managing pull requests."""

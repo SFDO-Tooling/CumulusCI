@@ -5,30 +5,27 @@ from typing import List, Optional, Union
 from unittest.mock import Mock
 from zipfile import ZipFile
 
-from github3.repos.repo import Repository
 from pydantic import BaseModel
 
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     Dependency,
-    GitHubDynamicDependency,
+    DynamicDependency,
     parse_dependencies,
-)
-from cumulusci.core.dependencies.github import (
-    get_package_data,
-    get_remote_project_config,
-    get_repo,
 )
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.utils import download_extract_github_from_repo
+from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
+from cumulusci.utils import download_extract_vcs_from_repo
 from cumulusci.utils.version_strings import LooseVersion
 from cumulusci.utils.xml import metadata_tree
+from cumulusci.vcs.bootstrap import get_remote_project_config, get_repo_from_url
+from cumulusci.vcs.models import AbstractRepo
 
 
 class Package(BaseModel):
-    repo: Optional[Union[Repository, Mock]]
+    repo: Optional[Union[AbstractRepo, Mock]]
     package_name: str
     namespace: str
     prefix_release: str
@@ -70,7 +67,7 @@ class FieldDetail(BaseModel):
 PRERELEASE_SIGIL = LooseVersion("100000001.0")
 
 
-class GenerateDataDictionary(BaseGithubTask):
+class GenerateDataDictionary(BaseSourceControlTask):
     task_docs = """
     Generate a data dictionary for the project by walking all GitHub releases.
     The data dictionary is output as two CSV files.
@@ -151,9 +148,9 @@ class GenerateDataDictionary(BaseGithubTask):
             additional_deps = parse_dependencies(
                 self.options["additional_dependencies"]
             )
-            if not all(isinstance(d, GitHubDynamicDependency) for d in additional_deps):
+            if not all(isinstance(d, DynamicDependency) for d in additional_deps):
                 raise TaskOptionsError(
-                    "Only GitHub dependencies are currently supported."
+                    "Only VCS with dynamic dependencies are currently supported."
                 )
 
         self.options["include_prerelease"] = process_bool_arg(
@@ -177,16 +174,16 @@ class GenerateDataDictionary(BaseGithubTask):
         )
 
     def _get_repo_dependencies(
-        self, dependencies: List[GitHubDynamicDependency]
+        self, dependencies: List[DynamicDependency]
     ) -> List[Package]:
         """Return a list of Package objects representing all of the GitHub repositories
         in this project's dependency tree. Ignore all non-GitHub dependencies."""
-        github_deps = set()
+        scm_deps = set()
         packages = []
 
-        def log_github(some_dep: Dependency):
-            if isinstance(some_dep, GitHubDynamicDependency):
-                github_deps.add(some_dep)
+        def log_scm(some_dep: Dependency):
+            if isinstance(some_dep, DynamicDependency):
+                scm_deps.add(some_dep)
 
             return True
 
@@ -194,13 +191,13 @@ class GenerateDataDictionary(BaseGithubTask):
             self.project_config,
             dependencies,
             resolution_strategy="production",
-            filter_function=log_github,
+            filter_function=log_scm,
         )
 
-        for dependency in github_deps:
-            repo = get_repo(dependency.github, self.project_config)
-            config = get_remote_project_config(repo, dependency.ref)
-            package_name, namespace = get_package_data(config)
+        for dependency in scm_deps:
+            repo: AbstractRepo = get_repo_from_url(self.project_config, dependency.url)
+            config: BaseProjectConfig = get_remote_project_config(repo, dependency.ref)
+            package_name, namespace = BaseProjectConfig.get_package_data(config)
             packages.append(
                 Package(
                     repo=repo,
@@ -237,10 +234,10 @@ class GenerateDataDictionary(BaseGithubTask):
         ):
             parsed_deps = parse_dependencies(self.project_config.project__dependencies)
             dependencies.extend(
-                d for d in parsed_deps if isinstance(d, GitHubDynamicDependency)
+                d for d in parsed_deps if isinstance(d, DynamicDependency)
             )
         if "additional_dependencies" in self.options:
-            # init_options() required these to all be GitHubDynamicDependencies
+            # init_options() required these to all be DynamicDependencies
             dependencies.extend(
                 parse_dependencies(self.options["additional_dependencies"])
             )
@@ -276,7 +273,7 @@ class GenerateDataDictionary(BaseGithubTask):
             ):
                 continue
 
-            zip_file = download_extract_github_from_repo(
+            zip_file = download_extract_vcs_from_repo(
                 package.repo, ref=release.tag_name
             )
             version = PackageVersion(
@@ -295,7 +292,7 @@ class GenerateDataDictionary(BaseGithubTask):
         # If we are asked to process a prerelease, do so.
         if self.options["include_prerelease"]:
             # package.repo is guaranteed to be our repo (via _init_options())
-            zip_file = download_extract_github_from_repo(
+            zip_file = download_extract_vcs_from_repo(
                 package.repo, ref=self.project_config.repo_branch
             )
             version = PackageVersion(

@@ -38,14 +38,7 @@ def get_remote_project_config(repo: Repository, ref: str) -> BaseProjectConfig:
 
 
 def get_package_data(config: BaseProjectConfig):
-    namespace = config.project__package__namespace
-    package_name = (
-        config.project__package__name_managed
-        or config.project__package__name
-        or "Package"
-    )
-
-    return package_name, namespace
+    return BaseProjectConfig.get_package_data(config)
 
 
 def get_package_details_from_tag(

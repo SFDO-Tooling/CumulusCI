@@ -735,6 +735,17 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             cache_dir.mkdir(exist_ok=True, parents=True)
             yield cache_dir
 
+    @classmethod
+    def get_package_data(cls, config: "BaseProjectConfig"):
+        namespace = config.project__package__namespace
+        package_name = (
+            config.project__package__name_managed
+            or config.project__package__name
+            or "Package"
+        )
+
+        return package_name, namespace
+
 
 class RemoteProjectConfig(ProjectConfigPropertiesMixin):
     pass

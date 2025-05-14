@@ -274,6 +274,12 @@ class AbstractRelease(ABC):
         """Gets the creation date of the release."""
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @property
+    @abstractmethod
+    def draft(self) -> bool:
+        """Checks if the release is a draft."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
 
 class AbstractRef(ABC):
     """Abstract base class for Refs.
