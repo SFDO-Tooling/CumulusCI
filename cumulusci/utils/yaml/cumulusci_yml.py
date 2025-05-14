@@ -132,6 +132,11 @@ class DependencyResolutions(CCIDictModel):
     resolution_strategies: Dict[str, List[str]] = None
 
 
+class ProjectService(CCIDictModel):
+    service_type: str
+    service_alias: str
+
+
 class Project(CCIDictModel):
     name: Optional[str] = None
     package: Optional[Package] = None
@@ -142,7 +147,7 @@ class Project(CCIDictModel):
     dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
     custom: Optional[Dict] = None
-    service_type: Optional[str] = None
+    service: Optional[Union[str, ProjectService]] = None
 
 
 class ScratchOrg(CCIDictModel):

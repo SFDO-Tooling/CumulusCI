@@ -34,7 +34,7 @@ def get_service(
     Returns:
         VCSService: The VCS service provider class.
     """
-    service_type: str = config.lookup("project__service_type") or "github"
+    service_type, service_alias = config.get_project_service()
 
     provider_klass = None
     provider_path: str = config.services[service_type].get("class_path", None)
@@ -52,7 +52,7 @@ def get_service(
         )
 
     if issubclass(provider_klass, VCSService):
-        vcs_service: VCSService = provider_klass(config, logger=logger)
+        vcs_service: VCSService = provider_klass(config, service_alias, logger=logger)
 
         return vcs_service
 

@@ -768,6 +768,23 @@ AVAILABLE_DEPENDENCY_CLASSES = [
 ]
 
 
+def add_dependency_class(new_class):
+    """
+    Adds a new dependency class to the global list if it's not already present.
+    Args:
+        new_class: The dependency class to add.
+    """
+    if new_class not in AVAILABLE_DEPENDENCY_CLASSES:
+        AVAILABLE_DEPENDENCY_CLASSES.append(new_class)
+        logger.info(
+            f"dependency_config: Added '{new_class}'. Current list: {AVAILABLE_DEPENDENCY_CLASSES}"
+        )
+    else:
+        logger.warning(
+            f"dependency_config: '{new_class}' already exists. Current list: {AVAILABLE_DEPENDENCY_CLASSES}"
+        )
+
+
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
     """Parse a single dependency specification in the form of a dict
     into a concrete Dependency subclass.

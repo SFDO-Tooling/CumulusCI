@@ -248,6 +248,7 @@ class TestBaseProjectConfig:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
             dependencies:
                 - github: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
+            service: github
         """
                 ),
                 "unpackaged/pre": {"pre": {}, "skip": {}},
@@ -269,6 +270,9 @@ class TestBaseProjectConfig:
                 namespace: ccitestdep
             git:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
+            service:
+                service_type: github
+                service_alias: alias
         """
                 ),
                 "unpackaged/pre": {},
@@ -489,6 +493,41 @@ class TestBaseProjectConfig:
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag()
         assert result == "release/1.1"
+
+    def test_get_project_service(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        service, alias = config.get_project_service()
+        assert service == "github"
+        assert alias is None
+
+    def test_get_project_service_type_alias(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {
+                "project": {
+                    "service": {"service_type": "scm", "service_alias": "myalias"}
+                }
+            },
+        )
+        service, alias = config.get_project_service()
+        assert service == "scm"
+        assert alias == "myalias"
+
+    def test_get_project_service_str(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {"project": {"service": "scm"}},
+        )
+        service, alias = config.get_project_service()
+        assert service == "scm"
+        assert alias is None
 
     def test_get_latest_tag_matching_prefix(self):
         config = BaseProjectConfig(

@@ -353,6 +353,22 @@
             },
             "additionalProperties": false
         },
+        "ProjectService": {
+            "title": "ProjectService",
+            "type": "object",
+            "properties": {
+                "service_type": {
+                    "title": "Service Type",
+                    "type": "string"
+                },
+                "service_alias": {
+                    "title": "Service Alias",
+                    "type": "string"
+                }
+            },
+            "required": ["service_type", "service_alias"],
+            "additionalProperties": false
+        },
         "Project": {
             "title": "Project",
             "type": "object",
@@ -403,9 +419,16 @@
                     "title": "Custom",
                     "type": "object"
                 },
-                "service_type": {
-                    "title": "Service Type",
-                    "type": "string"
+                "service": {
+                    "title": "Service",
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "$ref": "#/definitions/ProjectService"
+                        }
+                    ]
                 }
             },
             "additionalProperties": false

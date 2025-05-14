@@ -551,6 +551,16 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     def allow_remote_code(self) -> bool:
         return self.source.allow_remote_code
 
+    def get_project_service(self) -> (str, str):
+        """Get the project service type and service alias if defined."""
+        if isinstance(self.project__service, dict):
+            return (
+                self.project__service__service_type,
+                self.project__service__service_alias,
+            )
+
+        return (self.project__service or "github", None)
+
     def get_tag_for_version(self, prefix: str, version: str) -> str:
         """Given a prefix and version, returns the appropriate tag name to use."""
         try:
