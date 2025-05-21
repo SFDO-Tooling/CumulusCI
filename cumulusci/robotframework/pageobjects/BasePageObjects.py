@@ -13,6 +13,8 @@ import re
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from SeleniumLibrary.errors import ElementNotFound
+from selenium.webdriver.common.by import By
+
 
 from cumulusci.robotframework.form_handlers import get_form_handler
 from cumulusci.robotframework.pageobjects import BasePage, pageobject
@@ -73,7 +75,7 @@ class ListingPage(BasePage):
             elements = self.selenium.get_webelements(xpath)
             if elements:
                 for element in elements:
-                    cb = element.find_element_by_tag_name("input")
+                    cb = element.find_element(By.TAG_NAME, "input")
                     if not cb.is_selected():
                         element.click()
             else:
@@ -103,7 +105,7 @@ class ListingPage(BasePage):
 
             if elements:
                 for element in elements:
-                    cb = element.find_element_by_tag_name("input")
+                    cb = element.find_element(By.TAG_NAME, "input")
                     if cb.is_selected():
                         self.builtin.log(f"clicking on element for {item}")
                         element.click()
@@ -253,7 +255,7 @@ class ModalMixin:
         """
         # search from the root of the document, unless a modal
         # is open
-        root = self.selenium.driver.find_element_by_tag_name("body")
+        root = self.selenium.driver.find_element(By.TAG_NAME, "body")
         with self._no_implicit_wait():
             # We don't want to wait, we just want to know if the
             # modal is alredy there or not. The caller should have
@@ -261,7 +263,7 @@ class ModalMixin:
 
             # also, we use find_elements (plural) here because it will
             # return an empty list rather than throwing an error
-            modals = root.find_elements_by_xpath("//div[contains(@class, 'uiModal')]")
+            modals = root.find_element(By.XPATH, "//div[contains(@class, 'uiModal')]")
             # There should only ever be zero or one, but the Salesforce
             # UI never ceases to surprise me.
             modals = [m for m in modals if m.is_displayed()]
@@ -272,9 +274,9 @@ class ModalMixin:
             # where "for" points to the associated input field. w00t! If we can,
             # use that. If not, fall back to an older strategy
             try:
-                label_element = root.find_element_by_xpath(f'//label[text()="{label}"]')
+                label_element = root.find_element(By.XPATH, f'//label[text()="{label}"]')
                 input_id = label_element.get_attribute("for")
-                element = root.find_element_by_id(input_id)
+                element = root.find_element(By.ID, input_id)
                 return element
 
             except NoSuchElementException:
@@ -285,7 +287,7 @@ class ModalMixin:
             # has a child element with the class 'form-element__label' and
             # text that matches the given label.
             locator = f".//*[contains(@class, 'slds-form-element') and .//*[contains(@class, 'form-element__label')]/descendant-or-self::text()='{label}']"
-            element = root.find_element_by_xpath(locator)
+            element = root.find_element(By.XPATH, locator)
             return element
 
         except NoSuchElementException:
