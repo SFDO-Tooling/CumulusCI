@@ -40,7 +40,7 @@ class CreateRelease(BaseSourceControlTask):
             "required": True,
         },
         "tag_prefix": {
-            "description": "The prefix to use for the release tag created in github.",
+            "description": "The prefix to use for the release tag created in VCS.",
             "required": True,
         },
     }

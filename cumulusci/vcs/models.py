@@ -137,12 +137,13 @@ class AbstractRepo(ABC):
         the AbstractRepoCommit interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @property
     @abstractmethod
-    def default_branch(self) -> "AbstractBranch":
+    def default_branch(self) -> str:
         """Gets the default branch of the repository.
         This method should be overridden by subclasses to provide
         the specific implementation for retrieving the default branch.
-        The method should return an instance of AbstractBranch."""
+        The method should return the name of the default branch."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod

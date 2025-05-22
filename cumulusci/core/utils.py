@@ -188,10 +188,10 @@ def cleanup_flow_step_override_conflicts(configs: T.List[dict]) -> T.List[dict]:
     The while loop below is how we account for these scenarios.
     """
     config_precedence_order = [
-        "plugins_config",
         "additional_yaml",
         "project_local_config",
         "project_config",
+        "plugins_config",
         "global_config",
         "universal_config",
     ]

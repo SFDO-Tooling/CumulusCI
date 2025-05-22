@@ -179,7 +179,7 @@ def download_extract_vcs_from_repo(
     # If the archive cannot be downloaded, a CumulusCIException will be raised.
     # The function returns a zipfile.ZipFile object containing the downloaded archive.
     if not ref:
-        ref = vcs_repo.default_branch.name
+        ref = vcs_repo.default_branch
     zip_content = io.BytesIO()
     if not vcs_repo.archive("zipball", zip_content, ref=ref):
         raise CumulusCIException(

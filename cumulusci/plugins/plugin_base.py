@@ -1,7 +1,7 @@
 import inspect
 import logging
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from typing import Optional
 
@@ -9,24 +9,9 @@ from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 class PluginBase(ABC):
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """The name of the plugin."""
-        if self.__class__.name is None:
-            raise ValueError("Plugin name cannot be None.")
 
-        return self.__class__.name
-
-    @property
-    @abstractmethod
-    def api_name(self) -> str:
-        """The unique api name of the plugin."""
-        if self.__class__.api_name is None:
-            raise ValueError("Plugin API name cannot be None.")
-
-        return self.__class__.api_name
-
+    name: str = None
+    api_name: str = None
     version: str = "0.1"
     author: str = "Unknown"
     priority: int = 0
@@ -34,6 +19,17 @@ class PluginBase(ABC):
     plugin_config_file: str = "cumulusci_plugin.yml"
     path: str = None
     plugin_project_config: Optional[dict] = None
+
+    def __init_subclass__(cls, **kwargs):
+        for required in (
+            "name",
+            "api_name",
+        ):
+            if not getattr(cls, required):
+                raise TypeError(
+                    f"Can't instantiate abstract class {cls.__name__} without {required} attribute defined"
+                )
+        return super().__init_subclass__(**kwargs)
 
     def __init__(self, **kwargs) -> None:
         self.logger = kwargs.get("logger", logging.getLogger(self.__class__.__name__))

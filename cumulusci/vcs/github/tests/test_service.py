@@ -39,6 +39,7 @@ from cumulusci.vcs.github.service import (  # GitHubService, add_labels_to_pull_
     UNAUTHORIZED_WARNING,
     GitHubEnterpriseService,
     _determine_github_client,
+    check_github_scopes,
     check_github_sso_auth,
     format_github3_exception,
     get_auth_from_service,
@@ -294,3 +295,114 @@ class TestGithub(GithubApiTestMixin):
         expected_err_msg = f"{SSO_WARNING} ['0810298', '20348880']"
         actual_error_msg = check_github_sso_auth(exc).strip()
         assert expected_err_msg == actual_error_msg
+
+
+def test_githubrety_init():
+    from cumulusci.vcs.github.service import GitHubRety
+
+    retry = GitHubRety(total=1)
+    assert isinstance(retry, GitHubRety)
+
+
+def test_githubrety_increment_calls_super(monkeypatch):
+    from requests.packages.urllib3.util import retry as urllib3_retry
+
+    from cumulusci.vcs.github.service import GitHubRety
+
+    called = {}
+
+    def fake_increment(self, *args, **kwargs):
+        called["yes"] = True
+        return "super-called"
+
+    monkeypatch.setattr(urllib3_retry.Retry, "increment", fake_increment)
+    retry = GitHubRety(total=1)
+    result = retry.increment()
+    assert called["yes"]
+    assert result == "super-called"
+
+
+def test_githubrety_increment_raises_on_cert_error():
+    from cumulusci.vcs.github.service import GitHubRety
+
+    retry = GitHubRety(total=1)
+
+    class DummyError(Exception):
+        pass
+
+    error = DummyError("CERTIFICATE_VERIFY_FAILED: something bad")
+    with pytest.raises(DummyError):
+        retry.increment(error=error)
+
+
+def test_check_github_scopes_wrong_status_code():
+    from github3.exceptions import ResponseError
+
+    resp = Response()
+    resp.status_code = 401  # Not 403 or 404
+    exc = ResponseError(resp)
+    assert check_github_scopes(exc) == ""
+
+
+def test_check_github_scopes_no_missing_scopes():
+    from github3.exceptions import ResponseError
+
+    resp = Response()
+    resp.status_code = 403
+    resp.headers["X-Accepted-OAuth-Scopes"] = "repo, user"
+    resp.headers["X-OAuth-Scopes"] = "repo, user"
+    resp.url = "https://api.github.com/repos/foo/bar"
+    exc = ResponseError(resp)
+    assert check_github_scopes(exc) == ""
+
+
+def test_check_github_scopes_missing_scopes():
+    from github3.exceptions import ResponseError
+
+    resp = Response()
+    resp.status_code = 403
+    resp.headers["X-Accepted-OAuth-Scopes"] = "repo, user"
+    resp.headers["X-OAuth-Scopes"] = "repo"
+    resp.url = "https://api.github.com/repos/foo/bar"
+    exc = ResponseError(resp)
+    result = check_github_scopes(exc)
+    assert "Your token may be missing the following scopes: user" in result
+    assert "Personal access tokens" in result
+
+
+def test_check_github_scopes_empty_accepted_scopes():
+    from github3.exceptions import ResponseError
+
+    resp = Response()
+    resp.status_code = 403
+    resp.headers["X-Accepted-OAuth-Scopes"] = ""
+    resp.headers["X-OAuth-Scopes"] = "repo"
+    resp.url = "https://api.github.com/repos/foo/bar"
+    exc = ResponseError(resp)
+    assert check_github_scopes(exc) == ""
+
+
+def test_check_github_scopes_gist_special_case_missing_scope():
+    from github3.exceptions import ResponseError
+
+    resp = Response()
+    resp.status_code = 404
+    resp.headers["X-Accepted-OAuth-Scopes"] = ""
+    resp.headers["X-OAuth-Scopes"] = ""
+    resp.url = "https://api.github.com/gists"
+    exc = ResponseError(resp)
+    result = check_github_scopes(exc)
+    assert "Your token may be missing the following scopes: gist" in result
+    assert "Personal access tokens" in result
+
+
+def test_check_github_scopes_gist_special_case_has_scope():
+    from github3.exceptions import ResponseError
+
+    resp = Response()
+    resp.status_code = 404
+    resp.headers["X-Accepted-OAuth-Scopes"] = ""
+    resp.headers["X-OAuth-Scopes"] = "gist"
+    resp.url = "https://api.github.com/gists"
+    exc = ResponseError(resp)
+    assert check_github_scopes(exc) == ""

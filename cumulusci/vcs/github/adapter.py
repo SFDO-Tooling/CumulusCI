@@ -443,9 +443,10 @@ class GitHubRepository(AbstractRepo):
             raise GithubApiNotFoundError(message)
         return GitHubRelease(release=release)
 
-    def default_branch(self) -> Optional[GitHubBranch]:
+    @property
+    def default_branch(self) -> str:
         """Returns the default branch of the repository."""
-        return GitHubBranch(self, self.repo.default_branch) if self.repo else None
+        return self.repo.default_branch if self.repo else ""
 
     def archive(self, format: str, zip_content: Union[str, object], ref=None) -> bytes:
         """Archives the repository content as a zip file."""
