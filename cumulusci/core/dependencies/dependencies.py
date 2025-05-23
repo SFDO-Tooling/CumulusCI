@@ -50,8 +50,10 @@ def _validate_github_parameters(values):
             "The repo_name and repo_owner keys are deprecated. Please use the github key."
         )
 
-    assert values.get("github") or (
-        values.get("repo_owner") and values.get("repo_name")
+    assert (
+        values.get("url")
+        or values.get("github")
+        or (values.get("repo_owner") and values.get("repo_name"))
     ), "Must specify `github` or `repo_owner` and `repo_name`"
 
     # Populate the `github` property if not already populated.
@@ -161,19 +163,13 @@ class DynamicDependency(Dependency, abc.ABC):
     """Abstract base class for dependencies with dynamic references, like GitHub.
     These dependencies must be resolved and flattened before they can be installed."""
 
+    url: Optional[AnyUrl] = None
     package_dependency: Optional[StaticDependency] = None
     password_env_name: Optional[str] = None
 
     @property
     def is_flattened(self):
         return False
-
-    @property
-    @abc.abstractmethod
-    def url(self) -> str:
-        raise NotImplementedError(
-            "DynamicDependency subclasses must implement a url property."
-        )
 
     def resolve(
         self,
@@ -216,10 +212,6 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
     def is_resolved(self):
         return bool(self.ref)
 
-    @property
-    def url(self) -> str:
-        return self.github or super().url
-
     @pydantic.root_validator
     def check_deprecated_fields(cls, values):
         if values.get("repo_owner") or values.get("repo_name"):
@@ -233,6 +225,16 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
         assert values["ref"] is None, "Must not specify `ref` at creation."
 
         return _validate_github_parameters(values)
+
+    @pydantic.root_validator(pre=True)
+    def sync_github_and_url(cls, values):
+        # If only github is provided, set url to github
+        if values.get("github") and not values.get("url"):
+            values["url"] = values["github"]
+        # If only url is provided, set github to url
+        elif values.get("url") and not values.get("github"):
+            values["github"] = values["url"]
+        return values
 
     @property
     def name(self):

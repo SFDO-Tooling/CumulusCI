@@ -195,7 +195,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             if plugin.plugin_project_config:
                 self.config_plugins_yaml.update(plugin.plugin_project_config)
                 self.logger.info(
-                    f"Loaded plugin: {plugin.name}({plugin.api_name}) v{plugin.version}"
+                    f"Loaded plugin: {plugin.name} ({plugin.api_name}) v{plugin.version}"
                 )
 
             plugin.teardown()  # clean up the plugin

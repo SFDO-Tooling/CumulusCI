@@ -193,7 +193,7 @@ class VCSSource(ABC):
             dynamic_dependency_cls = self.vcs_service.dynamic_dependency_class
 
             # Use resolution strategies to find the right commit.
-            dep = dynamic_dependency_cls(github=self.spec.github)
+            dep = dynamic_dependency_cls(url=self.spec.url)
             resolve_dependency(
                 dep,
                 self.project_config,
