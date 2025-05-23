@@ -1,6 +1,8 @@
 import http.client
 from datetime import UTC, datetime
+from io import BytesIO
 from re import Pattern
+from string import Template
 from typing import Optional, Union
 
 from github3 import GitHub, GitHubError
@@ -12,6 +14,8 @@ from github3.pulls import PullRequest, ShortPullRequest
 from github3.repos.commit import RepoCommit
 from github3.repos.release import Release
 from github3.repos.repo import Repository
+from github3.session import GitHubSession
+from requests.models import Response
 
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
@@ -164,6 +168,11 @@ class GitHubRelease(AbstractRelease):
         """Checks if the release is a draft."""
         return self.release.draft if self.release else False
 
+    @property
+    def tag_ref_name(self) -> str:
+        """Gets the tag reference name of the release."""
+        return "tags/" + self.tag_name
+
 
 class GitHubPullRequest(AbstractPullRequest):
     """GitHub pull request object for creating and managing pull requests."""
@@ -294,6 +303,16 @@ class GitHubRepository(AbstractRepo):
     def owner_login(self) -> str:
         """Returns the owner login of the repository."""
         return self.repo.owner.login if self.repo else ""
+
+    def get_ref(self, ref_sha: str) -> GitHubRef:
+        """Gets a Reference object for the tag with the given SHA"""
+        try:
+            ref = self.repo.ref(ref_sha)
+            return GitHubRef(ref=ref)
+        except NotFoundError:
+            raise GithubApiNotFoundError(
+                f"Could not find reference for '{ref_sha}' on GitHub"
+            )
 
     def get_ref_for_tag(self, tag_name: str) -> GitHubRef:
         """Gets a Reference object for the tag with the given name"""
@@ -448,11 +467,13 @@ class GitHubRepository(AbstractRepo):
         """Returns the default branch of the repository."""
         return self.repo.default_branch if self.repo else ""
 
-    def archive(self, format: str, zip_content: Union[str, object], ref=None) -> bytes:
+    def archive(
+        self, format: str, zip_content: Union[str, object], ref=None
+    ) -> BytesIO:
         """Archives the repository content as a zip file."""
         try:
-            archive = self.repo.archive(format, zip_content, ref)
-            return archive
+            self.repo.archive(format, zip_content, ref)
+            return zip_content
         except NotFoundError:
             raise GithubApiNotFoundError(
                 f"Could not find archive for {zip_content} for service {self.service_type}"
@@ -509,10 +530,13 @@ class GitHubRepository(AbstractRepo):
 
     def latest_release(self) -> Optional[GitHubRelease]:
         """Fetches the latest release from the given repository."""
-        release = self.repo.latest_release()
-        if release:
-            return GitHubRelease(release=release)
-        return None
+        try:
+            release = self.repo.latest_release()
+            if release:
+                return GitHubRelease(release=release)
+            return None
+        except NotFoundError:
+            raise GithubApiNotFoundError("Could not find latest release on GitHub")
 
     def has_issues(self) -> bool:
         """Checks if the repository has issues enabled."""
@@ -546,3 +570,37 @@ class GitHubRepository(AbstractRepo):
         issue: ShortIssue = self.repo.issue(pull_request.number)
         labels: ShortLabel = issue.labels()
         return [label.name for label in labels] if labels else []
+
+    def get_latest_prerelease(self) -> Optional[GitHubRelease]:
+        """Fetches the latest pre-release from the given repository."""
+        try:
+            QUERY = Template(
+                """
+                query {
+                    repository(owner: "$owner", name: "$name") {
+                    releases(last: 1, orderBy: {field: CREATED_AT, direction: ASC}) {
+                        nodes {
+                        tagName
+                        }
+                    }
+                    }
+                }
+                """
+            ).substitute(dict(owner=self.repo.owner, name=self.repo.name))
+
+            session: GitHubSession = self.repo.session
+            # HACK: This is a kludgy workaround because GitHub Enterprise Server
+            # base_urls in github3.py end in `/api/v3`.
+            host = (
+                session.base_url[: -len("/v3")]
+                if session.base_url.endswith("/v3")
+                else session.base_url
+            )
+            url: str = f"{host}/graphql"
+            response: Response = session.request("POST", url, json={"query": QUERY})
+            response_dict: dict = response.json()
+
+            if release_tags := response_dict["data"]["repository"]["releases"]["nodes"]:
+                return self.release_from_tag(release_tags[0]["tagName"])
+        except NotFoundError:
+            raise GithubApiNotFoundError("Could not find latest prerelease on GitHub")

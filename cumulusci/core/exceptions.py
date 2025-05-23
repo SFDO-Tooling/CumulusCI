@@ -202,7 +202,11 @@ class GithubException(VcsException):
     pass
 
 
-class GithubApiError(CumulusCIException):
+class VcsApiError(CumulusCIException):
+    pass
+
+
+class GithubApiError(VcsApiError):
     pass
 
 

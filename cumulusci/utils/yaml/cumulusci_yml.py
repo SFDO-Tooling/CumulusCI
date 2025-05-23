@@ -182,20 +182,21 @@ class CumulusCIConfig(CCIDictModel):
     keychain: PythonClassPath
 
 
-class GitHubSourceRelease(StrEnum):
+class VCSSourceRelease(StrEnum):
     LATEST = "latest"
     PREVIOUS = "previous"
     LATEST_BETA = "latest_beta"
 
 
-class GitHubSourceModel(HashableBaseModel):
-    github: str
+class VCSSourceModel(HashableBaseModel):
+    vcs: str
+    url: str
     resolution_strategy: Optional[str]
     commit: Optional[str]
     ref: Optional[str]
     branch: Optional[str]
     tag: Optional[str]
-    release: Optional[GitHubSourceRelease]
+    release: Optional[VCSSourceRelease]
     description: Optional[str]
     allow_remote_code: Optional[bool] = False
 
@@ -220,6 +221,25 @@ class GitHubSourceModel(HashableBaseModel):
         return values
 
 
+GitHubSourceRelease = VCSSourceRelease
+
+
+class GitHubSourceModel(VCSSourceModel):
+    """For backward compatibility."""
+
+    github: str
+    release: Optional[GitHubSourceRelease]
+    vcs: Optional[str]
+    url: Optional[str]
+
+    def __init__(self, **kwargs):
+        # For backward compatibility, we need to set the vcs and url attributes
+        # if they are not already set.
+        super().__init__(**kwargs)
+        self.vcs = "github"
+        self.url = kwargs.get("github", None)
+
+
 class LocalFolderSourceModel(HashableBaseModel):
     path: DirectoryPath
     allow_remote_code: Optional[bool] = False
@@ -239,7 +259,9 @@ class CumulusCIRoot(CCIDictModel):
     cumulusci: CumulusCIConfig = None
     plans: Dict[str, Plan] = {}
     minimum_cumulusci_version: str = None
-    sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
+    sources: Dict[
+        str, Union[LocalFolderSourceModel, VCSSourceModel, GitHubSourceModel]
+    ] = {}
     cli: CumulusCLIConfig = None
 
     @validator("plans")

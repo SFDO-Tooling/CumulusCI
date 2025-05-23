@@ -70,6 +70,10 @@ class TestVCSBase:
             def validate_service(cls, options, keychain):
                 return {}
 
+            @property
+            def dynamic_dependency_class(self):
+                pass
+
             def get_repository(self):
                 return DummyRepo()
 

@@ -149,7 +149,6 @@ class AbstractRepo(ABC):
     @abstractmethod
     def archive(self, format: str, zip_content: Union[str, object], ref=None) -> bytes:
         """Archives the repository content as a zip file."""
-        self.logger.debug("Archiving repository content")
         # This method should be overridden by subclasses to provide
         # the specific implementation for archiving the repository.
         # The method should return a bytes object representing the archived content.
@@ -279,6 +278,12 @@ class AbstractRelease(ABC):
     @abstractmethod
     def draft(self) -> bool:
         """Checks if the release is a draft."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def tag_ref_name(self) -> str:
+        """Gets the tag reference name of the release."""
         raise NotImplementedError("Subclasses should implement this method.")
 
 

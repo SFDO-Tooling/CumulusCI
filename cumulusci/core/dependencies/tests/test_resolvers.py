@@ -44,6 +44,9 @@ class ConcreteDynamicDependency(DynamicDependency):
     def is_resolved(self):
         return self.resolved
 
+    def url(self):
+        pass
+
     def resolve(
         self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
     ):

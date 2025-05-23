@@ -40,15 +40,17 @@ from cumulusci.core.github import (
     find_previous_release,
     get_github_api_for_repo,
 )
-from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
+from cumulusci.core.source import LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import FSResource, open_fs_resource
 from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
+    VCSSourceModel,
     cci_safe_load,
 )
+from cumulusci.vcs.vcs_source import VCSSource
 
 sys.modules.setdefault(
     "tasks", types.ModuleType("tasks", "Synthetic package for all repo tasks")
@@ -89,10 +91,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     config_additional_yaml: dict
     config_plugins_yaml: dict
     additional_yaml: Optional[str]
-    source: Union[NullSource, GitHubSource, LocalFolderSource]
+    source: Union[NullSource, VCSSource, LocalFolderSource]
     _cache_dir: Optional[Path]
     included_sources: Dict[
-        Union[GitHubSourceModel, LocalFolderSourceModel], "BaseProjectConfig"
+        Union[GitHubSourceModel, LocalFolderSourceModel, VCSSourceModel],
+        "BaseProjectConfig",
     ]
 
     def __init__(
@@ -642,7 +645,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return self.include_source(spec)
 
     def include_source(
-        self, spec: Union[GitHubSourceModel, LocalFolderSourceModel, dict]
+        self,
+        spec: Union[GitHubSourceModel, VCSSourceModel, LocalFolderSourceModel, dict],
     ) -> "BaseProjectConfig":
         """Make sure a project has been fetched from its source.
 
@@ -652,7 +656,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         if isinstance(spec, dict):
             parsed_spec = None
-            for model_class in [GitHubSourceModel, LocalFolderSourceModel]:
+            for model_class in [
+                GitHubSourceModel,
+                VCSSourceModel,
+                LocalFolderSourceModel,
+            ]:
                 try:
                     parsed_spec = model_class(**spec)
                 except ValidationError:
@@ -668,8 +676,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         if spec in self.included_sources:
             project_config = self.included_sources[spec]
         else:
-            if isinstance(spec, GitHubSourceModel):
-                source = GitHubSource(self, spec)
+            if isinstance(spec, VCSSourceModel):
+                source = VCSSource.create(self, spec)
             elif isinstance(spec, LocalFolderSourceModel):
                 source = LocalFolderSource(self, spec)
 

@@ -69,6 +69,9 @@
                         "$ref": "#/definitions/LocalFolderSourceModel"
                     },
                     {
+                        "$ref": "#/definitions/VCSSourceModel"
+                    },
+                    {
                         "$ref": "#/definitions/GitHubSourceModel"
                     }
                 ]
@@ -630,18 +633,22 @@
             "required": ["path"],
             "additionalProperties": false
         },
-        "GitHubSourceRelease": {
-            "title": "GitHubSourceRelease",
+        "VCSSourceRelease": {
+            "title": "VCSSourceRelease",
             "description": "An enumeration.",
             "enum": ["latest", "previous", "latest_beta"],
             "type": "string"
         },
-        "GitHubSourceModel": {
-            "title": "GitHubSourceModel",
+        "VCSSourceModel": {
+            "title": "VCSSourceModel",
             "type": "object",
             "properties": {
-                "github": {
-                    "title": "Github",
+                "vcs": {
+                    "title": "Vcs",
+                    "type": "string"
+                },
+                "url": {
+                    "title": "Url",
                     "type": "string"
                 },
                 "resolution_strategy": {
@@ -665,7 +672,7 @@
                     "type": "string"
                 },
                 "release": {
-                    "$ref": "#/definitions/GitHubSourceRelease"
+                    "$ref": "#/definitions/VCSSourceRelease"
                 },
                 "description": {
                     "title": "Description",
@@ -675,6 +682,59 @@
                     "title": "Allow Remote Code",
                     "default": false,
                     "type": "boolean"
+                }
+            },
+            "required": ["vcs", "url"],
+            "additionalProperties": false
+        },
+        "GitHubSourceModel": {
+            "title": "GitHubSourceModel",
+            "description": "For backward compatibility.",
+            "type": "object",
+            "properties": {
+                "vcs": {
+                    "title": "Vcs",
+                    "type": "string"
+                },
+                "url": {
+                    "title": "Url",
+                    "type": "string"
+                },
+                "resolution_strategy": {
+                    "title": "Resolution Strategy",
+                    "type": "string"
+                },
+                "commit": {
+                    "title": "Commit",
+                    "type": "string"
+                },
+                "ref": {
+                    "title": "Ref",
+                    "type": "string"
+                },
+                "branch": {
+                    "title": "Branch",
+                    "type": "string"
+                },
+                "tag": {
+                    "title": "Tag",
+                    "type": "string"
+                },
+                "release": {
+                    "$ref": "#/definitions/VCSSourceRelease"
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "allow_remote_code": {
+                    "title": "Allow Remote Code",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "github": {
+                    "title": "Github",
+                    "type": "string"
                 }
             },
             "required": ["github"],

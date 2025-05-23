@@ -1,8 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Type
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
+from cumulusci.core.dependencies.dependencies import DynamicDependency
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
 from cumulusci.vcs.models import AbstractRelease, AbstractRepo
@@ -49,6 +50,17 @@ class VCSService(ABC):
                 "Subclasses should define the service_type property"
             )
         return self.__class__.service_type
+
+    @property
+    @abstractmethod
+    def dynamic_dependency_class(self) -> Type[DynamicDependency]:
+        """Returns the dynamic dependency class for the VCS service.
+        This property should be overridden by subclasses to provide
+        the specific dynamic dependency class. For example, it could
+        return "GitHubDynamicDependency", "BitbucketDynamicDependency", etc."""
+        raise NotImplementedError(
+            "Subclasses should define the dynamic_dependency_class property"
+        )
 
     @classmethod
     @abstractmethod

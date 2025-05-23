@@ -5,7 +5,7 @@ import re
 from typing import Optional
 
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, VcsNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.vcs.base import VCSService
@@ -13,6 +13,7 @@ from cumulusci.vcs.models import (
     AbstractGitTag,
     AbstractPullRequest,
     AbstractRef,
+    AbstractRelease,
     AbstractRepo,
     AbstractRepoCommit,
 )
@@ -167,3 +168,34 @@ def get_remote_project_config(repo: AbstractRepo, ref: str) -> BaseProjectConfig
         f"cumulusci.yml from {repo.repo_owner}/{repo.repo_name}"  # for logging
     )
     return BaseProjectConfig(None, cci_safe_load(contents_io))
+
+
+def find_latest_release(
+    repo: AbstractRepo, include_beta=None
+) -> Optional[AbstractRelease]:
+    try:
+        if include_beta:
+            return get_latest_prerelease(repo)
+        else:
+            return repo.latest_release()
+    except (VcsNotFoundError, StopIteration):
+        pass
+
+
+def get_latest_prerelease(repo: AbstractRepo) -> Optional[AbstractRelease]:
+    """Calls GraphQL to retrieve the latest release, ordered chronologically."""
+    return repo.get_latest_prerelease()
+
+
+def find_previous_release(repo: AbstractRepo, prefix=None):
+    most_recent = None
+    for release in repo.releases():
+        if prefix and not release.tag_name.startswith(prefix):
+            continue
+        if not prefix and release.prerelease:
+            continue
+        # Return the second release
+        if most_recent is None:
+            most_recent = release
+        else:
+            return release

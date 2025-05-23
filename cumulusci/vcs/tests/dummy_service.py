@@ -1,5 +1,6 @@
 from typing import Optional
 
+from cumulusci.core.dependencies.dependencies import DynamicDependency
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
     AbstractBranch,
@@ -26,6 +27,10 @@ class ConcreteVCSService(VCSService):
     @classmethod
     def get_service_for_url(cls, url):
         return cls()
+
+    @property
+    def dynamic_dependency_class(self) -> DynamicDependency:
+        return DynamicDependency
 
     def get_committer(self, repo: AbstractRepo) -> AbstractCommitDir:
         return DummyCommitDir()

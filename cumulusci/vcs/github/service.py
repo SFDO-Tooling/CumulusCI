@@ -8,7 +8,7 @@ import webbrowser
 
 # from string import Template
 # from typing import Callable, Optional, Union
-from typing import Optional, Union
+from typing import Optional, Type, Union
 from urllib.parse import urlparse
 
 import github3
@@ -16,6 +16,8 @@ from github3 import GitHub, GitHubEnterprise  # , login
 from github3.exceptions import (
     AuthenticationFailed,
     ConnectionError,
+    ForbiddenError,
+    NotFoundError,
     ResponseError,
     TransportError,
 )
@@ -32,7 +34,10 @@ from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
-from cumulusci.core.exceptions import (  # DependencyLookupError,; GithubApiError,; GithubApiNotFoundError,
+from cumulusci.core.dependencies.dependencies import GitHubDynamicDependency
+from cumulusci.core.exceptions import (  # DependencyLookupError
+    GithubApiError,
+    GithubApiNotFoundError,
     GithubException,
     ServiceNotConfigured,
 )
@@ -346,6 +351,11 @@ class GitHubService(VCSService):
         self._repo: GitHubRepository = None
 
     @property
+    def dynamic_dependency_class(self) -> Type[GitHubDynamicDependency]:
+        """Returns the dynamic dependency class for the GitHub service."""
+        return GitHubDynamicDependency
+
+    @property
     def repo(self) -> GitHubRepository:
         """Returns the GitHub repository associated with the service."""
         return self._repo
@@ -442,15 +452,20 @@ class GitHubService(VCSService):
 
     def get_repository(self, options: dict = {}) -> GitHubRepository:
         """Returns the GitHub repository."""
-        if self._repo is None:
-            self._repo = GitHubRepository(
-                self.github,
-                self.config,
-                logger=self.logger,
-                service_type=self.service_type,
-                service_config=self.service_config,
-                options=options,
-            )
+        try:
+            if self._repo is None:
+                self._repo = GitHubRepository(
+                    self.github,
+                    self.config,
+                    logger=self.logger,
+                    service_type=self.service_type,
+                    service_config=self.service_config,
+                    options=options,
+                )
+        except NotFoundError as e:
+            raise GithubApiNotFoundError(f"GitHub repository not found: {e}")
+        except ForbiddenError as e:
+            raise GithubApiError(f"GitHub repository is not accessible: {e}")
         return self.repo
 
     def get_committer(self, repo: GitHubRepository) -> CommitDir:
@@ -510,6 +525,11 @@ class GitHubEnterpriseService(GitHubService):
 
     def __init__(self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs):
         super().__init__(config, name=name, **kwargs)
+
+    @property
+    def dynamic_dependency_class(self) -> Type[GitHubDynamicDependency]:
+        """Returns the dynamic dependency class for the GitHub service."""
+        return GitHubDynamicDependency
 
     @classmethod
     def get_service_for_url(

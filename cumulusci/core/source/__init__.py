@@ -1,4 +1,4 @@
-from .github import GitHubSource
+from .github import GitHubSource, GitHubEnterpriseSource
 from .local_folder import LocalFolderSource
 
 
@@ -13,4 +13,4 @@ class NullSource:
         return "current folder"
 
 
-__all__ = ("GitHubSource", "LocalFolderSource", "NullSource")
+__all__ = ("GitHubSource", "GitHubEnterpriseSource", "LocalFolderSource", "NullSource")

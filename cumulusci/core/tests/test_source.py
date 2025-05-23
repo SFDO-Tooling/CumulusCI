@@ -11,7 +11,7 @@ import responses
 import yaml
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
-from cumulusci.core.exceptions import DependencyResolutionError, GithubApiError
+from cumulusci.core.exceptions import DependencyResolutionError, VcsApiError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
 from cumulusci.utils import temporary_dir, touch
@@ -21,7 +21,7 @@ from cumulusci.utils.yaml.cumulusci_yml import (
     LocalFolderSourceModel,
 )
 
-from ..source import GitHubSource, LocalFolderSource
+from ..source import GitHubEnterpriseSource, GitHubSource, LocalFolderSource
 
 
 class TestGitHubSource(MockUtilBase):
@@ -439,8 +439,10 @@ class TestGitHubSource(MockUtilBase):
         ).exists()
 
     @responses.activate
-    @mock.patch("cumulusci.core.source.github.download_extract_github")
-    def test_fetch__cleans_up_after_failed_extract(self, download_extract_github):
+    @mock.patch("cumulusci.vcs.vcs_source.download_extract_vcs_from_repo")
+    def test_fetch__cleans_up_after_failed_extract(
+        self, download_extract_vcs_from_repo
+    ):
         responses.add(
             method=responses.GET,
             url=self.repo_api_url,
@@ -457,7 +459,7 @@ class TestGitHubSource(MockUtilBase):
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         # Set up a fake IOError while extracting the zipball
-        download_extract_github.return_value = mock.Mock(
+        download_extract_vcs_from_repo.return_value = mock.Mock(
             extractall=mock.Mock(side_effect=IOError)
         )
 
@@ -526,6 +528,8 @@ class TestGitHubSource(MockUtilBase):
             ),
         )
         assert source.frozenspec == {
+            "vcs": "github",
+            "url": "https://github.com/TestOwner/TestRepo",
             "github": "https://github.com/TestOwner/TestRepo",
             "commit": "tag_sha",
             "description": "tags/release/1.0",
@@ -558,13 +562,87 @@ class TestGitHubSource(MockUtilBase):
             headers={"X-Github-Sso": "partial-results; organizations=0810298,20348880"},
         )
 
-        with pytest.raises(GithubApiError):
+        with pytest.raises(VcsApiError):
             GitHubSource(
                 self.project_config,
                 GitHubSourceModel(
                     github="https://github.com/TestOwner/TestRepo.git", release="latest"
                 ),
             )
+
+    @responses.activate
+    def test_resolve_github_enterprise__default(self):
+        # The default is to use resolution strategy `production`, which gets the latest release.
+        responses.add(
+            method=responses.GET,
+            url="https://git.enterprise.domain.com/api/v3/repos/TestOwner/TestRepo",
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
+            json=self._get_expected_release("release/1.0"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_sha",
+            json=self._get_expected_tag("release/1.0", "commit_sha", "tag_sha"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+            json={
+                "url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "download_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "git_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "html_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "_links": {},
+                "name": "cumulusci.yml",
+                "path": "cumulusci.yml",
+                "sha": "commit_sha",
+                "size": 100,
+                "type": "yaml",
+                "encoding": "base64",
+                "content": b64encode(
+                    yaml.dump(
+                        {
+                            "project": {
+                                "package": {
+                                    "name_managed": "Test Product",
+                                    "namespace": "ns",
+                                }
+                            }
+                        }
+                    ).encode("utf-8")
+                ).decode("utf-8"),
+            },
+        )
+
+        self.project_config.keychain.set_service(
+            "github_enterprise",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "server_domain": "git.enterprise.domain.com",
+                }
+            ),
+        )
+
+        source = GitHubEnterpriseSource(
+            self.project_config,
+            GitHubSourceModel(
+                github="https://git.enterprise.domain.com/TestOwner/TestRepo.git"
+            ),
+        )
+        assert repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ commit_sha>"
 
 
 class TestLocalFolderSource:

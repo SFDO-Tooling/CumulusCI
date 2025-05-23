@@ -51,6 +51,10 @@ class ConcreteDynamicDependency(DynamicDependency):
     def name(self):
         return ""
 
+    @property
+    def url(self) -> str:
+        return ""
+
 
 class MockResolver(AbstractResolver):
     def __init__(
