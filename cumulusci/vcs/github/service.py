@@ -34,7 +34,7 @@ from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
-from cumulusci.core.dependencies.dependencies import GitHubDynamicDependency
+from cumulusci.core.dependencies import GitHubDynamicDependency
 from cumulusci.core.exceptions import (  # DependencyLookupError
     GithubApiError,
     GithubApiNotFoundError,

@@ -9,16 +9,17 @@ from pydantic import ValidationError
 
 from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.dependencies.base import DynamicDependency, StaticDependency
 from cumulusci.core.dependencies.dependencies import (
-    DynamicDependency,
-    GitHubDynamicDependency,
-    GitHubDynamicSubfolderDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    StaticDependency,
-    UnmanagedGitHubRefDependency,
     UnmanagedZipURLDependency,
     parse_dependency,
+)
+from cumulusci.core.dependencies.github import (
+    GitHubDynamicDependency,
+    GitHubDynamicSubfolderDependency,
+    UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import (
     AbstractResolver,
@@ -36,6 +37,7 @@ from cumulusci.utils.ziputils import zip_subfolder
 class ConcreteDynamicDependency(DynamicDependency):
     ref: Optional[str]
     resolved: Optional[bool] = False
+    vcs: str = "github"
 
     @property
     def is_resolved(self):
@@ -605,47 +607,45 @@ class TestUnmanagedGitHubRefDependency:
         )
         assert u.github == "https://github.com/Test/TestRepo"
 
-    @mock.patch(
-        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
-    )
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
-    @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
+    @mock.patch("cumulusci.core.dependencies.github.download_extract_github_from_repo")
+    @mock.patch("cumulusci.core.dependencies.base.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.base.ApiDeploy")
     def test_install(self, api_deploy_mock, zip_builder_mock, download_mock):
         d = UnmanagedGitHubRefDependency(
             github="http://github.com/Test/TestRepo", ref="aaaaaaaa"
         )
 
-        zf = ZipFile(io.BytesIO(), "w")
-        zf.writestr("package.xml", "test")
-        download_mock.return_value = zf
+        with ZipFile(io.BytesIO(), "w") as zf:
+            zf.writestr("package.xml", "test")
+            download_mock.return_value = zf
 
-        context = mock.Mock()
-        org = mock.Mock()
-        d.install(context, org)
+            context = mock.Mock()
+            org = mock.Mock()
+            d.install(context, org)
 
-        download_mock.assert_called_once_with(
-            context.get_repo_from_url.return_value, ref=d.ref
-        )
-        zip_builder_mock.from_zipfile.assert_called_once_with(
-            download_mock.return_value,
-            path=None,
-            options={
-                "unmanaged": True,
-                "namespace_inject": None,
-                "namespace_strip": None,
-            },
-            context=mock.ANY,
-        )
-        api_deploy_mock.assert_called_once_with(
-            mock.ANY,  # The context object is checked below
-            zip_builder_mock.from_zipfile.return_value.as_base64.return_value,
-        )
-        mock_task = api_deploy_mock.call_args_list[0][0][0]
-        assert mock_task.org_config == org
-        assert mock_task.project_config == context
+            download_mock.assert_called_once_with(
+                context.get_repo_from_url.return_value, ref=d.ref
+            )
+            zip_builder_mock.from_zipfile.assert_called_once_with(
+                download_mock.return_value,
+                path=None,
+                options={
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                },
+                context=mock.ANY,
+            )
+            api_deploy_mock.assert_called_once_with(
+                mock.ANY,  # The context object is checked below
+                zip_builder_mock.from_zipfile.return_value.as_base64.return_value,
+            )
+            mock_task = api_deploy_mock.call_args_list[0][0][0]
+            assert mock_task.org_config == org
+            assert mock_task.project_config == context
 
-        api_deploy_mock.return_value.assert_called_once()
-        zf.close()
+            api_deploy_mock.return_value.assert_called_once()
+            zf.close()
 
     def test_get_unmanaged(self):
         org = mock.Mock()
@@ -700,41 +700,41 @@ class TestUnmanagedGitHubRefDependency:
 
 class TestUnmanagedZipURLDependency:
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
-    @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
+    @mock.patch("cumulusci.core.dependencies.base.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.base.ApiDeploy")
     def test_install(self, api_deploy_mock, zip_builder_mock, download_mock):
         d = UnmanagedZipURLDependency(zip_url="http://foo.com")
 
-        zf = ZipFile(io.BytesIO(), "w")
-        zf.writestr("src/package.xml", "test")
-        download_mock.return_value = zf
+        with ZipFile(io.BytesIO(), "w") as zf:
+            zf.writestr("src/package.xml", "test")
+            download_mock.return_value = zf
 
-        context = mock.Mock()
-        org = mock.Mock()
-        d.install(context, org)
+            context = mock.Mock()
+            org = mock.Mock()
+            d.install(context, org)
 
-        download_mock.assert_called_once_with(d.zip_url)
+            download_mock.assert_called_once_with(d.zip_url)
 
-        zip_builder_mock.from_zipfile.assert_called_once_with(
-            mock.ANY,
-            options={
-                "unmanaged": True,
-                "namespace_inject": None,
-                "namespace_strip": None,
-            },
-            path=None,
-            context=mock.ANY,
-        )
-        api_deploy_mock.assert_called_once_with(
-            mock.ANY,  # The context object is checked below
-            zip_builder_mock.from_zipfile.return_value.as_base64.return_value,
-        )
-        mock_task = api_deploy_mock.call_args_list[0][0][0]
-        assert mock_task.org_config == org
-        assert mock_task.project_config == context
+            zip_builder_mock.from_zipfile.assert_called_once_with(
+                mock.ANY,
+                options={
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                },
+                path=None,
+                context=mock.ANY,
+            )
+            api_deploy_mock.assert_called_once_with(
+                mock.ANY,  # The context object is checked below
+                zip_builder_mock.from_zipfile.return_value.as_base64.return_value,
+            )
+            mock_task = api_deploy_mock.call_args_list[0][0][0]
+            assert mock_task.org_config == org
+            assert mock_task.project_config == context
 
-        api_deploy_mock.return_value.assert_called_once()
-        zf.close()
+            api_deploy_mock.return_value.assert_called_once()
+            zf.close()
 
     def test_get_unmanaged(self):
         org = mock.Mock()
@@ -764,77 +764,77 @@ class TestUnmanagedZipURLDependency:
             == "Deploy http://foo.com /bar"
         )
 
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.base.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
-    @mock.patch("cumulusci.core.dependencies.dependencies.zip_subfolder")
+    @mock.patch("cumulusci.core.dependencies.base.zip_subfolder")
     def test_get_metadata_package_zip_builder__mdapi_root(
         self, subfolder_mock, download_zip_mock, zipbuilder_mock
     ):
-        zf = ZipFile(io.BytesIO(), "w")
-        zf.writestr("src/package.xml", "test")
+        with ZipFile(io.BytesIO(), "w") as zf:
+            zf.writestr("src/package.xml", "test")
 
-        dep = UnmanagedZipURLDependency(zip_url="http://foo.com")
-        download_zip_mock.return_value = zf
-        subfolder_mock.return_value = zip_subfolder(zf, "src")
+            dep = UnmanagedZipURLDependency(zip_url="http://foo.com")
+            download_zip_mock.return_value = zf
+            subfolder_mock.return_value = zip_subfolder(zf, "src")
 
-        context = mock.Mock()
-        org = mock.Mock()
+            context = mock.Mock()
+            org = mock.Mock()
 
-        assert (
-            dep.get_metadata_package_zip_builder(context, org)
-            == zipbuilder_mock.from_zipfile.return_value
-        )
-        subfolder_mock.assert_called_once_with(zf, "src")
-        zipbuilder_mock.from_zipfile.assert_called_once_with(
-            subfolder_mock.return_value,
-            path=None,
-            options={
-                "unmanaged": True,
-                "namespace_inject": None,
-                "namespace_strip": None,
-            },
-            context=mock.ANY,
-        )
-        zf.close()
+            assert (
+                dep.get_metadata_package_zip_builder(context, org)
+                == zipbuilder_mock.from_zipfile.return_value
+            )
+            subfolder_mock.assert_called_once_with(zf, "src")
+            zipbuilder_mock.from_zipfile.assert_called_once_with(
+                subfolder_mock.return_value,
+                path=None,
+                options={
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                },
+                context=mock.ANY,
+            )
+            zf.close()
 
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.base.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
-    @mock.patch("cumulusci.core.dependencies.dependencies.zip_subfolder")
+    @mock.patch("cumulusci.core.dependencies.base.zip_subfolder")
     def test_get_metadata_package_zip_builder__mdapi_subfolder(
         self, subfolder_mock, download_zip_mock, zipbuilder_mock
     ):
-        zf = ZipFile(io.BytesIO(), "w")
+        with ZipFile(io.BytesIO(), "w") as zf:
 
-        zf.writestr("unpackaged/pre/first/package.xml", "test")
+            zf.writestr("unpackaged/pre/first/package.xml", "test")
 
-        dep = UnmanagedZipURLDependency(
-            zip_url="http://foo.com", subfolder="unpackaged/pre/first"
-        )
-        download_zip_mock.return_value = zf
-        subfolder_mock.return_value = zip_subfolder(zf, "unpackaged/pre/first")
-        context = mock.Mock()
-        org = mock.Mock()
+            dep = UnmanagedZipURLDependency(
+                zip_url="http://foo.com", subfolder="unpackaged/pre/first"
+            )
+            download_zip_mock.return_value = zf
+            subfolder_mock.return_value = zip_subfolder(zf, "unpackaged/pre/first")
+            context = mock.Mock()
+            org = mock.Mock()
 
-        assert (
-            dep.get_metadata_package_zip_builder(context, org)
-            == zipbuilder_mock.from_zipfile.return_value
-        )
-        subfolder_mock.assert_called_once_with(zf, "unpackaged/pre/first")
-        zipbuilder_mock.from_zipfile.assert_called_once_with(
-            subfolder_mock.return_value,
-            path=None,
-            options={
-                "unmanaged": True,
-                "namespace_inject": None,
-                "namespace_strip": None,
-            },
-            context=mock.ANY,
-        )
-        zf.close()
+            assert (
+                dep.get_metadata_package_zip_builder(context, org)
+                == zipbuilder_mock.from_zipfile.return_value
+            )
+            subfolder_mock.assert_called_once_with(zf, "unpackaged/pre/first")
+            zipbuilder_mock.from_zipfile.assert_called_once_with(
+                subfolder_mock.return_value,
+                path=None,
+                options={
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                },
+                context=mock.ANY,
+            )
+            zf.close()
 
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.base.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
-    @mock.patch("cumulusci.core.dependencies.dependencies.zip_subfolder")
+    @mock.patch("cumulusci.core.dependencies.base.zip_subfolder")
     @mock.patch("cumulusci.core.sfdx.sfdx")
     def test_get_metadata_package_zip_builder__sfdx(
         self, sfdx_mock, subfolder_mock, download_zip_mock, zipbuilder_mock

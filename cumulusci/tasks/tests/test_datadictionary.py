@@ -5,10 +5,7 @@ from unittest.mock import Mock, call, mock_open, patch
 import pytest
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import (
-    GitHubDynamicDependency,
-    parse_dependencies,
-)
+from cumulusci.core.dependencies import GitHubDynamicDependency, parse_dependencies
 from cumulusci.core.exceptions import (
     DependencyParseError,
     DependencyResolutionError,

@@ -7,13 +7,14 @@ from github3.exceptions import NotFoundError
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.tests.test_config import DummyRelease
+from cumulusci.core.dependencies.base import DynamicDependency, StaticDependency
 from cumulusci.core.dependencies.dependencies import (
-    DynamicDependency,
-    GitHubDependencyPin,
-    GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    StaticDependency,
+)
+from cumulusci.core.dependencies.github import (
+    GitHubDependencyPin,
+    GitHubDynamicDependency,
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import (

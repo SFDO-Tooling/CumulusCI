@@ -8,24 +8,28 @@ from github3.repos.commit import RepoCommit, ShortCommit
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import (
-    BaseGitHubDependency,
+from cumulusci.core.dependencies.base import (
+    AbstractResolver,
     Dependency,
     DependencyPin,
+    DependencyResolutionStrategy,
     DynamicDependency,
+    StaticDependency,
+)
+from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    StaticDependency,
     parse_dependencies,
     parse_pins,
 )
 from cumulusci.core.dependencies.github import (
+    VCS_GITHUB,
+    BaseGitHubDependency,
     get_package_data,
     get_package_details_from_tag,
     get_remote_project_config,
     get_repo,
 )
-from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.github import (
     find_latest_release,
@@ -39,42 +43,6 @@ from cumulusci.utils.git import (
     get_release_identifier,
     is_release_branch_or_child,
 )
-
-
-class DependencyResolutionStrategy(StrEnum):
-    """Enum that defines a strategy for resolving a dynamic dependency into a static dependency."""
-
-    STATIC_TAG_REFERENCE = "tag"
-    COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
-    COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
-    COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = "commit_status_previous_release_branch"
-    COMMIT_STATUS_DEFAULT_BRANCH = "commit_status_default_branch"
-    UNLOCKED_EXACT_BRANCH = "unlocked_exact_branch"
-    UNLOCKED_RELEASE_BRANCH = "unlocked_release_branch"
-    UNLOCKED_PREVIOUS_RELEASE_BRANCH = "unlocked_previous_release_branch"
-    UNLOCKED_DEFAULT_BRANCH = "unlocked_default_branch"
-    BETA_RELEASE_TAG = "latest_beta"
-    RELEASE_TAG = "latest_release"
-    UNMANAGED_HEAD = "unmanaged"
-
-
-class AbstractResolver(abc.ABC):
-    """Abstract base class for dependency resolution strategies."""
-
-    name = "Resolver"
-
-    @abc.abstractmethod
-    def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        pass
-
-    @abc.abstractmethod
-    def resolve(
-        self, dep: DynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-        pass
-
-    def __str__(self):
-        return self.name
 
 
 class GitHubTagResolver(AbstractResolver):
@@ -493,7 +461,7 @@ class GitHubDefaultBranchUnlockedCommitStatusResolver(
     commit_status_default = "Build Unlocked Test Package"
 
 
-RESOLVER_CLASSES = {
+GITHUB_RESOLVER_CLASSES = {
     DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubExactMatch2GPResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
@@ -509,7 +477,25 @@ RESOLVER_CLASSES = {
 }
 
 
+RESOLVER_CLASSES = {VCS_GITHUB: GITHUB_RESOLVER_CLASSES}
+
+
 ## External API
+
+
+def update_resolver_classes(vcs: str, resolver_classes: dict):
+    """Update the resolver classes for a given VCS type."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if vcs not in RESOLVER_CLASSES:
+        RESOLVER_CLASSES[vcs] = {}
+    else:
+        logger.warning(f"dependency_resolver_config: '{vcs}' already exists.")
+
+    RESOLVER_CLASSES[vcs].update(resolver_classes)
+    logger.info(f"dependency_resolver_config: Updated '{vcs}' with new classes.")
 
 
 def get_resolver(
@@ -519,7 +505,7 @@ def get_resolver(
     resolution strategy to the dependency."""
     # This will be fleshed out when further types of DynamicDependency are added.
 
-    return RESOLVER_CLASSES[strategy]()
+    return RESOLVER_CLASSES[dependency.vcs][strategy]()
 
 
 def get_resolver_stack(

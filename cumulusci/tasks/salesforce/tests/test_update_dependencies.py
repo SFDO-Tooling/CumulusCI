@@ -6,7 +6,7 @@ from unittest import mock
 import pydantic
 import pytest
 
-from cumulusci.core.dependencies.dependencies import (
+from cumulusci.core.dependencies import (
     GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,

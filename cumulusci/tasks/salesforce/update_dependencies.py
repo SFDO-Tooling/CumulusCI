@@ -2,7 +2,7 @@ from typing import List
 
 import click
 
-from cumulusci.core.dependencies.dependencies import (
+from cumulusci.core.dependencies import (
     Dependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,

@@ -13,7 +13,7 @@ import yaml
 from pydantic import ValidationError
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
-from cumulusci.core.dependencies.dependencies import (
+from cumulusci.core.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     UnmanagedGitHubRefDependency,
@@ -133,7 +133,7 @@ def task(get_task):
 @pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
-        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
+        "cumulusci.core.dependencies.github.download_extract_github_from_repo"
     ) as download_extract_github:
         yield download_extract_github
 

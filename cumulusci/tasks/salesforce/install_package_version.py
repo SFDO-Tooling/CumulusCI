@@ -1,8 +1,7 @@
 import click
 
-from cumulusci.core.dependencies.dependencies import (
+from cumulusci.core.dependencies import (
     GitHubDynamicDependency,
-    PackageInstallOptions,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
 )
@@ -13,6 +12,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PACKAGE_INSTALL_TASK_OPTIONS,
+    PackageInstallOptions,
     SecurityType,
 )
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask

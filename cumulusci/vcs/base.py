@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Type
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
-from cumulusci.core.dependencies.dependencies import DynamicDependency
+from cumulusci.core.dependencies.base import DynamicDependency
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
 from cumulusci.vcs.models import AbstractRelease, AbstractRepo

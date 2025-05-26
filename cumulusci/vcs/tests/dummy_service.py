@@ -1,6 +1,6 @@
 from typing import Optional
 
-from cumulusci.core.dependencies.dependencies import DynamicDependency
+from cumulusci.core.dependencies.base import DynamicDependency
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
     AbstractBranch,
