@@ -208,6 +208,40 @@ class TestRetrieveChanges:
             task._run_task()
             assert "No changes to retrieve" in messages
 
+    def test_run_task__output_dir(self, sfdx, create_task_fixture):
+        sfdx_calls = []
+        sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
+
+        with temporary_dir():
+            task = create_task_fixture(
+                RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns", "output_dir": "custom_output"}
+            )
+            task._init_task()
+            task.tooling = mock.Mock()
+            task.tooling.query_all.return_value = {
+                "totalSize": 1,
+                "records": [
+                    {
+                        "MemberType": "CustomObject",
+                        "MemberName": "Test__c",
+                        "RevisionCounter": 1,
+                    }
+                ],
+            }
+            with mock.patch.object(
+                pathlib.Path, "exists", return_value=True
+            ), mock.patch.object(
+                pathlib.Path, "is_dir", return_value=True
+            ):
+                task._run_task()
+
+                assert sfdx_calls == [
+                    "project convert mdapi",
+                    "project retrieve start",
+                    "project convert source",
+                ]
+                assert os.path.exists(os.path.join("custom_output", "package.xml"))
+
 
 class TestSnapshotChanges:
     @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")

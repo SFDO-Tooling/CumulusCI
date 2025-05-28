@@ -5,6 +5,7 @@ import os
 import re
 import time
 from collections import defaultdict
+from typing import Optional
 
 from cumulusci.core.config import BaseProjectConfig, ScratchOrgConfig, TaskConfig
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -223,9 +224,10 @@ def retrieve_components(
     extra_package_xml_opts: dict,
     namespace_tokenize: str,
     api_version: str,
-    project_config: BaseProjectConfig = None,
+    project_config: Optional[BaseProjectConfig] = None,
     retrieve_complete_profile: bool = False,
     capture_output: bool = False,
+    output_dir: Optional[str] = None,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -272,12 +274,20 @@ def retrieve_components(
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
-            sfdx(
-                "project convert mdapi",
-                log_note="Converting to DX format",
-                args=["-r", target, "-d", "force-app"],
-                check_return=True,
-            )
+            convert_output_dir = output_dir if output_dir else "force-app"
+            try:
+                sfdx(
+                    "project convert mdapi",
+                    log_note="Converting to DX format",
+                    args=["-r", target, "-d", convert_output_dir],
+                    check_return=True,
+                )
+            except Exception as e:
+                if "No results to format" in str(e):
+                    raise Exception(
+                        f"No metadata found to convert in '{target}'. Please check the folder path or specify a different output directory using the output_dir option."
+                    )
+                raise
 
         # If retrieve_complete_profile is True, separate the profiles from
         # components to retrieve complete profile
@@ -323,13 +333,21 @@ def retrieve_components(
             cls_retrieve_profile()
         if md_format:
             # Convert back to metadata format
-            sfdx(
-                "project convert source",
-                log_note="Converting back to metadata format",
-                args=["-r", "force-app", "-d", target],
-                capture_output=capture_output,
-                check_return=True,
-            )
+            convert_output_dir = output_dir if output_dir else target
+            try:
+                sfdx(
+                    "project convert source",
+                    log_note="Converting back to metadata format",
+                    args=["-r", "force-app", "-d", convert_output_dir],
+                    capture_output=capture_output,
+                    check_return=True,
+                )
+            except Exception as e:
+                if "No results to format" in str(e):
+                    raise Exception(
+                        f"No DX source found to convert in 'force-app'. Please check the output directory or folder path."
+                    )
+                raise
 
             # Reinject namespace tokens
             if namespace_tokenize:
@@ -410,6 +428,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             self.logger.info("{MemberType}: {MemberName}".format(**change))
 
         target = os.path.realpath(self.options["path"])
+        output_dir = self.options.get("output_dir")
         package_xml_opts = {}
         if self.options["path"] == "src":
             package_xml_opts.update(
@@ -430,6 +449,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             extra_package_xml_opts=package_xml_opts,
             project_config=self.project_config,
             retrieve_complete_profile=self.options["retrieve_complete_profile"],
+            output_dir=output_dir,
         )
 
         if self.options["snapshot"]:
