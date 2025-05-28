@@ -5,13 +5,14 @@ import json
 import os
 import re
 import time
+import subprocess
 
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
-from cumulusci.tasks.salesforce import BaseRetrieveMetadata
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
@@ -162,6 +163,10 @@ retrieve_changes_task_options["api_version"] = {
 retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_options[
     "namespace_tokenize"
 ]
+retrieve_changes_task_options["output_dir"] = {
+    "description": "The output directory for the converted DX format. If not specified, defaults to force-app.",
+    "required": False,
+}
 
 
 def _write_manifest(changes, path, api_version):
@@ -192,6 +197,7 @@ def retrieve_components(
     extra_package_xml_opts: dict,
     namespace_tokenize: str,
     api_version: str,
+    output_dir: str = None,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -230,12 +236,20 @@ def retrieve_components(
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
-            sfdx(
-                "force:mdapi:convert",
-                log_note="Converting to DX format",
-                args=["-r", target, "-d", "force-app"],
-                check_return=True,
-            )
+            convert_output_dir = output_dir if output_dir else "force-app"
+            try:
+                sfdx(
+                    "force:mdapi:convert",
+                    log_note="Converting to DX format",
+                    args=["-r", target, "-d", convert_output_dir],
+                    check_return=True,
+                )
+            except Exception as e:
+                if "No results to format" in str(e):
+                    raise Exception(
+                        f"No metadata found to convert in '{target}'. Please check the folder path or specify a different output directory using the output_dir option."
+                    )
+                raise
 
         # Construct package.xml with components to retrieve, in its own tempdir
         package_xml_path = stack.enter_context(temporary_dir(chdir=False))
@@ -261,13 +275,21 @@ def retrieve_components(
 
         if md_format:
             # Convert back to metadata format
-            sfdx(
-                "force:source:convert",
-                log_note="Converting back to metadata format",
-                args=["-r", "force-app", "-d", target],
-                capture_output=False,
-                check_return=True,
-            )
+            convert_output_dir = output_dir if output_dir else target
+            try:
+                sfdx(
+                    "force:source:convert",
+                    log_note="Converting back to metadata format",
+                    args=["-r", "force-app", "-d", convert_output_dir],
+                    capture_output=False,
+                    check_return=True,
+                )
+            except Exception as e:
+                if "No results to format" in str(e):
+                    raise Exception(
+                        f"No DX source found to convert in 'force-app'. Please check the output directory or folder path."
+                    )
+                raise
 
             # Reinject namespace tokens
             if namespace_tokenize:
@@ -329,6 +351,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                 "api_version"
             ] = self.project_config.project__package__api_version
 
+        # Add output_dir to options
+        self.options["output_dir"] = kwargs.get("output_dir")
+
     def _run_task(self):
         self._load_snapshot()
         self.logger.info("Querying Salesforce for changed source members")
@@ -341,6 +366,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             self.logger.info("{MemberType}: {MemberName}".format(**change))
 
         target = os.path.realpath(self.options["path"])
+        output_dir = self.options.get("output_dir")
         package_xml_opts = {}
         if self.options["path"] == "src":
             package_xml_opts.update(
@@ -359,6 +385,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             namespace_tokenize=self.options.get("namespace_tokenize"),
             api_version=self.options["api_version"],
             extra_package_xml_opts=package_xml_opts,
+            output_dir=output_dir,
         )
 
         if self.options["snapshot"]:
