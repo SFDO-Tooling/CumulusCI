@@ -1,5 +1,7 @@
+from io import StringIO
 from typing import Optional
 
+from cumulusci.core.config.tests.test_config import DummyRepository
 from cumulusci.core.dependencies.base import DynamicDependency
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
@@ -71,8 +73,19 @@ class DummyBranch(AbstractBranch):
     def get_branch(self):
         pass
 
+    def commit(self):
+        pass
+
 
 class DummyRepo(AbstractRepo):
+
+    repo: DummyRepository
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.repo = kwargs.get("repo", None)
+
     def create_tag(
         self, tag_name: str, message: str, sha: str, obj_type: str, tagger={}
     ) -> "AbstractGitTag":
@@ -135,6 +148,18 @@ class DummyRepo(AbstractRepo):
         pass
 
     def owner_login(self):
+        pass
+
+    def directory_contents(self):
+        pass
+
+    def clone_url(self):
+        pass
+
+    def file_contents(self, file_path: str, ref: str = None) -> StringIO:
+        return self.repo.file_contents(file_path, ref=ref)
+
+    def get_latest_prerelease(self):
         pass
 
 

@@ -194,11 +194,14 @@ class VCSSource(ABC):
 
             # Use resolution strategies to find the right commit.
             dep = dynamic_dependency_cls(url=self.spec.url)
+            dep.set_repo(self.repo)
+
             resolve_dependency(
                 dep,
                 self.project_config,
                 get_resolver_stack(self.project_config, self.spec.resolution_strategy),
             )
+
             self.commit = self.description = dep.ref
             return
 

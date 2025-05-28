@@ -8,11 +8,8 @@ from zipfile import ZipFile
 from pydantic import BaseModel
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies import (
-    Dependency,
-    DynamicDependency,
-    parse_dependencies,
-)
+from cumulusci.core.dependencies.base import Dependency, DynamicDependency
+from cumulusci.core.dependencies.dependencies import parse_dependencies
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg

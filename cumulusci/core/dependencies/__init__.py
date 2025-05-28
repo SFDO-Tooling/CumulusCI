@@ -1,45 +1,43 @@
-from .base import (
-    DynamicDependency,
-    StaticDependency,
-    Dependency,
-    UnmanagedDependency,
-    DependencyResolutionStrategy,
-)
-from .dependencies import (
-    PackageNamespaceVersionDependency,
-    PackageVersionIdDependency,
-    UnmanagedZipURLDependency,
-    add_dependency_class,
-    add_dependency_pin_class,
-    parse_dependencies,
-)
-from .github import (
-    GitHubDynamicDependency,
-    GitHubDynamicSubfolderDependency,
-    UnmanagedGitHubRefDependency,
-    GitHubDependencyPin,
-)
+# from .base import (
+#     DynamicDependency,
+#     StaticDependency,
+#     Dependency,
+#     UnmanagedDependency,
+# )
 
-add_dependency_class(UnmanagedGitHubRefDependency)
-add_dependency_class(GitHubDynamicDependency)
-add_dependency_class(GitHubDynamicSubfolderDependency)
+# from .dependencies import (
+#     PackageNamespaceVersionDependency,
+#     PackageVersionIdDependency,
+#     UnmanagedZipURLDependency,
+#     add_dependency_class,
+#     add_dependency_pin_class,
+#     parse_dependencies,
+# )
 
-add_dependency_pin_class(GitHubDependencyPin)
+# from .resolvers import DependencyResolutionStrategy, AbstractResolver
 
-__all__ = (
-    "DynamicDependency",
-    "StaticDependency",
-    "Dependency",
-    "UnmanagedDependency",
-    "DependencyResolutionStrategy",
-    "PackageNamespaceVersionDependency",
-    "PackageVersionIdDependency",
-    "UnmanagedZipURLDependency",
-    "GitHubDynamicDependency",
-    "GitHubDynamicSubfolderDependency",
-    "UnmanagedGitHubRefDependency",
-    "GitHubDependencyPin",
-    "add_dependency_class",
-    "add_dependency_pin_class",
-    "parse_dependencies",
-)
+# # from .github import (
+# #     GitHubDynamicDependency,
+# #     GitHubDynamicSubfolderDependency,
+# #     UnmanagedGitHubRefDependency,
+# #     GitHubDependencyPin,
+# # )
+
+# __all__ = (
+#     "DynamicDependency",
+#     "StaticDependency",
+#     "Dependency",
+#     "UnmanagedDependency",
+#     "DependencyResolutionStrategy",
+#     "AbstractResolver",
+#     "PackageNamespaceVersionDependency",
+#     "PackageVersionIdDependency",
+#     "UnmanagedZipURLDependency",
+#     # "GitHubDynamicDependency",
+#     # "GitHubDynamicSubfolderDependency",
+#     # "UnmanagedGitHubRefDependency",
+#     # "GitHubDependencyPin",
+#     "add_dependency_class",
+#     "add_dependency_pin_class",
+#     "parse_dependencies",
+# )

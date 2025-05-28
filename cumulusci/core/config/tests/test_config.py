@@ -155,6 +155,9 @@ class DummyRepository(mock.Mock):
         self._contents = contents
         self._releases = releases or []
         self._commits = commits or []
+        self._tag_message = kwargs.get(
+            "tag_message", "Mock tag message for testing purposes"
+        )
 
     def file_contents(self, path, **kw):
         try:
@@ -197,7 +200,7 @@ class DummyRepository(mock.Mock):
     def tag(self, sha):
         tag = mock.Mock()
         tag.object.sha = "tag_sha"
-        tag.message = ""
+        tag.message = self.tag_message or ""
         return tag
 
     def ref(self, s):
@@ -210,6 +213,16 @@ class DummyRepository(mock.Mock):
             return self._commits[c]
 
         raise NotFoundError(DummyResponse("", 404))
+
+    @property
+    def tag_message(self):
+        """A mock property to simulate the tag message."""
+        return self._tag_message
+
+    @tag_message.setter
+    def tag_message(self, message):
+        """A mock setter to change the tag message."""
+        self._tag_message = message
 
 
 class DummyRelease(object):

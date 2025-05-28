@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
+from io import StringIO
 from re import Pattern
 from typing import Optional, Union
 
@@ -18,6 +19,7 @@ class AbstractRepo(ABC):
     options: dict
     repo_name: str
     repo_owner: str
+    repo_url: str
 
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRepo."""
@@ -26,6 +28,13 @@ class AbstractRepo(ABC):
         self.options = kwargs.get("options", {})
         self.repo_name = kwargs.get("repo_name", None)
         self.repo_owner = kwargs.get("repo_owner", None)
+        self.repo_url = self.options.get("repository_url", None)
+
+    def __eq__(self, other):
+        return isinstance(other, AbstractRepo) and self.repo_url == other.repo_url
+
+    def __hash__(self):
+        return hash(self.repo_url)
 
     @property
     @abstractmethod
@@ -223,6 +232,40 @@ class AbstractRepo(ABC):
         The method should return a list of labels associated with the pull request."""
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @abstractmethod
+    def get_latest_prerelease(self) -> Optional["AbstractRelease"]:
+        """Gets the latest pre-release from the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the latest pre-release.
+        The method should return an instance of a class that implements
+        the AbstractRelease interface."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @abstractmethod
+    def directory_contents(self, subfolder: str, return_as, ref: str) -> dict:
+        """Gets the contents of a directory in the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the directory contents.
+        The method should return the contents of the directory as a dictionary or list,
+        depending on the value of return_as."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @abstractmethod
+    def file_contents(self, file: str, ref: str) -> StringIO:
+        """Gets the contents of a file in the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the file contents.
+        The method should return the contents of the file as a StringIO object."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @abstractmethod
+    def clone_url(self, protocol: str = "https") -> str:
+        """Gets the clone URL for the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for retrieving the clone URL.
+        The method should return a string representing the clone URL of the repository."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
 
 class AbstractRelease(ABC):
     """Abstract base class for releases.
@@ -367,6 +410,12 @@ class AbstractBranch(ABC):
         the AbstractBranch interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @property
+    @abstractmethod
+    def commit(self) -> "AbstractRepoCommit":
+        """Gets the branch commit for the current branch."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
 
 class AbstractComparison(ABC):
     """Abstract base class for comparisons.
@@ -430,6 +479,17 @@ class AbstractRepoCommit(ABC):
         This method should be overridden by subclasses to provide
         the specific implementation for retrieving the statuses.
         The method should return a string if a match is found, otherwise None."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def parents(self) -> list["AbstractRepoCommit"]:
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    @property
+    @abstractmethod
+    def sha(self) -> str:
+        """Gets the SHA of the commit."""
         raise NotImplementedError("Subclasses should implement this method.")
 
 

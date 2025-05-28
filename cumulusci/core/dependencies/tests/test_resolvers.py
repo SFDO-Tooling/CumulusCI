@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from github3.exceptions import NotFoundError
+from pydantic import root_validator
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
@@ -17,9 +18,7 @@ from cumulusci.core.dependencies.github import (
     GitHubDynamicDependency,
     UnmanagedGitHubRefDependency,
 )
-from cumulusci.core.dependencies.resolvers import (
-    AbstractGitHubReleaseBranchResolver,
-    DependencyResolutionStrategy,
+from cumulusci.core.dependencies.github_resolvers import (
     GitHubBetaReleaseTagResolver,
     GitHubDefaultBranch2GPResolver,
     GitHubExactMatch2GPResolver,
@@ -27,14 +26,40 @@ from cumulusci.core.dependencies.resolvers import (
     GitHubReleaseTagResolver,
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
+)
+from cumulusci.core.dependencies.resolvers import (
+    AbstractVcsReleaseBranchResolver,
+    DependencyResolutionStrategy,
     dependency_filter_ignore_deps,
     get_release_id,
     get_resolver,
     get_resolver_stack,
     get_static_dependencies,
-    locate_commit_status_package_id,
 )
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
+from cumulusci.vcs.bootstrap import locate_commit_status_package_id
+
+
+def setup_github_repo_mock(
+    patch_github_resolvers_get_github_repo, project_config, message=""
+):
+    def side_effect(context, url):
+        git_repo = project_config.get_github_repo_side_effect(context, url)
+        git_repo.repo.tag_message = message
+
+        return git_repo
+
+    patch_github_resolvers_get_github_repo.side_effect = side_effect
+
+
+def _sync_vcs_and_url(values):
+    # If only vcs is provided, set url to vcs
+    if values.get("vcs") and not values.get("url"):
+        values["url"] = values["vcs"]
+    # If only url is provided, set vcs to url
+    elif values.get("url") and not values.get("vcs"):
+        values["vcs"] = values["url"]
+    return values
 
 
 class ConcreteDynamicDependency(DynamicDependency):
@@ -62,18 +87,24 @@ class ConcreteDynamicDependency(DynamicDependency):
     def description(self):
         return ""
 
+    @root_validator(pre=True)
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+        return _sync_vcs_and_url(values)
+
 
 class TestGitHubTagResolver:
-    def test_github_tag_resolver(self, project_config):
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_github_tag_resolver(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 1GP
+version_id: 04t000000000000""",
+        )
 
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/ReleasesRepo"
-        ).tag = tag
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo",
             tag="release/1.0",  # Not the most recent release
@@ -91,16 +122,16 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_github_tag_resolver__2gp(self, project_config):
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_github_tag_resolver__2gp(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 2GP
-
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/ReleasesRepo"
-        ).tag = tag
+version_id: 04t000000000000""",
+        )
 
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo",
@@ -118,16 +149,16 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_github_tag_resolver__2gp_no_namespace(self, project_config):
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_github_tag_resolver__2gp_no_namespace(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 2GP
-
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/UnmanagedRepo"
-        ).tag = tag
+version_id: 04t000000000000""",
+        )
 
         # UnmanagedRepo contains a release but no namespace,
         # and we mock out the tag details for an Unlocked,
@@ -148,7 +179,10 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_github_tag_resolver__unmanaged(self, project_config):
+    def test_github_tag_resolver__unmanaged(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo",
             tag="release/2.0",
@@ -161,7 +195,10 @@ version_id: 04t000000000000"""
             None,
         )
 
-    def test_no_managed_release(self, project_config):
+    def test_no_managed_release(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/UnmanagedRepo",  # This repo has no namespace
             tag="release/1.0",
@@ -182,7 +219,10 @@ version_id: 04t000000000000"""
 
         assert not resolver.can_resolve(dep, project_config)
 
-    def test_exception_no_tag_found(self, project_config):
+    def test_exception_no_tag_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo",
             tag="release/3.0",
@@ -198,16 +238,17 @@ version_id: 04t000000000000"""
 
 
 class TestGitHubReleaseTagResolver:
-    def test_github_release_tag_resolver(self, project_config):
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_github_release_tag_resolver(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 1GP
+version_id: 04t000000000000""",
+        )
 
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/ReleasesRepo"
-        ).tag = tag
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
         )
@@ -224,16 +265,17 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_github_release_tag_resolver__2gp(self, project_config):
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_github_release_tag_resolver__2gp(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 2GP
 
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/TwoGPRepo"
-        ).tag = tag
+version_id: 04t000000000000""",
+        )
 
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
@@ -250,16 +292,17 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_github_release_tag_resolver__2gp_no_namespace(self, project_config):
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_github_release_tag_resolver__2gp_no_namespace(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 2GP
 
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/UnmanagedRepo"
-        ).tag = tag
+version_id: 04t000000000000""",
+        )
 
         # UnmanagedRepo contains a release but no namespace,
         # and we mock out the tag details for an Unlocked,
@@ -279,9 +322,17 @@ version_id: 04t000000000000"""
             ),
         )
 
-    @mock.patch("cumulusci.core.dependencies.resolvers.find_latest_release")
-    def test_beta_release_tag(self, get_latest, project_config):
-        get_latest.return_value = DummyRelease("beta/2.1_Beta_1", "2.1 Beta 1")
+    @mock.patch("cumulusci.vcs.bootstrap.get_latest_prerelease")
+    def test_beta_release_tag(
+        self, get_latest, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
+        gitRelease = mock.Mock()
+        gitRelease.name = "2.1 Beta 1"
+        gitRelease.release = DummyRelease("beta/2.1_Beta_1", "2.1 Beta 1")
+        get_latest.return_value = gitRelease
+
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
         )
@@ -298,7 +349,11 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_no_managed_release(self, project_config):
+    def test_no_managed_release(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/UnmanagedRepo",  # This repo has no namespace
             tag="release/1.0",
@@ -311,7 +366,9 @@ version_id: 04t000000000000"""
             None,
         )
 
-    def test_not_found(self, project_config):
+    def test_not_found(self, project_config, patch_github_resolvers_get_github_repo):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/NoReleasesRepo"
         )
@@ -322,7 +379,11 @@ version_id: 04t000000000000"""
 
 
 class TestGitHubUnmanagedHeadResolver:
-    def test_unmanaged_head_resolver(self, project_config):
+    def test_unmanaged_head_resolver(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
         )
@@ -333,7 +394,10 @@ class TestGitHubUnmanagedHeadResolver:
         assert resolver.resolve(dep, project_config) == ("commit_sha", None)
 
 
-class ConcreteGitHubReleaseBranchResolver(AbstractGitHubReleaseBranchResolver):
+class ConcreteGitHubReleaseBranchResolver(AbstractVcsReleaseBranchResolver):
+    def get_repo(self, context, url):
+        return mock.Mock()
+
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
@@ -399,15 +463,31 @@ class TestGitHubReleaseBranchResolver:
 
             assert "Cannot get current release identifier" in str(e)
 
-    def test_locate_commit_status_package_id__not_found_with_parent(self, github):
+    def test_locate_commit_status_package_id__not_found_with_parent(
+        self, github, project_config
+    ):
         repo = github.repository("SFDO-Tooling", "TwoGPMissingRepo")
-        assert locate_commit_status_package_id(
-            repo, repo.branch("feature/232"), "Build Feature Test Package"
-        ) == (None, None)
+        branch = repo.branch("feature/232")
+        context = "Build Feature Test Package"
+
+        from cumulusci.vcs.github.adapter import GitHubBranch
+
+        git_repo = project_config.init_git_repo
+        git_repo.repo = repo
+        git_branch = GitHubBranch(git_repo, branch_name="feature/232", branch=branch)
+
+        assert locate_commit_status_package_id(git_repo, git_branch, context) == (
+            None,
+            None,
+        )
 
 
 class TestGitHubReleaseBranchCommitStatusResolver:
-    def test_2gp_release_branch_resolver(self, project_config):
+    def test_2gp_release_branch_resolver(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -425,7 +505,11 @@ class TestGitHubReleaseBranchCommitStatusResolver:
             ),
         )
 
-    def test_commit_status_not_found(self, project_config):
+    def test_commit_status_not_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -437,7 +521,11 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         assert resolver.can_resolve(dep, project_config)
         assert resolver.resolve(dep, project_config) == (None, None)
 
-    def test_repo_not_found(self, project_config):
+    def test_repo_not_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -453,10 +541,15 @@ class TestGitHubReleaseBranchCommitStatusResolver:
 
         assert "Unable to access GitHub" in str(exc)
 
-    @mock.patch("cumulusci.core.dependencies.resolvers.find_repo_feature_prefix")
+    @mock.patch("cumulusci.vcs.bootstrap.find_repo_feature_prefix")
     def test_unable_locate_feature_prefix(
-        self, find_repo_feature_prefix_mock, project_config
+        self,
+        find_repo_feature_prefix_mock,
+        project_config,
+        patch_github_resolvers_get_github_repo,
     ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         find_repo_feature_prefix_mock.side_effect = NotFoundError
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
@@ -467,7 +560,11 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         )
         assert resolver.resolve(dep, project_config) == (None, None)
 
-    def test_branch_not_found(self, project_config):
+    def test_branch_not_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/290__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -480,7 +577,11 @@ class TestGitHubReleaseBranchCommitStatusResolver:
 
 
 class TestGitHubExactMatch2GPResolver:
-    def test_exact_branch_resolver(self, project_config):
+    def test_exact_branch_resolver(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -513,10 +614,15 @@ class TestGitHubExactMatch2GPResolver:
 
         assert "Unable to access GitHub" in str(exc)
 
-    @mock.patch("cumulusci.core.dependencies.resolvers.find_repo_feature_prefix")
+    @mock.patch("cumulusci.core.dependencies.github_resolvers.find_repo_feature_prefix")
     def test_unable_locate_feature_prefix(
-        self, find_repo_feature_prefix_mock, project_config
+        self,
+        find_repo_feature_prefix_mock,
+        project_config,
+        patch_github_resolvers_get_github_repo,
     ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         find_repo_feature_prefix_mock.side_effect = NotFoundError
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
@@ -527,7 +633,11 @@ class TestGitHubExactMatch2GPResolver:
         )
         assert resolver.resolve(dep, project_config) == (None, None)
 
-    def test_branch_not_found(self, project_config):
+    def test_branch_not_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/290__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -538,7 +648,11 @@ class TestGitHubExactMatch2GPResolver:
 
         assert resolver.resolve(dep, project_config) == (None, None)
 
-    def test_commit_status_not_found(self, project_config):
+    def test_commit_status_not_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/232"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -552,7 +666,11 @@ class TestGitHubExactMatch2GPResolver:
 
 
 class TestGitHubDefaultBranch2GPResolver:
-    def test_default_branch_resolver(self, project_config):
+    def test_default_branch_resolver(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/299__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -569,7 +687,11 @@ class TestGitHubDefaultBranch2GPResolver:
             ),
         )
 
-    def test_commit_status_not_found(self, project_config):
+    def test_commit_status_not_found(
+        self, project_config, patch_github_resolvers_get_github_repo
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+
         project_config.repo_branch = "feature/299"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -622,7 +744,17 @@ class TestResolverAccess:
 
 
 class TestStaticDependencyResolution:
-    def test_get_static_dependencies(self, project_config):
+    def test_get_static_dependencies(
+        self,
+        project_config,
+        patch_github_resolvers_get_github_repo,
+        patch_github_dependencies_get_github_repo,
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+        setup_github_repo_mock(
+            patch_github_dependencies_get_github_repo, project_config
+        )
+
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
 
         assert get_static_dependencies(
@@ -673,22 +805,25 @@ class TestStaticDependencyResolution:
             ),
         ]
 
-    def test_get_static_dependencies__pins(self, project_config):
-        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
-
-        tag = mock.Mock()
-        tag.return_value.object.sha = "tag_sha"
-        tag.return_value.message = """
+    def test_get_static_dependencies__pins(
+        self,
+        project_config,
+        patch_github_resolvers_get_github_repo,
+        patch_github_dependencies_get_github_repo,
+    ):
+        setup_github_repo_mock(
+            patch_github_resolvers_get_github_repo,
+            project_config,
+            message="""
 package_type: 1GP
 
-version_id: 04t000000000000"""
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/RootRepo"
-        ).tag = tag
+version_id: 04t000000000000""",
+        )
+        setup_github_repo_mock(
+            patch_github_dependencies_get_github_repo, project_config
+        )
 
-        project_config.get_repo_from_url(
-            "https://github.com/SFDO-Tooling/DependencyRepo"
-        ).tag = tag
+        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
 
         # Add a pin for the direct dependency and a transitive dependency
         pins = [
@@ -780,7 +915,17 @@ version_id: 04t000000000000"""
                 pins=pins,
             )
 
-    def test_get_static_dependencies__ignore_namespace(self, project_config):
+    def test_get_static_dependencies__ignore_namespace(
+        self,
+        project_config,
+        patch_github_resolvers_get_github_repo,
+        patch_github_dependencies_get_github_repo,
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+        setup_github_repo_mock(
+            patch_github_dependencies_get_github_repo, project_config
+        )
+
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
 
         assert get_static_dependencies(
@@ -826,7 +971,17 @@ version_id: 04t000000000000"""
             ),
         ]
 
-    def test_get_static_dependencies__ignore_github(self, project_config):
+    def test_get_static_dependencies__ignore_github(
+        self,
+        project_config,
+        patch_github_resolvers_get_github_repo,
+        patch_github_dependencies_get_github_repo,
+    ):
+        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+        setup_github_repo_mock(
+            patch_github_dependencies_get_github_repo, project_config
+        )
+
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
 
         assert get_static_dependencies(

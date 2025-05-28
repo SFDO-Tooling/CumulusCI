@@ -163,69 +163,7 @@ class UnmanagedZipURLDependency(base_dependency.UnmanagedDependency):
         return f"{self.zip_url} {subfolder}"
 
 
-def parse_pins(pins: Optional[List[dict]]) -> List[base_dependency.DependencyPin]:
-    """Convert a list of dependency pin specifications in the form of dicts
-    (as defined in `cumulusci.yml`) and parse each into a concrete DependencyPin subclass.
-
-    Throws DependencyParseError if a dict cannot be parsed."""
-    parsed_pins = []
-    for pin in pins or []:
-        parsed = parse_dependency_pin(pin)
-        if parsed is None:
-            raise DependencyParseError(f"Unable to parse dependency pin: {pin}")
-        parsed_pins.append(parsed)
-
-    return parsed_pins
-
-
-AVAILABLE_DEPENDENCY_PIN_CLASSES = []
-
-
-def add_dependency_pin_class(new_class: Type[base_dependency.DependencyPin]) -> None:
-    """
-    Adds a new dependency pin class to the global list if it's not already present.
-    Args:
-        new_class: The dependency pin class to add.
-    """
-    if new_class not in AVAILABLE_DEPENDENCY_PIN_CLASSES:
-        AVAILABLE_DEPENDENCY_PIN_CLASSES.append(new_class)
-        logger.info(f"dependency_pin_config: Added '{new_class}'.")
-    else:
-        logger.warning(f"dependency_pin_config: '{new_class}' already exists.")
-
-
-def parse_dependency_pin(
-    pin_dict: dict[str, str]
-) -> Optional[base_dependency.DependencyPin]:
-    """Parse a single dependency pin specification in the form of a dict
-    into a concrete DependencyPin subclass.
-
-    Returns None if the given dict cannot be parsed."""
-
-    for dependency_pin_class in AVAILABLE_DEPENDENCY_PIN_CLASSES:
-        try:
-            pin = dependency_pin_class.parse_obj(pin_dict)
-            if pin:
-                return pin
-        except ValidationError:
-            pass
-
-
-def parse_dependencies(
-    deps: Optional[List[dict[str, str]]]
-) -> List[base_dependency.Dependency]:
-    """Convert a list of dependency specifications in the form of dicts
-    (as defined in `cumulusci.yml`) and parse each into a concrete Dependency subclass.
-
-    Throws DependencyParseError if a dict cannot be parsed."""
-    parsed_deps = []
-    for dep in deps or []:
-        parsed = parse_dependency(dep)
-        if parsed is None:
-            raise DependencyParseError(f"Unable to parse dependency: {dep}")
-        parsed_deps.append(parsed)
-    return parsed_deps
-
+#### Definition of dependency classes ####
 
 AVAILABLE_DEPENDENCY_CLASSES = [
     PackageVersionIdDependency,
@@ -265,5 +203,71 @@ def parse_dependency(dep_dict: dict[str, str]) -> Optional[base_dependency.Depen
             dep = dependency_class.parse_obj(dep_dict)
             if dep:
                 return dep
+        except ValidationError:
+            pass
+
+
+def parse_dependencies(
+    deps: Optional[List[dict[str, str]]]
+) -> List[base_dependency.Dependency]:
+    """Convert a list of dependency specifications in the form of dicts
+    (as defined in `cumulusci.yml`) and parse each into a concrete Dependency subclass.
+
+    Throws DependencyParseError if a dict cannot be parsed."""
+    parsed_deps = []
+    for dep in deps or []:
+        parsed = parse_dependency(dep)
+        if parsed is None:
+            raise DependencyParseError(f"Unable to parse dependency: {dep}")
+        parsed_deps.append(parsed)
+    return parsed_deps
+
+
+#### Definition of dependency pins classes ####
+
+AVAILABLE_DEPENDENCY_PIN_CLASSES = []
+
+
+def parse_pins(pins: Optional[List[dict]]) -> List[base_dependency.DependencyPin]:
+    """Convert a list of dependency pin specifications in the form of dicts
+    (as defined in `cumulusci.yml`) and parse each into a concrete DependencyPin subclass.
+
+    Throws DependencyParseError if a dict cannot be parsed."""
+    parsed_pins = []
+    for pin in pins or []:
+        parsed = parse_dependency_pin(pin)
+        if parsed is None:
+            raise DependencyParseError(f"Unable to parse dependency pin: {pin}")
+        parsed_pins.append(parsed)
+
+    return parsed_pins
+
+
+def add_dependency_pin_class(new_class: Type[base_dependency.DependencyPin]) -> None:
+    """
+    Adds a new dependency pin class to the global list if it's not already present.
+    Args:
+        new_class: The dependency pin class to add.
+    """
+    if new_class not in AVAILABLE_DEPENDENCY_PIN_CLASSES:
+        AVAILABLE_DEPENDENCY_PIN_CLASSES.append(new_class)
+        logger.info(f"dependency_pin_config: Added '{new_class}'.")
+    else:
+        logger.warning(f"dependency_pin_config: '{new_class}' already exists.")
+
+
+def parse_dependency_pin(
+    pin_dict: dict[str, str]
+) -> Optional[base_dependency.DependencyPin]:
+    """Parse a single dependency pin specification in the form of a dict
+    into a concrete DependencyPin subclass.
+
+    Returns None if the given dict cannot be parsed."""
+
+    for dependency_pin_class in AVAILABLE_DEPENDENCY_PIN_CLASSES:
+        try:
+            pin = dependency_pin_class.parse_obj(pin_dict)
+            if pin:
+                return pin
         except ValidationError:
             pass

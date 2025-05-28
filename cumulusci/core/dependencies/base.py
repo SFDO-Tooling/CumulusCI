@@ -1,14 +1,14 @@
 import contextlib
 from abc import ABC, abstractmethod
-from enum import StrEnum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Type
 from zipfile import ZipFile
 
-from pydantic import AnyUrl
+from pydantic import AnyUrl, PrivateAttr, root_validator, validator
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.exceptions import DependencyResolutionError, VcsNotFoundError
 from cumulusci.core.sfdx import (
     SourceFormat,
     convert_sfdx_source,
@@ -16,22 +16,50 @@ from cumulusci.core.sfdx import (
 )
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.utils import temporary_dir
+from cumulusci.utils import download_extract_vcs_from_repo, temporary_dir
 from cumulusci.utils.yaml.model_parser import HashableBaseModel
 from cumulusci.utils.ziputils import zip_subfolder
+from cumulusci.vcs.models import AbstractRepo
 
 
 class DependencyPin(HashableBaseModel, ABC):
     @abstractmethod
     def can_pin(self, d: "DynamicDependency") -> bool:
-        ...
+        raise NotImplementedError("Subclasses must implement can_pin.")
 
     @abstractmethod
     def pin(self, d: "DynamicDependency", context: BaseProjectConfig):
-        ...
+        raise NotImplementedError("Subclasses must implement pin.")
 
 
 DependencyPin.update_forward_refs()
+
+
+class VcsDependencyPin(DependencyPin):
+    url: Optional[AnyUrl] = None
+    tag: str
+
+    @property
+    @abstractmethod
+    def vcsTagResolver(self):  # -> Type["AbstractTagResolver"]:
+        raise NotImplementedError("Subclasses must implement vcsTagResolver.")
+
+    @root_validator(pre=True)
+    @abstractmethod
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+        raise NotImplementedError("Subclasses must implement sync_vcs_and_url.")
+
+    def can_pin(self, d: "DynamicDependency") -> bool:
+        return isinstance(d, BaseVcsDynamicDependency) and d.url == self.url
+
+    def pin(self, d: "BaseVcsDynamicDependency", context: BaseProjectConfig):
+        if d.tag and d.tag != self.tag:
+            raise DependencyResolutionError(
+                f"A pin is specified for {self.url}, but the dependency already has a tag specified."
+            )
+        d.tag = self.tag
+        d.ref, d.package_dependency = self.vcsTagResolver().resolve(d, context)
 
 
 class Dependency(HashableBaseModel, ABC):
@@ -95,11 +123,16 @@ class DynamicDependency(Dependency, ABC):
     url: Optional[AnyUrl] = None
     package_dependency: Optional[StaticDependency] = None
     password_env_name: Optional[str] = None
-    vcs: str = ""
 
     @property
     def is_flattened(self):
         return False
+
+    @root_validator(pre=True)
+    @abstractmethod
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+        raise NotImplementedError("Subclasses must implement sync_vcs_and_url.")
 
     def resolve(
         self,
@@ -220,37 +253,303 @@ class UnmanagedDependency(StaticDependency, ABC):
         return api()
 
 
-class DependencyResolutionStrategy(StrEnum):
-    """Enum that defines a strategy for resolving a dynamic dependency into a static dependency."""
+class BaseVcsDynamicDependency(DynamicDependency, ABC):
+    """Abstract base class for dynamic dependencies that are stored in a VCS."""
 
-    STATIC_TAG_REFERENCE = "tag"
-    COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
-    COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
-    COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = "commit_status_previous_release_branch"
-    COMMIT_STATUS_DEFAULT_BRANCH = "commit_status_default_branch"
-    UNLOCKED_EXACT_BRANCH = "unlocked_exact_branch"
-    UNLOCKED_RELEASE_BRANCH = "unlocked_release_branch"
-    UNLOCKED_PREVIOUS_RELEASE_BRANCH = "unlocked_previous_release_branch"
-    UNLOCKED_DEFAULT_BRANCH = "unlocked_default_branch"
-    BETA_RELEASE_TAG = "latest_beta"
-    RELEASE_TAG = "latest_release"
-    UNMANAGED_HEAD = "unmanaged"
+    tag: Optional[str] = None
+    ref: Optional[str] = None
 
+    vcs: str = ""  # Need to validate presence of this pydantic field in subclasses
+    _repo: Optional[AbstractRepo] = PrivateAttr(default=None)
 
-class AbstractResolver(ABC):
-    """Abstract base class for dependency resolution strategies."""
-
-    name = "Resolver"
-
+    @property
     @abstractmethod
-    def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
+    def is_unmanaged(self):
         pass
 
-    @abstractmethod
-    def resolve(
-        self, dep: DynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-        pass
+    @property
+    def is_resolved(self):
+        return bool(self.ref)
 
-    def __str__(self):
-        return self.name
+    @property
+    def repo(self):
+        # if not self._repo:
+        #     raise ValueError("VCS DynamicDependency has no repo set")
+        return self._repo
+
+    def set_repo(self, value: AbstractRepo):
+        self._repo = value
+
+    @root_validator
+    def check_complete(cls, values):
+
+        assert values["ref"] is None, "Must not specify `ref` at creation."
+        return values
+
+    @property
+    def name(self):
+        return f"Dependency: {self.url}"
+
+
+class VcsDynamicSubfolderDependency(BaseVcsDynamicDependency, ABC):
+    """A dependency expressed by a reference to a subfolder of a ADO repo, which needs
+    to be resolved to a specific ref. This is always an unmanaged dependency."""
+
+    subfolder: str
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
+
+    @property
+    def is_unmanaged(self):
+        return True
+
+    @property
+    def name(self) -> str:
+        return f"Dependency: {self.url}/{self.subfolder}"
+
+    @property
+    def description(self) -> str:
+        loc = f" @{self.tag or self.ref}" if self.ref or self.tag else ""
+        return f"{self.url}/{self.subfolder}{loc}"
+
+    @property
+    @abstractmethod
+    def unmanagedVcsDependency(self) -> Type[UnmanagedDependency]:
+        raise NotImplementedError("Subclasses must implement unmanagedVcsDependency.")
+
+    def flatten(self, context: BaseProjectConfig) -> List[Dependency]:
+        """Convert to a static dependency after resolution"""
+
+        if not self.is_resolved:
+            raise DependencyResolutionError(
+                f"Dependency {self} is not resolved and cannot be flattened."
+            )
+
+        return [
+            self.unmanagedVcsDependency(
+                url=self.url,
+                ref=self.ref or "",
+                subfolder=self.subfolder,
+                namespace_inject=self.namespace_inject,
+                namespace_strip=self.namespace_strip,
+            )
+        ]
+
+
+class VcsDynamicDependency(BaseVcsDynamicDependency, ABC):
+    """A dependency expressed by a reference to a ADO repo, which needs
+    to be resolved to a specific ref and/or package version."""
+
+    unmanaged: bool = False
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
+    password_env_name: Optional[str] = None
+
+    skip: List[str] = []
+
+    @property
+    def is_unmanaged(self):
+        return self.unmanaged
+
+    @property
+    @abstractmethod
+    def unmanagedVcsDependency(self) -> Type[UnmanagedDependency]:
+        raise NotImplementedError("Subclasses must implement unmanagedVcsDependency.")
+
+    @abstractmethod
+    def get_repo(self, context, url) -> AbstractRepo:
+        raise NotImplementedError("Subclasses must implement get_repo.")
+
+    @validator("skip", pre=True)
+    def listify_skip(cls, v):
+        if v and not isinstance(v, list):
+            v = [v]
+        return v
+
+    @root_validator
+    def check_unmanaged_values(cls, values):
+
+        if not values.get("unmanaged") and (
+            values.get("namespace_inject") or values.get("namespace_strip")
+        ):
+            raise ValueError(
+                "The namespace_strip and namespace_inject fields require unmanaged = True"
+            )
+
+        return values
+
+    def _flatten_unpackaged(
+        self,
+        repo: AbstractRepo,
+        subfolder: str,
+        skip: List[str],
+        managed: bool,
+        namespace: Optional[str],
+    ) -> List[StaticDependency]:
+        """Locate unmanaged dependencies from a repository subfolder (such as unpackaged/pre or unpackaged/post)"""
+        unpackaged = []
+        try:
+            contents = repo.directory_contents(subfolder, return_as=dict, ref=self.ref)
+        except VcsNotFoundError:
+            contents = None
+
+        if contents:
+            for dirname in sorted(contents.keys()):
+                this_subfolder = f"{subfolder}/{dirname}"
+                if this_subfolder in skip:
+                    continue
+
+                unpackaged.append(
+                    self.unmanagedVcsDependency(
+                        url=self.url,
+                        ref=self.ref,
+                        subfolder=this_subfolder,
+                        unmanaged=not managed,
+                        namespace_inject=namespace if namespace and managed else None,
+                        namespace_strip=namespace
+                        if namespace and not managed
+                        else None,
+                    )
+                )
+
+        return unpackaged
+
+    def flatten(self, context: BaseProjectConfig) -> List[Dependency]:
+        """Find more dependencies based on repository contents.
+
+        Includes:
+        - dependencies from cumulusci.yml
+        - subfolders of unpackaged/pre
+        - the contents of src, if this is not a managed package
+        - subfolders of unpackaged/post
+        """
+        from cumulusci.core.dependencies.dependencies import parse_dependency
+        from cumulusci.core.dependencies.resolvers import get_package_data
+        from cumulusci.vcs.bootstrap import get_remote_project_config
+
+        if not self.is_resolved:
+            raise DependencyResolutionError(
+                f"Dependency {self} is not resolved and cannot be flattened."
+            )
+
+        deps = []
+
+        context.logger.info(f"Collecting dependencies from {self.vcs} repo {self.url}")
+        repo = self.get_repo(context, self.url)
+
+        package_config = get_remote_project_config(repo, self.ref)
+        _, namespace = get_package_data(package_config)
+
+        # Parse upstream dependencies from the repo's cumulusci.yml
+        # These may be unresolved or unflattened; if so, `get_static_dependencies()`
+        # will manage them.
+        dependencies = package_config.project__dependencies
+        if dependencies:
+            deps.extend([parse_dependency(d) for d in dependencies])
+            if None in deps:
+                raise DependencyResolutionError(
+                    f"Unable to flatten dependency {self} because a transitive dependency could not be parsed."
+                )
+
+        # Check for unmanaged flag on a namespaced package
+        managed = bool(namespace and not self.unmanaged)
+
+        # Look for subfolders under unpackaged/pre
+        # unpackaged/pre is always deployed unmanaged, no namespace manipulation.
+        deps.extend(
+            self._flatten_unpackaged(
+                repo, "unpackaged/pre", self.skip, managed=False, namespace=None
+            )
+        )
+
+        if not self.package_dependency:
+            if managed:
+                # We had an expectation of finding a package version and did not.
+                raise DependencyResolutionError(
+                    f"Could not find latest release for {self}"
+                )
+
+            # Deploy the project, if unmanaged.
+            deps.append(
+                self.unmanagedVcsDependency(
+                    url=self.url,
+                    ref=self.ref,
+                    unmanaged=self.unmanaged,
+                    namespace_inject=self.namespace_inject,
+                    namespace_strip=self.namespace_strip,
+                )
+            )
+        else:
+            deps.append(self.package_dependency)
+
+        # We always inject the project's namespace into unpackaged/post metadata if managed
+        deps.extend(
+            self._flatten_unpackaged(
+                repo,
+                "unpackaged/post",
+                self.skip,
+                managed=managed,
+                namespace=namespace,
+            )
+        )
+
+        return deps
+
+    @property
+    def description(self):
+        unmanaged = " (unmanaged)" if self.unmanaged else ""
+        loc = f" @{self.tag or self.ref}" if self.ref or self.tag else ""
+        return f"{self.url}{unmanaged}{loc}"
+
+
+class UnmanagedVcsDependency(UnmanagedDependency, ABC):
+    url: Optional[AnyUrl] = None
+    ref: str
+
+    # for backwards compatibility only; currently unused
+    filename_token: Optional[str] = None
+    namespace_token: Optional[str] = None
+
+    # Add these fields to support subfolder and namespace manipulation
+    subfolder: Optional[str] = None
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
+
+    @root_validator(pre=True)
+    @abstractmethod
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+        raise NotImplementedError("Subclasses must implement sync_vcs_and_url.")
+
+    @abstractmethod
+    def get_repo(self, url, context) -> AbstractRepo:
+        raise NotImplementedError("Subclasses must implement get_repo.")
+
+    def _get_zip_src(self, context):
+        repo = self.get_repo(context, self.url)
+
+        # We don't pass `subfolder` to download_extract_vcs_from_repo()
+        # because we need to get the whole ref in order to
+        # correctly handle any permutation of MDAPI/SFDX format,
+        # with or without a subfolder specified.
+
+        # install() will take care of that for us.
+        return download_extract_vcs_from_repo(
+            repo,
+            ref=self.ref,
+        )
+
+    @property
+    def name(self):
+        subfolder = (
+            f"/{self.subfolder}" if self.subfolder and self.subfolder != "src" else ""
+        )
+        return f"Deploy {self.url}{subfolder}"
+
+    @property
+    def description(self):
+        subfolder = (
+            f"/{self.subfolder}" if self.subfolder and self.subfolder != "src" else ""
+        )
+
+        return f"{self.url}{subfolder} @{self.ref}"

@@ -8,7 +8,7 @@ import webbrowser
 
 # from string import Template
 # from typing import Callable, Optional, Union
-from typing import Optional, Type, Union
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import github3
@@ -34,7 +34,8 @@ from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
-from cumulusci.core.dependencies import GitHubDynamicDependency
+
+# from cumulusci.core.dependencies.github import GitHubDynamicDependency
 from cumulusci.core.exceptions import (  # DependencyLookupError
     GithubApiError,
     GithubApiNotFoundError,
@@ -351,8 +352,10 @@ class GitHubService(VCSService):
         self._repo: GitHubRepository = None
 
     @property
-    def dynamic_dependency_class(self) -> Type[GitHubDynamicDependency]:
+    def dynamic_dependency_class(self):  # -> Type[GitHubDynamicDependency]:
         """Returns the dynamic dependency class for the GitHub service."""
+        from cumulusci.core.dependencies.github import GitHubDynamicDependency
+
         return GitHubDynamicDependency
 
     @property
@@ -432,7 +435,7 @@ class GitHubService(VCSService):
     @classmethod
     def get_service_for_url(
         cls, project_config: BaseProjectConfig, url: str, options: dict = {}
-    ) -> "GitHubService":
+    ) -> Optional["GitHubService"]:
         """Returns the service configuration for the given URL."""
         _owner, _repo_name, host = parse_repo_url(url)
 
@@ -449,6 +452,7 @@ class GitHubService(VCSService):
 
             return vcs_service
         project_config.logger.info(f"No Github service configured for domain {host}.")
+        return None
 
     def get_repository(self, options: dict = {}) -> GitHubRepository:
         """Returns the GitHub repository."""
@@ -527,14 +531,16 @@ class GitHubEnterpriseService(GitHubService):
         super().__init__(config, name=name, **kwargs)
 
     @property
-    def dynamic_dependency_class(self) -> Type[GitHubDynamicDependency]:
+    def dynamic_dependency_class(self):  # -> Type[GitHubDynamicDependency]:
         """Returns the dynamic dependency class for the GitHub service."""
+        from cumulusci.core.dependencies.github import GitHubDynamicDependency
+
         return GitHubDynamicDependency
 
     @classmethod
     def get_service_for_url(
         cls, project_config: BaseProjectConfig, url: str, options: dict = {}
-    ) -> "GitHubEnterpriseService":
+    ) -> Optional["GitHubEnterpriseService"]:
         """Returns the service configuration for the given URL."""
         _owner, _repo_name, host = parse_repo_url(url)
 

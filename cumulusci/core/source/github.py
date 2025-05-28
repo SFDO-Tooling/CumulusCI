@@ -31,13 +31,13 @@ class GitHubSource(VCSSource):
         return self.spec.ref
 
     def get_tag(self):
-        return "tags/" + self.spec.tag
+        return "tags/" + (self.spec.tag or "")
 
     def get_branch(self):
-        return "heads/" + self.spec.branch
+        return "heads/" + (self.spec.branch or "")
 
     def get_release_tag(self):
-        return "tags/" + self.spec.release
+        return "tags/" + (self.spec.release or "")
 
     @property
     def frozenspec(self):

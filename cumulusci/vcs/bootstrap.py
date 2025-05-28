@@ -1,15 +1,15 @@
 import functools
-import io
 import logging
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.exceptions import CumulusCIException, VcsNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
+    AbstractBranch,
     AbstractGitTag,
     AbstractPullRequest,
     AbstractRef,
@@ -162,12 +162,21 @@ def get_repo_from_url(
 
 @functools.lru_cache(50)
 def get_remote_project_config(repo: AbstractRepo, ref: str) -> BaseProjectConfig:
-    contents = repo.file_contents("cumulusci.yml", ref=ref)
-    contents_io = io.StringIO(contents.decoded.decode("utf-8"))
-    contents_io.url = (
-        f"cumulusci.yml from {repo.repo_owner}/{repo.repo_name}"  # for logging
-    )
-    return BaseProjectConfig(None, cci_safe_load(contents_io))
+    contents_io = repo.file_contents("cumulusci.yml", ref=ref)
+    return BaseProjectConfig(UniversalConfig(), cci_safe_load(contents_io))
+
+
+def find_repo_feature_prefix(repo: AbstractRepo) -> str:
+    ref = repo.branch(repo.default_branch).commit.sha
+    head_cumulusci_project_config = get_remote_project_config(repo, ref)
+    return head_cumulusci_project_config.project__git__prefix_feature or "feature/"
+
+
+def get_remote_context(
+    repo: AbstractRepo, commit_status_context: str, default_context: str
+) -> str:
+    config = get_remote_project_config(repo, repo.default_branch)
+    return config.lookup(f"project__git__{commit_status_context}") or default_context
 
 
 def find_latest_release(
@@ -199,3 +208,26 @@ def find_previous_release(repo: AbstractRepo, prefix=None):
             most_recent = release
         else:
             return release
+
+
+def locate_commit_status_package_id(
+    remote_repo: AbstractRepo, release_branch: AbstractBranch, context_2gp: str
+) -> Tuple[Optional[str], Optional[AbstractRepoCommit]]:
+    """Given a branch on a remote repo, walk the first 5 commits looking
+    for a commit status equal to context_2gp and attempt to parse a
+    package version id from the commit status detail."""
+    version_id = None
+    count = 0
+    commit: Optional[AbstractRepoCommit] = release_branch.commit
+    while version_id is None and count < 5:
+        version_id = get_version_id_from_commit(remote_repo, commit.sha, context_2gp)
+        if version_id:
+            break
+        count += 1
+        if commit.parents:
+            commit = remote_repo.get_commit(commit.parents[0].sha)
+        else:
+            commit = None
+            break
+
+    return version_id, commit

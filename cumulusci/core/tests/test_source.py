@@ -11,6 +11,7 @@ import responses
 import yaml
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
+from cumulusci.core.dependencies.github_resolvers import VCS_GITHUB
 from cumulusci.core.exceptions import DependencyResolutionError, VcsApiError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
@@ -109,6 +110,7 @@ class TestGitHubSource(MockUtilBase):
             self.project_config,
             GitHubSourceModel(github="https://github.com/TestOwner/TestRepo.git"),
         )
+        assert source.vcs == VCS_GITHUB
         assert repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ commit_sha>"
 
     @responses.activate

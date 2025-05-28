@@ -2,8 +2,8 @@ from typing import List
 
 import click
 
-from cumulusci.core.dependencies import (
-    Dependency,
+from cumulusci.core.dependencies.base import Dependency
+from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     parse_dependencies,

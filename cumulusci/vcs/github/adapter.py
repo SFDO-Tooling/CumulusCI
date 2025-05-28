@@ -1,6 +1,6 @@
 import http.client
 from datetime import UTC, datetime
-from io import BytesIO
+from io import BytesIO, StringIO
 from re import Pattern
 from string import Template
 from typing import Optional, Union
@@ -11,6 +11,7 @@ from github3.git import Reference, Tag
 from github3.issues.issue import ShortIssue
 from github3.issues.label import ShortLabel
 from github3.pulls import PullRequest, ShortPullRequest
+from github3.repos.branch import Branch
 from github3.repos.commit import RepoCommit
 from github3.repos.release import Release
 from github3.repos.repo import Repository
@@ -50,12 +51,16 @@ class GitHubTag(AbstractGitTag):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.sha = self.tag.sha if self.tag else None
 
     @property
     def message(self) -> str:
         """Gets the message of the tag."""
         return self.tag.message if self.tag else ""
+
+    @property
+    def sha(self) -> str:
+        """Gets the SHA of the tag."""
+        return self.tag.object.sha or self.tag.sha if self.tag else ""
 
 
 class GitHubComparison(AbstractComparison):
@@ -90,6 +95,11 @@ class GitHubCommit(AbstractRepoCommit):
     """GitHub comparison object for comparing commits."""
 
     commit: RepoCommit
+    _sha: str
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._sha = self.commit.sha if self.commit else kwargs.get("sha", "")
 
     def get_statuses(self, context: str, regex_match: Pattern[str]) -> Optional[str]:
         for status in self.commit.status().statuses:
@@ -99,9 +109,19 @@ class GitHubCommit(AbstractRepoCommit):
                     return match.group(1)
         return None
 
+    @property
+    def parents(self) -> list["GitHubCommit"]:
+        return [GitHubCommit(**c) for c in self.commit.parents]
+
+    @property
+    def sha(self) -> str:
+        """Gets the SHA of the commit."""
+        return self._sha
+
 
 class GitHubBranch(AbstractBranch):
     repo: "GitHubRepository"
+    branch: Optional[Branch]
 
     def __init__(self, repo: "GitHubRepository", branch_name: str, **kwargs) -> None:
         super().__init__(repo, branch_name, **kwargs)
@@ -126,6 +146,14 @@ class GitHubBranch(AbstractBranch):
             ]
         except NotFoundError:
             raise GithubApiNotFoundError("Could not find branches on GitHub")
+
+    @property
+    def commit(self) -> Optional[GitHubCommit]:
+        """Gets the branch commit for the current branch."""
+        if self.branch is None:
+            self.get_branch()
+
+        return GitHubCommit(commit=self.branch.commit) if self.branch else None
 
 
 class GitHubRelease(AbstractRelease):
@@ -275,9 +303,8 @@ class GitHubRepository(AbstractRepo):
 
     def _init_repo(self) -> None:
         """Initializes the repository object."""
-        repo_url = self.options.get("repository_url", None)
-        if repo_url is not None:
-            self.repo_owner, self.repo_name, host = parse_repo_url(repo_url)
+        if self.repo_url is not None:
+            self.repo_owner, self.repo_name, host = parse_repo_url(self.repo_url)
 
         self.repo_owner = (
             self.repo_owner
@@ -290,6 +317,7 @@ class GitHubRepository(AbstractRepo):
             or self.project_config.repo_name
         )
         self.repo: Repository = self.github.repository(self.repo_owner, self.repo_name)
+        self.repo_url = self.repo_url or self.repo.html_url
 
     @property
     def service_config(self):
@@ -604,3 +632,24 @@ class GitHubRepository(AbstractRepo):
                 return self.release_from_tag(release_tags[0]["tagName"])
         except NotFoundError:
             raise GithubApiNotFoundError("Could not find latest prerelease on GitHub")
+
+    def directory_contents(self, subfolder: str, return_as, ref: str) -> dict:
+        try:
+            contents = self.repo.directory_contents(
+                subfolder, return_as=return_as, ref=ref
+            )
+        except NotFoundError:
+            contents = None
+            raise GithubApiNotFoundError("Could not find latest prerelease on GitHub")
+        return contents
+
+    def file_contents(self, file: str, ref: str) -> StringIO:
+        contents = self.repo.file_contents("cumulusci.yml", ref=ref)
+        contents_io = StringIO(contents.decoded.decode("utf-8") if contents else "")
+        contents_io.url = (
+            f"cumulusci.yml from {self.repo.owner}/{self.repo.name}"  # for logging
+        )
+        return contents_io
+
+    def clone_url(self, protocol: str = "https") -> str:
+        return self.repo.clone_url if protocol == "https" else self.repo.ssh_url

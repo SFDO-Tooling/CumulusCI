@@ -9,12 +9,12 @@ from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
-from cumulusci.core.dependencies import (
+from cumulusci.core.dependencies.base import UnmanagedDependency
+from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    UnmanagedDependency,
-    UnmanagedGitHubRefDependency,
 )
+from cumulusci.core.dependencies.github import UnmanagedGitHubRefDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.enums import StrEnum
