@@ -597,6 +597,7 @@ named after your project. Save this code in a file named
 *** Settings ***
 Resource        cumulusci/robotframework/Salesforce.robot
 
+*** Test Cases ***
 Create a test Contact
    [Documentation]  Create a temporary Contact and return it
 
