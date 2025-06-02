@@ -20,6 +20,11 @@ from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
 
+@pytest.fixture
+def vcr_cassette_dir():
+    return os.path.join(os.path.dirname(__file__), "cassettes")
+
+
 class TestListChanges:
     """List the changes from a scratch org"""
 
@@ -180,12 +185,12 @@ class TestRetrieveChanges:
                     },
                 ],
             }
-            with mock.patch.object(
-                RetrieveProfile, "_run_task"
-            ) as mock_retrieve_profile, mock.patch.object(
-                pathlib.Path, "exists", return_value=True
-            ), mock.patch.object(
-                pathlib.Path, "is_dir", return_value=True
+            with (
+                mock.patch.object(
+                    RetrieveProfile, "_run_task"
+                ) as mock_retrieve_profile,
+                mock.patch.object(pathlib.Path, "exists", return_value=True),
+                mock.patch.object(pathlib.Path, "is_dir", return_value=True),
             ):
                 task._run_task()
                 assert sfdx_calls == [
@@ -207,6 +212,52 @@ class TestRetrieveChanges:
             task.logger.info = messages.append
             task._run_task()
             assert "No changes to retrieve" in messages
+
+    def test_run_task_with_output_dir(self, sfdx, create_task_fixture):
+        sfdx_calls = []
+        sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
+
+        with temporary_dir():
+            task = create_task_fixture(
+                RetrieveChanges,
+                {
+                    "include": "Test",
+                    "namespace_tokenize": "ns",
+                    "retrieve_complete_profile": True,
+                    "output_dir": "output",
+                },
+            )
+            task._init_task()
+            task.tooling = mock.Mock()
+            task.tooling.query_all.return_value = {
+                "totalSize": 1,
+                "records": [
+                    {
+                        "MemberType": "CustomObject",
+                        "MemberName": "Test__c",
+                        "RevisionCounter": 1,
+                    },
+                    {
+                        "MemberType": "Profile",
+                        "MemberName": "TestProfile",
+                        "RevisionCounter": 1,
+                    },
+                ],
+            }
+            with (
+                mock.patch.object(
+                    RetrieveProfile, "_run_task"
+                ) as mock_retrieve_profile,
+                mock.patch.object(pathlib.Path, "exists", return_value=True),
+                mock.patch.object(pathlib.Path, "is_dir", return_value=True),
+            ):
+                task._run_task()
+                assert sfdx_calls == [
+                    "project convert mdapi",
+                    "project retrieve start",
+                    "project convert source",
+                ]
+                mock_retrieve_profile.assert_called()
 
 
 class TestSnapshotChanges:

@@ -179,6 +179,14 @@ retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_
     "namespace_tokenize"
 ]
 
+retrieve_changes_task_options["output_dir"] = {
+    "description": (
+        "The output directory for the retrieved metadata. "
+        + "If not specified, defaults to force-app or the target directory passed to retrieve changes."
+    ),
+    "required": False,
+}
+
 
 def _write_manifest(changes, path, api_version):
     """Write a package.xml for the specified changes and API version."""
@@ -226,6 +234,7 @@ def retrieve_components(
     project_config: BaseProjectConfig = None,
     retrieve_complete_profile: bool = False,
     capture_output: bool = False,
+    output_dir: str = None,
 ):
     """Retrieve specified components from an org into a target folder.
 
@@ -238,7 +247,10 @@ def retrieve_components(
     to a namespace prefix to replace it with a `%%%NAMESPACE%%%` token.
     """
 
-    target = os.path.realpath(target)
+    # Always use output_dir if specified, else use target
+    retrieve_target = (
+        os.path.realpath(output_dir) if output_dir else os.path.realpath(target)
+    )
     profiles = []
     # If retrieve_complete_profile and project_config is None, raise error
     # This is because project_config is only required if retrieve_complete_profile is True
@@ -302,6 +314,8 @@ def retrieve_components(
                     "-w",
                     "5",
                     "--ignore-conflicts",
+                    "--output-dir",
+                    retrieve_target,
                 ],
                 capture_output=capture_output,
                 check_return=True,
@@ -364,6 +378,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             self.options.get("retrieve_complete_profile", False)
         )
 
+        # Get output_dir first
+        output_dir = self.options.get("output_dir")
+
         # Check which directories are configured as dx packages
         package_directories = []
         default_package_directory = None
@@ -392,6 +409,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             md_format = path not in package_directories
         self.md_format = md_format
         self.options["path"] = path
+        self.options["output_dir"] = output_dir
 
         if "api_version" not in self.options:
             self.options[
@@ -410,6 +428,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             self.logger.info("{MemberType}: {MemberName}".format(**change))
 
         target = os.path.realpath(self.options["path"])
+        output_dir = self.options.get("output_dir")
         package_xml_opts = {}
         if self.options["path"] == "src":
             package_xml_opts.update(
@@ -430,6 +449,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             extra_package_xml_opts=package_xml_opts,
             project_config=self.project_config,
             retrieve_complete_profile=self.options["retrieve_complete_profile"],
+            output_dir=output_dir,
         )
 
         if self.options["snapshot"]:
