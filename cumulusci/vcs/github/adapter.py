@@ -49,9 +49,6 @@ class GitHubRef(AbstractRef):
 class GitHubTag(AbstractGitTag):
     tag: Tag
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-
     @property
     def message(self) -> str:
         """Gets the message of the tag."""
@@ -640,14 +637,16 @@ class GitHubRepository(AbstractRepo):
             )
         except NotFoundError:
             contents = None
-            raise GithubApiNotFoundError("Could not find latest prerelease on GitHub")
+            raise GithubApiNotFoundError(
+                f"Could not find directory {subfolder} on GitHub."
+            )
         return contents
 
-    def file_contents(self, file: str, ref: str) -> StringIO:
-        contents = self.repo.file_contents("cumulusci.yml", ref=ref)
+    def file_contents(self, file_path: str, ref: str) -> StringIO:
+        contents = self.repo.file_contents(file_path, ref=ref)
         contents_io = StringIO(contents.decoded.decode("utf-8") if contents else "")
         contents_io.url = (
-            f"cumulusci.yml from {self.repo.owner}/{self.repo.name}"  # for logging
+            f"{file_path} from {self.repo.owner}/{self.repo.name}"  # for logging
         )
         return contents_io
 

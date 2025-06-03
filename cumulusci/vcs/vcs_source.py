@@ -61,6 +61,8 @@ class VCSSource(ABC):
                 f"We are unable to find the repository at {self.url}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
             )
 
+        self._set_additional_repo_config()
+
         self.resolve()
 
     @classmethod
@@ -129,6 +131,11 @@ class VCSSource(ABC):
         raise NotImplementedError(
             "Subclasses should implement get_release_tag to retrieve the release tag information."
         )
+
+    def _set_additional_repo_config(self):
+        ### Subclasses can override this method to set additional configuration on the repo.
+        """Set additional configuration on the repo."""
+        pass
 
     def resolve(self):
         from cumulusci.vcs.bootstrap import find_latest_release, find_previous_release
@@ -206,7 +213,7 @@ class VCSSource(ABC):
             return
 
         self.description = ref[6:] if ref.startswith("heads/") else ref
-        self.commit = self.repo.get_ref(ref).sha  # self.repo.ref(ref).object.sha
+        self.commit = self.repo.get_ref(ref).sha
 
     def fetch(self):
         """Fetch the archive of the specified commit and construct its project config."""

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 VCS_GITHUB = "github"
 
 
-def get_github_repo(project_config, url):
+def get_github_repo(project_config, url) -> GitHubRepository:
     from cumulusci.vcs.github.service import (
         GitHubEnterpriseService,
         GitHubService,
@@ -35,7 +35,10 @@ def get_github_repo(project_config, url):
         )
 
     try:
-        return vcs_service.get_repository(options={"repository_url": url})
+        repo = vcs_service.get_repository(options={"repository_url": url})
+        if repo is None:
+            raise GithubApiNotFoundError(f"Get GitHub Repository found None. {url}")
+        return repo
     except GithubApiNotFoundError as e:
         raise DependencyResolutionError(
             f"Could not find a GitHub repository at {url}: {e}"

@@ -20,6 +20,7 @@ class AbstractRepo(ABC):
     repo_name: str
     repo_owner: str
     repo_url: str
+    project_config: Optional[object] = None
 
     def __init__(self, **kwargs) -> None:
         """Initializes the AbstractRepo."""
@@ -40,6 +41,11 @@ class AbstractRepo(ABC):
     @abstractmethod
     def owner_login(self) -> str:
         """Returns the login of the repository owner."""
+        raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def get_ref(self, ref_sha: str) -> "AbstractRef":
+        """Returns a Reference object for the given SHA."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod

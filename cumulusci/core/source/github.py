@@ -39,16 +39,6 @@ class GitHubSource(VCSSource):
     def get_release_tag(self):
         return "tags/" + (self.spec.release or "")
 
-    @property
-    def frozenspec(self):
-        """Return a spec to reconstruct this source at the current commit"""
-        # TODO: The branch name is lost when freezing the source for MetaDeploy.
-        # We could include it here, but it would fail validation when GitHubSourceModel
-        # parses it due to having both commit and branch.
-        ret = super().frozenspec
-        ret.update({"github": self.url})
-        return ret
-
 
 class GitHubEnterpriseSource(GitHubSource):
     def get_vcs_service(self):

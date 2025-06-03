@@ -191,6 +191,14 @@ def download_extract_vcs_from_repo(
         )
     zip_file = zipfile.ZipFile(zip_content)
     path = sorted(zip_file.namelist())[0]
+
+    root_folders_list = set(
+        [fname.split("/")[0] for fname in sorted(zip_file.namelist())]
+    )
+    if len(root_folders_list) > 1:
+        # If there are multiple root folders, we assume the zip contains all the repo content.
+        path = ""
+
     if subfolder:
         path = path + subfolder
     zip_file = zip_subfolder(zip_file, path)

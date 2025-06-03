@@ -31,13 +31,7 @@ class GitHubTagResolver(AbstractTagResolver):
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class GitHubReleaseTagResolver(AbstractReleaseTagResolver):
@@ -49,13 +43,7 @@ class GitHubReleaseTagResolver(AbstractReleaseTagResolver):
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class GitHubBetaReleaseTagResolver(GitHubReleaseTagResolver):
@@ -74,13 +62,7 @@ class GitHubUnmanagedHeadResolver(AbstractUnmanagedHeadResolver):
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class GitHubReleaseBranchCommitStatusResolver(AbstractVcsReleaseBranchResolver):
@@ -96,13 +78,7 @@ class GitHubReleaseBranchCommitStatusResolver(AbstractVcsReleaseBranchResolver):
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class GitHubReleaseBranchUnlockedResolver(AbstractVcsReleaseBranchResolver):
@@ -118,13 +94,7 @@ class GitHubReleaseBranchUnlockedResolver(AbstractVcsReleaseBranchResolver):
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class GitHubPreviousReleaseBranchCommitStatusResolver(AbstractVcsReleaseBranchResolver):
@@ -141,13 +111,7 @@ class GitHubPreviousReleaseBranchCommitStatusResolver(AbstractVcsReleaseBranchRe
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class GitHubPreviousReleaseBranchUnlockedResolver(AbstractVcsReleaseBranchResolver):
@@ -164,13 +128,7 @@ class GitHubPreviousReleaseBranchUnlockedResolver(AbstractVcsReleaseBranchResolv
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
 
 class AbstractGitHubExactMatchCommitStatusResolver(
@@ -182,13 +140,7 @@ class AbstractGitHubExactMatchCommitStatusResolver(
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
     def get_branches(
         self,
@@ -251,13 +203,7 @@ class AbstractGitHubDefaultBranchCommitStatusResolver(
     def get_repo(
         self, context: BaseProjectConfig, url: Optional[str]
     ) -> GitHubRepository:
-        try:
-            repo = get_github_repo(context, url)
-        except Exception as e:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {url}: {e}"
-            )
-        return repo
+        return get_github_repo(context, url)
 
     def get_branches(
         self,
