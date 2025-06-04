@@ -119,7 +119,7 @@ Lightning based form - radiobutton
     # Using the label: locator returns a lightning-input element. We need to find
     # the actual html input element to verify that it is checked. Ugly, but efficient.
     ${element}=  Get webelement  label:All users can see this list view
-    Should be true  ${element.find_element_by_xpath(".//input").is_selected()}
+    Should be true  ${element.find_element(By.XPATH, ".//input").is_selected()}
 
 Non-lightning based form - radiobutton
     [Documentation]  Verify we can set a plain non-lightning radiobutton
