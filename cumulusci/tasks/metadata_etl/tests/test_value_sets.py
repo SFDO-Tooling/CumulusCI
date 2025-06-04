@@ -12,7 +12,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import lxml_parse_string, metadata_tree
 
 MD = "{%s}" % "http://soap.sforce.com/2006/04/metadata"
-VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+STANDARD_VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <StandardValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <sorted>false</sorted>
     <standardValue>
@@ -28,8 +28,24 @@ VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 </StandardValueSet>
 """
 
+GLOBAL_VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sorted>false</sorted>
+    <masterLabel>Test</masterLabel>
+    <customValue>
+        <fullName>Value</fullName>
+        <default>true</default>
+        <label>Value</label>
+    </customValue>
+    <customValue>
+        <fullName>Other</fullName>
+        <default>false</default>
+        <label>Other</label>
+    </customValue>
+</GlobalValueSet>
+"""
 
-class TestAddValueSetEntries:
+class TestAddValueSetEntriesForStandardValueSet:
     def test_adds_entry(self):
         task = create_task(
             AddValueSetEntries,
@@ -37,6 +53,7 @@ class TestAddValueSetEntries:
                 "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
+                "entity": "StandardValueSet",
                 "entries": [
                     {"fullName": "Test", "label": "Label", "group": "Schedule"},
                     {"fullName": "Test_2", "label": "Label 2", "default": "true"},
@@ -44,13 +61,13 @@ class TestAddValueSetEntries:
             },
         )
 
-        tree = lxml_parse_string(VALUESET_XML)
+        tree = lxml_parse_string(STANDARD_VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
         result = task._transform_entity(
-            metadata_tree.fromstring(VALUESET_XML), "ValueSet"
+            metadata_tree.fromstring(STANDARD_VALUESET_XML), "ValueSet"
         )
 
         entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test']")
@@ -91,10 +108,11 @@ class TestAddValueSetEntries:
                         "probability": 100,
                     }
                 ],
+                "entity": "StandardValueSet",
             },
         )
 
-        tree = metadata_tree.fromstring(VALUESET_XML)
+        tree = metadata_tree.fromstring(STANDARD_VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
@@ -130,16 +148,17 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "CaseStatus",
                 "entries": [{"fullName": "Test", "label": "Label", "closed": True}],
+                "entity": "StandardValueSet",
             },
         )
 
-        tree = lxml_parse_string(VALUESET_XML)
+        tree = lxml_parse_string(STANDARD_VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
         result = task._transform_entity(
-            metadata_tree.fromstring(VALUESET_XML), "CaseStatus"
+            metadata_tree.fromstring(STANDARD_VALUESET_XML), "CaseStatus"
         )
 
         entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test']")
@@ -162,16 +181,17 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "LeadStatus",
                 "entries": [{"fullName": "Test", "label": "Label", "converted": True}],
+                "entity": "StandardValueSet",
             },
         )
 
-        tree = lxml_parse_string(VALUESET_XML)
+        tree = lxml_parse_string(STANDARD_VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
         result = task._transform_entity(
-            metadata_tree.fromstring(VALUESET_XML), "LeadStatus"
+            metadata_tree.fromstring(STANDARD_VALUESET_XML), "LeadStatus"
         )
 
         entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test']")
@@ -194,14 +214,15 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [{"fullName": "Value", "label": "Label"}],
+                "entity": "StandardValueSet",
             },
         )
 
-        tree = lxml_parse_string(VALUESET_XML)
+        tree = lxml_parse_string(STANDARD_VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
 
-        metadata = metadata_tree.fromstring(VALUESET_XML)
+        metadata = metadata_tree.fromstring(STANDARD_VALUESET_XML)
         task._transform_entity(metadata, "ValueSet")
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
@@ -221,9 +242,10 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [entry],
+                "entity": "StandardValueSet",
             },
         )
-        tree = metadata_tree.fromstring(VALUESET_XML)
+        tree = metadata_tree.fromstring(STANDARD_VALUESET_XML)
 
         with pytest.raises(TaskOptionsError, match=FULL_NAME_AND_LABEL_ERR):
             task._transform_entity(tree, "ValueSet")
@@ -236,9 +258,10 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "OpportunityStage",
                 "entries": [{"fullName": "Value", "label": "Value"}],
+                "entity": "StandardValueSet",
             },
         )
-        tree = metadata_tree.fromstring(VALUESET_XML)
+        tree = metadata_tree.fromstring(STANDARD_VALUESET_XML)
 
         with pytest.raises(TaskOptionsError, match=OPP_STAGE_ERR):
             task._transform_entity(tree, "OpportunityStage")
@@ -251,9 +274,10 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "CaseStatus",
                 "entries": [{"fullName": "Value", "label": "Value"}],
+                "entity": "StandardValueSet",
             },
         )
-        tree = metadata_tree.fromstring(VALUESET_XML)
+        tree = metadata_tree.fromstring(STANDARD_VALUESET_XML)
 
         with pytest.raises(TaskOptionsError, match=CASE_STATUS_ERR):
             task._transform_entity(tree, "CaseStatus")
@@ -265,10 +289,11 @@ class TestAddValueSetEntries:
                 "managed": True,
                 "api_version": "47.0",
                 "api_names": "LeadStatus",
+                "entity": "StandardValueSet",
                 "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
-        tree = metadata_tree.fromstring(VALUESET_XML)
+        tree = metadata_tree.fromstring(STANDARD_VALUESET_XML)
 
         with pytest.raises(TaskOptionsError, match=LEAD_STATUS_ERR):
             task._transform_entity(tree, "LeadStatus")
@@ -280,6 +305,7 @@ class TestAddValueSetEntries:
                 "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
+                "entity": "StandardValueSet",
                 "entries": [
                     {"fullName": "Test", "label": "Label"},
                     {"fullName": "Test_2", "label": "Label 2"},
@@ -288,7 +314,7 @@ class TestAddValueSetEntries:
             },
         )
 
-        mdtree = metadata_tree.fromstring(VALUESET_XML)
+        mdtree = metadata_tree.fromstring(STANDARD_VALUESET_XML)
         xml_tree = mdtree._element
 
         assert len(xml_tree.findall(f".//{MD}standardValue")) == 2
@@ -296,3 +322,92 @@ class TestAddValueSetEntries:
         task._transform_entity(mdtree, "ValueSet")
 
         assert len(xml_tree.findall(f".//{MD}standardValue")) == 4
+
+class TestAddValueSetEntriesForGlobalValueSet:
+    def test_adds_entry(self):
+        task = create_task(
+            AddValueSetEntries,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "entity": "GlobalValueSet",
+                "entries": [
+                    {"fullName": "Test", "label": "Label", "group": "Schedule"},
+                    {"fullName": "Test_2", "label": "Label 2", "default": "true"},
+                ],
+            },
+        )
+
+        tree = lxml_parse_string(GLOBAL_VALUESET_XML)
+
+        assert len(tree.findall(f".//{MD}customValue[{MD}fullName='Test']")) == 0
+        assert len(tree.findall(f".//{MD}customValue[{MD}fullName='Test_2']")) == 0
+
+        result = task._transform_entity(
+            metadata_tree.fromstring(GLOBAL_VALUESET_XML), "GlobalValueSet"
+        )
+
+        entry = result._element.findall(f".//{MD}customValue[{MD}fullName='Test']")
+        assert len(entry) == 1
+        label = entry[0].findall(f".//{MD}label")
+        assert len(label) == 1
+        assert label[0].text == "Label"
+        default = entry[0].findall(f".//{MD}default")
+        assert len(default) == 1
+        assert default[0].text == "false"
+
+        entry = result._element.findall(f".//{MD}customValue[{MD}fullName='Test_2']")
+        assert len(entry) == 1
+        label = entry[0].findall(f".//{MD}label")
+        assert len(label) == 1
+        assert label[0].text == "Label 2"
+        default = entry[0].findall(f".//{MD}default")
+        assert len(default) == 1
+        assert default[0].text == "false"
+
+    def test_adds_correct_number_of_values(self):
+        task = create_task(
+            AddValueSetEntries,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "entity": "GlobalValueSet",
+                "entries": [
+                    {"fullName": "Test", "label": "Label"},
+                    {"fullName": "Test_2", "label": "Label 2"},
+                    {"fullName": "Other", "label": "Duplicate"},
+                ],
+            },
+        )
+
+        mdtree = metadata_tree.fromstring(GLOBAL_VALUESET_XML)
+        xml_tree = mdtree._element
+
+        assert len(xml_tree.findall(f".//{MD}customValue")) == 2
+
+        task._transform_entity(mdtree, "GlobalValueSet")
+
+        assert len(xml_tree.findall(f".//{MD}customValue")) == 4
+
+    def test_does_not_add_existing_entry(self):
+        task = create_task(
+            AddValueSetEntries,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "entries": [{"fullName": "Value", "label": "Label"}],
+                "entity": "GlobalValueSet",
+            },
+        )
+
+        tree = lxml_parse_string(GLOBAL_VALUESET_XML)
+
+        assert len(tree.findall(f".//{MD}customValue[{MD}fullName='Value']")) == 1
+
+        metadata = metadata_tree.fromstring(GLOBAL_VALUESET_XML)
+        task._transform_entity(metadata, "GlobalValueSet")
+
+        assert len(tree.findall(f".//{MD}customValue[{MD}fullName='Value']")) == 1
