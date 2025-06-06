@@ -194,6 +194,7 @@ class AbstractRepo(ABC):
         body: str = None,
         draft: bool = False,
         prerelease: bool = False,
+        options: dict = {},
     ) -> "AbstractRelease":
         """Creates a release in the repository.
         This method should be overridden by subclasses to provide
@@ -264,9 +265,10 @@ class AbstractRepo(ABC):
         The method should return the contents of the file as a StringIO object."""
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @property
     @abstractmethod
-    def clone_url(self, protocol: str = "https") -> str:
-        """Gets the clone URL for the repository.
+    def clone_url(self) -> str:
+        """Gets the https clone URL for the repository.
         This method should be overridden by subclasses to provide
         the specific implementation for retrieving the clone URL.
         The method should return a string representing the clone URL of the repository."""

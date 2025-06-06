@@ -521,10 +521,13 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         assert resolver.can_resolve(dep, project_config)
         assert resolver.resolve(dep, project_config) == (None, None)
 
+    @mock.patch("cumulusci.vcs.github.service.GitHubService")
+    @mock.patch("cumulusci.vcs.github.service.GitHubEnterpriseService")
     def test_repo_not_found(
-        self, project_config, patch_github_resolvers_get_github_repo
+        self, mock_github_service, mock_github_enterprise_service, project_config
     ):
-        setup_github_repo_mock(patch_github_resolvers_get_github_repo, project_config)
+        mock_github_service.get_service_for_url.return_value = None
+        mock_github_enterprise_service.get_service_for_url.return_value = None
 
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
@@ -539,7 +542,7 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         with pytest.raises(DependencyResolutionError) as exc:
             resolver.resolve(dep, project_config)
 
-        assert "Unable to access GitHub" in str(exc)
+        assert "Could not find a GitHub service for URL" in str(exc)
 
     @mock.patch("cumulusci.vcs.bootstrap.find_repo_feature_prefix")
     def test_unable_locate_feature_prefix(
@@ -598,7 +601,14 @@ class TestGitHubExactMatch2GPResolver:
             ),
         )
 
-    def test_repo_not_found(self, project_config):
+    @mock.patch("cumulusci.vcs.github.service.GitHubService")
+    @mock.patch("cumulusci.vcs.github.service.GitHubEnterpriseService")
+    def test_repo_not_found(
+        self, mock_github_service, mock_github_enterprise_service, project_config
+    ):
+        mock_github_service.get_service_for_url.return_value = None
+        mock_github_enterprise_service.get_service_for_url.return_value = None
+
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -612,7 +622,7 @@ class TestGitHubExactMatch2GPResolver:
         with pytest.raises(DependencyResolutionError) as exc:
             resolver.resolve(dep, project_config)
 
-        assert "Unable to access GitHub" in str(exc)
+        assert "Could not find a GitHub service for URL" in str(exc)
 
     @mock.patch("cumulusci.core.dependencies.github_resolvers.find_repo_feature_prefix")
     def test_unable_locate_feature_prefix(

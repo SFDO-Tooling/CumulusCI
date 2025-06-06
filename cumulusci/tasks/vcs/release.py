@@ -1,7 +1,7 @@
 import json
 import time
 
-from cumulusci.core.dependencies.dependencies import parse_dependencies
+from cumulusci.core.dependencies import parse_dependencies
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import TaskOptionsError, VcsException, VcsNotFoundError
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
@@ -108,7 +108,7 @@ class CreateRelease(BaseSourceControlTask):
         }
         if "release_content" in self.options:
             release_parameters["body"] = self.options["release_content"]
-        release = repo.create_release(**release_parameters)
+        release = repo.create_release(**release_parameters, options=self.options)
         self.return_values = {
             "tag_name": tag_name,
             "name": version,

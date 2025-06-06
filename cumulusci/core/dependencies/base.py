@@ -525,6 +525,12 @@ class UnmanagedVcsDependency(UnmanagedDependency, ABC):
     def get_repo(self, url, context) -> AbstractRepo:
         raise NotImplementedError("Subclasses must implement get_repo.")
 
+    @property
+    @abstractmethod
+    def package_name(self) -> str:
+        """A human-readable name of the dependency."""
+        raise NotImplementedError("Subclasses must implement package_name.")
+
     def _get_zip_src(self, context):
         repo = self.get_repo(context, self.url)
 

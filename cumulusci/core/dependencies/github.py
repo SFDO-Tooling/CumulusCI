@@ -6,11 +6,8 @@ from pydantic import root_validator
 from pydantic.networks import AnyUrl
 
 import cumulusci.core.dependencies.base as base_dependency
-from cumulusci.core.dependencies.dependencies import (
-    add_dependency_class,
-    add_dependency_pin_class,
-)
 from cumulusci.core.exceptions import DependencyResolutionError, GithubApiNotFoundError
+from cumulusci.utils.git import split_repo_url
 from cumulusci.vcs.github.adapter import GitHubRepository
 
 logger = logging.getLogger(__name__)
@@ -167,6 +164,12 @@ class UnmanagedGitHubRefDependency(base_dependency.UnmanagedVcsDependency):
     def get_repo(self, context, url) -> "GitHubRepository":
         return get_github_repo(context, url)
 
+    @property
+    def package_name(self) -> str:
+        repo_owner, repo_name = split_repo_url((str(self.github)))
+        package_name = f"{repo_owner}/{repo_name} {self.subfolder}"
+        return package_name
+
     @root_validator
     def validate(cls, values):
         return _validate_github_parameters(values)
@@ -176,10 +179,3 @@ class UnmanagedGitHubRefDependency(base_dependency.UnmanagedVcsDependency):
         """Defined vcs should be assigned to url"""
 
         return _sync_github_and_url(values)
-
-
-add_dependency_class(UnmanagedGitHubRefDependency)
-add_dependency_class(GitHubDynamicDependency)
-add_dependency_class(GitHubDynamicSubfolderDependency)
-
-add_dependency_pin_class(GitHubDependencyPin)

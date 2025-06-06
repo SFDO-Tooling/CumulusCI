@@ -180,9 +180,9 @@ def add_dependency_class(new_class: Type[base_dependency.Dependency]) -> None:
     """
     if new_class not in AVAILABLE_DEPENDENCY_CLASSES:
         AVAILABLE_DEPENDENCY_CLASSES.append(new_class)
-        logger.info(f"dependency_config: Added '{new_class}'.")
+        logger.debug(f"dependency_config: Added '{new_class}'.")
     else:
-        logger.warning(f"dependency_config: '{new_class}' already exists.")
+        logger.debug(f"dependency_config: '{new_class}' already exists.")
 
 
 def parse_dependency(dep_dict: dict[str, str]) -> Optional[base_dependency.Dependency]:

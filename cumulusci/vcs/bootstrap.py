@@ -4,7 +4,7 @@ import re
 from typing import Optional, Tuple
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
-from cumulusci.core.exceptions import CumulusCIException, VcsNotFoundError
+from cumulusci.core.exceptions import CumulusCIException, VcsException, VcsNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.vcs.base import VCSService
@@ -38,31 +38,7 @@ def get_service(
     Returns:
         VCSService: The VCS service provider class.
     """
-    service_type, service_alias = config.get_project_service()
-
-    provider_klass = None
-    provider_path: str = config.services[service_type].get("class_path", None)
-
-    if provider_path is not None:
-        try:
-            provider_klass = import_global(provider_path)
-        except ImportError as e:
-            raise CumulusCIException(
-                f"Failed to import provider class from path '{provider_path}': {e}"
-            )
-    else:
-        raise CumulusCIException(
-            f"Provider class for {service_type} not found in config"
-        )
-
-    if issubclass(provider_klass, VCSService):
-        vcs_service: VCSService = provider_klass(config, service_alias, logger=logger)
-
-        return vcs_service
-
-    raise CumulusCIException(
-        f"Provider class for {provider_path} is not a subclass of VCSService"
-    )
+    return config.repo_service
 
 
 def get_ref_for_tag(repo: AbstractRepo, tag_name: str) -> AbstractRef:
@@ -231,3 +207,81 @@ def locate_commit_status_package_id(
             break
 
     return version_id, commit
+
+
+def get_repo_from_config(config: BaseProjectConfig, options: dict = {}) -> AbstractRepo:
+    """Get a repository from the project config."""
+    vcs_service: VCSService = get_service(config, logger=config.logger)
+
+    return vcs_service.get_repository(options=options)
+
+
+def get_latest_tag(repo: AbstractRepo, beta: bool = False) -> str:
+    """Query Github Releases to find the latest production or beta tag"""
+    prefix = repo.project_config.project__git__prefix_release
+
+    try:
+        if not beta:
+            release: Optional[AbstractRelease] = repo.latest_release()
+
+            if not release.tag_name.startswith(prefix):
+                return _get_latest_tag_for_prefix(repo, prefix)
+
+            return release.tag_name
+        else:
+            return _get_latest_tag_for_prefix(
+                repo, repo.project_config.project__git__prefix_beta
+            )
+    except Exception:
+        raise VcsException(
+            f"No release found for {repo.repo_url} with tag prefix {prefix}"
+        )
+
+
+def _get_latest_tag_for_prefix(repo: AbstractRepo, prefix: str) -> str:
+    for release in repo.releases():
+        if not release.tag_name.startswith(prefix):
+            continue
+        return release.tag_name
+    raise VcsException(f"No release found for {repo.repo_url} with tag prefix {prefix}")
+
+
+def get_version_id_from_tag(repo: AbstractRepo, tag_name: str) -> str:
+    """Given the name of a tag, return the version_id in the tag's message.
+
+    @param tag_name: the name of the tag
+    @param repo: the repository of the package to look for a release in
+    @returns: the 04t id in the tag's messages
+    """
+    tag = get_tag_by_name(repo, tag_name)
+    for line in tag.message.split("\n"):
+        if line.startswith("version_id:"):
+            version_id = line.split("version_id: ")[1]
+            if not version_id.startswith("04t"):
+                continue
+            return version_id
+
+    raise VcsException(f"Could not find version_id for tag {tag_name}")
+
+
+# def get_latest_version(beta: bool = False) -> Optional[LooseVersion]:
+#     """Query Github Releases to find the latest production or beta release"""
+#     tag = get_latest_tag(beta)
+#     version = get_version_for_tag(tag)
+#     if version is not None:
+#         return LooseVersion(version)
+
+# def get_version_for_tag(
+#     self,
+#     tag: str,
+#     prefix_beta: Optional[str] = None,
+#     prefix_release: Optional[str] = None,
+# ) -> Optional[str]:
+#     try:
+#         return PackageVersionNumber.parse_tag(
+#             tag,
+#             prefix_beta or self.project__git__prefix_beta,
+#             prefix_release or self.project__git__prefix_release,
+#         ).format()
+#     except ValueError:
+#         pass

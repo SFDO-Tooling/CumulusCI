@@ -1,6 +1,7 @@
 import os
 import shutil
 from abc import ABC, abstractmethod
+from typing import Type
 
 import fs
 
@@ -77,6 +78,20 @@ class VCSSource(ABC):
         cls._registry[vcs_type] = subclass
 
     @classmethod
+    def registered_source_models(cls):
+        """Returns a list of registered classes.
+        return:
+            [GitHubSource, ...].
+        """
+        return_list = []
+        for source_klass_path in cls._registry.values():
+            if source_klass_path:
+                source_klass = import_global(source_klass_path)
+                if issubclass(source_klass, VCSSource):
+                    return_list.append(source_klass.source_model())
+        return return_list
+
+    @classmethod
     def create(cls, project_config, spec: VCSSourceModel):
         source_klass_path = cls._registry.get(spec.vcs, None)
         if source_klass_path:
@@ -85,6 +100,11 @@ class VCSSource(ABC):
                 return source_klass(project_config, spec)
 
         raise ValueError(f"No child class found for type_name={spec.vcs}")
+
+    @classmethod
+    @abstractmethod
+    def source_model(self) -> Type[VCSSourceModel]:
+        raise NotImplementedError("Subclasses should implement source_model")
 
     @abstractmethod
     def get_vcs_service(self):

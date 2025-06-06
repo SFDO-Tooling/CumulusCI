@@ -2,12 +2,12 @@ from typing import List
 
 import click
 
-from cumulusci.core.dependencies.base import Dependency
-from cumulusci.core.dependencies.dependencies import (
+from cumulusci.core.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     parse_dependencies,
 )
+from cumulusci.core.dependencies.base import Dependency
 from cumulusci.core.dependencies.resolvers import (
     DependencyResolutionStrategy,
     dependency_filter_ignore_deps,

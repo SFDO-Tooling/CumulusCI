@@ -515,6 +515,7 @@ class GitHubRepository(AbstractRepo):
         body: str = None,
         draft: bool = False,
         prerelease: bool = False,
+        options: dict = {},
     ) -> GitHubRelease:
         """Creates a release on the given repository."""
         try:
@@ -650,5 +651,6 @@ class GitHubRepository(AbstractRepo):
         )
         return contents_io
 
-    def clone_url(self, protocol: str = "https") -> str:
-        return self.repo.clone_url if protocol == "https" else self.repo.ssh_url
+    @property
+    def clone_url(self) -> str:
+        return self.repo.clone_url

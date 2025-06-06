@@ -1,4 +1,6 @@
-from cumulusci.utils.yaml.cumulusci_yml import VCSSourceModel
+from typing import Type
+
+from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, VCSSourceModel
 from cumulusci.vcs.vcs_source import VCSSource
 
 
@@ -19,6 +21,10 @@ class GitHubSource(VCSSource):
 
     def __hash__(self):
         return hash((self.url, self.commit))
+
+    @classmethod
+    def source_model(self) -> Type[GitHubSourceModel]:
+        return GitHubSourceModel
 
     def get_vcs_service(self):
         from cumulusci.vcs.github.service import GitHubEnterpriseService, GitHubService

@@ -153,6 +153,7 @@ class DummyRepo(AbstractRepo):
     def directory_contents(self):
         pass
 
+    @property
     def clone_url(self):
         pass
 
@@ -160,6 +161,9 @@ class DummyRepo(AbstractRepo):
         return self.repo.file_contents(file_path, ref=ref)
 
     def get_latest_prerelease(self):
+        pass
+
+    def get_ref(self):
         pass
 
 

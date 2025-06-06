@@ -438,9 +438,12 @@ class GitHubService(VCSService):
     ) -> Optional["GitHubService"]:
         """Returns the service configuration for the given URL."""
         _owner, _repo_name, host = parse_repo_url(url)
+        service_alias = options.get("service_alias", None)
 
         if host is None or host == "None" or "github.com" in host:
-            service_config = project_config.keychain.get_service(cls.service_type)
+            service_config = project_config.keychain.get_service(
+                cls.service_type, service_alias
+            )
 
             vcs_service = GitHubService(
                 project_config,
@@ -449,9 +452,13 @@ class GitHubService(VCSService):
                 logger=project_config.logger,
                 repository_url=url,
             )
-
+            project_config.logger.info(
+                f"Github service configured for domain {host} : {url}."
+            )
             return vcs_service
-        project_config.logger.info(f"No Github service configured for domain {host}.")
+        project_config.logger.debug(
+            f"No Github service configured for domain {host} : {url}."
+        )
         return None
 
     def get_repository(self, options: dict = {}) -> GitHubRepository:
@@ -553,8 +560,8 @@ class GitHubEnterpriseService(GitHubService):
 
         # Check when connecting to server, but not when creating new service as this would always catch
         if list(service_by_host.keys()).count(host) == 0:
-            project_config.logger.info(
-                f"No Github Enterprise service configured for domain {host}."
+            project_config.logger.debug(
+                f"No Github Enterprise service configured for domain {host} : {url}."
             )
             return None
 
@@ -565,5 +572,8 @@ class GitHubEnterpriseService(GitHubService):
             service_config=service_config,
             logger=project_config.logger,
             repository_url=url,
+        )
+        project_config.logger.info(
+            f"Github Enterprise service configured for domain {host} : {url}."
         )
         return vcs_service

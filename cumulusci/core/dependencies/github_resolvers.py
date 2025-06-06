@@ -1,5 +1,5 @@
 import abc
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.github import (
@@ -14,7 +14,6 @@ from cumulusci.core.dependencies.resolvers import (
     AbstractVcsCommitStatusPackageResolver,
     AbstractVcsReleaseBranchResolver,
     DependencyResolutionStrategy,
-    update_resolver_classes,
 )
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.utils.git import get_feature_branch_name
@@ -229,7 +228,7 @@ class GitHubDefaultBranchUnlockedCommitStatusResolver(
     commit_status_default = "Build Unlocked Test Package"
 
 
-GITHUB_RESOLVER_CLASSES = {
+GITHUB_RESOLVER_CLASSES: dict[str, type[Any]] = {
     DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubExactMatch2GPResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
@@ -243,5 +242,3 @@ GITHUB_RESOLVER_CLASSES = {
     DependencyResolutionStrategy.UNLOCKED_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchUnlockedResolver,
     DependencyResolutionStrategy.UNLOCKED_DEFAULT_BRANCH: GitHubDefaultBranchUnlockedCommitStatusResolver,
 }
-
-update_resolver_classes(VCS_GITHUB, GITHUB_RESOLVER_CLASSES)

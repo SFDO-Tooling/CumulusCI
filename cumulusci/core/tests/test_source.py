@@ -532,7 +532,6 @@ class TestGitHubSource(MockUtilBase):
         assert source.frozenspec == {
             "vcs": "github",
             "url": "https://github.com/TestOwner/TestRepo",
-            "github": "https://github.com/TestOwner/TestRepo",
             "commit": "tag_sha",
             "description": "tags/release/1.0",
         }

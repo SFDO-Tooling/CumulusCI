@@ -9,23 +9,21 @@ from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
-from cumulusci.core.dependencies.base import UnmanagedDependency
+from cumulusci.core.dependencies.base import UnmanagedDependency, UnmanagedVcsDependency
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
 )
-from cumulusci.core.dependencies.github import UnmanagedGitHubRefDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     DependencyLookupError,
-    GithubException,
     PackageUploadFailure,
     TaskOptionsError,
+    VcsException,
 )
-from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
@@ -36,9 +34,13 @@ from cumulusci.salesforce_api.package_zip import (
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
-from cumulusci.utils.git import split_repo_url
 from cumulusci.utils.salesforce.soql import (
     format_subscriber_package_version_where_clause,
+)
+from cumulusci.vcs.bootstrap import (
+    get_latest_tag,
+    get_repo_from_config,
+    get_version_id_from_tag,
 )
 
 PERSISTENT_ORG_ERROR = """
@@ -108,7 +110,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "version_base": {
             "description": "The version number to use as a base before incrementing. "
             "Optional; defaults to the highest existing version number of this package. "
-            "Can be set to ``latest_github_release`` to use the version of the most recent release published to GitHub."
+            "Can be set to ``latest_vcs_release`` to use the version of the most recent release published to GitHub."
         },
         "version_type": {
             "description": "The part of the version number to increment. "
@@ -140,7 +142,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "ancestor_id": {
             "description": "The 04t Id to use for the ancestor of this package. "
             "Optional; defaults to no ancestor specified. "
-            "Can be set to ``latest_github_release`` to use the most recent production version published to GitHub."
+            "Can be set to ``latest_vcs_release`` to use the most recent production version published to GitHub."
         },
         "resolution_strategy": {
             "description": "The name of a sequence of resolution_strategy "
@@ -489,14 +491,16 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             )
         elif spv_id.startswith("04t"):
             return self._convert_ancestor_id(spv_id)
-        elif spv_id == "latest_github_release":
+        elif spv_id == "latest_github_release" or spv_id == "latest_vcs_release":
+            self.repo = get_repo_from_config(self.project_config, self.options)
+
             try:
-                tag_name = self.project_config.get_latest_tag(beta=False)
-            except GithubException:
+                tag_name = get_latest_tag(self.repo, beta=False)
+            except VcsException:
                 # No release found
                 return ""
-            repo = self.project_config.get_repo()
-            spv_id = get_version_id_from_tag(repo, tag_name)
+
+            spv_id = get_version_id_from_tag(self.repo, tag_name)
             self.logger.info(f"Resolved ancestor to version: {spv_id}")
             self.logger.info("")
 
@@ -543,7 +547,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 return PackageVersionNumber(
                     **res["records"][0], package_type=PackageType.SECOND_GEN
                 )
-        elif version_base == "latest_github_release":
+        elif (
+            version_base == "latest_github_release"
+            or version_base == "latest_vcs_release"
+        ):
             # Get the version of the latest github release
             try:
                 # Because we are building a 2GP (which has an incrementable version number)
@@ -553,7 +560,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     str(self.project_config.get_latest_version()),
                     package_type=PackageType.SECOND_GEN,
                 )
-            except GithubException:
+            except VcsException:
                 # handle case where there isn't a release yet
                 pass
         else:
@@ -594,7 +601,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _convert_project_dependencies(self, dependencies):
         """Convert dependencies into the format expected by Package2VersionCreateRequest.
 
-        For dependencies expressed as a GitHub repo subfolder, build an unlocked package from that.
+        For dependencies expressed as a VCS repo subfolder, build an unlocked package from that.
         """
         new_dependencies = []
         for dependency in dependencies:
@@ -660,11 +667,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         return dependencies
 
     def _create_unlocked_package_from_unmanaged_dep(
-        self, dependency: UnmanagedDependency, dependencies
+        self, dependency: UnmanagedVcsDependency, dependencies
     ) -> str:
-        if isinstance(dependency, UnmanagedGitHubRefDependency):
-            repo_owner, repo_name = split_repo_url(dependency.github)
-            package_name = f"{repo_owner}/{repo_name} {dependency.subfolder}"
+        if isinstance(dependency, UnmanagedVcsDependency):
+            package_name = dependency.package_name
         else:
             package_name = dependency.description
 

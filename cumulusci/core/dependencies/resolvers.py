@@ -1,8 +1,9 @@
 import itertools
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple, Type
 
 from pydantic import AnyUrl
 
@@ -395,7 +396,9 @@ RESOLVER_CLASSES = {}
 ## External API
 
 
-def update_resolver_classes(vcs: str, resolver_classes: dict):
+def update_resolver_classes(
+    vcs: str, resolver_classes: Mapping[str, Type[AbstractResolver]]
+) -> None:
 
     """Update the resolver classes for a given VCS type."""
     import logging
@@ -405,10 +408,10 @@ def update_resolver_classes(vcs: str, resolver_classes: dict):
     if vcs not in RESOLVER_CLASSES:
         RESOLVER_CLASSES[vcs] = {}
     else:
-        logger.warning(f"dependency_resolver_config: '{vcs}' already exists.")
+        logger.debug(f"dependency_resolver_config: '{vcs}' already exists.")
 
     RESOLVER_CLASSES[vcs].update(resolver_classes)
-    logger.info(f"dependency_resolver_config: Updated '{vcs}' with new classes.")
+    logger.debug(f"dependency_resolver_config: Updated '{vcs}' with new classes.")
 
 
 def get_resolver(
@@ -509,7 +512,6 @@ def get_static_dependencies(
         for d in dependencies:
             if isinstance(d, DynamicDependency) and not d.is_resolved:
                 # Finish resolving the dependency using our given strategies.
-                print(f"Finished : {d.url} -- {len(dependencies)}")
                 d.resolve(context, strategies, pins)
 
         def unique(it: Iterable):

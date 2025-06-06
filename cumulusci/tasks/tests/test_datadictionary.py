@@ -5,7 +5,7 @@ from unittest.mock import Mock, call, mock_open, patch
 import pytest
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import parse_dependencies
+from cumulusci.core.dependencies import parse_dependencies
 from cumulusci.core.dependencies.github import GitHubDynamicDependency
 from cumulusci.core.exceptions import (
     DependencyParseError,
@@ -1458,7 +1458,14 @@ class TestGenerateDataDictionary:
 
         assert task._get_repo_dependencies([]) == []
 
-    def test_get_repo_dependencies__cannot_get_repo(self):
+    @patch("cumulusci.vcs.github.service.GitHubService")
+    @patch("cumulusci.vcs.github.service.GitHubEnterpriseService")
+    def test_get_repo_dependencies__cannot_get_repo(
+        self, mock_github_service, mock_github_enterprise_service
+    ):
+        mock_github_service.get_service_for_url.return_value = None
+        mock_github_enterprise_service.get_service_for_url.return_value = None
+
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"

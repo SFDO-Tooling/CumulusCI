@@ -9,13 +9,13 @@ import requests
 from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
-from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.metadeploy.api import MetaDeployAPI
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.utils import cd, download_extract_github, temporary_dir
+from cumulusci.utils import cd, download_extract_vcs_from_repo, temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import Plan
+from cumulusci.vcs.bootstrap import get_tag_by_name
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
 
@@ -122,15 +122,14 @@ class Publish(BaseMetaDeployTask):
                 self._publish_labels(product["slug"])
 
         # Check out the specified tag
-        gh = self.project_config.get_github_api()
-        repo = gh.repository(repo_owner, repo_name)
+        repo = self.project_config.get_repo()
         if self.tag:
             tag = get_tag_by_name(repo, self.tag)
-            self.commit = tag.object.sha
+            self.commit = tag.sha
         self.logger.info(
             f"Downloading commit {self.commit} of {repo.full_name} from GitHub"
         )
-        zf = download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
+        zf = download_extract_vcs_from_repo(repo, ref=self.commit)
         with temporary_dir() as project_dir:
             zf.extractall(project_dir)
             project_config = BaseProjectConfig(
