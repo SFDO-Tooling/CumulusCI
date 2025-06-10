@@ -337,6 +337,11 @@ class AbstractRelease(ABC):
         """Gets the tag reference name of the release."""
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @property
+    def updateable(self) -> bool:
+        """Checks if the release is updateable."""
+        return False
+
 
 class AbstractRef(ABC):
     """Abstract base class for Refs.

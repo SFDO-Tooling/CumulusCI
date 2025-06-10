@@ -345,6 +345,7 @@ class TestBaseProjectConfig:
             "ci": "heroku",
             "name": "CumulusCI-Test",
             "owner": "SFDO-Tooling",
+            "domain": "github.com",
             "branch": "feature/test",
             "commit": "HEAD~1",
             "root": ".",

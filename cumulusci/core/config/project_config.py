@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from io import StringIO
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.debug import get_debug_mode
@@ -26,6 +26,7 @@ from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
+    CumulusCIException,
     KeychainNotFound,
     NamespaceNotFoundError,
     NotInProject,
@@ -35,7 +36,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.source import LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import FSResource, open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
+from cumulusci.utils.git import current_branch, generic_parse_repo_url, git_path
 from cumulusci.utils.yaml.cumulusci_yml import (
     LocalFolderSourceModel,
     VCSSourceModel,
@@ -50,6 +51,7 @@ sys.modules.setdefault(
 import tasks
 
 tasks.__path__ = []
+
 if TYPE_CHECKING:
     from cumulusci.core.config.universal_config import UniversalConfig
     from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
@@ -145,6 +147,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         ):  # any config being pre-set at init will short circuit out, but not a plain {}
             return
 
+        # Loading plugins as classes are loaded and available.
+        plugins = load_plugins(self.logger)
+
         # Verify that we're in a project
         repo_root = self.repo_root
         if not repo_root:
@@ -183,7 +188,6 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 self.config_additional_yaml.update(additional_yaml_config)
 
         # Load the plugin yaml config file if it exists
-        plugins = load_plugins(self.logger)
         for plugin in plugins:
             if plugin.plugin_project_config:
                 self.config_plugins_yaml.update(plugin.plugin_project_config)
@@ -280,9 +284,28 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 )
 
             url_info = {}
-            url_info["owner"], url_info["name"] = split_repo_url(repo_url)
+            (
+                url_info["owner"],
+                url_info["name"],
+                url_info["domain"],
+            ) = generic_parse_repo_url(repo_url)
             url_info["url"] = repo_url
             info.update(url_info)
+
+    def get_repo_owner_host_from_url(self, repo_url) -> List[str]:
+        """Returns the owner, repo_name, and host from the repository URL.
+        The method should return a list containing the owner, repo_name and host."""
+        try:
+            vcs_service = self.get_service_type_for_repo(repo_url)
+            parsed_url = vcs_service.parse_repo_url()
+        except Exception:
+            # Fallback to generic parsing if the service does not support it
+            parsed_url = generic_parse_repo_url(repo_url)
+
+        if len(parsed_url) < 3:
+            raise CumulusCIException("Parsed repository URL is not in expected format.")
+
+        return [parsed_url[0], parsed_url[1], parsed_url[2]]
 
     def _override_repo_env_var(
         self, repo_env_var: str, local_var: str, info: Dict[str, Any]
@@ -360,7 +383,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return parse_repo_url(url_line)[2]
+            return self.get_repo_owner_host_from_url(url_line)[2]
 
     @property
     def repo_name(self) -> Optional[str]:
@@ -373,7 +396,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return split_repo_url(url_line)[1]
+            return self.get_repo_owner_host_from_url(url_line)[1]
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -399,7 +422,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         url_line = self.git_config_remote_origin_url()
 
         if url_line:
-            return split_repo_url(url_line)[0]
+            return self.get_repo_owner_host_from_url(url_line)[0]
 
     @property
     def repo_branch(self) -> Optional[str]:
@@ -532,21 +555,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         if vcs_service:
             return vcs_service
 
-        service_type, service_alias = None, None
-
-        if isinstance(self.project__service, dict):
-            service_type, service_alias = (
-                self.project__service__service_type,
-                self.project__service__service_alias,
-            )
-
-        if service_type is not None:
-            provider_path: str = self.services[service_type].get("class_path", None)
-            vcs_service = self._get_repo_service_from_path(
-                self.repo_url, provider_path, service_alias=service_alias
-            )
-        else:
-            vcs_service = self.get_service_type_for_repo(self.repo_url)
+        vcs_service = self.get_service_type_for_repo(self.repo_url)
 
         if vcs_service is None:
             raise VcsException("Provider class for not found in config")
@@ -556,40 +565,41 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         return vcs_service
 
-    def _get_repo_service_from_path(
-        self,
-        url: str,
-        provider_path: str,
-        service_alias: Optional[str] = None,
-    ) -> Optional["VCSService"]:
+    # def _get_repo_service_from_path(
+    #     self,
+    #     url: str,
+    #     provider_path: str,
+    #     service_alias: Optional[str] = None,
+    # ) -> Optional["VCSService"]:
+    #     try:
+    #         vcs_service_cls = import_global("cumulusci.vcs.base.VCSService")
+    #         provider_klass = import_global(provider_path)
 
-        from cumulusci.vcs.base import VCSService
+    #         if issubclass(provider_klass, vcs_service_cls):
+    #             vcs_service: VCSService = provider_klass.get_service_for_url(
+    #                 self, url, options={"service_alias": service_alias}
+    #             )
+    #             return vcs_service
+    #     except ImportError as e:
+    #         raise VcsException(
+    #             f"Failed to import provider class from path '{provider_path}': {e}"
+    #         )
 
-        try:
-            provider_klass = import_global(provider_path)
-
-            if issubclass(provider_klass, VCSService):
-                vcs_service: VCSService = provider_klass.get_service_for_url(
-                    self, url, options={"service_alias": service_alias}
-                )
-                return vcs_service
-        except ImportError as e:
-            raise VcsException(
-                f"Failed to import provider class from path '{provider_path}': {e}"
-            )
-
-    def get_service_type_for_repo(self, url: str) -> "VCSService":
+    def get_service_type_for_repo(
+        self, url: str, service_alias: Optional[str] = None
+    ) -> "VCSService":
         """Determines the VCS service type for the repository."""
 
-        for service in self.services.keys():
-            provider_path: str = self.services[service].get("class_path", None)
+        vcs_service_cls = import_global("cumulusci.vcs.base.VCSService")
 
-            if provider_path is None:
-                continue
+        for service in vcs_service_cls.registered_services():
+            vcs_service: Optional[VCSService] = service.get_service_for_url(
+                self, url, options={"service_alias": service_alias}
+            )
 
-            vcs_service = self._get_repo_service_from_path(url, provider_path)
             if vcs_service is None:
                 continue
+
             return vcs_service
 
     def get_tag_for_version(self, prefix: str, version: str) -> str:

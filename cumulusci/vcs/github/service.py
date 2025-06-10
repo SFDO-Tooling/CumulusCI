@@ -8,7 +8,7 @@ import webbrowser
 
 # from string import Template
 # from typing import Callable, Optional, Union
-from typing import Optional, Union
+from typing import List, Optional, Union
 from urllib.parse import urlparse
 
 import github3
@@ -478,6 +478,10 @@ class GitHubService(VCSService):
         except ForbiddenError as e:
             raise GithubApiError(f"GitHub repository is not accessible: {e}")
         return self.repo
+
+    def parse_repo_url(self) -> List[str]:
+        owner, repo_name, host = parse_repo_url(self.repo_url)
+        return [host or "", owner or "", repo_name or ""]
 
     def get_committer(self, repo: GitHubRepository) -> CommitDir:
         """Returns the committer for the GitHub repository."""

@@ -120,6 +120,8 @@ class CreateRelease(BaseSourceControlTask):
         """Make sure release doesn't already exist"""
         try:
             release: AbstractRelease = repo.release_from_tag(tag_name)
+            if release.updateable:
+                raise VcsNotFoundError
         except VcsNotFoundError:
             pass
         else:

@@ -26,6 +26,9 @@ class ConcreteVCSService(VCSService):
     def get_repository(self):
         return DummyRepo()
 
+    def parse_repo_url(self):
+        pass
+
     @classmethod
     def get_service_for_url(cls, url):
         return cls()

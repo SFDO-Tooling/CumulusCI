@@ -1,11 +1,12 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Type
+from typing import List, Optional, Type
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
 from cumulusci.core.dependencies.base import DynamicDependency
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
+from cumulusci.utils.classutils import get_all_subclasses
 from cumulusci.vcs.models import AbstractRelease, AbstractRepo
 from cumulusci.vcs.utils import AbstractCommitDir
 
@@ -21,6 +22,7 @@ class VCSService(ABC):
     service_config: ServiceConfig
     name: str
     keychain: Optional[BaseProjectKeychain]
+    _service_registry: List["VCSService"] = []
 
     def __init__(
         self, config: BaseProjectConfig, name: Optional[str] = None, **kwargs
@@ -84,6 +86,12 @@ class VCSService(ABC):
         The method should raise an exception if the validation fails."""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    @classmethod
+    def registered_services(cls) -> List[Type["VCSService"]]:
+        """This method returns all subclasses of VCSService that have been registered.
+        It can be used to dynamically discover available VCS services."""
+        return get_all_subclasses(cls)
+
     @abstractmethod
     def get_repository(self, options: dict = {}) -> AbstractRepo:
         """Returns the repository object for the VCS service.
@@ -92,6 +100,16 @@ class VCSService(ABC):
         The method should return an instance of a class that implements
         the AbstractRepo interface."""
         raise NotImplementedError("Subclasses should provide their own implementation")
+
+    @abstractmethod
+    def parse_repo_url(self) -> List[str]:
+        """Returns the owner, repo_name, and host from the repository URL.
+        This method should be overridden by subclasses to provide
+        the specific implementation for parsing the repository URL.
+        The method should return a list containing the owner, repo_name, and host."""
+        raise NotImplementedError(
+            "Subclasses should provide their own implementation of parse_repo_url"
+        )
 
     @abstractmethod
     def get_committer(self, repo: AbstractRepo) -> AbstractCommitDir:
