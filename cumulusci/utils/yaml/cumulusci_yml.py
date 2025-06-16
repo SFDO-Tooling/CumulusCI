@@ -132,11 +132,6 @@ class DependencyResolutions(CCIDictModel):
     resolution_strategies: Dict[str, List[str]] = None
 
 
-class ProjectService(CCIDictModel):
-    service_type: str
-    service_alias: str
-
-
 class Project(CCIDictModel):
     name: Optional[str] = None
     package: Optional[Package] = None
@@ -147,7 +142,6 @@ class Project(CCIDictModel):
     dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
     custom: Optional[Dict] = None
-    service: Optional[Union[str, ProjectService]] = None
 
 
 class ScratchOrg(CCIDictModel):
@@ -176,6 +170,14 @@ class Service(CCIDictModel):
     class_path: Optional[str]
     attributes: Dict[str, ServiceAttribute] = None
     validator: PythonClassPath = None
+
+
+class Plugin(CCIDictModel):
+    name: str
+    version: str
+    author: Optional[str]
+    description: Optional[str]
+    config: Dict[str, Any] = {}
 
 
 class CumulusCIConfig(CCIDictModel):
@@ -263,6 +265,7 @@ class CumulusCIRoot(CCIDictModel):
         str, Union[LocalFolderSourceModel, VCSSourceModel, GitHubSourceModel]
     ] = {}
     cli: CumulusCLIConfig = None
+    plugins: Dict[str, Plugin] = {}
 
     @validator("plans")
     def validate_plan_tiers(cls, plans):

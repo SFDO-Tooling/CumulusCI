@@ -147,9 +147,6 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         ):  # any config being pre-set at init will short circuit out, but not a plain {}
             return
 
-        # Loading plugins as classes are loaded and available.
-        plugins = load_plugins(self.logger)
-
         # Verify that we're in a project
         repo_root = self.repo_root
         if not repo_root:
@@ -186,6 +183,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
+
+        # Loading plugins as classes are loaded and available.
+        plugins = load_plugins(self.logger)
 
         # Load the plugin yaml config file if it exists
         for plugin in plugins:

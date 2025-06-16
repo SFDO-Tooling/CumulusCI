@@ -5,47 +5,51 @@ from abc import ABC
 from pathlib import Path
 from typing import Optional
 
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.yaml.cumulusci_yml import Plugin, cci_safe_load
 
 
 class PluginBase(ABC):
-
-    name: str = None
-    api_name: str = None
-    version: str = "0.1"
-    author: str = "Unknown"
-    priority: int = 0
-    description: str = "No description provided."
+    plugin: Plugin
     plugin_config_file: str = "cumulusci_plugin.yml"
     path: str = None
     plugin_project_config: Optional[dict] = None
 
-    def __init_subclass__(cls, **kwargs):
-        for required in (
-            "name",
-            "api_name",
-        ):
-            if not getattr(cls, required):
-                raise TypeError(
-                    f"Can't instantiate abstract class {cls.__name__} without {required} attribute defined"
-                )
-        return super().__init_subclass__(**kwargs)
-
     def __init__(self, **kwargs) -> None:
         self.logger = kwargs.get("logger", logging.getLogger(self.__class__.__name__))
         self.path = inspect.getfile(self.__class__)
+        self._load_config()
+
+    @property
+    def api_name(self) -> str:
+        """Returns the api_name of the plugin."""
+        return self._api_name
+
+    @api_name.setter
+    def api_name(self, value: str) -> None:
+        """Sets the api_name of the plugin."""
+        self._api_name = value
+
+    @property
+    def name(self) -> str:
+        """Returns the name of the plugin."""
+        return self.plugin.name if self.plugin else "Unnamed Plugin"
+
+    @property
+    def version(self) -> str:
+        """Returns the version of the plugin."""
+        return self.plugin.version if self.plugin else "0.0.0"
 
     def initialize(self) -> None:
         """Initialize the plugin. This method is called when the plugin is loaded."""
         self.logger.info(
-            f"Initializing plugin: {self.name}({self.api_name}) v{self.version} by {self.author}"
+            f"Initializing plugin: {self.name}) v{self.version} by {self.plugin.author}"
         )
-        self._load_config()
-        self.logger.info(f"Loaded plugin: {self.name}({self.api_name}) v{self.version}")
+        self._initialize()
+        self.logger.info(f"Loaded plugin: {self.name}) v{self.version}")
 
     def teardown(self) -> None:
         """Tear down the plugin. This method is called when the plugin is unloaded."""
-        self.logger.info(f"Tearing down plugin: {self.name}({self.api_name})")
+        self.logger.info(f"Tearing down plugin: {self.name})")
 
     @property
     def config_plugin_path(self) -> Optional[str]:
@@ -63,14 +67,27 @@ class PluginBase(ABC):
         config_plugin_path = self.config_plugin_path
         if config_plugin_path:
             self.logger.info(
-                f"{self.api_name}: Plugin configuration file found at: {config_plugin_path}"
+                f"{self.__class__.__name__}: Plugin configuration file found at: {config_plugin_path}"
             )
             self.plugin_project_config = cci_safe_load(
-                config_plugin_path, context=self.name, logger=self.logger
+                config_plugin_path, context=self.__class__.__name__, logger=self.logger
             )
 
+            for plugin_name in self.plugin_project_config.get("plugins", {}).keys():
+                self._api_name = plugin_name
+                self.plugin = Plugin(
+                    **self.plugin_project_config.get("plugins", {}).get(plugin_name, {})
+                )
+                break
+
             self.logger.info(
-                f"{self.api_name}: Plugin project configuration loaded successfully."
+                f"{self.name}: Plugin project configuration loaded successfully."
             )
         else:
-            self.logger.warning(f"{self.api_name}: No plugin configuration file found.")
+            self.logger.warning(
+                f"{self.__class__.__name__}: No plugin configuration file found."
+            )
+
+    def _initialize(self) -> None:
+        """Override this method to add custom initialization logic."""
+        pass
