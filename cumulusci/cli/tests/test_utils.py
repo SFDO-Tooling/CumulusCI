@@ -3,10 +3,10 @@ import sys
 import time
 from unittest import mock
 
-import pkg_resources
 import pytest
 import requests
 import responses
+from packaging import version
 
 import cumulusci
 
@@ -46,8 +46,8 @@ def test_get_latest_final_version():
 def test_check_latest_version(click, get_latest_final_version, get_installed_version):
     with utils.timestamp_file() as f:
         f.write(str(time.time() - 4000))
-    get_latest_final_version.return_value = pkg_resources.parse_version("2")
-    get_installed_version.return_value = pkg_resources.parse_version("1")
+    get_latest_final_version.return_value = version.parse("2")
+    get_installed_version.return_value = version.parse("1")
 
     utils.check_latest_version()
     if sys.version_info > utils.LOWEST_SUPPORTED_VERSION:

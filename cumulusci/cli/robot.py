@@ -1,7 +1,7 @@
+import importlib.metadata
 import sys
 
 import click
-import pkg_resources
 import sarge
 
 from .runtime import pass_runtime
@@ -109,5 +109,8 @@ def _require_npm():
 
 def _is_package_installed(package_name):
     """Return True if the given package is installed"""
-    # technique shamelessly stolen from https://stackoverflow.com/a/44210735/7432
-    return package_name in {pkg.key for pkg in pkg_resources.working_set}
+    try:
+        importlib.metadata.distribution(package_name)
+        return True
+    except importlib.metadata.PackageNotFoundError:
+        return False

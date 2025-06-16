@@ -9,19 +9,11 @@ from cumulusci.cli.robot import _is_package_installed
 from .utils import run_cli_command
 
 
-class MockWorkingSet(list):
-    """Mocks a pkg_resources.workingset object
+class MockDistribution:
+    """Mocks an importlib.metadata.Distribution object"""
 
-    Basically, a list of mock packages representing all of the packages
-    installed in the current environment
-    """
-
-    def __init__(self, *package_names):
-        super().__init__()
-        for package_name in package_names:
-            pkg = mock.Mock()
-            pkg.key = package_name
-            self.append(pkg)
+    def __init__(self, name):
+        self.name = name
 
 
 def mock_Command(returncodes={}):
@@ -49,16 +41,18 @@ def mock_Command(returncodes={}):
     return the_real_mock
 
 
-@mock.patch("cumulusci.cli.robot.pkg_resources")
-def test_is_package_installed(pkg_resources):
+@mock.patch("cumulusci.cli.robot.importlib.metadata.distribution")
+def test_is_package_installed(mock_distribution):
     """Verify that the helper _is_package_installed returns the correct result"""
-    pkg_resources.working_set = MockWorkingSet(
-        "robotframework", "robotframework-browser", "snowfakery"
-    )
+    # Test when package is installed
+    mock_distribution.return_value = MockDistribution("robotframework-browser")
     result = _is_package_installed("robotframework-browser")
     assert result is True
 
-    pkg_resources.working_set = MockWorkingSet("robotframework", "snowfakery")
+    # Test when package is not installed
+    from importlib.metadata import PackageNotFoundError
+
+    mock_distribution.side_effect = PackageNotFoundError("Package not found")
     result = _is_package_installed("robotframework-browser")
     assert result is False
 

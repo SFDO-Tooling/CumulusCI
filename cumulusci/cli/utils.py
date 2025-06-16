@@ -6,8 +6,8 @@ import time
 from collections import defaultdict
 
 import click
-import pkg_resources
 import requests
+from packaging import version as packaging_version
 from rich.console import Console
 
 from cumulusci import __version__
@@ -74,7 +74,7 @@ def get_latest_final_version():
     for versionstring in res["releases"].keys():
         if not is_final_release(versionstring):
             continue
-        versions.append(pkg_resources.parse_version(versionstring))
+        versions.append(packaging_version.parse(versionstring))
     versions.sort(reverse=True)
     return versions[0]
 
@@ -110,9 +110,14 @@ def check_latest_version():
             )
 
 
-def get_installed_version():
-    """returns the version name (e.g. 2.0.0b58) that is installed"""
-    return pkg_resources.parse_version(__version__)
+def parse_version(versionstring: str) -> packaging_version.Version:
+    """Parse a version string into a Version object."""
+    return packaging_version.parse(versionstring)
+
+
+def get_installed_version() -> packaging_version.Version:
+    """Get the installed version of CumulusCI."""
+    return parse_version(__version__)
 
 
 def win32_long_paths_enabled() -> bool:
