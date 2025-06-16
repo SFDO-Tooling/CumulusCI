@@ -6,7 +6,7 @@ from subprocess import call
 
 import click
 import keyring
-import pkg_resources
+from packaging import version
 
 from cumulusci.cli.utils import get_installed_version
 from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound, OrgNotFound
@@ -143,7 +143,7 @@ class CliRuntime(BaseCumulusCI):
         if self.project_config:
             min_cci_version = self.project_config.minimum_cumulusci_version
             if min_cci_version:
-                parsed_version = pkg_resources.parse_version(min_cci_version)
+                parsed_version = version.parse(min_cci_version)
                 if get_installed_version() < parsed_version:
                     raise click.UsageError(
                         f"This project requires CumulusCI version {min_cci_version} or later. "
