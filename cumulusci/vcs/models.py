@@ -274,6 +274,22 @@ class AbstractRepo(ABC):
         The method should return a string representing the clone URL of the repository."""
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @abstractmethod
+    def create_commit_status(
+        self,
+        commit_id: str,
+        context: str,
+        state: str,
+        description: str,
+        target_url: str,
+    ) -> "AbstractRepoCommit":
+        """Creates a commit status in the repository.
+        This method should be overridden by subclasses to provide
+        the specific implementation for creating commit statuses.
+        The method should not return anything, but it should raise an exception
+        if the commit status creation fails."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
 
 class AbstractRelease(ABC):
     """Abstract base class for releases.

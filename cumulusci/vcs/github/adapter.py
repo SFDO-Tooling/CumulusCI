@@ -654,3 +654,34 @@ class GitHubRepository(AbstractRepo):
     @property
     def clone_url(self) -> str:
         return self.repo.clone_url
+
+    def create_commit_status(
+        self,
+        commit_id: str,
+        context: str,
+        state: str,
+        description: str,
+        target_url: str,
+    ) -> GitHubCommit:
+        """Creates a commit status in the repository."""
+        try:
+            status = self.repo.create_status(
+                commit_id,
+                state,
+                target_url=target_url,
+                description=description,
+                context=context,
+            )
+            if not status:
+                raise GithubApiNotFoundError(
+                    f"Could not create commit status for {commit_id} on GitHub"
+                )
+            return self.get_commit(commit_id)
+        except NotFoundError:
+            raise GithubApiNotFoundError(
+                f"Could not create commit status for {commit_id} on GitHub"
+            )
+        except UnprocessableEntity as e:
+            raise GithubApiNotFoundError(
+                f"Could not create commit status for {commit_id} on GitHub: {e.response.text}"
+            )

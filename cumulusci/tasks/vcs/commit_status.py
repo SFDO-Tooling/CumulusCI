@@ -1,4 +1,4 @@
-from cumulusci.core.exceptions import DependencyLookupError, GithubApiNotFoundError
+from cumulusci.core.exceptions import DependencyLookupError, VcsNotFoundError
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.vcs.bootstrap import get_version_id_from_commit
@@ -24,7 +24,7 @@ class GetPackageDataFromCommitStatus(BaseSourceControlTask, BaseSalesforceApiTas
         if version_id is None:
             try:
                 version_id = get_version_id_from_commit(repo, commit_sha, context)
-            except GithubApiNotFoundError as e:
+            except VcsNotFoundError as e:
                 self.logger.error(e)
                 self.logger.error(
                     "This error usually means your local commit has not been pushed "

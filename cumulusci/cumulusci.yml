@@ -393,6 +393,10 @@ tasks:
         description: Look up 2gp package dependencies for a version id recorded in a commit status.
         class_path: cumulusci.tasks.vcs.commit_status.GetPackageDataFromCommitStatus
         group: VCS
+    vcs_create_package_data:
+        description: Create a 2gp package version id reference in a commit status.
+        class_path: cumulusci.tasks.vcs.create_commit_status.CreatePackageDataFromCommitStatus
+        group: VCS
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
