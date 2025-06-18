@@ -395,12 +395,14 @@ class GitHubRepository(AbstractRepo):
         # Fetches all branches from the given repository
         return GitHubBranch.branches(self)
 
-    def compare_commits(self, branch_name: str, commit: str) -> GitHubComparison:
+    def compare_commits(
+        self, branch_name: str, commit: str, source: str
+    ) -> GitHubComparison:
         # Compares the given branch with the given commit
         return GitHubComparison.compare(self, branch_name, commit)
 
     def merge(
-        self, base: str, head: str, message: str = ""
+        self, base: str, head: str, source: str, message: str = ""
     ) -> Union[GitHubCommit, None]:
         # Merges the given base and head with the specified message
         try:

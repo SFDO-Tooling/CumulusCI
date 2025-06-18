@@ -102,7 +102,9 @@ class AbstractRepo(ABC):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod
-    def compare_commits(self, base: str, head: str) -> "AbstractComparison":
+    def compare_commits(
+        self, base: str, head: str, source: str
+    ) -> "AbstractComparison":
         """Compares the given head with the given base.
         This method should be overridden by subclasses to provide
         the specific implementation for comparing commits.
@@ -110,7 +112,9 @@ class AbstractRepo(ABC):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod
-    def merge(self, base: str, head: str, message: str = "") -> "AbstractRepoCommit":
+    def merge(
+        self, base: str, head: str, source: str, message: str = ""
+    ) -> "AbstractRepoCommit":
         """Merges the given base and head with the specified commit.
         This method should be overridden by subclasses to provide
         the specific implementation for merging commits.
@@ -420,6 +424,7 @@ class AbstractBranch(ABC):
         """Initializes the AbstractBranch."""
         self.repo = repo
         self.name = branch_name
+
         self.branch = kwargs.get("branch", None)
         if not self.branch:
             self.get_branch()

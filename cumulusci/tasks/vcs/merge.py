@@ -1,7 +1,7 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
 from cumulusci.utils.git import is_release_branch
-from cumulusci.vcs.models import AbstractRepoCommit
+from cumulusci.vcs.models import AbstractBranch, AbstractRepoCommit
 
 
 class MergeBranch(BaseSourceControlTask):
@@ -80,7 +80,8 @@ class MergeBranch(BaseSourceControlTask):
 
     def _validate_source_branch(self, source_branch):
         """Validates that the source branch exists in the repository"""
-        self.repo.branch(source_branch)
+        branch: AbstractBranch = self.repo.branch(source_branch)
+        self.options["source_branch"] = branch.name
 
     def _get_existing_prs(self, source_branch, branch_prefix):
         """Returns the existing pull requests from the source branch
@@ -231,12 +232,12 @@ class MergeBranch(BaseSourceControlTask):
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""
-        compare = self.repo.compare_commits(branch_name, commit)
+        compare = self.repo.compare_commits(branch_name, commit, source)
         if not compare or not compare.files:
             self.logger.info(f"Skipping branch {branch_name}: no file diffs found")
             return
 
-        ret = self.repo.merge(branch_name, commit)
+        ret = self.repo.merge(branch_name, commit, source)
         if isinstance(ret, AbstractRepoCommit):
             self.logger.info(
                 f"Merged {compare.behind_by} commits into branch: {branch_name}"
