@@ -4,7 +4,7 @@ from cumulusci.core.exceptions import (
     SalesforceException,
     TaskOptionsError,
 )
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, determine_managed_mode
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import in_directory, inject_namespace
 from cumulusci.utils.http.requests_utils import safe_json_from_response
@@ -107,12 +107,9 @@ class AnonymousApexTask(BaseSalesforceApiTask):
     def _prepare_apex(self, apex):
         # Process namespace tokens
         namespace = self.project_config.project__package__namespace
-        if "managed" in self.options:
-            managed = process_bool_arg(self.options["managed"])
-        else:
-            managed = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
+        managed = determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
         if "namespaced" in self.options:
             namespaced = process_bool_arg(self.options["namespaced"])
         else:

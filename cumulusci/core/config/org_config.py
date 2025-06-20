@@ -318,9 +318,15 @@ class OrgConfig(BaseConfig):
 
     @property
     def installed_packages(self):
-        """installed_packages is a dict mapping a namespace or package Id (033*) to the installed package
+        """installed_packages is a dict mapping a namespace, package name, or package Id (033*) to the installed package
         version(s) matching that identifier. All values are lists, because multiple second-generation
         packages may be installed with the same namespace.
+
+        Keys include:
+        - namespace: "mycompany"
+        - package name: "My Package Name"  
+        - namespace@version: "mycompany@1.2.3"
+        - package ID: "033ABCDEF123456"
 
         To check if a required package is present, call `has_minimum_package_version()` with either the
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
@@ -329,7 +335,7 @@ class OrgConfig(BaseConfig):
         """
         if self._installed_packages is None:
             isp_result = self.salesforce_client.restful(
-                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
+                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.Name, SubscriberPackage.NamespacePrefix, "
                 "SubscriberPackageVersionId FROM InstalledSubscriberPackage"
             )
             _installed_packages = defaultdict(list)
@@ -357,10 +363,14 @@ class OrgConfig(BaseConfig):
                     version += f"b{spv['BuildNumber']}"
                 version_info = VersionInfo(spv["Id"], StrictVersion(version))
                 namespace = sp["NamespacePrefix"]
+                package_name = sp["Name"]
                 _installed_packages[namespace].append(version_info)
                 namespace_version = f"{namespace}@{version}"
                 _installed_packages[namespace_version].append(version_info)
                 _installed_packages[sp["Id"]].append(version_info)
+                # Add package name as a key for specific package detection
+                if package_name:
+                    _installed_packages[package_name].append(version_info)
 
             self._installed_packages = _installed_packages
         return self._installed_packages
