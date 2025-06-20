@@ -1,7 +1,7 @@
 from simple_salesforce.exceptions import SalesforceError
 
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg, determine_managed_mode
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import inject_namespace
 from cumulusci.utils.http.requests_utils import safe_json_from_response
@@ -37,12 +37,9 @@ class EnablePrediction(BaseSalesforceApiTask):
             or self.project_config.project__package__namespace
         )
         self.options["namespace_inject"] = namespace
-        if "managed" in self.options:
-            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
-        else:
-            self.options["managed"] = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
+        self.options["managed"] = determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
         if "namespaced_org" in self.options:
             self.options["namespaced_org"] = process_bool_arg(
                 self.options["namespaced_org"] or False

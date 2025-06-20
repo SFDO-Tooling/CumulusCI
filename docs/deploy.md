@@ -1,3 +1,4 @@
+(configure-metadata-deployment)=
 # Configure Metadata Deployment
 
 CumulusCI's `deploy` task uses the Metadata API to deploy metadata from the repository to a Salesforce org. `deploy` offers multiple sophisticated capabilities to suit the needs of your project.
@@ -62,7 +63,7 @@ flows:
                                 replace: bar
 ```
 
-To learn more about customization, see [](config). To discover the available transform options, consult the section for each transform in [](deploy).
+To learn more about customization, see [](config). To discover the available transform options, consult the section for each transform in [](configure-metadata-deployment).
 
 ### Namespace Injection
 

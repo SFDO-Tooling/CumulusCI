@@ -50,7 +50,7 @@ variables to provide access to orgs and services [in a headless context](headles
 
 CumulusCI makes it easy to harness the power of second-generation
 managed packages to implement an advanced, comprehensive testing process
-for both first- and second-generation managed package products. This is
+for both first-generation and second-generation managed package products. This is
 described in [](2gp-testing).
 
 ## Further Reading
