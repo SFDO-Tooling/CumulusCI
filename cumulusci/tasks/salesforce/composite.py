@@ -6,7 +6,7 @@ from pathlib import Path
 
 from cumulusci.cli.ui import CliTable
 from cumulusci.core.exceptions import SalesforceException
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg, determine_managed_mode
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import inject_namespace
 
@@ -83,12 +83,9 @@ Example Task Definition
         body = body.replace("%%%USERID%%%", user_id)
 
         namespace = self.project_config.project__package__namespace
-        if "managed" in self.options:
-            managed = process_bool_arg(self.options["managed"])
-        else:
-            managed = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
+        managed = determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
 
         _, body = inject_namespace(
             "composite",
