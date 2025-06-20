@@ -3,7 +3,7 @@
 from simple_salesforce.exceptions import SalesforceError
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, determine_managed_mode
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -93,12 +93,9 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
     def _apply_namespace(self):
         # Process namespace tokens
         namespace = self.project_config.project__package__namespace
-        if "managed" in self.options:
-            managed = process_bool_arg(self.options["managed"])
-        else:
-            managed = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
+        managed = determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
         if "namespaced" in self.options:
             namespaced = process_bool_arg(self.options["namespaced"])
         else:

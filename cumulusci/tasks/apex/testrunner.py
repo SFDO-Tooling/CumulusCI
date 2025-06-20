@@ -10,7 +10,7 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
     TaskOptionsError,
 )
-from cumulusci.core.utils import decode_to_unicode, process_bool_arg, process_list_arg
+from cumulusci.core.utils import decode_to_unicode, process_bool_arg, process_list_arg, determine_managed_mode
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -609,13 +609,9 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _init_task(self):
         super()._init_task()
-        if "managed" in self.options:
-            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
-        else:
-            namespace = self.options.get("namespace")
-            self.options["managed"] = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
+        self.options["managed"] = determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
 
     def _run_task(self):
         result = self._get_test_classes()
