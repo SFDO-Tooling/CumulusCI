@@ -1552,24 +1552,25 @@ project:
         unlocked_context: "Build Unlocked Test Package"
         release_notes:
             parsers:
-                1:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Critical Changes
-                2:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Changes
-                3:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
-                    title: Issues Closed
-                4:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: New Metadata
-                5:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Deleted Metadata
-                6:
-                    class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
-                    title: Installation Info
+                github:
+                    1:
+                        class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
+                        title: Critical Changes
+                    2:
+                        class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
+                        title: Changes
+                    3:
+                        class_path: cumulusci.vcs.github.release_notes.parser.GithubIssuesParser
+                        title: Issues Closed
+                    4:
+                        class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
+                        title: New Metadata
+                    5:
+                        class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
+                        title: Deleted Metadata
+                    6:
+                        class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
+                        title: Installation Info
     test:
         name_match: "%_TEST%"
     dependency_resolutions:

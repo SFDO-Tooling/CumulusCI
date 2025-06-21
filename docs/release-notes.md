@@ -44,7 +44,7 @@ To use additional headings, add new ones (as parsers) under the
 ```
 release_notes:
     parsers:
-        7: class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+        7: class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
 ```
 
 ```{note}

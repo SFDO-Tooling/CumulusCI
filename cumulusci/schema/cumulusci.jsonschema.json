@@ -79,6 +79,14 @@
         },
         "cli": {
             "$ref": "#/definitions/CumulusCLIConfig"
+        },
+        "plugins": {
+            "title": "Plugins",
+            "default": {},
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Plugin"
+            }
         }
     },
     "additionalProperties": false,
@@ -276,10 +284,23 @@
             "properties": {
                 "parsers": {
                     "title": "Parsers",
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/ReleaseNotesParser"
-                    }
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "$ref": "#/definitions/ReleaseNotesParser"
+                                }
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/ReleaseNotesParser"
+                            }
+                        }
+                    ]
                 }
             },
             "required": ["parsers"],
@@ -356,22 +377,6 @@
             },
             "additionalProperties": false
         },
-        "ProjectService": {
-            "title": "ProjectService",
-            "type": "object",
-            "properties": {
-                "service_type": {
-                    "title": "Service Type",
-                    "type": "string"
-                },
-                "service_alias": {
-                    "title": "Service Alias",
-                    "type": "string"
-                }
-            },
-            "required": ["service_type", "service_alias"],
-            "additionalProperties": false
-        },
         "Project": {
             "title": "Project",
             "type": "object",
@@ -421,17 +426,6 @@
                 "custom": {
                     "title": "Custom",
                     "type": "object"
-                },
-                "service": {
-                    "title": "Service",
-                    "anyOf": [
-                        {
-                            "type": "string"
-                        },
-                        {
-                            "$ref": "#/definitions/ProjectService"
-                        }
-                    ]
                 }
             },
             "additionalProperties": false
@@ -754,6 +748,35 @@
                     "type": "boolean"
                 }
             },
+            "additionalProperties": false
+        },
+        "Plugin": {
+            "title": "Plugin",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "version": {
+                    "title": "Version",
+                    "type": "string"
+                },
+                "author": {
+                    "title": "Author",
+                    "type": "string"
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "config": {
+                    "title": "Config",
+                    "default": {},
+                    "type": "object"
+                }
+            },
+            "required": ["name", "version"],
             "additionalProperties": false
         }
     }

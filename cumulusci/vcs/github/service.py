@@ -43,10 +43,6 @@ from cumulusci.core.exceptions import (  # DependencyLookupError
     ServiceNotConfigured,
 )
 from cumulusci.tasks.github.util import CommitDir
-from cumulusci.tasks.release_notes.generator import (
-    GithubReleaseNotesGenerator,
-    ParentPullRequestNotesGenerator,
-)
 
 # from cumulusci.oauth.client import (
 #     OAuth2ClientConfig,
@@ -57,6 +53,11 @@ from cumulusci.tasks.release_notes.generator import (
 from cumulusci.utils.git import parse_repo_url
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.github import GitHubRelease, GitHubRepository
+from cumulusci.vcs.github.release_notes.generator import (
+    GithubReleaseNotesGenerator,
+    ParentPullRequestNotesGenerator,
+)
+from cumulusci.vcs.github.release_notes.parser import parser_configs
 
 # from rich.console import Console
 
@@ -512,7 +513,7 @@ class GitHubService(VCSService):
         generator = GithubReleaseNotesGenerator(
             self.github,
             github_info,
-            self.config.project__git__release_notes__parsers.values(),
+            parser_configs(self.config),
             options["tag"],
             options.get("last_tag"),
             options.get("link_pr"),

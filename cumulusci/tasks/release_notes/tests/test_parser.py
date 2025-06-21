@@ -8,28 +8,30 @@ import responses
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.parser import (
     BaseChangeNotesParser,
     ChangeNotesLinesParser,
-    GithubIssuesParser,
-    GithubLinesParser,
     InstallLinkParser,
-    IssuesParser,
 )
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
+from cumulusci.vcs.github.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.vcs.github.release_notes.parser import (
+    GithubIssuesParser,
+    GithubLinesParser,
+    IssuesParser,
+)
 
 PARSER_CONFIG = [
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubLinesParser",
         "title": "Critical Changes",
     },
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubLinesParser",
         "title": "Changes",
     },
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubIssuesParser",
         "title": "Issues Closed",
     },
 ]
@@ -823,3 +825,43 @@ class TestInstallLinkParser:
             "https://test.salesforce.com/packaging/installPackage.apexp?p0=foo+bar"
             in output
         )
+
+
+class TestMigrationParser(GithubApiTestMixin):
+    def setup_method(self):
+        self.init_github()
+        self.gh = get_github_api("TestUser", "TestPass")
+        self.title = "Issues"
+        # Set up the mock release_tag lookup response
+        self.issue_number_valid = 123
+        self.issue_number_invalid = 456
+        self.pr_number = 789
+        self.pr_url = "https://github.com/{}/{}/pulls/{}".format(
+            "TestOwner", "TestRepo", self.pr_number
+        )
+        self.mock_util = MockUtil("TestOwner", "TestRepo")
+
+    @responses.activate
+    def test_migration(self):
+        from cumulusci.tasks.release_notes.parser import (
+            GithubIssuesParser,
+            GithubLinesParser,
+        )
+        from cumulusci.utils.deprecation import ClassMovedWarning
+
+        generator = mock.Mock(has_issues=True)
+
+        with pytest.warns(
+            ClassMovedWarning, match="cumulusci.vcs.github.release_notes.parser"
+        ):
+            GithubIssuesParser(generator, "")
+
+        with pytest.warns(
+            ClassMovedWarning, match="cumulusci.vcs.github.release_notes.parser"
+        ):
+            GithubLinesParser(generator, "")
+
+        assert GithubLinesParser.__module__ == "cumulusci.tasks.release_notes.parser"
+        assert GithubLinesParser.__name__ == "GithubLinesParser"
+        assert GithubIssuesParser.__module__ == "cumulusci.tasks.release_notes.parser"
+        assert GithubIssuesParser.__name__ == "GithubIssuesParser"

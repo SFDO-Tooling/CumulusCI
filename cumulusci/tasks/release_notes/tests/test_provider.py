@@ -11,28 +11,28 @@ import responses
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.provider import (
     BaseChangeNotesProvider,
     DirectoryChangeNotesProvider,
-    GithubChangeNotesProvider,
     StaticChangeNotesProvider,
 )
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
+from cumulusci.vcs.github.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.vcs.github.release_notes.provider import GithubChangeNotesProvider
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 date_format = "%Y-%m-%dT%H:%M:%SZ"
 PARSER_CONFIG = [
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubLinesParser",
         "title": "Critical Changes",
     },
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubLinesParser",
         "title": "Changes",
     },
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubIssuesParser",
         "title": "Issues Closed",
     },
 ]
@@ -465,3 +465,48 @@ class TestGithubChangeNotesProvider(GithubApiTestMixin):
         assert provider._get_version_from_tag(tag) == "1.0-Beta_1"
         with pytest.raises(ValueError):
             provider._get_version_from_tag("bogus")
+
+
+class TestMigrationParser(GithubApiTestMixin):
+    def setup_method(self):
+        self.init_github()
+        self.gh = get_github_api("TestUser", "TestPass")
+        self.title = "Issues"
+        # Set up the mock release_tag lookup response
+        self.issue_number_valid = 123
+        self.issue_number_invalid = 456
+        self.pr_number = 789
+        self.pr_url = "https://github.com/{}/{}/pulls/{}".format(
+            "TestOwner", "TestRepo", self.pr_number
+        )
+        self.mock_util = MockUtil("TestOwner", "TestRepo")
+
+    @responses.activate
+    def test_migration(self):
+        from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
+        from cumulusci.utils.deprecation import ClassMovedWarning
+
+        self.mock_util.mock_get_repo()
+        tag = "beta/1.0-Beta_1"
+        generator = self._create_generator(tag)
+
+        with pytest.warns(
+            ClassMovedWarning, match="cumulusci.vcs.github.release_notes.provider"
+        ):
+            GithubChangeNotesProvider(generator, tag)
+
+        assert (
+            GithubChangeNotesProvider.__module__
+            == "cumulusci.tasks.release_notes.provider"
+        )
+        assert GithubChangeNotesProvider.__name__ == "GithubChangeNotesProvider"
+
+    def _create_generator(self, current_tag, last_tag=None):
+        generator = GithubReleaseNotesGenerator(
+            self.gh,
+            self.github_info.copy(),
+            PARSER_CONFIG,
+            current_tag,
+            last_tag=last_tag,
+        )
+        return generator

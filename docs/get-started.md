@@ -305,19 +305,19 @@ git:
     release_notes:
         parsers:
             1:
-                class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
                 title: Critical Changes
             2:
-                class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
                 title: Changes
             3:
-                class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
+                class_path: cumulusci.vcs.github.release_notes.parser.GithubIssuesParser
                 title: Issues Closed
             4:
-                class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
                 title: New Metadata
             5:
-                class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                class_path: cumulusci.vcs.github.release_notes.parser.GithubLinesParser
                 title: Deleted Metadata
     repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
 test:

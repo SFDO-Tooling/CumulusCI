@@ -96,7 +96,9 @@ class ReleaseNotesParser(CCIDictModel):
 
 
 class ReleaseNotes(CCIDictModel):
-    parsers: Dict[int, ReleaseNotesParser]
+    parsers: Union[
+        Dict[str, Dict[int, ReleaseNotesParser]], Dict[int, ReleaseNotesParser]
+    ]
 
 
 class Git(CCIDictModel):
