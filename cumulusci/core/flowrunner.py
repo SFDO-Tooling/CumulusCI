@@ -631,15 +631,18 @@ class FlowCoordinator:
                 task_config_dict["options"] = {}
 
             # merge the options together, from task_config all the way down through parent_options
-            step_overrides = copy.deepcopy(parent_options.get(name, {}))
-            step_overrides.update(step_config.get("options", {}))
+            # parent_options should have higher priority than step_config options
+            step_overrides = copy.deepcopy(step_config.get("options", {}))
+            parent_task_options = parent_options.get(name, {})
+            step_overrides.update(parent_task_options)
             task_config_dict["options"].update(step_overrides)
 
             # merge UI options from task config and parent flow
             if "ui_options" not in task_config_dict:
                 task_config_dict["ui_options"] = {}
-            step_ui_overrides = copy.deepcopy(parent_ui_options.get(name, {}))
-            step_ui_overrides.update(step_config.get("ui_options", {}))
+            # parent_ui_options should have higher priority than step_config ui_options
+            step_ui_overrides = copy.deepcopy(step_config.get("ui_options", {}))
+            step_ui_overrides.update(parent_ui_options.get(name, {}))
             task_config_dict["ui_options"].update(step_ui_overrides)
 
             # merge checks from task config and flow step
