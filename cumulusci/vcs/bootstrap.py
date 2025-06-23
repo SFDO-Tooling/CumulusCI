@@ -129,7 +129,7 @@ def is_label_on_pull_request(
 
 
 def get_repo_from_url(
-    self, config: BaseProjectConfig, url: str, options: dict = {}
+    config: BaseProjectConfig, url: str, options: dict = {}
 ) -> AbstractRepo:
     vcs_service: VCSService = get_service_for_url(config, url, options)
     options.update({"repository_url": url})

@@ -60,19 +60,6 @@ class AllVcsReleaseNotes(BaseSourceControlTask):
             f.write(result)
 
 
-class AllGithubReleaseNotes(AllVcsReleaseNotes):
-    """Deprecated: use cumulusci.tasks.release_notes.task.AllVcsReleaseNotes instead"""
-
-    filename: str = "github_release_notes.html"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        warn_moved(
-            "cumulusci.tasks.release_notes.task.AllVcsReleaseNotes",
-            f"{__name__}.AllGithubReleaseNotes",
-        )
-
-
 class VcsReleaseNotes(BaseSourceControlTask):
     task_options = {
         "tag": {
@@ -93,7 +80,7 @@ class VcsReleaseNotes(BaseSourceControlTask):
                 "If True, insert link to source pull request at" + " end of each line."
             )
         },
-        "publish": {"description": "Publish to GitHub release if True (default=False)"},
+        "publish": {"description": "Publish to VCS release if True (default=False)"},
         "include_empty": {
             "description": "If True, include links to PRs that have no release notes (default=False)"
         },
@@ -127,17 +114,6 @@ class VcsReleaseNotes(BaseSourceControlTask):
             self.vcs_service.release_notes_generator(self.options)
         )
         self.logger.info("\n" + release_notes())
-
-
-class GithubReleaseNotes(VcsReleaseNotes):
-    """Deprecated: use cumulusci.tasks.release_notes.task.VcsReleaseNotes instead"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        warn_moved(
-            "cumulusci.tasks.release_notes.task.VcsReleaseNotes",
-            f"{__name__}.GithubReleaseNotes",
-        )
 
 
 class ParentPullRequestNotes(BaseSourceControlTask):
@@ -293,3 +269,32 @@ class ParentPullRequestNotes(BaseSourceControlTask):
         if pull_request_link not in body:
             body += "\r\n* " + pull_request_link
             to_update.update(body=body)
+
+
+# Deprecated aliases for backwards compatibility
+# These classes are deprecated and will be removed in future versions.
+# Use the new AllVcsReleaseNotes and VcsReleaseNotes classes instead.
+
+
+class AllGithubReleaseNotes(AllVcsReleaseNotes):
+    """Deprecated: use cumulusci.tasks.release_notes.task.AllVcsReleaseNotes instead"""
+
+    filename: str = "github_release_notes.html"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warn_moved(
+            "cumulusci.tasks.release_notes.task.AllVcsReleaseNotes",
+            f"{__name__}.AllGithubReleaseNotes",
+        )
+
+
+class GithubReleaseNotes(VcsReleaseNotes):
+    """Deprecated: use cumulusci.tasks.release_notes.task.VcsReleaseNotes instead"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warn_moved(
+            "cumulusci.tasks.release_notes.task.VcsReleaseNotes",
+            f"{__name__}.GithubReleaseNotes",
+        )
