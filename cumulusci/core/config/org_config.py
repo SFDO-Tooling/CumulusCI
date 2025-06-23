@@ -316,6 +316,28 @@ class OrgConfig(BaseConfig):
 
         return installed_version[0].number >= version_identifier
 
+    def get_package_from_version(self, package_version_id, installationkey=None):
+        """Fetch and return the package details based on a provided package version ID.
+        Find the SubscriberPackageVersion for the 04t Id provided in package_version_id
+        If no package is found return None. If a package is found return the first record
+        (assuming that the query will only return  one record for a specific Id)."""
+
+        query = (
+            "tooling/query/?q=SELECT Id, SubscriberPackageId, MajorVersion, "
+            "MinorVersion, PatchVersion, BuildNumber from SubscriberPackageVersion "
+            f"WHERE Id = '{package_version_id}'"
+        )
+        if installationkey:
+            query += f" AND InstallationKey = '{installationkey}'"
+
+        response = self.salesforce_client.restful(query)
+
+        if not response or "records" not in response or not response["records"]:
+            return None
+
+        package = response["records"][0]
+        return package
+
     @property
     def installed_packages(self):
         """installed_packages is a dict mapping a namespace or package Id (033*) to the installed package
