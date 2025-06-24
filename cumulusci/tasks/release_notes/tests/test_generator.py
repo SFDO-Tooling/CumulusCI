@@ -14,28 +14,30 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.generator import (
     BaseReleaseNotesGenerator,
     DirectoryReleaseNotesGenerator,
-    GithubReleaseNotesGenerator,
-    ParentPullRequestNotesGenerator,
     StaticReleaseNotesGenerator,
     render_empty_pr_section,
 )
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tests.util import create_project_config
+from cumulusci.vcs.github.release_notes.generator import (
+    GithubReleaseNotesGenerator,
+    ParentPullRequestNotesGenerator,
+)
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 
 PARSER_CONFIG = [
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubLinesParser",
         "title": "Critical Changes",
     },
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubLinesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubLinesParser",
         "title": "Changes",
     },
     {
-        "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
+        "class_path": "cumulusci.vcs.github.release_notes.parser.GithubIssuesParser",
         "title": "Issues Closed",
     },
     {"class_path": None},
@@ -494,7 +496,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         generator.aggregate_child_change_notes(parent_pr)
 
     @mock.patch(
-        "cumulusci.tasks.release_notes.generator.get_pull_requests_with_base_branch"
+        "cumulusci.vcs.github.release_notes.generator.get_pull_requests_with_base_branch"
     )
     def test_aggregate_child_change_notes__update_fails(
         self, get_pull, generator, mock_util, gh_api
@@ -526,3 +528,55 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
 
         generator.aggregate_child_change_notes(parent_pr)
         assert 0 == len(generator.change_notes)
+
+
+class TestMigrationGenerator(GithubApiTestMixin):
+    def setup_method(self):
+        self.current_tag = "prod/1.4"
+        self.last_tag = "prod/1.3"
+        self.github_info = {
+            "github_owner": "TestOwner",
+            "github_repo": "TestRepo",
+            "github_username": "TestUser",
+            "github_password": "TestPass",
+        }
+        self.gh = get_github_api("TestUser", "TestPass")
+        self.mock_util = MockUtil("TestOwner", "TestRepo")
+
+    @responses.activate
+    def test_migration(self):
+        from cumulusci.tasks.release_notes.generator import (
+            GithubReleaseNotesGenerator,
+            ParentPullRequestNotesGenerator,
+        )
+        from cumulusci.utils.deprecation import ClassMovedWarning
+
+        github_info = self.github_info.copy()
+        self.mock_util.mock_get_repo()
+        with pytest.warns(
+            ClassMovedWarning, match="cumulusci.vcs.github.release_notes.generator"
+        ):
+            GithubReleaseNotesGenerator(
+                self.gh, github_info, PARSER_CONFIG, self.current_tag, version_id="04t"
+            )
+
+        with pytest.warns(
+            ClassMovedWarning, match="cumulusci.vcs.github.release_notes.generator"
+        ):
+            repo_json = GithubApiTestMixin()._get_expected_repo("TestOwner", "TestRepo")
+            repo = Repository(repo_json, self.gh)
+            ParentPullRequestNotesGenerator(self.gh, repo, create_project_config())
+
+        assert (
+            GithubReleaseNotesGenerator.__module__
+            == "cumulusci.tasks.release_notes.generator"
+        )
+        assert GithubReleaseNotesGenerator.__name__ == "GithubReleaseNotesGenerator"
+        assert (
+            ParentPullRequestNotesGenerator.__module__
+            == "cumulusci.tasks.release_notes.generator"
+        )
+        assert (
+            ParentPullRequestNotesGenerator.__name__
+            == "ParentPullRequestNotesGenerator"
+        )

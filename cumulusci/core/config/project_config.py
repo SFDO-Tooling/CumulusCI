@@ -9,45 +9,41 @@ from contextlib import contextmanager
 from io import StringIO
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
-
-from github3 import GitHub
-from github3.repos.repo import Repository
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.utils import import_global
 from cumulusci.core.versions import PackageVersionNumber
+from cumulusci.plugins.plugin_loader import load_plugins
 from cumulusci.utils.version_strings import LooseVersion
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
-import github3
 from pydantic import ValidationError
 
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
-    GithubException,
+    CumulusCIException,
     KeychainNotFound,
     NamespaceNotFoundError,
     NotInProject,
     ProjectConfigNotFound,
+    VcsException,
 )
-from cumulusci.core.github import (
-    catch_common_github_auth_errors,
-    find_previous_release,
-    get_github_api_for_repo,
-)
-from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
+from cumulusci.core.source import LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import FSResource, open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
+from cumulusci.utils.git import current_branch, generic_parse_repo_url, git_path
 from cumulusci.utils.yaml.cumulusci_yml import (
-    GitHubSourceModel,
     LocalFolderSourceModel,
+    VCSSourceModel,
     cci_safe_load,
 )
+from cumulusci.vcs.models import AbstractRepo
+from cumulusci.vcs.vcs_source import VCSSource
 
 sys.modules.setdefault(
     "tasks", types.ModuleType("tasks", "Synthetic package for all repo tasks")
@@ -55,9 +51,11 @@ sys.modules.setdefault(
 import tasks
 
 tasks.__path__ = []
+
 if TYPE_CHECKING:
     from cumulusci.core.config.universal_config import UniversalConfig
     from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
+    from cumulusci.vcs.base import VCSService
 
 
 class ProjectConfigPropertiesMixin(BaseConfig):
@@ -86,11 +84,13 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     config_project: dict
     config_project_local: dict
     config_additional_yaml: dict
+    config_plugins_yaml: dict
     additional_yaml: Optional[str]
-    source: Union[NullSource, GitHubSource, LocalFolderSource]
+    source: Union[NullSource, VCSSource, LocalFolderSource]
     _cache_dir: Optional[Path]
     included_sources: Dict[
-        Union[GitHubSourceModel, LocalFolderSourceModel], "BaseProjectConfig"
+        Union[VCSSourceModel, LocalFolderSourceModel],
+        "BaseProjectConfig",
     ]
 
     def __init__(
@@ -114,6 +114,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         self.config_project = {}
         self.config_project_local = {}
         self.config_additional_yaml = {}
+        self.config_plugins_yaml = {}
 
         # optionally pass in a kwarg named 'additional_yaml' that will
         # be added to the YAML merge stack.
@@ -183,6 +184,19 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
+        # Loading plugins as classes are loaded and available.
+        plugins = load_plugins(self.logger)
+
+        # Load the plugin yaml config file if it exists
+        for plugin in plugins:
+            if plugin.plugin_project_config:
+                self.config_plugins_yaml.update(plugin.plugin_project_config)
+                self.logger.info(
+                    f"Loaded plugin: {plugin.name} ({plugin.api_name}) v{plugin.version}"
+                )
+
+            plugin.teardown()  # clean up the plugin
+
         self.config = merge_config(
             {
                 "universal_config": self.config_universal,
@@ -190,6 +204,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 "project_config": self.config_project,
                 "project_local_config": self.config_project_local,
                 "additional_yaml": self.config_additional_yaml,
+                "plugins_config": self.config_plugins_yaml,
             }
         )
 
@@ -269,9 +284,28 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 )
 
             url_info = {}
-            url_info["owner"], url_info["name"] = split_repo_url(repo_url)
+            (
+                url_info["owner"],
+                url_info["name"],
+                url_info["domain"],
+            ) = generic_parse_repo_url(repo_url)
             url_info["url"] = repo_url
             info.update(url_info)
+
+    def get_repo_owner_host_from_url(self, repo_url) -> List[str]:
+        """Returns the owner, repo_name, and host from the repository URL.
+        The method should return a list containing the owner, repo_name and host."""
+        try:
+            vcs_service = self.get_service_type_for_repo(repo_url)
+            parsed_url = vcs_service.parse_repo_url()
+        except Exception:
+            # Fallback to generic parsing if the service does not support it
+            parsed_url = generic_parse_repo_url(repo_url)
+
+        if len(parsed_url) < 3:
+            raise CumulusCIException("Parsed repository URL is not in expected format.")
+
+        return [parsed_url[0], parsed_url[1], parsed_url[2]]
 
     def _override_repo_env_var(
         self, repo_env_var: str, local_var: str, info: Dict[str, Any]
@@ -349,7 +383,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return parse_repo_url(url_line)[2]
+            return self.get_repo_owner_host_from_url(url_line)[2]
 
     @property
     def repo_name(self) -> Optional[str]:
@@ -362,7 +396,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return split_repo_url(url_line)[1]
+            return self.get_repo_owner_host_from_url(url_line)[1]
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -388,7 +422,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         url_line = self.git_config_remote_origin_url()
 
         if url_line:
-            return split_repo_url(url_line)[0]
+            return self.get_repo_owner_host_from_url(url_line)[0]
 
     @property
     def repo_branch(self) -> Optional[str]:
@@ -436,43 +470,20 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                         ):
                             return parts[0]
 
-    def get_github_api(self, url: Optional[str] = None) -> GitHub:
-        return get_github_api_for_repo(self.keychain, url or self.repo_url)
-
-    def get_repo(self) -> Repository:
-        repo = self.get_github_api(self.repo_url).repository(
-            self.repo_owner, self.repo_name
-        )
+    def get_repo(self) -> AbstractRepo:
+        repo = self.repo_service.get_repository()
         if repo is None:
-            raise GithubException(
-                f"Github repository not found or not authorized. ({self.repo_url})"
+            raise VcsException(
+                f"VCS repository not found or not authorized. ({self.repo_url})"
             )
         return repo
 
-    # TODO: These methods are duplicative with `find_latest_release()`
     def get_latest_tag(self, beta: bool = False) -> str:
         """Query Github Releases to find the latest production or beta tag"""
-        repo = self.get_repo()
-        if not beta:
-            try:
-                release = repo.latest_release()
-            except github3.exceptions.NotFoundError:
-                raise GithubException(f"No release found for repo {self.repo_url}")
-            prefix = self.project__git__prefix_release
-            if not release.tag_name.startswith(prefix):
-                return self._get_latest_tag_for_prefix(repo, prefix)
-            return release.tag_name
-        else:
-            return self._get_latest_tag_for_prefix(repo, self.project__git__prefix_beta)
+        from cumulusci.vcs.bootstrap import get_latest_tag
 
-    def _get_latest_tag_for_prefix(self, repo: Repository, prefix: str) -> str:
-        for release in repo.releases():
-            if not release.tag_name.startswith(prefix):
-                continue
-            return release.tag_name
-        raise GithubException(
-            f"No release found for {self.repo_url} with tag prefix {prefix}"
-        )
+        repo = self.get_repo()
+        return get_latest_tag(repo, beta)
 
     def get_latest_version(self, beta: bool = False) -> Optional[LooseVersion]:
         """Query Github Releases to find the latest production or beta release"""
@@ -483,6 +494,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
     def get_previous_version(self) -> Optional[LooseVersion]:
         """Query GitHub releases to find the previous production release"""
+        from cumulusci.vcs.bootstrap import find_previous_release
+
         repo = self.get_repo()
         release = find_previous_release(repo, self.project__git__prefix_release)
         if release is not None:
@@ -536,6 +549,59 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     def allow_remote_code(self) -> bool:
         return self.source.allow_remote_code
 
+    @property
+    def repo_service(self):
+        vcs_service = self.repo_info.get("vcs_service", None)
+        if vcs_service:
+            return vcs_service
+
+        vcs_service = self.get_service_type_for_repo(self.repo_url)
+
+        if vcs_service is None:
+            raise VcsException("Provider class for not found in config")
+
+        if self._repo_info:
+            self._repo_info["vcs_service"] = vcs_service
+
+        return vcs_service
+
+    # def _get_repo_service_from_path(
+    #     self,
+    #     url: str,
+    #     provider_path: str,
+    #     service_alias: Optional[str] = None,
+    # ) -> Optional["VCSService"]:
+    #     try:
+    #         vcs_service_cls = import_global("cumulusci.vcs.base.VCSService")
+    #         provider_klass = import_global(provider_path)
+
+    #         if issubclass(provider_klass, vcs_service_cls):
+    #             vcs_service: VCSService = provider_klass.get_service_for_url(
+    #                 self, url, options={"service_alias": service_alias}
+    #             )
+    #             return vcs_service
+    #     except ImportError as e:
+    #         raise VcsException(
+    #             f"Failed to import provider class from path '{provider_path}': {e}"
+    #         )
+
+    def get_service_type_for_repo(
+        self, url: str, service_alias: Optional[str] = None
+    ) -> "VCSService":
+        """Determines the VCS service type for the repository."""
+
+        vcs_service_cls = import_global("cumulusci.vcs.base.VCSService")
+
+        for service in vcs_service_cls.registered_services():
+            vcs_service: Optional[VCSService] = service.get_service_for_url(
+                self, url, options={"service_alias": service_alias}
+            )
+
+            if vcs_service is None:
+                continue
+
+            return vcs_service
+
     def get_tag_for_version(self, prefix: str, version: str) -> str:
         """Given a prefix and version, returns the appropriate tag name to use."""
         try:
@@ -568,10 +634,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
-    @catch_common_github_auth_errors
-    def get_repo_from_url(self, url: str) -> Optional[Repository]:
-        owner, name = split_repo_url(url)
-        return self.get_github_api(url).repository(owner, name)
+    def get_repo_from_url(self, url: str) -> Optional[AbstractRepo]:
+        vcs_service = self.get_service_type_for_repo(url)
+        return vcs_service.get_repository(options={"repository_url": url})
 
     def get_task(self, name: str) -> TaskConfig:
         """Get a TaskConfig by task name
@@ -617,7 +682,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return self.include_source(spec)
 
     def include_source(
-        self, spec: Union[GitHubSourceModel, LocalFolderSourceModel, dict]
+        self,
+        spec: Union[VCSSourceModel, LocalFolderSourceModel, dict],
     ) -> "BaseProjectConfig":
         """Make sure a project has been fetched from its source.
 
@@ -627,10 +693,15 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         if isinstance(spec, dict):
             parsed_spec = None
-            for model_class in [GitHubSourceModel, LocalFolderSourceModel]:
+            source_models = VCSSource.registered_source_models()
+            source_models.append(LocalFolderSourceModel)
+
+            for model_class in source_models:
                 try:
                     parsed_spec = model_class(**spec)
                 except ValidationError:
+                    pass
+                except TypeError:
                     pass
                 else:
                     break
@@ -643,8 +714,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         if spec in self.included_sources:
             project_config = self.included_sources[spec]
         else:
-            if isinstance(spec, GitHubSourceModel):
-                source = GitHubSource(self, spec)
+            if isinstance(spec, VCSSourceModel):
+                source = VCSSource.create(self, spec)
             elif isinstance(spec, LocalFolderSourceModel):
                 source = LocalFolderSource(self, spec)
 
@@ -709,6 +780,17 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
             cache_dir.mkdir(exist_ok=True, parents=True)
             yield cache_dir
+
+    @classmethod
+    def get_package_data(cls, config: "BaseProjectConfig"):
+        namespace = config.project__package__namespace
+        package_name = (
+            config.project__package__name_managed
+            or config.project__package__name
+            or "Package"
+        )
+
+        return package_name, namespace
 
 
 class RemoteProjectConfig(ProjectConfigPropertiesMixin):

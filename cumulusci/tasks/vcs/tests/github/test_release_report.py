@@ -4,8 +4,8 @@ import pytz
 import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.tasks.github import ReleaseReport
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.vcs import ReleaseReport
 from cumulusci.tests.util import create_project_config
 
 

@@ -5,8 +5,8 @@ import responses
 
 from cumulusci.core.config import OrgConfig, ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import DependencyLookupError
-from cumulusci.tasks.github.commit_status import GetPackageDataFromCommitStatus
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.vcs.commit_status import GetPackageDataFromCommitStatus
 from cumulusci.tests.util import CURRENT_SF_API_VERSION, create_project_config
 
 

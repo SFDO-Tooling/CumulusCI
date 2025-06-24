@@ -1,62 +1,181 @@
-import functools
-import io
-import re
-from typing import Optional, Tuple
+import logging
+from abc import ABC
+from typing import Optional, Type
 
-from github3.exceptions import NotFoundError
-from github3.git import Tag
-from github3.repos.repo import Repository
+from pydantic import root_validator
+from pydantic.networks import AnyUrl
 
-from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.versions import PackageType
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+import cumulusci.core.dependencies.base as base_dependency
+from cumulusci.core.exceptions import DependencyResolutionError, GithubApiNotFoundError
+from cumulusci.utils.git import split_repo_url
+from cumulusci.vcs.github.adapter import GitHubRepository
 
-PACKAGE_TYPE_RE = re.compile(r"^package_type: (.*)$", re.MULTILINE)
-VERSION_ID_RE = re.compile(r"^version_id: (04t[a-zA-Z0-9]{12,15})$", re.MULTILINE)
+logger = logging.getLogger(__name__)
 
-
-def get_repo(github: str, context: BaseProjectConfig) -> Repository:
-    try:
-        repo = context.get_repo_from_url(github)
-    except NotFoundError:
-        repo = None
-
-    if repo is None:
-        raise DependencyResolutionError(
-            f"We are unable to find the repository at {github}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
-        )
-    return repo
+VCS_GITHUB = "github"
 
 
-@functools.lru_cache(50)
-def get_remote_project_config(repo: Repository, ref: str) -> BaseProjectConfig:
-    contents = repo.file_contents("cumulusci.yml", ref=ref)
-    contents_io = io.StringIO(contents.decoded.decode("utf-8"))
-    contents_io.url = f"cumulusci.yml from {repo.owner}/{repo.name}"  # for logging
-    return BaseProjectConfig(None, cci_safe_load(contents_io))
-
-
-def get_package_data(config: BaseProjectConfig):
-    namespace = config.project__package__namespace
-    package_name = (
-        config.project__package__name_managed
-        or config.project__package__name
-        or "Package"
+def get_github_repo(project_config, url) -> GitHubRepository:
+    from cumulusci.vcs.github.service import (
+        GitHubEnterpriseService,
+        GitHubService,
+        VCSService,
     )
 
-    return package_name, namespace
+    vcs_service: Optional[VCSService] = GitHubService.get_service_for_url(
+        project_config, url
+    ) or GitHubEnterpriseService.get_service_for_url(project_config, url)
+
+    if vcs_service is None:
+        raise DependencyResolutionError(
+            f"Could not find a GitHub service for URL: {url}"
+        )
+
+    try:
+        repo = vcs_service.get_repository(options={"repository_url": url})
+        if repo is None:
+            raise GithubApiNotFoundError(f"Get GitHub Repository found None. {url}")
+        return repo
+    except GithubApiNotFoundError as e:
+        raise DependencyResolutionError(
+            f"Could not find a GitHub repository at {url}: {e}"
+        )
 
 
-def get_package_details_from_tag(
-    tag: Tag,
-) -> Tuple[Optional[str], Optional[PackageType]]:
-    message = tag.message
-    version_id = VERSION_ID_RE.search(message)
-    if version_id:
-        version_id = version_id.group(1)
-    package_type = PACKAGE_TYPE_RE.search(message)
-    if package_type:
-        package_type = PackageType(package_type.group(1))
+def _validate_github_parameters(values):
+    if values.get("repo_owner") or values.get("repo_name"):
+        logger.warning(
+            "The repo_name and repo_owner keys are deprecated. Please use the github key."
+        )
 
-    return version_id, package_type
+    assert (
+        values.get("url")
+        or values.get("github")
+        or (values.get("repo_owner") and values.get("repo_name"))
+    ), "Must specify `github` or `repo_owner` and `repo_name`"
+
+    # Populate the `github` property if not already populated.
+    if not values.get("github") and values.get("repo_name"):
+        values["github"] = values[
+            "url"
+        ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        values.pop("repo_owner")
+        values.pop("repo_name")
+
+    return values
+
+
+def _sync_github_and_url(values):
+    # If only github is provided, set url to github
+    if values.get("github") and not values.get("url"):
+        values["url"] = values["github"]
+    # If only url is provided, set github to url
+    elif values.get("url") and not values.get("github"):
+        values["github"] = values["url"]
+    return values
+
+
+class GitHubDependencyPin(base_dependency.VcsDependencyPin):
+    """Model representing a request to pin a GitHub dependency to a specific tag"""
+
+    github: str
+
+    @property
+    def vcsTagResolver(self):  # -> Type["AbstractTagResolver"]:
+        from cumulusci.core.dependencies.github_resolvers import (  # Circular imports
+            GitHubTagResolver,
+        )
+
+        return GitHubTagResolver
+
+    @root_validator(pre=True)
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+        return _sync_github_and_url(values)
+
+
+GitHubDependencyPin.update_forward_refs()
+
+
+class BaseGitHubDependency(base_dependency.BaseVcsDynamicDependency, ABC):
+    """Base class for dynamic dependencies that reference a GitHub repo."""
+
+    github: Optional[AnyUrl] = None
+    vcs: str = VCS_GITHUB
+    pin_class = GitHubDependencyPin
+
+    repo_owner: Optional[str] = None  # Deprecated - use full URL
+    repo_name: Optional[str] = None  # Deprecated - use full URL
+
+    @root_validator
+    def check_deprecated_fields(cls, values):
+        if values.get("repo_owner") or values.get("repo_name"):
+            logger.warning(
+                "The dependency keys `repo_owner` and `repo_name` are deprecated. Use the full repo URL with the `github` key instead."
+            )
+        return values
+
+    @root_validator
+    def validate_github_parameters(cls, values):
+        return _validate_github_parameters(values)
+
+    @root_validator(pre=True)
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+        return _sync_github_and_url(values)
+
+
+class GitHubDynamicSubfolderDependency(
+    BaseGitHubDependency, base_dependency.VcsDynamicSubfolderDependency
+):
+    """A dependency expressed by a reference to a subfolder of a GitHub repo, which needs
+    to be resolved to a specific ref. This is always an unmanaged dependency."""
+
+    @property
+    def unmanagedVcsDependency(self) -> Type["UnmanagedGitHubRefDependency"]:
+        """A human-readable description of the dependency."""
+        return UnmanagedGitHubRefDependency
+
+
+class GitHubDynamicDependency(
+    BaseGitHubDependency, base_dependency.VcsDynamicDependency
+):
+    """A dependency expressed by a reference to a GitHub repo, which needs
+    to be resolved to a specific ref and/or package version."""
+
+    @property
+    def unmanagedVcsDependency(self) -> Type["UnmanagedGitHubRefDependency"]:
+        """A human-readable description of the dependency."""
+        return UnmanagedGitHubRefDependency
+
+    def get_repo(self, context, url) -> "GitHubRepository":
+        return get_github_repo(context, url)
+
+
+class UnmanagedGitHubRefDependency(base_dependency.UnmanagedVcsDependency):
+    """Static dependency on unmanaged metadata in a specific GitHub ref and subfolder."""
+
+    repo_owner: Optional[str] = None
+    repo_name: Optional[str] = None
+
+    # or
+    github: Optional[AnyUrl] = None
+
+    def get_repo(self, context, url) -> "GitHubRepository":
+        return get_github_repo(context, url)
+
+    @property
+    def package_name(self) -> str:
+        repo_owner, repo_name = split_repo_url((str(self.github)))
+        package_name = f"{repo_owner}/{repo_name} {self.subfolder}"
+        return package_name
+
+    @root_validator
+    def validate(cls, values):
+        return _validate_github_parameters(values)
+
+    @root_validator(pre=True)
+    def sync_vcs_and_url(cls, values):
+        """Defined vcs should be assigned to url"""
+
+        return _sync_github_and_url(values)

@@ -155,6 +155,9 @@ class DummyRepository(mock.Mock):
         self._contents = contents
         self._releases = releases or []
         self._commits = commits or []
+        self._tag_message = kwargs.get(
+            "tag_message", "Mock tag message for testing purposes"
+        )
 
     def file_contents(self, path, **kw):
         try:
@@ -197,7 +200,7 @@ class DummyRepository(mock.Mock):
     def tag(self, sha):
         tag = mock.Mock()
         tag.object.sha = "tag_sha"
-        tag.message = ""
+        tag.message = self.tag_message or ""
         return tag
 
     def ref(self, s):
@@ -210,6 +213,16 @@ class DummyRepository(mock.Mock):
             return self._commits[c]
 
         raise NotFoundError(DummyResponse("", 404))
+
+    @property
+    def tag_message(self):
+        """A mock property to simulate the tag message."""
+        return self._tag_message
+
+    @tag_message.setter
+    def tag_message(self, message):
+        """A mock setter to change the tag message."""
+        self._tag_message = message
 
 
 class DummyRelease(object):
@@ -248,6 +261,7 @@ class TestBaseProjectConfig:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
             dependencies:
                 - github: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
+            service: github
         """
                 ),
                 "unpackaged/pre": {"pre": {}, "skip": {}},
@@ -269,6 +283,9 @@ class TestBaseProjectConfig:
                 namespace: ccitestdep
             git:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
+            service:
+                service_type: github
+                service_alias: alias
         """
                 ),
                 "unpackaged/pre": {},
@@ -328,6 +345,7 @@ class TestBaseProjectConfig:
             "ci": "heroku",
             "name": "CumulusCI-Test",
             "owner": "SFDO-Tooling",
+            "domain": "github.com",
             "branch": "feature/test",
             "commit": "HEAD~1",
             "root": ".",
@@ -489,6 +507,56 @@ class TestBaseProjectConfig:
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag()
         assert result == "release/1.1"
+
+    def test_get_project_service(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        service, alias = config.get_project_service()
+        assert service == "github"
+        assert alias is None
+
+    def test_get_package_data(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {
+                "project": {
+                    "package": {"namespace": "foo"},
+                }
+            },
+        )
+
+        assert BaseProjectConfig.get_package_data(config) == (
+            "Package",
+            "foo",
+        )
+
+    def test_get_project_service_type_alias(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {
+                "project": {
+                    "service": {"service_type": "scm", "service_alias": "myalias"}
+                }
+            },
+        )
+        service, alias = config.get_project_service()
+        assert service == "scm"
+        assert alias == "myalias"
+
+    def test_get_project_service_str(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {"project": {"service": "scm"}},
+        )
+        service, alias = config.get_project_service()
+        assert service == "scm"
+        assert alias is None
 
     def test_get_latest_tag_matching_prefix(self):
         config = BaseProjectConfig(
@@ -679,10 +747,11 @@ class TestBaseProjectConfig:
             other2 = project_config.include_source(LocalFolderSourceModel(path=d))
         assert other1 is other2
 
-    @mock.patch("cumulusci.core.config.project_config.GitHubSource")
+    @mock.patch("cumulusci.core.config.project_config.VCSSource")
     def test_include_source__github(self, source):
-        source.return_value = expected_result = mock.Mock()
+        source.create = expected_result = mock.Mock()
         expected_result.fetch.return_value.repo_root = "/whatever"
+        source.create.return_value = expected_result
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
         other_config = project_config.include_source(

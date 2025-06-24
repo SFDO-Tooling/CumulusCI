@@ -14,6 +14,7 @@ from cumulusci.tasks.release_notes.task import (
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
+from cumulusci.vcs.github.adapter import GitHubPullRequest
 
 
 class TestAllGithubReleaseNotes:
@@ -25,19 +26,19 @@ class TestAllGithubReleaseNotes:
                 AllGithubReleaseNotes,
                 options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]},
             )
-            task.github = mock.Mock()
+            task.vcs_service = mock.Mock()
             task.get_repo = mock.Mock()
-            task.github.repository(
+            task.vcs_service.repository(
                 "SalesforceFoundation", "NPSP"
             ).latest_release = mock.MagicMock(body="NPSP")
-            task.github.repository(
+            task.vcs_service.repository(
                 "SalesforceFoundation", "NPSP"
             ).latest_release.body = "NPSP"
-            task.github.markdown.return_value = "<h1>foo</h1>"
+            task.vcs_service.markdown.return_value = "<h1>foo</h1>"
             task._run_task()
-            result = f"""<html><head><title>Release Notes</title></head><body><h1>Table of Contents</h1><ul><li><a href="#NPSP">NPSP</a></li></ul><br><hr><h1 id="NPSP">NPSP</h1><hr>{task.github.markdown.return_value}<hr></body></html>"""
-            assert Path("github_release_notes.html").is_file()
-            with open("github_release_notes.html", "r") as f:
+            result = f"""<html><head><title>Release Notes</title></head><body><h1>Table of Contents</h1><ul><li><a href="#NPSP">NPSP</a></li></ul><br><hr><h1 id="NPSP">NPSP</h1><hr>{task.vcs_service.markdown.return_value}<hr></body></html>"""
+            assert Path(task.filename).is_file()
+            with open(task.filename, "r") as f:
                 assert f.read() == result
 
 
@@ -61,16 +62,19 @@ class TestGithubReleaseNotes:
         project_config.project__git__default_branch = "main"
         return project_config
 
-    @mock.patch("cumulusci.tasks.release_notes.task.GithubReleaseNotesGenerator")
+    @mock.patch("cumulusci.vcs.github.service.get_github_api_for_repo")
+    @mock.patch("cumulusci.vcs.github.service.GithubReleaseNotesGenerator")
     def test_run_GithubReleaseNotes_task(
-        self, GithubReleaseNotesGenerator, project_config
+        self, GithubReleaseNotesGenerator, get_github_api_for_repo, project_config
     ):
+        get_github_api_for_repo.return_value = mock.Mock()
         generator = mock.Mock(return_value="notes")
         GithubReleaseNotesGenerator.return_value = generator
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = GithubReleaseNotes(project_config, task_config)
-        task.github = mock.Mock()
-        task.get_repo = mock.Mock()
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
         task()
         generator.assert_called_once()
 
@@ -117,8 +121,10 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         return project_config
 
     @pytest.fixture
-    def task_factory(self, project_config):
+    @mock.patch("cumulusci.vcs.github.service.get_github_api_for_repo")
+    def task_factory(self, get_github_api_for_repo, project_config):
         def _task_factory(options):
+            get_github_api_for_repo.return_value = mock.Mock()
             task_config = TaskConfig(options)
             task = ParentPullRequestNotes(project_config, task_config)
             task.repo = mock.Mock()
@@ -132,6 +138,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
     def test_setup_self(self, task_factory):
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
         task._setup_self()
 
         assert task.repo is not None
@@ -167,6 +176,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         ]
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
         task._setup_self()
         task.repo.default_branch = "main"
 
@@ -186,6 +198,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         get_pull_request.return_value = []
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
         task._setup_self()
 
         actual_pull_request = task._get_parent_pull_request()
@@ -195,7 +210,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         assert actual_pull_request is None
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")
+    @mock.patch("cumulusci.vcs.github.service.ParentPullRequestNotesGenerator")
     def test_run_task__label_not_found(
         self, notes_generator, label_found, task_factory, project_config, gh_api
     ):
@@ -205,6 +220,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         child_branch_name = "feature/child__branch1"
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
         task.logger = mock.Mock()
         task._commit_is_merge = mock.Mock(return_value=True)
         task._get_child_branch_name_from_merge_commit = mock.Mock(
@@ -218,17 +236,18 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             self._get_expected_pull_request(1, 1, "Body"), gh_api
         )
         pull_request.base.ref = "feature/cool-new-thing"
-        task._get_parent_pull_request = mock.Mock(return_value=pull_request)
+        pr = GitHubPullRequest(repo=task.repo, pull_request=pull_request)
+        task._get_parent_pull_request = mock.Mock(return_value=pr)
 
         label_found.return_value = False
         task._run_task()
         task._update_unaggregated_pr_header.assert_called_once_with(
-            pull_request, child_branch_name
+            pr, child_branch_name
         )
         assert not task.generator.aggregate_child_change_notes.called
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")
+    @mock.patch("cumulusci.vcs.github.service.ParentPullRequestNotesGenerator")
     def test_run_task__label_found(
         self, notes_generator, label_found, task_factory, project_config, gh_api
     ):
@@ -238,6 +257,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         child_branch_name = "feature/child__branch1"
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
         task.logger = mock.Mock()
         task._commit_is_merge = mock.Mock(return_value=True)
         task._get_child_branch_name_from_merge_commit = mock.Mock(
@@ -259,14 +281,17 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         )
         assert not task.generator.update_unaggregated_pr_header.called
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_commit")
     @mock.patch("cumulusci.tasks.release_notes.task.is_pull_request_merged")
     def test_get_child_branch_name_from_merge_commit(
-        self, is_merged, get_pr, task_factory, gh_api, project_config
+        self, is_merged, task_factory, gh_api, project_config
     ):
         self.init_github()
         self.project_config = project_config
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
+
         task._setup_self()
         task.branch_name = self.PARENT_BRANCH_NAME
         task.commit = mock.Mock()
@@ -276,7 +301,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         to_return = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
         to_return.merged_at = "DateTimeStr"
-        get_pr.return_value = [to_return]
+
+        task.repo.get_pull_requests_by_commit = mock.Mock()
+        task.repo.get_pull_requests_by_commit.return_value = [to_return]
 
         child_branch_name = task._get_child_branch_name_from_merge_commit()
         assert to_return.head.ref == child_branch_name
@@ -284,7 +311,10 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         additional_pull_request = ShortPullRequest(
             self._get_expected_pull_request(2, 2), gh_api
         )
-        get_pr.return_value = [to_return, additional_pull_request]
+        task.repo.get_pull_requests_by_commit.return_value = [
+            to_return,
+            additional_pull_request,
+        ]
         child_branch_name = task._get_child_branch_name_from_merge_commit()
         assert child_branch_name is None
         task.logger.error.assert_called_once_with(
@@ -293,11 +323,14 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             )
         )
 
-    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")
+    @mock.patch("cumulusci.vcs.github.service.ParentPullRequestNotesGenerator")
     def test_force_option(self, generator, task_factory, gh_api, project_config):
         self.init_github()
         self.project_config = project_config
         task = task_factory(self.FORCE_OPTIONS)
+        task._init_task()
+        task.vcs_service.github = mock.Mock()
+        task.vcs_service.get_repository = mock.Mock()
 
         pull_request = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
         task._get_parent_pull_request = mock.Mock(return_value=pull_request)

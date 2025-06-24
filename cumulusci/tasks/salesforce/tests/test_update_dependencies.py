@@ -7,9 +7,11 @@ import pydantic
 import pytest
 
 from cumulusci.core.dependencies.dependencies import (
-    GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
+)
+from cumulusci.core.dependencies.github import (
+    GitHubDynamicDependency,
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import (
@@ -427,6 +429,7 @@ def test_freeze(get_static_dependencies):
                             "ref": "abcdef",
                             "github": "https://github.com/SFDO-Tooling/CumulusCI-Test",
                             "subfolder": "src",
+                            "url": "https://github.com/SFDO-Tooling/CumulusCI-Test",
                         },
                     ],
                     "packages_only": False,

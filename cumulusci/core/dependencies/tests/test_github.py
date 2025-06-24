@@ -1,15 +1,14 @@
+from io import StringIO
 from unittest import mock
 
 import pytest
-from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.dependencies.github import (
-    get_package_data,
-    get_remote_project_config,
-    get_repo,
-)
-from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.dependencies.github import get_github_repo
+from cumulusci.core.dependencies.resolvers import get_package_data
+from cumulusci.core.exceptions import DependencyResolutionError, GithubApiNotFoundError
+from cumulusci.vcs.bootstrap import get_remote_project_config
+from cumulusci.vcs.tests.dummy_service import DummyRepo
 
 
 class DummyResponse(object):
@@ -23,31 +22,48 @@ project:
     package:
         namespace: foo"""
 
+    mock_repo = DummyRepo()
     repo = mock.Mock()
-    repo.file_contents.return_value.decoded = content
-    assert isinstance(get_remote_project_config(repo, "aaaaaaaa"), BaseConfig)
+    repo.file_contents.return_value = StringIO(content.decode("utf-8"))
+    mock_repo.repo = repo
+    assert isinstance(get_remote_project_config(mock_repo, "aaaaaaaa"), BaseConfig)
 
 
-def test_get_repo():
-    context = mock.Mock()
+@mock.patch("cumulusci.vcs.github.service.GitHubService.get_service_for_url")
+def test_get_github_repo_basic(github_service_mock):
+    context = mock.Mock(name="project_config")
+    repo = DummyRepo()
+    vcs_service = mock.Mock(name="vcs_service")
+    vcs_service.get_repository.return_value = repo
+    github_service_mock.return_value = vcs_service
 
-    assert get_repo("test", context) == context.get_repo_from_url.return_value
+    result = get_github_repo(context, "https://github.com/test/repo")
+    assert result == repo
+    vcs_service.get_repository.assert_called_once_with(
+        options={"repository_url": "https://github.com/test/repo"}
+    )
 
 
-def test_get_repo__failure():
-    context = mock.Mock()
-    context.get_repo_from_url.return_value = None
+@mock.patch("cumulusci.vcs.github.service.GitHubService.get_service_for_url")
+@mock.patch("cumulusci.vcs.github.service.GitHubEnterpriseService.get_service_for_url")
+def test_get_repo__failure(github_service_mock, github_enterprise_service_mock):
+    context = mock.Mock(name="project_config")
+    github_service_mock.return_value = None
+    github_enterprise_service_mock.return_value = None
 
     with pytest.raises(DependencyResolutionError):
-        get_repo("test", context)
+        get_github_repo(context, "https://abc.com/test/repo")
 
 
-def test_get_repo__404():
-    context = mock.Mock()
-    context.get_repo_from_url.side_effect = NotFoundError(DummyResponse)
+@mock.patch("cumulusci.vcs.github.service.GitHubService.get_service_for_url")
+def test_get_repo__404(github_service_mock):
+    context = mock.Mock(name="project_config")
+    vcs_service = mock.Mock(name="vcs_service")
+    vcs_service.get_repository.side_effect = GithubApiNotFoundError(DummyResponse)
+    github_service_mock.return_value = vcs_service
 
     with pytest.raises(DependencyResolutionError):
-        get_repo("test", context)
+        get_github_repo(context, "test")
 
 
 def test_get_package_data():
@@ -56,10 +72,12 @@ project:
     package:
         namespace: foo"""
 
+    mock_repo = DummyRepo()
     repo = mock.Mock()
-    repo.file_contents.return_value.decoded = content
+    repo.file_contents.return_value = StringIO(content.decode("utf-8"))
+    mock_repo.repo = repo
 
-    assert get_package_data(get_remote_project_config(repo, "aaaaaaaa")) == (
+    assert get_package_data(get_remote_project_config(mock_repo, "aaaaaaaa")) == (
         "Package",
         "foo",
     )

@@ -4,7 +4,7 @@ import zipfile
 
 
 def zip_subfolder(zip_src: zipfile.ZipFile, path):
-    if not path.endswith("/"):
+    if path and not path.endswith("/"):
         path = path + "/"
 
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)

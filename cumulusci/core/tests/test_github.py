@@ -125,23 +125,54 @@ class TestGithub(GithubApiTestMixin):
 
             assert 1 == _make_request.call_count
 
-    def test_github_api_retries(self, mock_http_response):
+    def test_github_api_retries(self):
         gh = get_github_api("TestUser", "TestPass")
         adapter = gh.session.get_adapter("http://")
 
         assert 0.3 == adapter.max_retries.backoff_factor
         assert 502 in adapter.max_retries.status_forcelist
 
-        with mock.patch(
-            "urllib3.connectionpool.HTTPConnectionPool._make_request"
-        ) as _make_request:
-            _make_request.side_effect = [
-                mock_http_response(status=503),
-                mock_http_response(status=200),
-            ]
+        user_json = {
+            "login": "TestUser",
+            "id": 123456,
+            "type": "User",
+            "url": "https://api.github.com/user",
+            "avatar_url": "https://avatars.githubusercontent.com/u/123456?v=4",
+            "events_url": "https://api.github.com/users/TestUser/events{/privacy}",
+            "followers_url": "https://api.github.com/users/TestUser/followers",
+            "following_url": "https://api.github.com/users/TestUser/following{/other_user}",
+            "gists_url": "https://api.github.com/users/TestUser/gists{/gist_id}",
+            "gravatar_id": "",
+            "html_url": "https://github.com/TestUser",
+            "organizations_url": "https://api.github.com/users/TestUser/orgs",
+            "received_events_url": "https://api.github.com/users/TestUser/received_events",
+            "repos_url": "https://api.github.com/users/TestUser/repos",
+            "site_admin": False,
+            "starred_url": "https://api.github.com/users/TestUser/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/TestUser/subscriptions",
+            "bio": "Test bio",
+            "blog": "https://testuserblog.com",
+            "company": "Test Company",
+            "created_at": "2020-01-01T00:00:00Z",
+            "email": "testuser@example.com",
+            "followers": 10,
+            "following": 5,
+            "hireable": True,
+            "location": "Test City",
+            "name": "Test User",
+            "public_gists": 2,
+            "public_repos": 3,
+            "updated_at": "2023-01-01T00:00:00Z",
+        }
 
-            gh.octocat("meow")
-            assert 2 == _make_request.call_count
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, "https://api.github.com/user", status=503)
+            rsps.add(
+                responses.GET, "https://api.github.com/user", json=user_json, status=200
+            )
+
+            gh.me()
+            assert len(rsps.calls) == 2
 
     @responses.activate
     @mock.patch("github3.apps.create_token")
@@ -280,7 +311,7 @@ class TestGithub(GithubApiTestMixin):
     )
     def test_determine_github_client(self, domain, client):
         client_result = _determine_github_client(domain, {})
-        assert type(client_result) == client
+        assert type(client_result) is client
 
     @responses.activate
     def test_get_pull_requests_by_head(self, mock_util, repo):

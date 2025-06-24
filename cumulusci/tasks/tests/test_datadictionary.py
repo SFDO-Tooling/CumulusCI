@@ -5,10 +5,8 @@ from unittest.mock import Mock, call, mock_open, patch
 import pytest
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import (
-    GitHubDynamicDependency,
-    parse_dependencies,
-)
+from cumulusci.core.dependencies import parse_dependencies
+from cumulusci.core.dependencies.github import GitHubDynamicDependency
 from cumulusci.core.exceptions import (
     DependencyParseError,
     DependencyResolutionError,
@@ -1042,7 +1040,7 @@ class TestGenerateDataDictionary:
             "test__Child__c", None
         )
 
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    @patch("cumulusci.tasks.datadictionary.download_extract_vcs_from_repo")
     def test_walk_releases__mdapi(self, extract_github):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
@@ -1069,7 +1067,7 @@ class TestGenerateDataDictionary:
             PackageVersion(package=p, version=LooseVersion("1.1")),
         )
 
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    @patch("cumulusci.tasks.datadictionary.download_extract_vcs_from_repo")
     def test_walk_releases__sfdx(self, extract_github):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
@@ -1100,7 +1098,7 @@ class TestGenerateDataDictionary:
             PackageVersion(package=p, version=LooseVersion("1.1")),
         )
 
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    @patch("cumulusci.tasks.datadictionary.download_extract_vcs_from_repo")
     def test_walk_releases__draft(self, extract_github):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
@@ -1128,7 +1126,7 @@ class TestGenerateDataDictionary:
 
         task._process_zipfile.assert_called_once()
 
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    @patch("cumulusci.tasks.datadictionary.download_extract_vcs_from_repo")
     def test_walk_releases__prerelease(self, extract_github):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
@@ -1231,7 +1229,7 @@ class TestGenerateDataDictionary:
             ]
         )
 
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    @patch("cumulusci.tasks.datadictionary.download_extract_vcs_from_repo")
     def test_run_task(self, extract_github):
         # This is an integration test. We mock out `get_repo()` and the filesystem.
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -1292,7 +1290,7 @@ class TestGenerateDataDictionary:
             any_order=True,
         )
 
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    @patch("cumulusci.tasks.datadictionary.download_extract_vcs_from_repo")
     def test_run_task__prerelease(self, extract_github):
         # This is an integration test. We mock out `get_repo()` and the filesystem.
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -1460,7 +1458,14 @@ class TestGenerateDataDictionary:
 
         assert task._get_repo_dependencies([]) == []
 
-    def test_get_repo_dependencies__cannot_get_repo(self):
+    @patch("cumulusci.vcs.github.service.GitHubService")
+    @patch("cumulusci.vcs.github.service.GitHubEnterpriseService")
+    def test_get_repo_dependencies__cannot_get_repo(
+        self, mock_github_service, mock_github_enterprise_service
+    ):
+        mock_github_service.get_service_for_url.return_value = None
+        mock_github_enterprise_service.get_service_for_url.return_value = None
+
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
@@ -1486,10 +1491,10 @@ class TestGenerateDataDictionary:
             )
 
     @patch("cumulusci.tasks.datadictionary.get_static_dependencies")
-    @patch("cumulusci.tasks.datadictionary.get_repo")
+    @patch("cumulusci.tasks.datadictionary.get_repo_from_url")
     @patch("cumulusci.tasks.datadictionary.get_remote_project_config")
     def test_get_repo_dependencies__success(
-        self, get_remote_project_config, get_repo, get_static_dependencies
+        self, get_remote_project_config, get_repo_from_url, get_static_dependencies
     ):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
@@ -1556,13 +1561,13 @@ project:
 
         assert results == [
             Package(
-                repo=get_repo.return_value,
+                repo=get_repo_from_url.return_value,
                 package_name="Test 1",
                 namespace="test1__",
                 prefix_release="release/",
             ),
             Package(
-                repo=get_repo.return_value,
+                repo=get_repo_from_url.return_value,
                 package_name="Test 2",
                 namespace="",
                 prefix_release="rel/",

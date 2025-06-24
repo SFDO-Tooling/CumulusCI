@@ -62,7 +62,7 @@ def test_service_list__json():
 def test_service_connect__list_service_types():
     runtime = BaseCumulusCI(config={"services": {"project_test": {}}})
 
-    result = run_cli_command("service", "connect", runtime=runtime)
+    result = run_cli_command("service", "connect", "--help", runtime=runtime)
     assert "project_test" in result.output
 
 
@@ -71,7 +71,7 @@ def test_service_connect__list_service_types_from_universal_config():
     runtime.project_config = None
     runtime.universal_config.config["services"] = {"universal_test": {}}
 
-    result = run_cli_command("service", "connect", runtime=runtime)
+    result = run_cli_command("service", "connect", "--help", runtime=runtime)
     assert "universal_test" in result.output
 
 

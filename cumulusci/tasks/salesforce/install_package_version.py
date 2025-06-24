@@ -1,21 +1,20 @@
 import click
 
 from cumulusci.core.dependencies.dependencies import (
-    GitHubDynamicDependency,
-    PackageInstallOptions,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
 )
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.core.github import find_previous_release
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PACKAGE_INSTALL_TASK_OPTIONS,
+    PackageInstallOptions,
     SecurityType,
 )
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.vcs.bootstrap import find_previous_release
 
 
 class InstallPackageVersion(BaseSalesforceApiTask):
@@ -91,20 +90,29 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             ]
 
         dependency = None
-        github = f"https://{self.project_config.server_domain}/{self.project_config.repo_owner}/{self.project_config.repo_name}"
 
         if version in ["latest", "latest_beta"]:
             strategy = "include_beta" if version == "latest_beta" else "production"
-            dependency = GitHubDynamicDependency(github=github)
+            vcs_service = self.project_config.repo_service
+            repo = vcs_service.get_repository(options=self.options)
+
+            dependency = vcs_service.dynamic_dependency_class(url=repo.clone_url)
             dependency.resolve(
                 self.project_config, get_resolver_stack(self.project_config, strategy)
             )
         elif version == "previous":
+            vcs_service = self.project_config.repo_service
+            repo = vcs_service.get_repository(options=self.options)
+
             release = find_previous_release(
-                self.project_config.get_repo(),
+                repo,
                 self.project_config.project__git__prefix_release,
             )
-            dependency = GitHubDynamicDependency(github=github, tag=release.tag_name)
+
+            vcs_service = self.project_config.repo_service
+            dependency = vcs_service.dynamic_dependency_class(
+                url=repo.clone_url, tag=release.tag_name
+            )
             dependency.resolve(
                 self.project_config,
                 get_resolver_stack(self.project_config, "production"),

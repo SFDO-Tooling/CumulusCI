@@ -1,44 +1,76 @@
-import abc
 import itertools
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+import re
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from enum import StrEnum
+from typing import Callable, Iterable, List, Optional, Tuple, Type
 
-from github3.exceptions import NotFoundError
-from github3.repos.branch import Branch
-from github3.repos.commit import RepoCommit, ShortCommit
-from github3.repos.repo import Repository
+from pydantic import AnyUrl
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import (
-    BaseGitHubDependency,
+from cumulusci.core.dependencies.base import (
+    BaseVcsDynamicDependency,
     Dependency,
     DependencyPin,
     DynamicDependency,
+    StaticDependency,
+    VcsDynamicDependency,
+)
+from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    StaticDependency,
     parse_dependencies,
     parse_pins,
 )
-from cumulusci.core.dependencies.github import (
-    get_package_data,
-    get_package_details_from_tag,
-    get_remote_project_config,
-    get_repo,
-)
-from cumulusci.core.enums import StrEnum
-from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
-from cumulusci.core.github import (
-    find_latest_release,
-    find_repo_feature_prefix,
-    get_version_id_from_commit,
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyResolutionError,
+    VcsNotFoundError,
 )
 from cumulusci.core.versions import PackageType
 from cumulusci.utils.git import (
     construct_release_branch_name,
-    get_feature_branch_name,
     get_release_identifier,
     is_release_branch_or_child,
 )
+from cumulusci.vcs.models import AbstractBranch, AbstractGitTag, AbstractRepo
+
+PACKAGE_TYPE_RE = re.compile(r"^package_type: (.*)$", re.MULTILINE)
+VERSION_ID_RE = re.compile(r"^version_id: (04t[a-zA-Z0-9]{12,15})$", re.MULTILINE)
+
+
+def get_release_id(context: BaseProjectConfig) -> int:
+    """Detect a release id (like NNN in feature/NNN__some_branch)
+    in the current branch and return it as an integer."""
+    if not context.repo_branch or not context.project__git__prefix_feature:
+        raise DependencyResolutionError(
+            "Cannot get current branch or feature branch prefix"
+        )
+    release_id = get_release_identifier(
+        context.repo_branch, context.project__git__prefix_feature
+    )
+    if not release_id:
+        raise DependencyResolutionError("Cannot get current release identifier")
+
+    return int(release_id)
+
+
+def get_package_data(config: BaseProjectConfig):
+    return BaseProjectConfig.get_package_data(config)
+
+
+def get_package_details_from_tag(
+    tag: AbstractGitTag,
+) -> Tuple[Optional[str], Optional[PackageType]]:
+    message = tag.message
+    version_id = VERSION_ID_RE.search(message)
+    if version_id:
+        version_id = version_id.group(1)
+    package_type = PACKAGE_TYPE_RE.search(message)
+    if package_type:
+        package_type = PackageType(package_type.group(1))
+
+    return version_id, package_type
 
 
 class DependencyResolutionStrategy(StrEnum):
@@ -58,16 +90,17 @@ class DependencyResolutionStrategy(StrEnum):
     UNMANAGED_HEAD = "unmanaged"
 
 
-class AbstractResolver(abc.ABC):
+class AbstractResolver(ABC):
     """Abstract base class for dependency resolution strategies."""
 
     name = "Resolver"
+    vcs: str = ""
 
-    @abc.abstractmethod
+    @abstractmethod
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def resolve(
         self, dep: DynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
@@ -77,23 +110,34 @@ class AbstractResolver(abc.ABC):
         return self.name
 
 
-class GitHubTagResolver(AbstractResolver):
-    """Resolver that identifies a ref by a specific GitHub tag."""
+class AbstractTagResolver(AbstractResolver):
+    """Resolver that identifies a ref by a specific Vcs tag."""
 
-    name = "GitHub Tag Resolver"
+    @abstractmethod
+    def get_repo(
+        self, context: BaseProjectConfig, url: Optional[AnyUrl]
+    ) -> AbstractRepo:
+        pass
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, BaseGitHubDependency) and dep.tag is not None
+        return (
+            isinstance(dep, VcsDynamicDependency)
+            and dep.tag is not None
+            and self.vcs == dep.vcs
+        )
 
     def resolve(
-        self, dep: BaseGitHubDependency, context: BaseProjectConfig
+        self, dep: VcsDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+
+        from cumulusci.vcs.bootstrap import get_remote_project_config, get_tag_by_name
+
         try:
             # Find the github release corresponding to this tag.
-            repo = get_repo(dep.github, context)
-            release = repo.release_from_tag(dep.tag)
-            tag = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha)
-            ref = tag.object.sha
+            repo = self.get_repo(context, dep.url)
+            release = repo.release_from_tag(dep.tag or "")
+            tag = get_tag_by_name(repo, release.tag_name)
+            ref = tag.sha
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
             version_id, package_type = get_package_details_from_tag(tag)
@@ -112,7 +156,7 @@ class GitHubTagResolver(AbstractResolver):
             else:
                 if package_type is PackageType.SECOND_GEN:
                     package_dep = PackageVersionIdDependency(
-                        version_id=version_id,
+                        version_id=version_id or "",
                         version_number=release.name,
                         package_name=package_name,
                     )
@@ -125,29 +169,46 @@ class GitHubTagResolver(AbstractResolver):
                     )
 
                 return (ref, package_dep)
-        except NotFoundError:
+        except VcsNotFoundError:
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
 
-class GitHubReleaseTagResolver(AbstractResolver):
-    """Resolver that identifies a ref by finding the latest GitHub release."""
+class AbstractReleaseTagResolver(AbstractResolver):
+    """Resolver that identifies a ref by finding the latest Vcs release."""
 
-    name = "GitHub Release Resolver"
+    name = "Abstract Release Resolver"
     include_beta = False
 
+    @abstractmethod
+    def get_repo(
+        self, context: BaseProjectConfig, url: Optional[AnyUrl]
+    ) -> AbstractRepo:
+        pass
+
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, BaseGitHubDependency)
+        return (
+            isinstance(dep, VcsDynamicDependency)
+            and dep.tag is None
+            and self.vcs == dep.vcs
+        )
 
     def resolve(
-        self, dep: BaseGitHubDependency, context: BaseProjectConfig
+        self, dep: VcsDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-        repo = get_repo(dep.github, context)
+
+        from cumulusci.vcs.bootstrap import (
+            find_latest_release,
+            get_remote_project_config,
+            get_tag_by_name,
+        )
+
+        repo = self.get_repo(context, dep.url)
         release = find_latest_release(repo, include_beta=self.include_beta)
         if release:
-            tag = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha)
+            tag = get_tag_by_name(repo, release.tag_name)
             version_id, package_type = get_package_details_from_tag(tag)
 
-            ref = tag.object.sha
+            ref = tag.sha
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
@@ -165,7 +226,7 @@ class GitHubReleaseTagResolver(AbstractResolver):
             else:
                 if package_type is PackageType.SECOND_GEN:
                     package_dep = PackageVersionIdDependency(
-                        version_id=version_id,
+                        version_id=version_id or "",
                         version_number=release.name,
                         package_name=package_name,
                     )
@@ -181,75 +242,28 @@ class GitHubReleaseTagResolver(AbstractResolver):
         return (None, None)
 
 
-class GitHubBetaReleaseTagResolver(GitHubReleaseTagResolver):
-    """Resolver that identifies a ref by finding the latest GitHub release, including betas."""
-
-    name = "GitHub Release Resolver (Betas)"
-    include_beta = True
-
-
-class GitHubUnmanagedHeadResolver(AbstractResolver):
+class AbstractUnmanagedHeadResolver(AbstractResolver):
     """Resolver that identifies a ref by finding the latest commit on the main branch."""
 
-    name = "GitHub Unmanaged Resolver"
+    name = "Abstract Unmanaged Resolver"
+
+    @abstractmethod
+    def get_repo(
+        self, context: BaseProjectConfig, url: Optional[AnyUrl]
+    ) -> AbstractRepo:
+        pass
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, BaseGitHubDependency)
+        return isinstance(dep, BaseVcsDynamicDependency) and self.vcs == dep.vcs
 
     def resolve(
-        self, dep: BaseGitHubDependency, context: BaseProjectConfig
+        self, dep: BaseVcsDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-        repo = get_repo(dep.github, context)
+        repo = self.get_repo(context, dep.url)
         return (repo.branch(repo.default_branch).commit.sha, None)
 
 
-def get_release_id(context: BaseProjectConfig) -> int:
-    """Detect a release id (like NNN in feature/NNN__some_branch)
-    in the current branch and return it as an integer."""
-    if not context.repo_branch or not context.project__git__prefix_feature:
-        raise DependencyResolutionError(
-            "Cannot get current branch or feature branch prefix"
-        )
-    release_id = get_release_identifier(
-        context.repo_branch, context.project__git__prefix_feature
-    )
-    if not release_id:
-        raise DependencyResolutionError("Cannot get current release identifier")
-
-    return int(release_id)
-
-
-def locate_commit_status_package_id(
-    remote_repo: Repository, release_branch: Branch, context_2gp: str
-) -> Tuple[Optional[str], Optional[Union[RepoCommit, ShortCommit]]]:
-    """Given a branch on a remote repo, walk the first 5 commits looking
-    for a commit status equal to context_2gp and attempt to parse a
-    package version id from the commit status detail."""
-    version_id = None
-    count = 0
-    commit = release_branch.commit
-    while version_id is None and count < 5:
-        version_id = get_version_id_from_commit(remote_repo, commit.sha, context_2gp)
-        if version_id:
-            break
-        count += 1
-        if commit.parents:
-            commit = remote_repo.commit(commit.parents[0]["sha"])
-        else:
-            commit = None
-            break
-
-    return version_id, commit
-
-
-def get_remote_context(
-    repo: Repository, commit_status_context: str, default_context: str
-) -> str:
-    config = get_remote_project_config(repo, repo.default_branch)
-    return config.lookup(f"project__git__{commit_status_context}") or default_context
-
-
-class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
+class AbstractVcsCommitStatusPackageResolver(AbstractResolver, ABC):
     """Abstract base class for resolvers that use commit statuses to find packages."""
 
     commit_status_context = ""
@@ -257,27 +271,40 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
-            dep, BaseGitHubDependency
+            dep, BaseVcsDynamicDependency
         )
 
     def is_valid_repo_context(self, context: BaseProjectConfig) -> bool:
         return bool(context.repo_branch and context.project__git__prefix_feature)
 
-    @abc.abstractmethod
+    @abstractmethod
+    def get_repo(
+        self, context: BaseProjectConfig, url: Optional[AnyUrl]
+    ) -> AbstractRepo:
+        pass
+
+    @abstractmethod
     def get_branches(
         self,
-        dep: BaseGitHubDependency,
+        dep: BaseVcsDynamicDependency,
         context: BaseProjectConfig,
-    ) -> List[Branch]:
+    ) -> List[AbstractBranch]:
         ...
 
     def resolve(
-        self, dep: BaseGitHubDependency, context: BaseProjectConfig
+        self, dep: BaseVcsDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+
+        from cumulusci.vcs.bootstrap import (
+            get_remote_context,
+            get_remote_project_config,
+            locate_commit_status_package_id,
+        )
+
         branches = self.get_branches(dep, context)
 
         # We know `repo` is not None because `get_branches()` will raise in that case.
-        repo = context.get_repo_from_url(dep.github)
+        repo = self.get_repo(context, dep.url)
         remote_context = get_remote_context(
             repo, self.commit_status_context, self.commit_status_default
         )
@@ -305,9 +332,7 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
         return (None, None)
 
 
-class AbstractGitHubReleaseBranchResolver(
-    AbstractGitHubCommitStatusPackageResolver, abc.ABC
-):
+class AbstractVcsReleaseBranchResolver(AbstractVcsCommitStatusPackageResolver, ABC):
     """Abstract base class for resolvers that use commit statuses on release branches to find refs."""
 
     branch_offset_start = 0
@@ -321,19 +346,28 @@ class AbstractGitHubReleaseBranchResolver(
             )
         )
 
+    @abstractmethod
+    def get_repo(
+        self, context: BaseProjectConfig, url: Optional[AnyUrl]
+    ) -> AbstractRepo:
+        pass
+
     def get_branches(
         self,
-        dep: BaseGitHubDependency,
+        dep: BaseVcsDynamicDependency,
         context: BaseProjectConfig,
-    ) -> List[Branch]:
+    ) -> List[AbstractBranch]:
         release_id = get_release_id(context)
-        repo = context.get_repo_from_url(dep.github)
+
+        repo = self.get_repo(context, dep.url)
         if not repo:
             raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {dep.github}"
+                f"Unable to access VCS repository for {dep.url}"
             )
 
         try:
+            from cumulusci.vcs.bootstrap import find_repo_feature_prefix
+
             remote_branch_prefix = find_repo_feature_prefix(repo)
         except Exception:
             context.logger.info(
@@ -350,166 +384,34 @@ class AbstractGitHubReleaseBranchResolver(
             )
             try:
                 release_branches.append(repo.branch(remote_matching_branch))
-            except NotFoundError:
+            except VcsNotFoundError:
                 context.logger.info(f"Remote branch {remote_matching_branch} not found")
                 pass
 
         return release_branches
 
 
-class GitHubReleaseBranchCommitStatusResolver(AbstractGitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding a beta 2GP package version
-    in a commit status on a `feature/NNN` release branch."""
-
-    name = "GitHub Release Branch Commit Status Resolver"
-    commit_status_context = "2gp_context"
-    commit_status_default = "Build Feature Test Package"
-    branch_offset_start = 0
-    branch_offset_end = 1
-
-
-class GitHubReleaseBranchUnlockedResolver(AbstractGitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding an unlocked package version
-    in a commit status on a `feature/NNN` release branch."""
-
-    name = "GitHub Release Branch Unlocked Commit Status Resolver"
-    commit_status_context = "unlocked_context"
-    commit_status_default = "Build Unlocked Test Package"
-    branch_offset_start = 0
-    branch_offset_end = 1
-
-
-class GitHubPreviousReleaseBranchCommitStatusResolver(
-    AbstractGitHubReleaseBranchResolver
-):
-    """Resolver that identifies a ref by finding a beta 2GP package version
-    in a commit status on a `feature/NNN` release branch that is earlier
-    than the matching local release branch."""
-
-    name = "GitHub Previous Release Branch Commit Status Resolver"
-    commit_status_context = "2gp_context"
-    commit_status_default = "Build Feature Test Package"
-    branch_offset_start = 1
-    branch_offset_end = 3
-
-
-class GitHubPreviousReleaseBranchUnlockedResolver(AbstractGitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding an unlocked package version
-    in a commit status on a `feature/NNN` release branch that is earlier
-    than the matching local release branch."""
-
-    name = "GitHub Previous Release Branch Unlocked Commit Status Resolver"
-    commit_status_context = "unlocked_context"
-    commit_status_default = "Build Unlocked Test Package"
-    branch_offset_start = 1
-    branch_offset_end = 3
-
-
-class AbstractGitHubExactMatchCommitStatusResolver(
-    AbstractGitHubCommitStatusPackageResolver, abc.ABC
-):
-    """Abstract base class for resolvers that identify a ref by finding a package version
-    in a commit status on a branch whose name matches the local branch."""
-
-    def get_branches(
-        self,
-        dep: BaseGitHubDependency,
-        context: BaseProjectConfig,
-    ) -> List[Branch]:
-        repo = context.get_repo_from_url(dep.github)
-        if not repo:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {dep.github}"
-            )
-
-        try:
-            remote_branch_prefix = find_repo_feature_prefix(repo)
-        except Exception:
-            context.logger.info(
-                f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve package."
-            )
-            return []
-
-        # Attempt exact match
-        try:
-            branch = get_feature_branch_name(
-                context.repo_branch, context.project__git__prefix_feature
-            )
-            release_branch = repo.branch(f"{remote_branch_prefix}{branch}")
-        except Exception:
-            context.logger.info(f"Exact-match branch not found for {repo.clone_url}.")
-            return []
-
-        return [release_branch]
-
-
-class GitHubExactMatch2GPResolver(AbstractGitHubExactMatchCommitStatusResolver):
-    """Resolver that identifies a ref by finding a 2GP package version
-    in a commit status on a branch whose name matches the local branch."""
-
-    name = "GitHub Exact-Match Commit Status Resolver"
-    commit_status_context = "2gp_context"
-    commit_status_default = "Build Feature Test Package"
-
-
-class GitHubExactMatchUnlockedCommitStatusResolver(
-    AbstractGitHubExactMatchCommitStatusResolver
-):
-    """Resolver that identifies a ref by finding an unlocked package version
-    in a commit status on a branch whose name matches the local branch."""
-
-    name = "GitHub Exact-Match Unlocked Commit Status Resolver"
-    commit_status_context = "unlocked_context"
-    commit_status_default = "Build Unlocked Test Package"
-
-
-class AbstractGitHubDefaultBranchCommitStatusResolver(
-    AbstractGitHubCommitStatusPackageResolver, abc.ABC
-):
-    """Abstract base class for resolvers that identify a ref by finding a beta package version
-    in a commit status on the repo's default branch."""
-
-    def get_branches(
-        self,
-        dep: BaseGitHubDependency,
-        context: BaseProjectConfig,
-    ) -> List[Branch]:
-        repo = context.get_repo_from_url(dep.github)
-
-        return [repo.branch(repo.default_branch)]
-
-
-class GitHubDefaultBranch2GPResolver(AbstractGitHubDefaultBranchCommitStatusResolver):
-    name = "GitHub Default Branch Commit Status Resolver"
-    commit_status_context = "2gp_context"
-    commit_status_default = "Build Feature Test Package"
-
-
-class GitHubDefaultBranchUnlockedCommitStatusResolver(
-    AbstractGitHubDefaultBranchCommitStatusResolver
-):
-    name = "GitHub Default Branch Unlocked Commit Status Resolver"
-    commit_status_context = "unlocked_context"
-    commit_status_default = "Build Unlocked Test Package"
-
-
-RESOLVER_CLASSES = {
-    DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
-    DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubExactMatch2GPResolver,
-    DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
-    DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchCommitStatusResolver,
-    DependencyResolutionStrategy.COMMIT_STATUS_DEFAULT_BRANCH: GitHubDefaultBranch2GPResolver,
-    DependencyResolutionStrategy.BETA_RELEASE_TAG: GitHubBetaReleaseTagResolver,
-    DependencyResolutionStrategy.RELEASE_TAG: GitHubReleaseTagResolver,
-    DependencyResolutionStrategy.UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,
-    DependencyResolutionStrategy.UNLOCKED_EXACT_BRANCH: GitHubExactMatchUnlockedCommitStatusResolver,
-    DependencyResolutionStrategy.UNLOCKED_RELEASE_BRANCH: GitHubReleaseBranchUnlockedResolver,
-    DependencyResolutionStrategy.UNLOCKED_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchUnlockedResolver,
-    DependencyResolutionStrategy.UNLOCKED_DEFAULT_BRANCH: GitHubDefaultBranchUnlockedCommitStatusResolver,
-}
-
+RESOLVER_CLASSES = {}
 
 ## External API
+
+
+def update_resolver_classes(
+    vcs: str, resolver_classes: Mapping[str, Type[AbstractResolver]]
+) -> None:
+
+    """Update the resolver classes for a given VCS type."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if vcs not in RESOLVER_CLASSES:
+        RESOLVER_CLASSES[vcs] = {}
+    else:
+        logger.debug(f"dependency_resolver_config: '{vcs}' already exists.")
+
+    RESOLVER_CLASSES[vcs].update(resolver_classes)
+    logger.debug(f"dependency_resolver_config: Updated '{vcs}' with new classes.")
 
 
 def get_resolver(
@@ -519,7 +421,7 @@ def get_resolver(
     resolution strategy to the dependency."""
     # This will be fleshed out when further types of DynamicDependency are added.
 
-    return RESOLVER_CLASSES[strategy]()
+    return RESOLVER_CLASSES[dependency.vcs][strategy]()
 
 
 def get_resolver_stack(
@@ -548,6 +450,9 @@ def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
 
         if isinstance(some_dep, PackageNamespaceVersionDependency):
             return some_dep.namespace not in ignore_namespace
+
+        from cumulusci.core.dependencies.github import BaseGitHubDependency
+
         if isinstance(some_dep, BaseGitHubDependency):
             return some_dep.github not in ignore_github
 
@@ -563,9 +468,10 @@ def get_static_dependencies(
     strategies: Optional[List[DependencyResolutionStrategy]] = None,
     filter_function: Optional[Callable] = None,
     pins: Optional[List[DependencyPin]] = None,
+    max_iterations: int = 50,
 ) -> List[StaticDependency]:
     """Resolves the dependencies of a CumulusCI project
-    to convert dynamic GitHub dependencies into static dependencies
+    to convert dynamic Vcs dependencies into static dependencies
     by inspecting the referenced repositories.
 
     Keyword arguments:
@@ -591,7 +497,18 @@ def get_static_dependencies(
     if filter_function is None:
         filter_function = lambda x: True  # noqa: E731
 
+    iteration = 0
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
+        iteration += 1
+        if iteration > max_iterations:
+            unresolved = [
+                d for d in dependencies if not d.is_flattened or not d.is_resolved
+            ]
+            raise RuntimeError(
+                f"Dependency resolution exceeded {max_iterations} iterations. "
+                f"Unresolved dependencies: {unresolved}"
+            )
+
         for d in dependencies:
             if isinstance(d, DynamicDependency) and not d.is_resolved:
                 # Finish resolving the dependency using our given strategies.

@@ -7,6 +7,7 @@ from pathlib import Path
 from shutil import rmtree
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
+from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     ConfigError,
@@ -630,7 +631,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 "class_path"
             ]
             try:
-                ConfigClass = import_class(class_path)
+                ServiceConfigClass = import_class(class_path)
+
+                if issubclass(ServiceConfigClass, BaseConfig):
+                    ConfigClass = ServiceConfigClass
             except (AttributeError, ModuleNotFoundError):
                 raise CumulusCIException(
                     f"Unrecognized class_path for service: {class_path}"

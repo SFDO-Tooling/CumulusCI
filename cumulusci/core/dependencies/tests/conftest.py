@@ -335,13 +335,51 @@ def github():
 
 
 @pytest.fixture
-def project_config(github):
+def project_config(github, init_git_repo):
     pc = mock.Mock()
     pc.lookup.return_value = None
+
+    pc.init_git_repo = init_git_repo
+
+    def get_github_repo_side_effect(project_config, url):
+        repo_mock = init_git_repo
+        repo_mock.repo = github.repository(*split_repo_url(url))
+        repo_mock.repo_url = url
+        return repo_mock
 
     def get_repo_from_url(url):
         return github.repository(*split_repo_url(url))
 
     pc.get_repo_from_url = get_repo_from_url
+    pc.get_github_repo_side_effect = get_github_repo_side_effect
 
     return pc
+
+
+@pytest.fixture
+@mock.patch("cumulusci.vcs.github.adapter.GitHubRepository._init_repo")
+def init_git_repo(init_repo):
+    from github3 import GitHub
+
+    from cumulusci.vcs.github.adapter import GitHubRepository
+
+    # from cumulusci.vcs.tests.dummy_service import DummyRepo
+    pc = mock.Mock()
+    pc.lookup.return_value = None
+
+    repo = GitHubRepository(GitHub(), pc)
+    return repo
+
+
+@pytest.fixture
+def patch_github_resolvers_get_github_repo():
+    with mock.patch(
+        "cumulusci.core.dependencies.github_resolvers.get_github_repo"
+    ) as patched:
+        yield patched
+
+
+@pytest.fixture
+def patch_github_dependencies_get_github_repo():
+    with mock.patch("cumulusci.core.dependencies.github.get_github_repo") as patched:
+        yield patched

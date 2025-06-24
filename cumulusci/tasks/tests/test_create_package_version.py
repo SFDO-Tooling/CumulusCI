@@ -16,8 +16,8 @@ from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    UnmanagedGitHubRefDependency,
 )
+from cumulusci.core.dependencies.github import UnmanagedGitHubRefDependency
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     DependencyLookupError,
@@ -133,7 +133,7 @@ def task(get_task):
 @pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
-        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
+        "cumulusci.core.dependencies.base.UnmanagedVcsDependency._get_zip_src"
     ) as download_extract_github:
         yield download_extract_github
 

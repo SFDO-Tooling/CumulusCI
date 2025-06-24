@@ -34,6 +34,7 @@ dependencies = [
     "defusedxml",
     "lxml",
     "MarkupSafe",
+    "packaging>=23.0",
     "psutil",
     "pydantic<2",
     "PyJWT",
@@ -302,3 +303,5 @@ strict = [
     'cumulusci/tasks/vlocity/exceptions.py',
     'cumulusci/utils/soql.py',
 ]
+
+[project.entry-points."cumulusci.plugins"]

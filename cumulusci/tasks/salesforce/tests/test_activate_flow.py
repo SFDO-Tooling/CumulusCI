@@ -41,8 +41,7 @@ class TestActivateFlow:
             ),
             status=200,
         )
-        data = {"Metadata": {"activeVersionNumber": 1}}
-        responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
+        responses.add(method=responses.PATCH, url=activate_url, status=204)
 
         cc_task()
         assert 2 == len(responses.calls)
@@ -77,8 +76,8 @@ class TestActivateFlow:
             ),
             status=200,
         )
-        data = {"Metadata": {"activeVersionNumber": 0}}
-        responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
+
+        responses.add(method=responses.PATCH, url=activate_url, status=204)
 
         cc_task()
         assert 2 == len(responses.calls)
@@ -120,9 +119,9 @@ class TestActivateFlow:
             ),
             status=200,
         )
-        data = {"Metadata": {"activeVersionNumber": 1}}
-        responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
-        responses.add(method=responses.PATCH, url=activate_url2, status=204, json=data)
+
+        responses.add(method=responses.PATCH, url=activate_url, status=204)
+        responses.add(method=responses.PATCH, url=activate_url2, status=204)
         cc_task()
         assert 3 == len(responses.calls)
 

@@ -7,8 +7,9 @@ from testfixtures import LogCapture
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.github import MergeBranch
+from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
 from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
+from cumulusci.tasks.vcs import MergeBranch
 from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 
@@ -151,6 +152,7 @@ class TestMergeBranch(MockUtilBase):
         self._mock_branch_does_not_exist(self.branch)
 
         task = self._create_task()
+        assert isinstance(task, BaseSourceControlTask)
         with pytest.raises(GithubApiNotFoundError):
             task()
         assert 2 == len(responses.calls)

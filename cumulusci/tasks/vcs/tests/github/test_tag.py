@@ -3,8 +3,8 @@ import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.github import CloneTag
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.vcs import CloneTag
 from cumulusci.tests.util import create_project_config
 
 
@@ -63,7 +63,7 @@ class TestCloneTag(GithubApiTestMixin):
         )
         task = CloneTag(self.project_config, task_config)
         task()
-        assert task.result.tag == "release/1.0"
+        assert task.result.tag.tag == "release/1.0"
 
     @responses.activate
     def test_run_task__tag_not_found(self):

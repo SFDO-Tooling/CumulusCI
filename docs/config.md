@@ -786,7 +786,7 @@ release_unlocked_production:
         1:
             task: promote_package_version
         2:
-            task: github_release
+            task: vcs_release
             options:
                 version: ^^promote_package_version.version_number
                 version_id: ^^promote_package_version.version_id
@@ -794,25 +794,25 @@ release_unlocked_production:
                 package_type: 2GP
                 tag_prefix: $project_config.project__git__prefix_release
         3:
-            task: github_release_notes
+            task: vcs_release_notes
             ignore_failure: True
             options:
                 publish: True
-                tag: ^^github_release.tag_name
+                tag: ^^vcs_release.tag_name
                 version_id: ^^promote_package_version.version_id
 ```
 
 This flow shows how subsequent tasks can reference the return values of
-a prior task. In this case, the `github_release` task uses the
+a prior task. In this case, the `vcs_release` task uses the
 `version_numer` set by the `promote_package_version` task as an option value
 with the `^^promote_package_version.version_number` syntax. Here, `dependencies`
 is of type list and it uses the list from `promote_package_version` task as an
 option value with `^^promote_package_version.dependencies` syntax.
 
-Similarly, the `github_release_notes` task uses the `version_id` set by the
+Similarly, the `vcs_release_notes` task uses the `version_id` set by the
 `promote_package_version` task as an option value with the
 `^^promote_package_version.version_number` syntax and uses the `tag` set by
-`github_release` task as an option value with the `^^github_release.tag_name`
+`vcs_release` task as an option value with the `^^vcs_release.tag_name`
 syntax.
 
 The below `example_flow` shows how the task options of type list CANNOT be used.

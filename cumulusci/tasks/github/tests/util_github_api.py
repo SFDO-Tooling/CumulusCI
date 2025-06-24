@@ -1,5 +1,5 @@
 import typing as T
-from datetime import datetime
+from datetime import UTC, datetime
 from random import choice, randint
 from string import ascii_lowercase, digits
 
@@ -176,7 +176,7 @@ class GithubApiTestMixin:
         if tag_sha is None:
             tag_sha = self._random_sha()
         if not tag_date:
-            tag_date = datetime.utcnow()
+            tag_date = datetime.now(UTC)
         tag_date = datetime.strftime(tag_date, date_format)
         return {
             "sha": tag_sha,

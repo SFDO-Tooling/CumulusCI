@@ -6,7 +6,7 @@ from typing import Callable, Dict, Optional
 import click
 from rich.console import Console
 
-from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import BaseConfig, ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.utils import import_class, import_global, make_jsonable
 
@@ -215,15 +215,29 @@ class ConnectServiceCommand(click.MultiCommand):
                 if updated_conf:
                     serv_conf.update(updated_conf)
 
+            ServiceConfigClass = None
             ConfigClass = ServiceConfig
             if "class_path" in service_config:
                 class_path = service_config["class_path"]
                 try:
-                    ConfigClass = import_class(class_path)
+                    ServiceConfigClass = import_class(class_path)
+
+                    if issubclass(ServiceConfigClass, BaseConfig):
+                        ConfigClass = ServiceConfigClass
+
                 except (AttributeError, ModuleNotFoundError):
                     raise CumulusCIException(
                         f"Unrecognized class_path for service: {class_path}"
                     )
+
+                if hasattr(ServiceConfigClass, "validate_service"):
+                    updated_conf: dict = ServiceConfigClass.validate_service(
+                        serv_conf, runtime.keychain
+                    )
+
+                    if updated_conf:
+                        serv_conf.update(updated_conf)
+
                 # Establish OAuth2 connection if required by this service
                 if hasattr(ConfigClass, "connect"):
                     oauth_dict = ConfigClass.connect(runtime.keychain, kwargs)
@@ -239,20 +253,27 @@ class ConnectServiceCommand(click.MultiCommand):
             click.echo(f"Service {service_type}:{service_name} is now connected")
 
             if set_as_default:
-                runtime.keychain.set_default_service(service_type, service_name)
+                runtime.keychain.set_default_service(
+                    service_type,
+                    service_name,
+                )
                 click.echo(
                     f"Service {service_type}:{service_name} is now the default for service type: {service_type}."
                 )
             if set_global_default:
                 runtime.keychain.set_default_service(
-                    service_type, service_name, project=False
+                    service_type,
+                    service_name,
+                    project=False,
                 )
                 click.echo(
                     f"Service {service_type}:{service_name} is now the default for all CumulusCI projects"
                 )
             if set_project_default:
                 runtime.keychain.set_default_service(
-                    service_type, service_name, project=True
+                    service_type,
+                    service_name,
+                    project=True,
                 )
                 project_name = runtime.project_config.project__name
                 click.echo(

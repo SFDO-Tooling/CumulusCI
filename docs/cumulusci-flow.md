@@ -225,7 +225,7 @@ More testing and build history is always a good thing in addition to the
 other benefits we gain from auto-merging.
 
 CumulusCI facilitates the auto-merge to feature branches via the
-`github_automerge_main` task, which is included by default in the
+`vcs_automerge_main` task, which is included by default in the
 `release_beta` flow. The `release_beta` flow is run, in CumulusCI Flow,
 on new commits to the `main` branch.
 
@@ -282,15 +282,15 @@ grandparents) This allows us to have branching structures such as:
 -   `feature/large-feature__section2__work-item1`
 
 In this scenario, a commit to the `main` branch triggers the
-`github_automerge_main` task to run and will automerge that commit into
+`vcs_automerge_main` task to run and will automerge that commit into
 `feature/large-feature`. This triggers a build to run against
 `feature/large-feature`, and assuming the build passes, runs the
-`github_automerge_feature` task. This task detects two child branches of
+`vcs_automerge_feature` task. This task detects two child branches of
 `feature/large-feature`: `feature/large_feature__section1` and
 `feature/large-feature__section2`. The task automerges the commit from
 the parent, into the child branches, and builds begin to run against
 those branches. If the build for `feature/large-feature__section1`
-fails, it doest not trigger `github_automerge_feature` to merge to its
+fails, it doest not trigger `vcs_automerge_feature` to merge to its
 child branches. This means that despite
 `feature/large-feature__section1` having two child branches, they would
 not receive automerges until the parent branch tests successfully.
@@ -336,11 +336,11 @@ direction. (A commit to `feature/002` would never be merged to
 **Propagating commits to future release branches is turned off by
 default.** If you would like to enable this feature for your GitHub
 repository, you can set the `update_future_releases` option on the
-`github_automerge_feature` task in your `cumulusci.yml` file:
+`vcs_automerge_feature` task in your `cumulusci.yml` file:
 
 ```yaml
 tasks:
-    github_automerge_feature:
+    vcs_automerge_feature:
         options:
             update_future_releases: True
 ```

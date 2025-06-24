@@ -1,6 +1,7 @@
 import pathlib
 import re
 from typing import Any, Optional, Tuple
+from urllib.parse import ParseResult, urlparse
 
 EMPTY_URL_MESSAGE = """
 The provided URL is empty or no URL under git remote "origin".
@@ -98,3 +99,44 @@ def parse_repo_url(url: str) -> Tuple[str, str, str]:
     ):
         host = url_parts[-4]
     return (owner, name, host)
+
+
+def generic_parse_repo_url(
+    url: str,
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """Parses a given URI into Owner, Repo Name, Host and Project
+
+    Parameters
+    ----------
+    url: str
+        A Azure URI. Examples: ["https://user@dev.azure.com/[org|user]/project/_git/repo", "git@ssh.dev.azure.com:v3/[user|org]/project/repo"]
+    Returns
+    -------
+    Tuple: (Optional[str], Optional[str], Optional[str])
+        Returns (owner, name with project, host)
+    """
+    if not url:
+        raise ValueError(EMPTY_URL_MESSAGE)
+
+    if url.find("github") >= 0:
+        return parse_repo_url(url)
+
+    formatted_url = f"ssh://{url}" if url.startswith("git") else url
+    parse_result: ParseResult = urlparse(formatted_url)
+
+    host: str = parse_result.hostname or ""
+    host = host.replace("ssh.", "") if url.startswith("git") else host
+
+    url_parts = re.split(
+        "/|@|:", parse_result.path.replace("/_git/", "/").rstrip("/").lstrip("/")
+    )
+    url_parts = list(filter(None, url_parts))
+
+    name: Optional[str] = url_parts[-1]
+    if name.endswith(".git"):
+        name = name[:-4]
+
+    owner: Optional[str] = url_parts[0]
+    project: Optional[str] = f"{url_parts[1]}/" if len(url_parts) > 2 else ""
+
+    return (owner, f"{project}{name}", host)

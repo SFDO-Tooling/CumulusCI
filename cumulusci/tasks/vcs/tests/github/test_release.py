@@ -6,15 +6,15 @@ import responses
 from responses.matchers import json_params_matcher
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.core.exceptions import GithubException, TaskOptionsError
-from cumulusci.tasks.github import CreateRelease
+from cumulusci.core.exceptions import TaskOptionsError, VcsException
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.vcs import CreateRelease
 from cumulusci.tests.util import create_project_config
 
 DUMMY_SHA = "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
 
 
-@mock.patch("cumulusci.tasks.github.release.time.sleep", mock.Mock())
+@mock.patch("cumulusci.tasks.vcs.release.time.sleep", mock.Mock())
 class TestCreateRelease(GithubApiTestMixin):
     def setup_method(self):
         self.repo_owner = "TestOwner"
@@ -138,7 +138,7 @@ class TestCreateRelease(GithubApiTestMixin):
                 }
             ),
         )
-        with pytest.raises(GithubException):
+        with pytest.raises(VcsException):
             task()
 
     @responses.activate
@@ -155,7 +155,7 @@ class TestCreateRelease(GithubApiTestMixin):
         )
         del self.project_config._repo_info["commit"]
 
-        with pytest.raises(GithubException):
+        with pytest.raises(VcsException):
             CreateRelease(
                 self.project_config,
                 TaskConfig({"options": {"version": "1.0", "commit": None}}),

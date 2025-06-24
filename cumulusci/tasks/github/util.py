@@ -8,9 +8,10 @@ from typing import Optional, Tuple
 from github3.git import Commit, Tree
 
 from cumulusci.core.exceptions import GithubException
+from cumulusci.vcs.utils import AbstractCommitDir
 
 
-class CommitDir(object):
+class CommitDir(AbstractCommitDir):
     """Commit all changes in local_dir to branch/repo_dir"""
 
     def __init__(self, repo, logger=None, author=None):
