@@ -25,8 +25,8 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         },
         "record_types": {
             "description": "A list of dictionaries containing the required key `record_type` with a value specifying "
-            "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed}, "
-            "{namespaced_org}, and {not_namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
+            "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} "
+            "and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
             "to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to "
             "true/false to override.  "
             "Page Layout Support: If you are using the Page Layouts feature, you can specify the `page_layout` key with the "
@@ -107,7 +107,6 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 "namespaced_org": namespace_prefix
                 if self.options["namespaced_org"]
                 else "",
-                "not_namespaced_org": "" if self.options["namespaced_org"] else namespace_prefix,
             }
             self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
