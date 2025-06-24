@@ -12,6 +12,14 @@ from zipfile import ZipFile
 
 import sarge
 
+# Fix for TextIOWrapper flush issue with sarge.Capture objects
+# Add flush method to sarge.Capture to prevent AttributeError during garbage collection
+if not hasattr(sarge.Capture, 'flush'):
+    def _capture_flush(self):
+        """No-op flush method for sarge.Capture compatibility with TextIOWrapper"""
+        pass
+    sarge.Capture.flush = _capture_flush
+
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.utils import temporary_dir
