@@ -160,6 +160,7 @@ filterwarnings = [
     "ignore::DeprecationWarning:.*.rflint",
     "ignore::DeprecationWarning:.*.selenium",
     "ignore::SyntaxWarning:.*.selenium",
+    "ignore::UserWarning:.*pkg_resources.*",
 ]
 
 [tool.isort]
