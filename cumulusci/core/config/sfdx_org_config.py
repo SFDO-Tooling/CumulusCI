@@ -32,10 +32,8 @@ class SfdxOrgConfig(OrgConfig):
         p = sfdx("org display --json", self.username)
 
         org_info = None
-        stderr_text = p.stderr_text.read()
-        stdout_text = p.stdout_text.read()
-        stderr_list = [line.strip() for line in stderr_text.splitlines()]
-        stdout_list = [line.strip() for line in stdout_text.splitlines()]
+        stderr_list = [line.strip() for line in p.stderr_text]
+        stdout_list = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
             self.logger.error(f"Return code: {p.returncode}")
@@ -189,8 +187,7 @@ class SfdxOrgConfig(OrgConfig):
         # access_token
         p = sfdx("org open -r", self.username, log_note="Refreshing OAuth token")
 
-        stdout_text = p.stdout_text.read()
-        stdout_list = [line.strip() for line in stdout_text.splitlines()]
+        stdout_list = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
             self.logger.error(f"Return code: {p.returncode}")
