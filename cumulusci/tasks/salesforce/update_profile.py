@@ -25,8 +25,8 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         },
         "record_types": {
             "description": "A list of dictionaries containing the required key `record_type` with a value specifying "
-            "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} "
-            "and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
+            "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed}, "
+            "{namespaced_org}, and {not_namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
             "to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to "
             "true/false to override.  "
             "Page Layout Support: If you are using the Page Layouts feature, you can specify the `page_layout` key with the "
@@ -107,6 +107,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 "namespaced_org": namespace_prefix
                 if self.options["namespaced_org"]
                 else "",
+                "not_namespaced_org": "" if self.options["namespaced_org"] else namespace_prefix,
             }
             self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
@@ -229,6 +230,32 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         for elem in tree.findall(outer_tag, **{inner_tag: false_value}):
             elem.find(inner_tag).text = true_value
 
+    def _strip_namespace_from_record_type(self, record_type):
+        """Strip namespace prefix from record type string.
+        
+        Converts 'namespace__Object__c.namespace__RecordType' to 'Object__c.RecordType'
+        """
+        if not self.options.get("namespace_inject"):
+            return record_type
+            
+        namespace = self.options["namespace_inject"]
+        namespace_prefix = f"{namespace}__"
+        
+        # Split on the dot to handle object and record type separately
+        parts = record_type.split(".", 1)
+        if len(parts) != 2:
+            return record_type
+            
+        object_name, record_type_name = parts
+        
+        # Strip namespace prefix from both object and record type if present
+        if object_name.startswith(namespace_prefix):
+            object_name = object_name[len(namespace_prefix):]
+        if record_type_name.startswith(namespace_prefix):
+            record_type_name = record_type_name[len(namespace_prefix):]
+            
+        return f"{object_name}.{record_type_name}"
+
     def _set_record_types(self, tree, api_name):
         # Do namespace injection
         record_types = self.options.get("record_types") or []
@@ -259,8 +286,20 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         # Set recordTypeVisibilities
         for rt in record_types:
             # Look for the recordTypeVisibilities element
+            # First try with the original record type
             elem = tree.find("recordTypeVisibilities", recordType=rt["record_type"])
-            if elem is None:
+            
+            # If not found and we're in a namespaced org, try with namespace stripped 
+            # (since Salesforce may return without namespace in namespaced orgs)
+            if elem is None and self.options.get("namespaced_org"):
+                record_type_without_namespace = self._strip_namespace_from_record_type(rt["record_type"])
+                elem = tree.find("recordTypeVisibilities", recordType=record_type_without_namespace)
+                
+                if elem is None:
+                    raise TaskOptionsError(
+                        f"Record Type {rt['record_type']} (or {record_type_without_namespace}) not found in retrieved {api_name}.profile"
+                    )
+            elif elem is None:
                 raise TaskOptionsError(
                     f"Record Type {rt['record_type']} not found in retrieved {api_name}.profile"
                 )
