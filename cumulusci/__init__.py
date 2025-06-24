@@ -1,6 +1,10 @@
 import os
 import sys
+import warnings
 from importlib.metadata import PackageNotFoundError, version
+
+# Suppress pkg_resources deprecation warnings from dependencies
+warnings.filterwarnings("ignore", message=".*pkg_resources.*", category=UserWarning)
 
 from simple_salesforce import api, bulk
 
