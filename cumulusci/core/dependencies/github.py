@@ -1,5 +1,6 @@
 import logging
 from abc import ABC
+from functools import lru_cache
 from typing import Optional, Type
 
 from pydantic import root_validator
@@ -15,16 +16,11 @@ logger = logging.getLogger(__name__)
 VCS_GITHUB = "github"
 
 
+@lru_cache(50)
 def get_github_repo(project_config, url) -> GitHubRepository:
-    from cumulusci.vcs.github.service import (
-        GitHubEnterpriseService,
-        GitHubService,
-        VCSService,
-    )
+    from cumulusci.vcs.github.service import VCSService, get_github_service_for_url
 
-    vcs_service: Optional[VCSService] = GitHubService.get_service_for_url(
-        project_config, url
-    ) or GitHubEnterpriseService.get_service_for_url(project_config, url)
+    vcs_service: Optional[VCSService] = get_github_service_for_url(project_config, url)
 
     if vcs_service is None:
         raise DependencyResolutionError(

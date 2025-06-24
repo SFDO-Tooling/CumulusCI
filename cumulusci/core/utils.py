@@ -367,30 +367,32 @@ def make_jsonable(x):
 
 def determine_managed_mode(options, project_config, org_config):
     """Determine the managed mode based on options, project config, and org config.
-    
+
     Args:
         options: Dict of task options that may contain 'managed' or 'unmanaged' flags
         project_config: Project configuration object with package info
         org_config: Org configuration object with installed packages and namespace info
-    
+
     Returns:
         bool: True if in managed mode, False if in unmanaged mode
+
+    Note: The changes allows multiple package development under same namespace.
     """
     if "managed" in options:
         return process_bool_arg(options["managed"])
-    
+
     # Get package and namespace information
-    package_name = getattr(project_config, 'project__package__name', None)
-    namespace = getattr(project_config, 'project__package__namespace', None)
-    installed_packages = getattr(org_config, 'installed_packages', {})
-    
+    package_name = getattr(project_config, "project__package__name", None)
+    namespace = getattr(project_config, "project__package__namespace", None)
+    installed_packages = getattr(org_config, "installed_packages", {})
+
     if "unmanaged" in options:
         # Explicit unmanaged flag always takes precedence
         return not process_bool_arg(options.get("unmanaged", True))
     elif package_name and any(package_name in key for key in installed_packages.keys()):
         # If this specific package is installed (or there is any installed package with a Name that contains package_name), we're in managed context
         return True
-    elif bool(namespace) and namespace == getattr(org_config, 'namespace', None):
+    elif bool(namespace) and namespace == getattr(org_config, "namespace", None):
         # We're in a namespaced org (packaging org) developing unmanaged code
         return False
     else:

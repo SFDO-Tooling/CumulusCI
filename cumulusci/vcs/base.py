@@ -79,7 +79,7 @@ class VCSService(ABC):
     @abstractmethod
     def get_service_for_url(
         cls, project_config: BaseProjectConfig, url: str, options: dict = {}
-    ) -> "VCSService":
+    ) -> Optional["VCSService"]:
         """Returns the service configuration for the given URL.
         This method should be overridden by subclasses to provide
         specific logic for retrieving the service configuration.

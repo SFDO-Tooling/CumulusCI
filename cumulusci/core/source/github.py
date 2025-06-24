@@ -27,11 +27,9 @@ class GitHubSource(VCSSource):
         return GitHubSourceModel
 
     def get_vcs_service(self):
-        from cumulusci.vcs.github.service import GitHubEnterpriseService, GitHubService
+        from cumulusci.vcs.github.service import get_github_service_for_url
 
-        return GitHubService.get_service_for_url(
-            self.project_config, self.url
-        ) or GitHubEnterpriseService.get_service_for_url(self.project_config, self.url)
+        return get_github_service_for_url(self.project_config, self.url)
 
     def get_ref(self):
         return self.spec.ref
@@ -48,8 +46,5 @@ class GitHubSource(VCSSource):
 
 class GitHubEnterpriseSource(GitHubSource):
     def get_vcs_service(self):
-        from cumulusci.vcs.github.service import GitHubEnterpriseService
-
-        return GitHubEnterpriseService.get_service_for_url(
-            self.project_config, self.url
-        )
+        """Get the GitHub Enterprise service for this source."""
+        return super().get_vcs_service()

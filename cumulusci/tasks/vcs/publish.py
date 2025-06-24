@@ -12,7 +12,7 @@ from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
 from cumulusci.utils import download_extract_vcs_from_repo
 from cumulusci.vcs.base import VCSService
-from cumulusci.vcs.bootstrap import get_service_for_url, get_tag_by_name
+from cumulusci.vcs.bootstrap import get_service_for_repo_url, get_tag_by_name
 from cumulusci.vcs.models import AbstractGitTag, AbstractRelease, AbstractRepo
 from cumulusci.vcs.utils import AbstractCommitDir
 
@@ -121,8 +121,8 @@ class PublishSubtree(BaseSourceControlTask):
         return local_to_target_paths
 
     def _get_target_repo_api(self) -> AbstractRepo:
-        target_vcs_service: VCSService = get_service_for_url(
-            self.project_config, self.options["repo_url"], options=self.options
+        target_vcs_service: VCSService = get_service_for_repo_url(
+            self.project_config, self.options["repo_url"]
         )
         repo_options = copy.deepcopy(self.options)
         repo_options.update({"repository_url": self.options["repo_url"]})

@@ -4,8 +4,7 @@ import re
 from typing import Optional, Tuple
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
-from cumulusci.core.exceptions import CumulusCIException, VcsException, VcsNotFoundError
-from cumulusci.core.utils import import_global
+from cumulusci.core.exceptions import VcsException, VcsNotFoundError
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.models import (
@@ -71,36 +70,6 @@ def get_commit(repo: AbstractRepo, commit_sha: str) -> Optional[AbstractRepoComm
     return repo.get_commit(commit_sha)
 
 
-def get_service_for_url(
-    config: BaseProjectConfig, url: str, options: dict = {}
-) -> VCSService:
-    """Gets the VCS service for a given URL."""
-    class_services = {
-        k: v for k, v in config.services.items() if v.get("class_path") is not None
-    }
-
-    for service_name, service_config in class_services.items():
-        provider_path: str = service_config.get("class_path", None)
-        provider_klass = None
-
-        if provider_path is None:
-            continue
-
-        try:
-            provider_klass = import_global(provider_path)
-        except ImportError as e:
-            raise CumulusCIException(
-                f"Failed to import provider class from path '{provider_path}': {e}"
-            )
-
-        if hasattr(provider_klass, "get_service_for_url"):
-            vcs_service: VCSService = provider_klass.get_service_for_url(
-                config, url, options
-            )
-            return vcs_service
-    raise CumulusCIException(f"Service for URL '{url}' not found.")
-
-
 def get_pull_requests_with_base_branch(
     repo: AbstractRepo,
     base_branch_name: str,
@@ -128,12 +97,42 @@ def is_label_on_pull_request(
     return any(label_name == issue_label for issue_label in labels)
 
 
+@functools.lru_cache(50)
 def get_repo_from_url(
-    config: BaseProjectConfig, url: str, options: dict = {}
+    config: BaseProjectConfig, url: str, service_alias: Optional[str] = None
 ) -> AbstractRepo:
-    vcs_service: VCSService = get_service_for_url(config, url, options)
-    options.update({"repository_url": url})
-    return vcs_service.get_repository(options=options)
+    vcs_service: VCSService = get_service_for_repo_url(
+        config, url, service_alias=service_alias
+    )
+
+    repo = vcs_service.get_repository(options={"repository_url": url})
+
+    if repo is None:
+        raise VcsNotFoundError(f"Could not find a repository at {url}.")
+
+    return repo
+
+
+@functools.lru_cache(50)
+def get_service_for_repo_url(
+    config: BaseProjectConfig, url: str, service_alias: Optional[str] = None
+) -> VCSService:
+    """Determines the VCS service type for the repository."""
+
+    for service in VCSService.registered_services():
+        vcs_service: Optional[VCSService] = service.get_service_for_url(
+            config, url, service_alias=service_alias
+        )
+
+        if vcs_service is None:
+            continue
+
+        return vcs_service
+
+    raise VcsException(
+        f"Could not find a VCS service for URL: {url}. "
+        "Please ensure the URL is correct and the service is properly configured."
+    )
 
 
 @functools.lru_cache(50)

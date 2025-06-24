@@ -238,7 +238,7 @@ class TestPublishSubtree(GithubApiTestMixin):
                     "prerelease": False,
                 }
             )
-            create_release_call = rsps.calls[8]
+            create_release_call = rsps.calls[7]
             assert create_release_call.request.url == self.public_repo_url + "/releases"
             assert create_release_call.request.method == responses.POST
             assert create_release_call.request.body == expected_release_body
@@ -345,7 +345,7 @@ class TestPublishSubtree(GithubApiTestMixin):
                     "prerelease": False,
                 }
             )
-            create_release_call = rsps.calls[10]
+            create_release_call = rsps.calls[9]
             assert create_release_call.request.url == self.public_repo_url + "/releases"
             assert create_release_call.request.method == responses.POST
             assert create_release_call.request.body == expected_release_body
