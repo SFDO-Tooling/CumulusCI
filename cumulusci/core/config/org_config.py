@@ -324,7 +324,7 @@ class OrgConfig(BaseConfig):
 
         Keys include:
         - namespace: "mycompany"
-        - package name: "My Package Name"  
+        - package name: "My Package Name"
         - namespace@version: "mycompany@1.2.3"
         - package ID: "033ABCDEF123456"
 
@@ -363,7 +363,7 @@ class OrgConfig(BaseConfig):
                     version += f"b{spv['BuildNumber']}"
                 version_info = VersionInfo(spv["Id"], StrictVersion(version))
                 namespace = sp["NamespacePrefix"]
-                package_name = sp["Name"]
+                package_name = sp.get("Name", None)
                 _installed_packages[namespace].append(version_info)
                 namespace_version = f"{namespace}@{version}"
                 _installed_packages[namespace_version].append(version_info)

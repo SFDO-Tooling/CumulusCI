@@ -81,6 +81,7 @@ class DummyOrgConfig(OrgConfig):
     def __init__(self, config=None, name=None, keychain=None, global_org=False):
         config = {**DEFAULT_CONFIG, **(config or {})}
         name = name or "test"
+        self._installed_packages = {}
         super(DummyOrgConfig, self).__init__(config, name, keychain, global_org)
 
     def refresh_oauth_token(self, keychain):

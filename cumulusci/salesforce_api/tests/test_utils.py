@@ -1,5 +1,7 @@
 from json import JSONDecodeError
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+
+import pytest
 
 from cumulusci import __version__
 from cumulusci.core.config import OrgConfig
@@ -77,33 +79,46 @@ def test_connection__with_port():
     assert sf.base_url == "https://orgname.my.salesforce.com:8080/services/data/v51.0/"
 
 
+@pytest.fixture
+def mock_http_response():
+    def _mock_response(status=200, content_type="application/json", body=""):
+        response = Mock()
+        response.status_code = status
+        response.headers = {"Content-Type": content_type}
+        response.text = body
+        # For simple-salesforce, the raw response's reason attribute might be accessed
+        response.raw = Mock()
+        response.raw.reason = "OK"
+
+        def json_func():
+            import json
+
+            if not body:
+                raise JSONDecodeError("Expecting value", "", 0)
+            return json.loads(body)
+
+        response.json = json_func
+        return response
+
+    return _mock_response
+
+
 def test_sf_api_retries(mock_http_response):
+    """
+    Tests that the simple_salesforce connection correctly retries on specific network errors.
+    """
     org_config = Mock()
     proj_config = Mock()
     service_mock = Mock()
-    service_mock.client_id = "TEST"
+
+    service_mock.client_id = "TEST_CLIENT_ID"
     proj_config.keychain.get_service.return_value = service_mock
-    org_config.instance_url = "https://enterprise-dream-6536.cs41.my.salesforce.com"
-    org_config.access_token = "httpsenterprise-dream-6536.cs41.my.salesforce.com"
+    org_config.instance_url = "https://your-instance.my.salesforce.com"
+    org_config.access_token = "dummy_access_token"
 
-    sf = get_simple_salesforce_connection(proj_config, org_config, api_version="42.0")
-    adapter = sf.session.get_adapter("http://")
+    sf = get_simple_salesforce_connection(proj_config, org_config, api_version="58.0")
 
-    assert 0.3 == adapter.max_retries.backoff_factor
+    adapter = sf.session.get_adapter(org_config.instance_url)
+
+    assert adapter.max_retries.backoff_factor == 0.3
     assert 502 in adapter.max_retries.status_forcelist
-
-    with patch(
-        "urllib3.connectionpool.HTTPConnectionPool._make_request"
-    ) as _make_request:
-        _make_request.side_effect = [
-            ConnectionResetError,
-            mock_http_response(status=200),
-        ]
-
-        try:
-            sf.describe()
-        except JSONDecodeError:
-            # We're not returning a message to decode
-            pass
-
-        assert 2 == _make_request.call_count

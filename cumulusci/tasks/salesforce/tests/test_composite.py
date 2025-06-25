@@ -114,6 +114,8 @@ class TestCompositeApi:
             json=COMPOSITE_RESPONSE,
         )
 
+        task.org_config._installed_packages = {}
+
         task()
 
         assert len(responses.calls) == 1
@@ -145,6 +147,8 @@ class TestCompositeApi:
             ["uni", True],
             ["sophiaUser", True],
         ]
+
+        task.org_config._installed_packages = {}
 
         task()
         table.assert_called_once_with((expected_table_data), title="Subrequest Results")
@@ -202,6 +206,8 @@ class TestCompositeApi:
                 "Invalid reference specified. No value for schoolRt.records[0].Id found in schoolRt",
             ],
         ]
+
+        task.org_config._installed_packages = {}
 
         with pytest.raises(SalesforceException):
             task()

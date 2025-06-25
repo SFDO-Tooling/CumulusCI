@@ -275,8 +275,8 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
 
     def _clean_package_xml(self):
         self.package_xml = re.sub(r"<\?xml.*\?>", "", self.package_xml)
-        self.package_xml = re.sub("<Package.*>", "", self.package_xml, 1)
-        self.package_xml = re.sub("</Package>", "", self.package_xml, 1)
+        self.package_xml = re.sub("<Package.*>", "", self.package_xml, count=1)
+        self.package_xml = re.sub("</Package>", "", self.package_xml, count=1)
         self.package_xml = re.sub("\n", "", self.package_xml)
         self.package_xml = re.sub(" +<", "<", self.package_xml)
 

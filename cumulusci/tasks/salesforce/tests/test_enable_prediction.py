@@ -62,6 +62,12 @@ def mock_oauth():
                 "NamespacePrefix": None,
             },
         )
+        rsps.add(
+            "GET",
+            url="https://test-dev-ed.my.salesforce.com/services/data/v63.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.Name,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage",
+            json={"records": []},
+            status=200,
+        )
 
         yield rsps
 

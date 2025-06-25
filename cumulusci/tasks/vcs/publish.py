@@ -124,6 +124,7 @@ class PublishSubtree(BaseSourceControlTask):
         target_vcs_service: VCSService = get_service_for_repo_url(
             self.project_config, self.options["repo_url"]
         )
+        target_vcs_service.logger = self.logger
         repo_options = copy.deepcopy(self.options)
         repo_options.update({"repository_url": self.options["repo_url"]})
         return target_vcs_service.get_repository(options=repo_options)

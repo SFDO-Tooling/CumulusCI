@@ -564,12 +564,24 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         return vcs_service
 
+    @repo_service.setter
+    def repo_service(self, vcs_service: "VCSService"):
+        """Set the VCS service for this project config."""
+        from cumulusci.vcs.base import VCSService
+
+        if not isinstance(vcs_service, VCSService):
+            raise TypeError("repo_service must be an instance of VCSService")
+
+        self._repo_info["vcs_service"] = vcs_service
+
     def get_service_type_for_repo(
         self, url: str, service_alias: Optional[str] = None
     ) -> "VCSService":
         from cumulusci.vcs.bootstrap import get_service_for_repo_url
 
-        return get_service_for_repo_url(self, url, service_alias=service_alias)
+        vcs_service = get_service_for_repo_url(self, url, service_alias=service_alias)
+        vcs_service.logger = self.logger
+        return vcs_service
 
     def get_tag_for_version(self, prefix: str, version: str) -> str:
         """Given a prefix and version, returns the appropriate tag name to use."""
@@ -606,7 +618,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     def get_repo_from_url(self, url: str) -> Optional[AbstractRepo]:
         from cumulusci.vcs.bootstrap import get_repo_from_url
 
-        return get_repo_from_url(self, url)
+        repo = get_repo_from_url(self, url)
+        repo.logger = self.logger
+        return repo
 
     def get_task(self, name: str) -> TaskConfig:
         """Get a TaskConfig by task name

@@ -383,7 +383,9 @@ def determine_managed_mode(options, project_config, org_config):
 
     # Get package and namespace information
     package_name = getattr(project_config, "project__package__name", None)
-    namespace = getattr(project_config, "project__package__namespace", None)
+    namespace = getattr(
+        project_config, "project__package__namespace", None
+    ) or options.get("namespace", None)
     installed_packages = getattr(org_config, "installed_packages", {})
 
     if "unmanaged" in options:

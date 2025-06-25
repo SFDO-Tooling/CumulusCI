@@ -37,7 +37,12 @@ def get_service(
     Returns:
         VCSService: The VCS service provider class.
     """
-    return config.repo_service
+    vcs_service: VCSService = get_service_for_repo_url(config, config.repo_url)
+    vcs_service.logger = logger or logging.getLogger(__name__)
+
+    config.repo_service = vcs_service
+
+    return vcs_service
 
 
 def get_ref_for_tag(repo: AbstractRepo, tag_name: str) -> AbstractRef:
@@ -120,14 +125,18 @@ def get_service_for_repo_url(
     """Determines the VCS service type for the repository."""
 
     for service in VCSService.registered_services():
-        vcs_service: Optional[VCSService] = service.get_service_for_url(
-            config, url, service_alias=service_alias
-        )
+        try:
+            vcs_service: Optional[VCSService] = service.get_service_for_url(
+                config, url, service_alias=service_alias
+            )
 
-        if vcs_service is None:
+            if vcs_service is None:
+                continue
+
+            return vcs_service
+        except NotImplementedError:
+            # If the service does not implement get_service_for_url, skip it
             continue
-
-        return vcs_service
 
     raise VcsException(
         f"Could not find a VCS service for URL: {url}. "

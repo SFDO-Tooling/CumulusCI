@@ -318,19 +318,41 @@ class TestRunApexTests(MockLoggerMixin):
         else:
             responses.add(responses.POST, url, status=http.client.SERVICE_UNAVAILABLE)
 
+    def _mock_get_installpkg_results(self, records=[]):
+        url = self.base_tooling_url + "query/"
+        query_string = (
+            "q=SELECT+SubscriberPackage.Id%2C+SubscriberPackage.Name%2C+SubscriberPackage.NamespacePrefix%2C+"
+            "SubscriberPackageVersionId+FROM+InstalledSubscriberPackage"
+        )
+        responses.add(
+            responses.GET,
+            url,
+            match=[query_string_matcher(query_string)],
+            json={"totalSize": len(records), "records": records},
+        )
+
+    def _mock_api_version_discovery(self, org_config=None):
+        org_config = self.org_config if org_config is None else org_config
+        url = f"{org_config.instance_url}/services/data"
+        responses.add(responses.GET, url, json=[{"version": f"{self.api_version}"}])
+
     @responses.activate
     def test_run_task(self):
+        self._mock_api_version_discovery()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results()
+        self._mock_get_installpkg_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task()
-        assert len(responses.calls) == 5
+        assert len(responses.calls) == 7
 
     @responses.activate
     def test_run_task_None_methodname_fail(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes_failure()
@@ -349,6 +371,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task_None_methodname_pass(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
@@ -367,6 +391,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__server_error(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests(success=False)
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
@@ -375,6 +401,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__failed(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
@@ -386,6 +414,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__failed_class_level(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes_failure()
@@ -398,6 +428,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__failed_class_level_no_symboltable(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes_failure()
@@ -434,6 +466,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__retry_tests(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
@@ -453,10 +487,12 @@ class TestRunApexTests(MockLoggerMixin):
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task()
-        assert len(responses.calls) == 9
+        assert len(responses.calls) == 11
 
     @responses.activate
     def test_run_task__retry_tests_with_retry_always(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
@@ -492,6 +528,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__retry_tests_fails(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
@@ -515,6 +553,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__processing(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_tests_processing()
@@ -528,6 +568,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__not_verbose(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_tests_processing()
@@ -541,6 +583,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__verbose(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes_failure()
@@ -562,6 +606,8 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__no_code_coverage(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
@@ -663,7 +709,9 @@ class TestRunApexTests(MockLoggerMixin):
 
     @responses.activate
     def test_run_task__code_coverage_managed(self):
-        self._mock_apex_class_query(namespace="TEST")
+        self._mock_apex_class_query(
+            namespace="TEST"
+        )  # Query for TEST namespace (managed)
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
         self._mock_tests_complete()
@@ -914,7 +962,10 @@ class TestRunApexTests(MockLoggerMixin):
             "AND (Name LIKE '%_TEST') AND (NOT Name LIKE 'EXCL')" == query
         )
 
+    @responses.activate
     def test_run_task__no_tests(self):
+        self._mock_api_version_discovery()
+        self._mock_get_installpkg_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task._get_test_classes = MagicMock(return_value={"totalSize": 0})
         task()

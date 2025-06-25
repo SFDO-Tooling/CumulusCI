@@ -10,11 +10,9 @@ def project_config():
     project_config.config["services"] = {
         "github": {
             "attributes": {"name": {"required": True}, "password": {}},
-            "class_path": "cumulusci.vcs.tests.dummy_service.ConcreteVCSService",
         },
         "github_enterprise": {
             "attributes": {"name": {"required": True}, "password": {}},
-            "class_path": "cumulusci.vcs.tests.dummy.ConcreteVCSService",
         },
     }
     project_config.project = {"name": "TestProject"}
