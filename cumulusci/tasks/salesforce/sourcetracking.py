@@ -305,11 +305,13 @@ def retrieve_components(
 
             try:
                 # Build args list conditionally including --output-dir
+                # Use relative path for package.xml to avoid SF CLI path issues
+                relative_package_xml = os.path.join(os.path.basename(temp_dir), "package.xml")
                 sfdx_args = [
                     "-a",
                     str(api_version),
                     "-x",
-                    os.path.join(package_xml_path, "package.xml"),
+                    relative_package_xml,
                     "-w",
                     "5",
                     "--ignore-conflicts",
