@@ -5,14 +5,31 @@ from unittest import mock
 
 import pytest
 
+from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataOperation
 from cumulusci.tasks.salesforce.update_profile import ProfileGrantAllAccess
-from cumulusci.tests.util import DummyOrgConfig, create_project_config
+from cumulusci.tests.util import create_project_config
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
 
 from .util import create_task
+
+
+class DummyOrgConfig(OrgConfig):
+    def __init__(self, config=None, name=None, keychain=None, global_org=False):
+        config = {**(config or {})}
+        name = name or "test"
+        self._installed_packages = {}
+        super(DummyOrgConfig, self).__init__(config, name, keychain, global_org)
+
+    def refresh_oauth_token(self, keychain):
+        pass
+
+    @property
+    def installed_packages(self):
+        return self._installed_packages
+
 
 ADMIN_PROFILE_BEFORE = b"""<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -169,21 +186,52 @@ ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT = """<?xml version="1.0" encoding="UTF-8
 """
 
 
-def test_run_task():
-    with tempfile.TemporaryDirectory() as tempdir:
-        with open(
-            os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"), "w"
-        ) as f:
-            f.write(PACKAGE_XML_BEFORE)
+class TestProfileGrantAllAccess:
+    def test_run_task(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            with open(
+                os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"),
+                "w",
+            ) as f:
+                f.write(PACKAGE_XML_BEFORE)
 
-        retrieve_dir = pathlib.Path(tempdir, "retrieve")
-        retrieve_dir.mkdir()
-        target_dir = retrieve_dir / "profiles"
-        target_dir.mkdir()
+            retrieve_dir = pathlib.Path(tempdir, "retrieve")
+            retrieve_dir.mkdir()
+            target_dir = retrieve_dir / "profiles"
+            target_dir.mkdir()
 
-        with open(target_dir / "Admin.profile", "wb") as f:
-            f.write(ADMIN_PROFILE_BEFORE)
+            with open(target_dir / "Admin.profile", "wb") as f:
+                f.write(ADMIN_PROFILE_BEFORE)
 
+            task = create_task(
+                ProfileGrantAllAccess,
+                {
+                    "record_types": [
+                        {
+                            "record_type": "Account.HH_Account",
+                            "default": True,
+                            "person_account_default": True,
+                        }
+                    ],
+                    "include_packaged_objects": False,
+                },
+            )
+
+            task._retrieve = mock.Mock()
+            task._deploy = mock.Mock()
+            task._create_directories = mock.Mock()
+            task.retrieve_dir = retrieve_dir
+            task.deploy_dir = pathlib.Path(tempdir, "deploy")
+            task.deploy_dir.mkdir()
+
+            task()
+
+            dest_path = task.deploy_dir / "profiles" / "Admin.profile"
+            assert dest_path.exists()
+
+            assert dest_path.read_text() == ADMIN_PROFILE_EXPECTED
+
+    def test_transforms_profile(self):
         task = create_task(
             ProfileGrantAllAccess,
             {
@@ -194,490 +242,458 @@ def test_run_task():
                         "person_account_default": True,
                     }
                 ],
-                "include_packaged_objects": False,
             },
         )
 
-        task._retrieve = mock.Mock()
-        task._deploy = mock.Mock()
-        task._create_directories = mock.Mock()
-        task.retrieve_dir = retrieve_dir
-        task.deploy_dir = pathlib.Path(tempdir, "deploy")
-        task.deploy_dir.mkdir()
+        inbound = metadata_tree.fromstring(ADMIN_PROFILE_BEFORE)
+        outbound = task._transform_entity(inbound, "Admin")
 
-        task()
+        xml_output = outbound.tostring(xml_declaration=True)
 
-        dest_path = task.deploy_dir / "profiles" / "Admin.profile"
-        assert dest_path.exists()
+        assert xml_output == ADMIN_PROFILE_EXPECTED
 
-        assert dest_path.read_text() == ADMIN_PROFILE_EXPECTED
+    def test_transforms_profile__multi_object_rt(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "record_types": [
+                    {
+                        "record_type": "Account.Business_Account",
+                        "default": True,
+                        "person_account_default": True,
+                    }
+                ],
+            },
+        )
 
+        inbound = metadata_tree.fromstring(ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT)
+        outbound = task._transform_entity(inbound, "Admin")
 
-def test_transforms_profile():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "record_types": [
-                {
-                    "record_type": "Account.HH_Account",
-                    "default": True,
-                    "person_account_default": True,
-                }
+        xml_output = outbound.tostring(xml_declaration=True)
+
+        assert xml_output == ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT
+
+    def test_throws_exception_record_type_not_found(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "record_types": [{"record_type": "DOESNT_EXIST"}],
+            },
+        )
+
+        with pytest.raises(TaskOptionsError):
+            task._transform_entity(
+                metadata_tree.fromstring(ADMIN_PROFILE_BEFORE), "Admin"
+            )
+
+    def test_transforms_profile_with_layouts(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "record_types": [
+                    {
+                        "record_type": "Account.HH_Account",
+                        "page_layout": "Account-Account Layout",
+                    },
+                    {
+                        "record_type": "Account.Business_Account",
+                        "page_layout": "Account-Account Layout",
+                        "default": True,
+                    },
+                ],
+            },
+        )
+
+        # To support coverage for when pulling metadata with layout definitions
+        profile_before = ADMIN_PROFILE_BEFORE.replace(
+            b"</Profile>",
+            b"""\n      <layoutAssignments>
+                <recordType>Account.Business_Account</recordType>
+                <layout>Account-Business Account Layout</layout>
+            </layoutAssignments>
+        </Profile>""",
+        )
+
+        inbound = metadata_tree.fromstring(profile_before)
+        assert len(inbound.findall("layoutAssignments")) == 1
+
+        # Verify the expected input includes the layoutAssignment element and
+        # the original layout
+        assert (
+            inbound.find("layoutAssignments", recordType="Account.Business_Account")
+            .find("layout")
+            .text
+            == "Account-Business Account Layout"
+        )
+
+        # Run the transformation and assert that there are two layoutAssignments
+        outbound = task._transform_entity(inbound, "Admin")
+        assert len(outbound.findall("layoutAssignments")) == 2
+
+        # Verify that the original layout assignment was updated
+        assignments = outbound.find(
+            "layoutAssignments", recordType="Account.Business_Account"
+        )
+        assert assignments is not None
+        assert assignments.find("layout").text == "Account-Account Layout"
+
+        assignments = outbound.find(
+            "layoutAssignments", recordType="Account.HH_Account"
+        )
+        assert assignments is not None
+        assert assignments.find("layout").text == "Account-Account Layout"
+
+        # assert that the nodes are included in the xml output as expected
+        xml_output = outbound.tostring(xml_declaration=True)
+        assert xml_output.count("<layoutAssignments>") == 2
+
+    def test_expand_package_xml(self):
+        task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
+        task.tooling = mock.Mock()
+        task.tooling.query_all.return_value = {
+            "totalSize": 2,
+            "records": [
+                {"DeveloperName": "Test", "NamespacePrefix": "ns"},
+                {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
             ],
-        },
-    )
+        }
 
-    inbound = metadata_tree.fromstring(ADMIN_PROFILE_BEFORE)
-    outbound = task._transform_entity(inbound, "Admin")
-
-    xml_output = outbound.tostring(xml_declaration=True)
-
-    assert xml_output == ADMIN_PROFILE_EXPECTED
-
-
-def test_transforms_profile__multi_object_rt():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "record_types": [
-                {
-                    "record_type": "Account.Business_Account",
-                    "default": True,
-                    "person_account_default": True,
-                }
-            ],
-        },
-    )
-
-    inbound = metadata_tree.fromstring(ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT)
-    outbound = task._transform_entity(inbound, "Admin")
-
-    xml_output = outbound.tostring(xml_declaration=True)
-
-    assert xml_output == ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT
-
-
-def test_throws_exception_record_type_not_found():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "record_types": [{"record_type": "DOESNT_EXIST"}],
-        },
-    )
-
-    with pytest.raises(TaskOptionsError):
-        task._transform_entity(metadata_tree.fromstring(ADMIN_PROFILE_BEFORE), "Admin")
-
-
-def test_transforms_profile_with_layouts():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "record_types": [
-                {
-                    "record_type": "Account.HH_Account",
-                    "page_layout": "Account-Account Layout",
-                },
-                {
-                    "record_type": "Account.Business_Account",
-                    "page_layout": "Account-Account Layout",
-                    "default": True,
-                },
-            ],
-        },
-    )
-
-    # To support coverage for when pulling metadata with layout definitions
-    profile_before = ADMIN_PROFILE_BEFORE.replace(
-        b"</Profile>",
-        b"""\n      <layoutAssignments>
-            <recordType>Account.Business_Account</recordType>
-            <layout>Account-Business Account Layout</layout>
-        </layoutAssignments>
-    </Profile>""",
-    )
-
-    inbound = metadata_tree.fromstring(profile_before)
-    assert len(inbound.findall("layoutAssignments")) == 1
-
-    # Verify the expected input includes the layoutAssignment element and
-    # the original layout
-    assert (
-        inbound.find("layoutAssignments", recordType="Account.Business_Account")
-        .find("layout")
-        .text
-        == "Account-Business Account Layout"
-    )
-
-    # Run the transformation and assert that there are two layoutAssignments
-    outbound = task._transform_entity(inbound, "Admin")
-    assert len(outbound.findall("layoutAssignments")) == 2
-
-    # Verify that the original layout assignment was updated
-    assignments = outbound.find(
-        "layoutAssignments", recordType="Account.Business_Account"
-    )
-    assert assignments is not None
-    assert assignments.find("layout").text == "Account-Account Layout"
-
-    assignments = outbound.find("layoutAssignments", recordType="Account.HH_Account")
-    assert assignments is not None
-    assert assignments.find("layout").text == "Account-Account Layout"
-
-    # assert that the nodes are included in the xml output as expected
-    xml_output = outbound.tostring(xml_declaration=True)
-    assert xml_output.count("<layoutAssignments>") == 2
-
-
-def test_expand_package_xml():
-    task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
-    task.tooling = mock.Mock()
-    task.tooling.query_all.return_value = {
-        "totalSize": 2,
-        "records": [
-            {"DeveloperName": "Test", "NamespacePrefix": "ns"},
-            {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
-        ],
-    }
-
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
-    task._expand_package_xml(package_xml)
-    types = package_xml.find("types", name="CustomObject")
-    assert "ns__Test__c" in {elem.text for elem in types.findall("members")}
-    assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall("members")}
-
-
-def test_expand_package_xml_objects():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {"api_names": ["Admin"], "record_types": [{"record_type": "Case.Case"}]},
-    )
-    task.tooling = mock.Mock()
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
-    task._expand_package_xml_objects(package_xml)
-    types = package_xml.find("types", name="CustomObject")
-    assert "Case" in {elem.text for elem in types.findall("members")}
-
-
-def test_expand_package_xml_objects_no_record_types():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {"api_names": ["Admin"]},
-    )
-    task.tooling = mock.Mock()
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
-    task._expand_package_xml_objects(package_xml)
-    types = package_xml.find("types", name="CustomObject")
-    assert "Case" not in {elem.text for elem in types.findall("members")}
-
-
-def test_expand_package_xml__broken_package():
-    task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
-    task.tooling = mock.Mock()
-    task.tooling.query_all.return_value = {
-        "totalSize": 2,
-        "records": [
-            {"DeveloperName": "Test", "NamespacePrefix": "ns"},
-            {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
-        ],
-    }
-
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
-    types = package_xml.find("types", name="CustomObject")
-    types.find("name").text = "NotCustomObject"
-    with pytest.raises(CumulusCIException):
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
         task._expand_package_xml(package_xml)
+        types = package_xml.find("types", name="CustomObject")
+        assert "ns__Test__c" in {elem.text for elem in types.findall("members")}
+        assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall("members")}
 
+    def test_expand_package_xml_objects(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {"api_names": ["Admin"], "record_types": [{"record_type": "Case.Case"}]},
+        )
+        task.tooling = mock.Mock()
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+        task._expand_package_xml_objects(package_xml)
+        types = package_xml.find("types", name="CustomObject")
+        assert "Case" in {elem.text for elem in types.findall("members")}
 
-def test_expand_profile_members():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
-            "namespace_inject": "ns",
-            "managed": True,
-        },
-    )
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    def test_expand_package_xml_objects_no_record_types(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {"api_names": ["Admin"]},
+        )
+        task.tooling = mock.Mock()
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+        task._expand_package_xml_objects(package_xml)
+        types = package_xml.find("types", name="CustomObject")
+        assert "Case" not in {elem.text for elem in types.findall("members")}
 
-    task._expand_profile_members(package_xml)
+    def test_expand_package_xml__broken_package(self):
+        task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
+        task.tooling = mock.Mock()
+        task.tooling.query_all.return_value = {
+            "totalSize": 2,
+            "records": [
+                {"DeveloperName": "Test", "NamespacePrefix": "ns"},
+                {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
+            ],
+        }
 
-    types = package_xml.find("types", name="Profile")
-    assert {elem.text for elem in types.findall("members")} == {
-        "Admin",
-        "ns__Continuous Integration",
-    }
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+        types = package_xml.find("types", name="CustomObject")
+        types.find("name").text = "NotCustomObject"
+        with pytest.raises(CumulusCIException):
+            task._expand_package_xml(package_xml)
 
+    def test_expand_profile_members(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+                "namespace_inject": "ns",
+                "managed": True,
+            },
+        )
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
 
-def test_expand_profile_members__no_api_names():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "namespace_inject": "ns",
-            "managed": True,
-        },
-    )
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+        task._expand_profile_members(package_xml)
 
-    task._expand_profile_members(package_xml)
+        types = package_xml.find("types", name="Profile")
+        assert {elem.text for elem in types.findall("members")} == {
+            "Admin",
+            "ns__Continuous Integration",
+        }
 
-    types = package_xml.find("types", name="Profile")
-    assert {elem.text for elem in types.findall("members")} == {"Admin"}
+    def test_expand_profile_members__no_api_names(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "namespace_inject": "ns",
+                "managed": True,
+            },
+        )
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
 
+        task._expand_profile_members(package_xml)
 
-def test_expand_profile_members__existing_entries():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
-            "namespace_inject": "ns",
-            "managed": True,
-        },
-    )
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__PROFILES)
+        types = package_xml.find("types", name="Profile")
+        assert {elem.text for elem in types.findall("members")} == {"Admin"}
 
-    task._expand_profile_members(package_xml)
+    def test_expand_profile_members__existing_entries(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+                "namespace_inject": "ns",
+                "managed": True,
+            },
+        )
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__PROFILES)
 
-    types = package_xml.find("types", name="Profile")
+        task._expand_profile_members(package_xml)
 
-    assert {elem.text for elem in types.findall("members")} == {
-        "Admin",
-        "Test",
-        "ns__Continuous Integration",
-    }
+        types = package_xml.find("types", name="Profile")
 
-    assert task.api_names == {"Admin", "ns__Continuous Integration", "Test"}
+        assert {elem.text for elem in types.findall("members")} == {
+            "Admin",
+            "Test",
+            "ns__Continuous Integration",
+        }
 
+        assert task.api_names == {"Admin", "ns__Continuous Integration", "Test"}
 
-def test_expand_profile_members__no_profile_section():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
-            "namespace_inject": "ns",
-            "managed": True,
-        },
-    )
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__NO_PROFILES)
+    def test_expand_profile_members__no_profile_section(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+                "namespace_inject": "ns",
+                "managed": True,
+            },
+        )
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__NO_PROFILES)
 
-    task._expand_profile_members(package_xml)
+        task._expand_profile_members(package_xml)
 
-    types = package_xml.find("types", name="Profile")
+        types = package_xml.find("types", name="Profile")
 
-    assert {elem.text for elem in types.findall("members")} == {
-        "Admin",
-        "ns__Continuous Integration",
-    }
+        assert {elem.text for elem in types.findall("members")} == {
+            "Admin",
+            "ns__Continuous Integration",
+        }
 
-    assert task.api_names == {"Admin", "ns__Continuous Integration"}
+        assert task.api_names == {"Admin", "ns__Continuous Integration"}
 
+    def test_expand_profile_members__namespaced_org(self):
+        project_config = create_project_config(namespace="ns")
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "api_names": ["Admin", "%%%NAMESPACED_ORG%%%Continuous Integration"],
+                "namespace_inject": "ns",
+                "namespaced_org": True,
+                "managed": False,
+            },
+            project_config,
+        )
+        package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
 
-def test_expand_profile_members__namespaced_org():
-    project_config = create_project_config(namespace="ns")
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "api_names": ["Admin", "%%%NAMESPACED_ORG%%%Continuous Integration"],
-            "namespace_inject": "ns",
-            "namespaced_org": True,
-            "managed": False,
-        },
-        project_config,
-    )
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+        task._expand_profile_members(package_xml)
 
-    task._expand_profile_members(package_xml)
+        types = package_xml.find("types", name="Profile")
+        assert {elem.text for elem in types.findall("members")} == {
+            "Admin",
+            "ns__Continuous Integration",
+        }
 
-    types = package_xml.find("types", name="Profile")
-    assert {elem.text for elem in types.findall("members")} == {
-        "Admin",
-        "ns__Continuous Integration",
-    }
-
-
-def test_init_options__general():
-    project_config = create_project_config(namespace="ns")
-    task = create_task(
-        ProfileGrantAllAccess, {"managed": "true"}, project_config=project_config
-    )
-    assert task.options["managed"]
-    assert not task.options["namespaced_org"]
-    assert task.options["namespace_inject"] == "ns"
-    assert task.namespace_prefixes == {"managed": "ns__", "namespaced_org": ""}
-
-    task = create_task(
-        ProfileGrantAllAccess,
-        {"namespaced_org": "true", "managed": False},
-        project_config=project_config,
-    )
-    assert not task.options["managed"]
-    assert task.options["namespaced_org"]
-    assert task.options["namespace_inject"] == "ns"
-    assert task.namespace_prefixes == {"managed": "", "namespaced_org": "ns__"}
-
-    task = create_task(ProfileGrantAllAccess, {})
-    assert not task.options["managed"]
-    assert not task.options["namespaced_org"]
-    assert task.options["namespace_inject"] is None
-    assert task.namespace_prefixes == {"managed": "", "namespaced_org": ""}
-
-
-def test_init_options__api_names():
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
-            "namespace_inject": "ns",
-            "managed": True,
-        },
-    )
-    assert task.api_names == {"Admin", "ns__Continuous Integration"}
-
-    task = create_task(
-        ProfileGrantAllAccess,
-        {
-            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
-            "namespace_inject": "ns",
-            "managed": False,
-        },
-    )
-    assert task.api_names == {"Admin", "Continuous Integration"}
-
-    task = create_task(
-        ProfileGrantAllAccess, {"profile_name": "Continuous Integration"}
-    )
-    assert task.api_names == {"Continuous Integration"}
-
-    task = create_task(ProfileGrantAllAccess, {})
-    assert task.api_names == {"Admin"}
-
-    task = create_task(ProfileGrantAllAccess, {"package_xml": "lib/admin_profile.xml"})
-    assert task.api_names == set()
-
-
-def test_init_options__include_packaged_objects():
-    pc = create_project_config()
-    pc.minimum_cumulusci_version = "4.0.0"
-    task = create_task(
-        ProfileGrantAllAccess,
-        {"package_xml": "lib/admin_profile.xml"},
-        project_config=pc,
-    )
-    assert task.package_xml_path == "lib/admin_profile.xml"
-    assert not task.options["include_packaged_objects"]
-
-    task = create_task(ProfileGrantAllAccess, {}, project_config=pc)
-    assert task.options["include_packaged_objects"]
-    assert task.package_xml_path == os.path.join(
-        CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
-    )
-
-    pc.minimum_cumulusci_version = "2.0.0"
-    task = create_task(ProfileGrantAllAccess, {}, project_config=pc)
-    assert not task.options["include_packaged_objects"]
-
-    task = create_task(
-        ProfileGrantAllAccess, {"include_packaged_objects": True}, project_config=pc
-    )
-    assert task.options["include_packaged_objects"]
-
-
-def test_init_options__namespace_injection():
-    pc = create_project_config(namespace="ns")
-    org_config = DummyOrgConfig({"namespace": "ns"})
-    org_config._installed_packages = {"ns": None}
-    task = create_task(
-        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
-    )
-    assert task.options["namespace_inject"] == "ns"
-    assert task.options["namespaced_org"]
-    assert not task.options["managed"]  # Fixed: namespaced org should be unmanaged
-
-
-def test_init_options__managed_explicit_unmanaged_flag():
-    """Test that explicit unmanaged=True forces managed=False even with installed packages."""
-    pc = create_project_config(namespace="ns")
-    org_config = DummyOrgConfig({"namespace": "other"})
-    org_config._installed_packages = {"ns": None}  # Package is installed
-    task = create_task(
-        ProfileGrantAllAccess, {"unmanaged": True}, project_config=pc, org_config=org_config
-    )
-    assert not task.options["managed"]  # Should be False due to explicit unmanaged=True
-
-
-def test_init_options__managed_explicit_unmanaged_false():
-    """Test that explicit unmanaged=False forces managed=True."""
-    pc = create_project_config(namespace="ns")
-    org_config = DummyOrgConfig({"namespace": "other"})
-    org_config._installed_packages = {}  # No packages installed
-    task = create_task(
-        ProfileGrantAllAccess, {"unmanaged": False}, project_config=pc, org_config=org_config
-    )
-    assert task.options["managed"]  # Should be True due to explicit unmanaged=False
-
-
-def test_init_options__managed_fallback_to_installed_packages():
-    """Test that we fall back to installed packages check when not in namespaced org."""
-    pc = create_project_config(namespace="ns")
-    org_config = DummyOrgConfig({"namespace": "different"})  # Different namespace
-    org_config._installed_packages = {"ns": None}  # But package is installed
-    task = create_task(
-        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
-    )
-    assert task.options["managed"]  # Should be True due to installed package
-
-
-def test_init_options__managed_no_installed_package():
-    """Test that managed=False when package is not installed and not in namespaced org."""
-    pc = create_project_config(namespace="ns")
-    org_config = DummyOrgConfig({"namespace": "different"})
-    org_config._installed_packages = {}  # No packages installed
-    task = create_task(
-        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
-    )
-    assert not task.options["managed"]  # Should be False - no package installed
-
-
-def test_generate_package_xml__retrieve():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        admin_profile = os.path.join(tmp_dir, "admin_profile.xml")
-        with open(admin_profile, "w") as f:
-            f.write(PACKAGE_XML_BEFORE)
-        with open(
-            os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"), "w"
-        ) as f:
-            f.write(PACKAGE_XML_BEFORE)
+    def test_init_options__general(self):
+        project_config = create_project_config(namespace="ns")
+        task = create_task(
+            ProfileGrantAllAccess, {"managed": "true"}, project_config=project_config
+        )
+        assert task.options["managed"]
+        assert not task.options["namespaced_org"]
+        assert task.options["namespace_inject"] == "ns"
+        assert task.namespace_prefixes == {"managed": "ns__", "namespaced_org": ""}
 
         task = create_task(
             ProfileGrantAllAccess,
-            {"package_xml": admin_profile, "include_packaged_objects": False},
+            {"namespaced_org": "true", "managed": False},
+            project_config=project_config,
         )
+        assert not task.options["managed"]
+        assert task.options["namespaced_org"]
+        assert task.options["namespace_inject"] == "ns"
+        assert task.namespace_prefixes == {"managed": "", "namespaced_org": "ns__"}
 
-        task._expand_profile_members = mock.Mock()
-        task._expand_package_xml = mock.Mock()
-        task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_package_xml.assert_not_called()
+        task = create_task(ProfileGrantAllAccess, {})
+        assert not task.options["managed"]
+        assert not task.options["namespaced_org"]
+        assert task.options["namespace_inject"] is None
+        assert task.namespace_prefixes == {"managed": "", "namespaced_org": ""}
+
+    def test_init_options__api_names(self):
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+                "namespace_inject": "ns",
+                "managed": True,
+            },
+        )
+        assert task.api_names == {"Admin", "ns__Continuous Integration"}
 
         task = create_task(
             ProfileGrantAllAccess,
-            {"package_xml": admin_profile, "include_packaged_objects": True},
+            {
+                "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+                "namespace_inject": "ns",
+                "managed": False,
+            },
+        )
+        assert task.api_names == {"Admin", "Continuous Integration"}
+
+        task = create_task(
+            ProfileGrantAllAccess, {"profile_name": "Continuous Integration"}
+        )
+        assert task.api_names == {"Continuous Integration"}
+
+        task = create_task(ProfileGrantAllAccess, {})
+        assert task.api_names == {"Admin"}
+
+        task = create_task(
+            ProfileGrantAllAccess, {"package_xml": "lib/admin_profile.xml"}
+        )
+        assert task.api_names == set()
+
+    def test_init_options__include_packaged_objects(self):
+        pc = create_project_config()
+        pc.minimum_cumulusci_version = "4.0.0"
+        task = create_task(
+            ProfileGrantAllAccess,
+            {"package_xml": "lib/admin_profile.xml"},
+            project_config=pc,
+        )
+        assert task.package_xml_path == "lib/admin_profile.xml"
+        assert not task.options["include_packaged_objects"]
+
+        task = create_task(ProfileGrantAllAccess, {}, project_config=pc)
+        assert task.options["include_packaged_objects"]
+        assert task.package_xml_path == os.path.join(
+            CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
         )
 
-        task._expand_profile_members = mock.Mock()
-        task._expand_package_xml = mock.Mock()
-        task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_package_xml.assert_called_once()
+        pc.minimum_cumulusci_version = "2.0.0"
+        task = create_task(ProfileGrantAllAccess, {}, project_config=pc)
+        assert not task.options["include_packaged_objects"]
 
-        task = create_task(ProfileGrantAllAccess, {"include_packaged_objects": True})
+        task = create_task(
+            ProfileGrantAllAccess, {"include_packaged_objects": True}, project_config=pc
+        )
+        assert task.options["include_packaged_objects"]
 
-        task._expand_profile_members = mock.Mock()
-        task._expand_package_xml = mock.Mock()
-        task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_package_xml.assert_called_once()
+    def test_init_options__namespace_injection(self):
+        pc = create_project_config(namespace="ns")
+        org_config = DummyOrgConfig({"namespace": "ns"})
+        org_config._installed_packages = {"ns": None}
+        task = create_task(
+            ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+        )
+        assert task.options["namespace_inject"] == "ns"
+        assert task.options["namespaced_org"]
+        assert not task.options["managed"]  # Fixed: namespaced org should be unmanaged
 
-        task = create_task(ProfileGrantAllAccess, {"include_packaged_objects": False})
+    def test_init_options__managed_explicit_unmanaged_flag(self):
+        """Test that explicit unmanaged=True forces managed=False even with installed packages."""
+        pc = create_project_config(namespace="ns")
+        org_config = DummyOrgConfig({"namespace": "other"})
+        org_config._installed_packages = {"ns": None}  # Package is installed
+        task = create_task(
+            ProfileGrantAllAccess,
+            {"unmanaged": True},
+            project_config=pc,
+            org_config=org_config,
+        )
+        assert not task.options[
+            "managed"
+        ]  # Should be False due to explicit unmanaged=True
 
-        task._expand_profile_members = mock.Mock()
-        task._expand_package_xml = mock.Mock()
-        task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_package_xml.assert_not_called()
+    def test_init_options__managed_explicit_unmanaged_false(self):
+        """Test that explicit unmanaged=False forces managed=True."""
+        pc = create_project_config(namespace="ns")
+        org_config = DummyOrgConfig({"namespace": "other"})
+        org_config._installed_packages = {}  # No packages installed
+        task = create_task(
+            ProfileGrantAllAccess,
+            {"unmanaged": False},
+            project_config=pc,
+            org_config=org_config,
+        )
+        assert task.options["managed"]  # Should be True due to explicit unmanaged=False
+
+    def test_init_options__managed_fallback_to_installed_packages(self):
+        """Test that we fall back to installed packages check when not in namespaced org."""
+        pc = create_project_config(namespace="ns")
+        org_config = DummyOrgConfig({"namespace": "different"})  # Different namespace
+        org_config._installed_packages = {"ns": None}  # But package is installed
+        task = create_task(
+            ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+        )
+        assert task.options["managed"]  # Should be True due to installed package
+
+    def test_init_options__managed_no_installed_package(self):
+        """Test that managed=False when package is not installed and not in namespaced org."""
+        pc = create_project_config(namespace="ns")
+        org_config = DummyOrgConfig({"namespace": "different"})
+        org_config._installed_packages = {}  # No packages installed
+        task = create_task(
+            ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+        )
+        assert not task.options["managed"]  # Should be False - no package installed
+
+    def test_generate_package_xml__retrieve(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            admin_profile = os.path.join(tmp_dir, "admin_profile.xml")
+            with open(admin_profile, "w") as f:
+                f.write(PACKAGE_XML_BEFORE)
+            with open(
+                os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"),
+                "w",
+            ) as f:
+                f.write(PACKAGE_XML_BEFORE)
+
+            task = create_task(
+                ProfileGrantAllAccess,
+                {"package_xml": admin_profile, "include_packaged_objects": False},
+            )
+
+            task._expand_profile_members = mock.Mock()
+            task._expand_package_xml = mock.Mock()
+            task._generate_package_xml(MetadataOperation.RETRIEVE)
+            task._expand_package_xml.assert_not_called()
+
+            task = create_task(
+                ProfileGrantAllAccess,
+                {"package_xml": admin_profile, "include_packaged_objects": True},
+            )
+
+            task._expand_profile_members = mock.Mock()
+            task._expand_package_xml = mock.Mock()
+            task._generate_package_xml(MetadataOperation.RETRIEVE)
+            task._expand_package_xml.assert_called_once()
+
+            task = create_task(
+                ProfileGrantAllAccess, {"include_packaged_objects": True}
+            )
+
+            task._expand_profile_members = mock.Mock()
+            task._expand_package_xml = mock.Mock()
+            task._generate_package_xml(MetadataOperation.RETRIEVE)
+            task._expand_package_xml.assert_called_once()
+
+            task = create_task(
+                ProfileGrantAllAccess, {"include_packaged_objects": False}
+            )
+
+            task._expand_profile_members = mock.Mock()
+            task._expand_package_xml = mock.Mock()
+            task._generate_package_xml(MetadataOperation.RETRIEVE)
+            task._expand_package_xml.assert_not_called()

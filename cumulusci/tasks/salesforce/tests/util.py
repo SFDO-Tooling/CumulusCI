@@ -31,7 +31,11 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
         "cumulusci.core.tasks.BaseSalesforceTask._get_client_name",
         return_value="ccitests",
     ):
-        return task_class(project_config, task_config, org_config)
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.installed_packages",
+            return_value=[],
+        ):
+            return task_class(project_config, task_config, org_config)
 
 
 def patch_dir(patch_path, file_path):

@@ -1,5 +1,6 @@
 import importlib.metadata
 import logging
+from functools import lru_cache
 from typing import Dict, List, Optional, Type
 
 from cumulusci.plugins.plugin_base import PluginBase
@@ -10,6 +11,7 @@ def get_plugin_manager(logger: logging.Logger) -> "PluginManager":
     return PluginManager(logger=logger)
 
 
+@lru_cache(maxsize=50)
 def load_plugins(logger: logging.Logger) -> List[PluginBase]:
     """Load all available plugins and return them as a list."""
     manager = get_plugin_manager(logger)

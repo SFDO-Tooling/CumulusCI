@@ -241,7 +241,7 @@ interactions:
               Request-Headers:
                   - Elided
           method: GET
-          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.Name,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage
       response:
           body:
               string:
@@ -251,7 +251,7 @@ interactions:
                   \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/InstalledSubscriberPackage/0A3170000003xYJCAY\"\n
                   \   },\n    \"SubscriberPackage\" : {\n      \"attributes\" : {\n        \"type\"
                   : \"SubscriberPackage\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/SubscriberPackage/033i0000000ElVOAA0\"\n
-                  \     },\n      \"Id\" : \"033i0000000ElVOAA0\",\n      \"NamespacePrefix\"
+                  \     },\n      \"Id\" : \"033i0000000ElVOAA0\",\n      \"Name\" : \"Test\",\n      \"NamespacePrefix\"
                   : \"pub\"\n    },\n    \"SubscriberPackageVersionId\" : \"04ti0000000GSu9AAG\"\n
                   \ } ]\n}"
           headers:

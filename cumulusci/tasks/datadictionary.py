@@ -193,6 +193,8 @@ class GenerateDataDictionary(BaseSourceControlTask):
 
         for dependency in scm_deps:
             repo: AbstractRepo = get_repo_from_url(self.project_config, dependency.url)
+            repo.logger = self.logger
+
             config: BaseProjectConfig = get_remote_project_config(repo, dependency.ref)
             package_name, namespace = BaseProjectConfig.get_package_data(config)
             packages.append(

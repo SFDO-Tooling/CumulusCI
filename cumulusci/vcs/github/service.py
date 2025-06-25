@@ -1,13 +1,6 @@
-# import functools
-# import io
 import os
-
-# import re
-# import time
 import webbrowser
-
-# from string import Template
-# from typing import Callable, Optional, Union
+from functools import lru_cache
 from typing import List, Optional, Union
 from urllib.parse import urlparse
 
@@ -21,12 +14,6 @@ from github3.exceptions import (
     ResponseError,
     TransportError,
 )
-
-# from github3.git import Reference, Tag
-# from github3.pulls import ShortPullRequest
-# from github3.repos.commit import RepoCommit
-# from github3.repos.release import Release
-# from github3.repos.repo import Repository
 from github3.session import GitHubSession
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
@@ -34,8 +21,6 @@ from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig
-
-# from cumulusci.core.dependencies.github import GitHubDynamicDependency
 from cumulusci.core.exceptions import (  # DependencyLookupError
     GithubApiError,
     GithubApiNotFoundError,
@@ -43,13 +28,6 @@ from cumulusci.core.exceptions import (  # DependencyLookupError
     ServiceNotConfigured,
 )
 from cumulusci.tasks.github.util import CommitDir
-
-# from cumulusci.oauth.client import (
-#     OAuth2ClientConfig,
-#     OAuth2DeviceConfig,
-#     get_device_code,
-#     get_device_oauth_token,
-# )
 from cumulusci.utils.git import parse_repo_url
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.github import GitHubRelease, GitHubRepository
@@ -58,13 +36,6 @@ from cumulusci.vcs.github.release_notes.generator import (
     ParentPullRequestNotesGenerator,
 )
 from cumulusci.vcs.github.release_notes.parser import parser_configs
-
-# from rich.console import Console
-
-
-# from cumulusci.utils.http.requests_utils import safe_json_from_response
-# from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
-
 
 OAUTH_DEVICE_APP = {
     "client_id": "2a4bc3e5ce4f2c49a957",
@@ -335,6 +306,15 @@ def check_github_sso_auth(exc: ResponseError) -> str:
     return user_warning
 
 
+@lru_cache(50)
+def get_github_service_for_url(
+    project_config: BaseProjectConfig, url: str
+) -> Optional[VCSService]:
+    return GitHubService.get_service_for_url(
+        project_config, url
+    ) or GitHubEnterpriseService.get_service_for_url(project_config, url)
+
+
 class GitHubService(VCSService):
     service_type = "github"
     _repo: GitHubRepository
@@ -435,11 +415,13 @@ class GitHubService(VCSService):
 
     @classmethod
     def get_service_for_url(
-        cls, project_config: BaseProjectConfig, url: str, options: dict = {}
+        cls,
+        project_config: BaseProjectConfig,
+        url: str,
+        service_alias: Optional[str] = None,
     ) -> Optional["GitHubService"]:
         """Returns the service configuration for the given URL."""
         _owner, _repo_name, host = parse_repo_url(url)
-        service_alias = options.get("service_alias", None)
 
         if host is None or host == "None" or "github.com" in host:
             service_config = project_config.keychain.get_service(
@@ -551,7 +533,10 @@ class GitHubEnterpriseService(GitHubService):
 
     @classmethod
     def get_service_for_url(
-        cls, project_config: BaseProjectConfig, url: str, options: dict = {}
+        cls,
+        project_config: BaseProjectConfig,
+        url: str,
+        service_alias: Optional[str] = None,
     ) -> Optional["GitHubEnterpriseService"]:
         """Returns the service configuration for the given URL."""
         _owner, _repo_name, host = parse_repo_url(url)

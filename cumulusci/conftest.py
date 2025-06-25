@@ -74,7 +74,7 @@ def mock_http_response():
     return _make_response
 
 
-@fixture(scope="session")
+@fixture(scope="function")
 def fallback_org_config():
     def fallback_org_config():
         return DummyOrgConfig(

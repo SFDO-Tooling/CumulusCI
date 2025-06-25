@@ -78,8 +78,8 @@ class VCSService(ABC):
     @classmethod
     @abstractmethod
     def get_service_for_url(
-        cls, project_config: BaseProjectConfig, url: str, options: dict = {}
-    ) -> "VCSService":
+        cls, project_config: BaseProjectConfig, url: str, service_alias: str = None
+    ) -> Optional["VCSService"]:
         """Returns the service configuration for the given URL.
         This method should be overridden by subclasses to provide
         specific logic for retrieving the service configuration.
@@ -127,7 +127,7 @@ class VCSService(ABC):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     @abstractmethod
-    def release_notes_generator(self) -> BaseReleaseNotesGenerator:
+    def release_notes_generator(self, options: dict) -> BaseReleaseNotesGenerator:
         """Returns the release notes generator for the VCS service."""
         raise NotImplementedError(
             "Subclasses should define the release_notes_generator property"

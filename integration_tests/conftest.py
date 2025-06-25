@@ -1,7 +1,7 @@
 from pytest import fixture
 
 
-@fixture(scope="session")
+@fixture(scope="function")
 def fallback_org_config(request):
     def fallback_org_config():
         raise AssertionError("--org orgname is required for integration tests.")

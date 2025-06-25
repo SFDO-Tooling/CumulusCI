@@ -23,15 +23,15 @@ class ConcreteVCSService(VCSService):
     def validate_service(cls, options, keychain):
         return {"validated": True}
 
-    def get_repository(self):
+    def get_repository(self, options: dict = {}):
         return DummyRepo()
 
     def parse_repo_url(self):
         pass
 
     @classmethod
-    def get_service_for_url(cls, url):
-        return cls()
+    def get_service_for_url(cls, config, url, service_alias=None):
+        return cls(config)
 
     @property
     def dynamic_dependency_class(self) -> DynamicDependency:
@@ -43,15 +43,18 @@ class ConcreteVCSService(VCSService):
     def markdown(self):
         pass
 
-    def parent_pr_notes_generator(self):
+    def parent_pr_notes_generator(self, repo):
         pass
 
-    def release_notes_generator(self):
+    def release_notes_generator(self, options: dict):
         pass
 
 
 class DummyCommitDir(AbstractCommitDir):
-    pass
+    def __call__(
+        self, local_dir, branch, repo_dir=None, commit_message=None, dry_run=False
+    ):
+        pass
 
 
 class DummyTag(AbstractGitTag):
@@ -102,46 +105,63 @@ class DummyRepo(AbstractRepo):
     ) -> "AbstractGitTag":
         return DummyTag(f"tag-{ref}-{tag_name}")
 
-    def branch(self):
+    def branch(self, branch_name: str):
         pass
 
     def branches(self):
         pass
 
-    def compare_commits(self):
+    def compare_commits(self, base: str, head: str, source: str):
         pass
 
-    def merge(self):
+    def merge(self, base: str, head: str, source: str, message: str = ""):
         pass
 
-    def archive(self):
+    def archive(self, format: str, zip_content, ref=None):
         pass
 
-    def create_pull(self):
+    def create_pull(
+        self,
+        title: str,
+        base: str,
+        head: str,
+        body: str = None,
+        maintainer_can_modify: bool = None,
+        options: dict = {},
+    ):
         pass
 
-    def create_release(self):
+    def create_release(
+        self,
+        tag_name: str,
+        name: str,
+        body: str = None,
+        draft: bool = False,
+        prerelease: bool = False,
+        options: dict = {},
+    ):
         pass
 
+    @property
     def default_branch(self):
         pass
 
     def full_name(self):
         pass
 
-    def get_commit(self):
+    def get_commit(self, commit_sha: str):
         pass
 
-    def pull_requests(self):
+    def pull_requests(self, **kwargs):
         pass
 
-    def release_from_tag(self):
+    def release_from_tag(self, tag_name: str):
         pass
 
     def releases(self):
         pass
 
-    def get_pr_issue_labels(self):
+    def get_pr_issue_labels(self, pull_request):
         pass
 
     def has_issues(self):
@@ -150,15 +170,16 @@ class DummyRepo(AbstractRepo):
     def latest_release(self):
         pass
 
+    @property
     def owner_login(self):
         pass
 
-    def directory_contents(self):
+    def directory_contents(self, subfolder: str, return_as, ref: str):
         pass
 
     @property
     def clone_url(self):
-        pass
+        return "https://github.com/test/repo.git"
 
     def file_contents(self, file_path: str, ref: str = None) -> StringIO:
         return self.repo.file_contents(file_path, ref=ref)
@@ -166,7 +187,17 @@ class DummyRepo(AbstractRepo):
     def get_latest_prerelease(self):
         pass
 
-    def get_ref(self):
+    def get_ref(self, ref_sha: str):
+        pass
+
+    def create_commit_status(
+        self,
+        commit_id: str,
+        context: str,
+        state: str,
+        description: str,
+        target_url: str,
+    ):
         pass
 
 

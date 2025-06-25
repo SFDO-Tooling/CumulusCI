@@ -24,6 +24,7 @@ from cumulusci.core.exceptions import (
     GithubException,
     PackageUploadFailure,
     TaskOptionsError,
+    VcsException,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
@@ -92,8 +93,6 @@ def project_config(repo_root):
             }
         )
     )
-
-    project_config.get_github_api = mock.Mock()
 
     return project_config
 
@@ -748,8 +747,10 @@ class TestCreatePackageVersion:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.create_package_version.get_version_id_from_tag")
+    @mock.patch("cumulusci.tasks.create_package_version.get_latest_tag")
+    @mock.patch("cumulusci.tasks.create_package_version.get_repo_from_config")
     def test_resolve_ancestor_id__latest_github_release(
-        self, get_version_id_from_tag, task
+        self, get_repo_from_config, get_latest_tag, get_version_id_from_tag, task
     ):
         responses.add(
             "GET",
@@ -760,6 +761,10 @@ class TestCreatePackageVersion:
         project_config = mock.Mock()
         task.project_config = project_config
 
+        # Mock the repo object
+        mock_repo = mock.Mock()
+        get_repo_from_config.return_value = mock_repo
+        get_latest_tag.return_value = "v1.0.0"
         get_version_id_from_tag.return_value = "04t000000000111"
 
         actual_id = task._resolve_ancestor_id("latest_github_release")
@@ -793,10 +798,19 @@ class TestCreatePackageVersion:
         assert actual_id == "05i000000000000"
 
     @responses.activate
-    def test_resolve_ancestor_id__no_release_found(self, task):
+    @mock.patch("cumulusci.tasks.create_package_version.get_latest_tag")
+    @mock.patch("cumulusci.tasks.create_package_version.get_repo_from_config")
+    def test_resolve_ancestor_id__no_release_found(
+        self, get_repo_from_config, get_latest_tag, task
+    ):
         project_config = mock.Mock()
         project_config.get_latest_tag.side_effect = GithubException
         task.project_config = project_config
+
+        # Mock the repo object
+        mock_repo = mock.Mock()
+        get_repo_from_config.return_value = mock_repo
+        get_latest_tag.side_effect = VcsException("No release found")
 
         assert task._resolve_ancestor_id("latest_github_release") == ""
 

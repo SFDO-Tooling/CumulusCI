@@ -62,6 +62,12 @@ def mock_oauth():
                 "NamespacePrefix": None,
             },
         )
+        rsps.add(
+            "GET",
+            url="https://test-dev-ed.my.salesforce.com/services/data/v63.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.Name,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage",
+            json={"records": []},
+            status=200,
+        )
 
         yield rsps
 
@@ -173,11 +179,6 @@ def test_run_task__namespaced_org(mock_oauth, task):
         match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
-    mock_oauth.add(
-        "GET",
-        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage",
-        json={"totalSize": 0, "records": []},
-    )
     mock_oauth.replace(
         "GET",
         f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/",
@@ -199,6 +200,11 @@ def test_run_task__managed_org(mock_oauth, task):
         "%%%NAMESPACE%%%test_prediction_v0",
         "%%%NAMESPACE%%%test_prediction_2_v0",
     ]
+
+    mock_oauth.remove(
+        "GET",
+        url="https://test-dev-ed.my.salesforce.com/services/data/v63.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.Name,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage",
+    )
 
     mock_oauth.add(
         "GET",

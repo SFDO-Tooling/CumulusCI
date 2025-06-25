@@ -7,11 +7,7 @@ import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    DependencyLookupError,
-    TaskOptionsError,
-)
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError, VcsException
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
 from cumulusci.tests.util import CURRENT_SF_API_VERSION, create_project_config
@@ -333,7 +329,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             return_value=devhub_config,
         ):
             task.options["version_id"] = None
-            with pytest.raises(DependencyLookupError):
+            with pytest.raises(VcsException):
                 task()
 
     @responses.activate
@@ -379,7 +375,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             return_value=devhub_config,
         ):
             task.options["version_id"] = None
-            with pytest.raises(DependencyLookupError):
+            with pytest.raises(VcsException):
                 task()
 
     def test_process_one_gp_dependencies(self, task, caplog):

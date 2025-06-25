@@ -363,7 +363,8 @@ def annoy_post_process(
         return selected_records, insertion_candidates
 
     hash_features = 100
-    num_trees = 10
+    # Adjust number of trees for small datasets to avoid issues
+    num_trees = max(1, min(10, len(query_records)))
 
     query_record_ids = [record[0] for record in query_records]
     query_record_data = [record[1:] for record in query_records]
@@ -391,7 +392,8 @@ def annoy_post_process(
     annoy_index.build(num_trees)
 
     # Find nearest neighbors for each query vector
-    n_neighbors = 1
+    # For small datasets, search more neighbors to ensure we find the best match
+    n_neighbors = min(len(query_records), 2)
 
     for i, load_vector in enumerate(final_load_vectors):
         # Get nearest neighbors' indices and distances
@@ -403,17 +405,25 @@ def annoy_post_process(
             distance / 2 for distance in nearest_neighbors[1]
         ]  # Distances sqrt(2(1-cos(u,v)))/2 lies between [0,1]
 
-        for idx, neighbor_index in enumerate(neighbor_indices):
-            # Retrieve the corresponding record from the database
-            record = query_record_data[neighbor_index]
-            closest_record_id = record_to_id_map[tuple(record)]
-            if threshold is not None and (neighbor_distances[idx] >= threshold):
-                selected_records.append(None)
-                insertion_candidates.append(load_shaped_records[i])
-            else:
-                selected_records.append(
-                    {"id": closest_record_id, "success": True, "created": False}
-                )
+        # Find the best match (minimum distance)
+        best_distance = neighbor_distances[0]
+        best_neighbor_index = neighbor_indices[0]
+
+        for idx in range(1, len(neighbor_indices)):
+            if neighbor_distances[idx] < best_distance:
+                best_distance = neighbor_distances[idx]
+                best_neighbor_index = neighbor_indices[idx]
+
+        # Use the best match
+        record = query_record_data[best_neighbor_index]
+        closest_record_id = record_to_id_map[tuple(record)]
+        if threshold is not None and (best_distance >= threshold):
+            selected_records.append(None)
+            insertion_candidates.append(load_shaped_records[i])
+        else:
+            selected_records.append(
+                {"id": closest_record_id, "success": True, "created": False}
+            )
 
     return selected_records, insertion_candidates
 
@@ -667,25 +677,33 @@ def vectorize_records(db_records, query_records, hash_features, weights):
         df_db[numerical_features] = scaler.fit_transform(df_db[numerical_features])
         df_query[numerical_features] = scaler.transform(df_query[numerical_features])
 
-    # Use HashingVectorizer to transform the categorical features
-    hashing_vectorizer = HashingVectorizer(
-        n_features=hash_features, alternate_sign=False
-    )
-
     # For db_records
     hashed_categorical_data_db = []
-    for idx, col in enumerate(categorical_features):
-        hashed_db = hashing_vectorizer.fit_transform(df_db[col]).toarray()
-        # Apply weight to the hashed vector for this categorical feature
-        hashed_db_weighted = hashed_db * categorical_weights[idx]
-        hashed_categorical_data_db.append(hashed_db_weighted)
-
     # For query_records
     hashed_categorical_data_query = []
+
+    # Process each categorical column separately with its own HashingVectorizer
     for idx, col in enumerate(categorical_features):
+        # Create a separate HashingVectorizer for each column to avoid hash collisions
+        hashing_vectorizer = HashingVectorizer(
+            n_features=hash_features, alternate_sign=False
+        )
+
+        # Combine all unique values from both db and query for this column to fit the vectorizer
+        all_values_for_col = pd.concat([df_db[col], df_query[col]]).unique()
+
+        # Fit the vectorizer on all unique values to ensure consistency
+        hashing_vectorizer.fit(all_values_for_col)
+
+        # Transform db and query data for this column
+        hashed_db = hashing_vectorizer.transform(df_db[col]).toarray()
         hashed_query = hashing_vectorizer.transform(df_query[col]).toarray()
-        # Apply weight to the hashed vector for this categorical feature
+
+        # Apply weight to the hashed vectors
+        hashed_db_weighted = hashed_db * categorical_weights[idx]
         hashed_query_weighted = hashed_query * categorical_weights[idx]
+
+        hashed_categorical_data_db.append(hashed_db_weighted)
         hashed_categorical_data_query.append(hashed_query_weighted)
 
     # Combine all feature types into a single vector for the database records

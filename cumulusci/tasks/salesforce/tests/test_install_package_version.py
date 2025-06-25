@@ -19,6 +19,23 @@ from cumulusci.tests.util import create_project_config
 from .util import create_task
 
 
+def create_mock_repo_service(project_config, package_dependency):
+    """Helper function to create a mock repo service for testing dynamic version resolution."""
+    mock_repo_service = mock.Mock()
+    mock_repo = mock.Mock()
+    mock_repo.clone_url = project_config.repo_url
+    mock_repo_service.get_repository.return_value = mock_repo
+
+    # Mock the dynamic dependency class and its instance
+    mock_dynamic_dependency_class = mock.Mock()
+    mock_dependency_instance = mock.Mock()
+    mock_dependency_instance.package_dependency = package_dependency
+    mock_dynamic_dependency_class.return_value = mock_dependency_instance
+    mock_repo_service.dynamic_dependency_class = mock_dynamic_dependency_class
+
+    return mock_repo_service, mock_dynamic_dependency_class, mock_dependency_instance
+
+
 @mock.patch(
     "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
 )
@@ -150,131 +167,171 @@ def test_init_options__float_version():
     assert task.options["version"] == "1.0"
 
 
-@mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
-)
-def test_init_options__dynamic_version_latest(mock_GitHubDynamicDependency):
+def test_init_options__dynamic_version_latest():
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.package_dependency = (
-        PackageNamespaceVersionDependency(namespace="ns", version="2.0")
+    package_dependency = PackageNamespaceVersionDependency(
+        namespace="ns", version="2.0"
     )
+    (
+        mock_repo_service,
+        mock_dynamic_dependency_class,
+        mock_dependency_instance,
+    ) = create_mock_repo_service(project_config, package_dependency)
 
-    task = create_task(
-        InstallPackageVersion,
-        {"version": "latest"},
-        project_config=project_config,
-    )
+    # Replace the repo_service property
+    with mock.patch.object(
+        type(project_config), "repo_service", new_callable=mock.PropertyMock
+    ) as mock_repo_service_prop:
+        mock_repo_service_prop.return_value = mock_repo_service
+
+        task = create_task(
+            InstallPackageVersion,
+            {"version": "latest"},
+            project_config=project_config,
+        )
+
     assert task.options["version"] == "2.0"
 
-    mock_GitHubDynamicDependency.assert_called_once_with(github=project_config.repo_url)
-    mock_GitHubDynamicDependency.return_value.resolve.assert_called_once_with(
+    mock_dynamic_dependency_class.assert_called_once_with(url=project_config.repo_url)
+    mock_dependency_instance.resolve.assert_called_once_with(
         project_config, get_resolver_stack(project_config, "production")
     )
 
 
-@mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
-)
-def test_init_options__dynamic_version_latest__2gp(mock_GitHubDynamicDependency):
+def test_init_options__dynamic_version_latest__2gp():
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.package_dependency = (
-        PackageVersionIdDependency(
-            version_id="04t000000000000", package_name="Test", version_number="2.0"
-        )
+    package_dependency = PackageVersionIdDependency(
+        version_id="04t000000000000", package_name="Test", version_number="2.0"
     )
+    (
+        mock_repo_service,
+        mock_dynamic_dependency_class,
+        mock_dependency_instance,
+    ) = create_mock_repo_service(project_config, package_dependency)
 
-    task = create_task(
-        InstallPackageVersion,
-        {"version": "latest"},
-        project_config=project_config,
-    )
+    # Replace the repo_service property
+    with mock.patch.object(
+        type(project_config), "repo_service", new_callable=mock.PropertyMock
+    ) as mock_repo_service_prop:
+        mock_repo_service_prop.return_value = mock_repo_service
+
+        task = create_task(
+            InstallPackageVersion,
+            {"version": "latest"},
+            project_config=project_config,
+        )
+
     assert task.options["version"] == "04t000000000000"
     assert task.options["version_number"] == "2.0"
 
-    mock_GitHubDynamicDependency.assert_called_once_with(github=project_config.repo_url)
-    mock_GitHubDynamicDependency.return_value.resolve.assert_called_once_with(
+    mock_dynamic_dependency_class.assert_called_once_with(url=project_config.repo_url)
+    mock_dependency_instance.resolve.assert_called_once_with(
         project_config, get_resolver_stack(project_config, "production")
     )
 
 
-@mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
-)
-def test_init_options__dynamic_version_latest_beta(mock_GitHubDynamicDependency):
+def test_init_options__dynamic_version_latest_beta():
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.package_dependency = (
-        PackageNamespaceVersionDependency(namespace="ns", version="2.0 Beta 1")
+    package_dependency = PackageNamespaceVersionDependency(
+        namespace="ns", version="2.0 Beta 1"
     )
+    (
+        mock_repo_service,
+        mock_dynamic_dependency_class,
+        mock_dependency_instance,
+    ) = create_mock_repo_service(project_config, package_dependency)
 
-    task = create_task(
-        InstallPackageVersion,
-        {"version": "latest_beta"},
-        project_config=project_config,
-    )
-    assert task.options["version"] == "2.0 Beta 1"
+    # Replace the repo_service property
+    with mock.patch.object(
+        type(project_config), "repo_service", new_callable=mock.PropertyMock
+    ) as mock_repo_service_prop:
+        mock_repo_service_prop.return_value = mock_repo_service
 
-    mock_GitHubDynamicDependency.assert_called_once_with(github=project_config.repo_url)
-    mock_GitHubDynamicDependency.return_value.resolve.assert_called_once_with(
-        project_config, get_resolver_stack(project_config, "include_beta")
-    )
-
-
-@mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
-)
-@mock.patch("cumulusci.tasks.salesforce.install_package_version.find_previous_release")
-def test_init_options__dynamic_version_previous(
-    mock_find_previous_release, mock_GitHubDynamicDependency
-):
-    project_config = create_project_config()
-    project_config.config["project"]["package"]["namespace"] = "ns"
-
-    mock_find_previous_release.return_value.tag_name = "release/1.0"
-    mock_GitHubDynamicDependency.return_value.package_dependency = (
-        PackageNamespaceVersionDependency(namespace="ns", version="1.0")
-    )
-    project_config.get_repo = mock.Mock()
-
-    task = create_task(
-        InstallPackageVersion,
-        {"version": "previous"},
-        project_config=project_config,
-    )
-    assert task.options["version"] == "1.0"
-
-    mock_find_previous_release(
-        project_config.get_repo.return_value,
-        project_config.project__git__prefix_release,
-    )
-    mock_GitHubDynamicDependency.assert_called_once_with(
-        github=project_config.repo_url, tag="release/1.0"
-    )
-    mock_GitHubDynamicDependency.return_value.resolve.assert_called_once_with(
-        project_config, get_resolver_stack(project_config, "production")
-    )
-
-
-@mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
-)
-def test_init_options__dynamic_version_no_managed_release(mock_GitHubDynamicDependency):
-    project_config = create_project_config()
-    project_config.config["project"]["package"]["namespace"] = "ns"
-
-    mock_GitHubDynamicDependency.return_value.package_dependency = None
-
-    with pytest.raises(CumulusCIException, match="does not identify"):
-        create_task(
+        task = create_task(
             InstallPackageVersion,
             {"version": "latest_beta"},
             project_config=project_config,
         )
+
+    assert task.options["version"] == "2.0 Beta 1"
+
+    mock_dynamic_dependency_class.assert_called_once_with(url=project_config.repo_url)
+    mock_dependency_instance.resolve.assert_called_once_with(
+        project_config, get_resolver_stack(project_config, "include_beta")
+    )
+
+
+@mock.patch("cumulusci.tasks.salesforce.install_package_version.find_previous_release")
+def test_init_options__dynamic_version_previous(mock_find_previous_release):
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+
+    mock_find_previous_release.return_value.tag_name = "release/1.0"
+    package_dependency = PackageNamespaceVersionDependency(
+        namespace="ns", version="1.0"
+    )
+    (
+        mock_repo_service,
+        mock_dynamic_dependency_class,
+        mock_dependency_instance,
+    ) = create_mock_repo_service(project_config, package_dependency)
+    project_config.get_repo = mock.Mock()
+
+    # Replace the repo_service property
+    with mock.patch.object(
+        type(project_config), "repo_service", new_callable=mock.PropertyMock
+    ) as mock_repo_service_prop:
+        mock_repo_service_prop.return_value = mock_repo_service
+
+        task = create_task(
+            InstallPackageVersion,
+            {"version": "previous"},
+            project_config=project_config,
+        )
+
+    assert task.options["version"] == "1.0"
+
+    mock_find_previous_release.assert_called_once_with(
+        mock_repo_service.get_repository.return_value,
+        project_config.project__git__prefix_release,
+    )
+    mock_dynamic_dependency_class.assert_called_once_with(
+        url=project_config.repo_url, tag="release/1.0"
+    )
+    mock_dependency_instance.resolve.assert_called_once_with(
+        project_config, get_resolver_stack(project_config, "production")
+    )
+
+
+def test_init_options__dynamic_version_no_managed_release():
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+
+    package_dependency = None  # This simulates no managed release found
+    (
+        mock_repo_service,
+        mock_dynamic_dependency_class,
+        mock_dependency_instance,
+    ) = create_mock_repo_service(project_config, package_dependency)
+
+    # Replace the repo_service property
+    with mock.patch.object(
+        type(project_config), "repo_service", new_callable=mock.PropertyMock
+    ) as mock_repo_service_prop:
+        mock_repo_service_prop.return_value = mock_repo_service
+
+        with pytest.raises(CumulusCIException, match="does not identify"):
+            create_task(
+                InstallPackageVersion,
+                {"version": "latest_beta"},
+                project_config=project_config,
+            )
 
 
 def test_init_options__name_inference():

@@ -19,9 +19,22 @@ from .pytest_sf_vcr_serializer import CompressionVCRSerializer
 
 
 def simplify_body(request_or_response_body):
-    decoded = request_or_response_body.decode("utf-8")
-    decoded = _cleanup(decoded)
+    # Handle different types of request bodies
+    if hasattr(request_or_response_body, "__iter__") and not isinstance(
+        request_or_response_body, (str, bytes)
+    ):
+        # Handle iterators (like list_iterator from iter(csv_batch))
+        # Return a simple string that can be serialized properly
+        return b"<iterator-data>"
+    elif isinstance(request_or_response_body, bytes):
+        decoded = request_or_response_body.decode("utf-8")
+    elif isinstance(request_or_response_body, str):
+        decoded = request_or_response_body
+    else:
+        # For other types, convert to string
+        decoded = str(request_or_response_body)
 
+    decoded = _cleanup(decoded)
     return decoded.encode()
 
 
@@ -166,7 +179,16 @@ def bind_vcr_state(request, vcr_state):
 
 def _cleanup(s: str):
     if s:
-        s = str(s, "utf-8") if isinstance(s, bytes) else s
+        # Handle different types of input
+        if hasattr(s, "__iter__") and not isinstance(s, (str, bytes)):
+            # Handle iterators (like bytes_iterator)
+            # Return a consistent placeholder to enable VCR matching
+            s = "<iterator-data>"
+        elif isinstance(s, bytes):
+            s = str(s, "utf-8")
+        else:
+            s = str(s)
+
         for pattern, replacement in replacements:
             s = pattern.sub(replacement, s)
         return s

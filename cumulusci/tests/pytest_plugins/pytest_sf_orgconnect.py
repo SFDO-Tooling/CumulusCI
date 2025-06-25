@@ -75,19 +75,19 @@ def user_requested_cassette_replacement(request):
     return request.config.getoption("--replace-vcrs")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def runtime():
     """Get the CumulusCI runtime for the current working directory."""
     return CliRuntime()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def project_config(runtime):
     """Get the project config for the current working directory."""
     return runtime.project_config
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def cli_org_config(request):
     """What org did the user specify on the CLI or pytest options?"""
     cli_org_name = sf_pytest_cli_orgname(request)
@@ -191,7 +191,7 @@ class CurrentOrg:
         self.org_config = None
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def org_shapes():
     org_shapes = {}
     try:
@@ -225,7 +225,7 @@ def cleanup_org(runtime, org_name, errors):
         pass
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def current_org_shape(request):
     """Internal: shared state for fixtures"""
     org = CurrentOrg()

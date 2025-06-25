@@ -16,8 +16,11 @@ from .util import create_task
 
 
 class TestDeploy:
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api(self, rest_deploy):
+    def test_get_api(self, mock_org_config, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -37,7 +40,10 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
-    def test_create_api_object(self):
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
+    def test_create_api_object(self, mock_org_config):
         with temporary_dir() as path:
             task = create_task(
                 Deploy,
@@ -77,7 +83,10 @@ class TestDeploy:
             assert api_object.package_xml.split() == expected_package_xml.split()
             assert api_object.api_version == "58.0"
 
-    def test_collision_check_positive(self):
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
+    def test_collision_check_positive(self, mock_org_config):
         with temporary_dir() as path:
             touch("package.xml")
             with open("package.xml", "w") as f:
@@ -137,7 +146,10 @@ class TestDeploy:
                 "ListView": [],
             }
 
-    def test_collision_check_negative(self):
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
+    def test_collision_check_negative(self, mock_org_config):
 
         with temporary_dir() as path:
             touch("package.xml")
@@ -198,8 +210,11 @@ class TestDeploy:
                 "ListView": [],
             }
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api__managed(self, rest_deploy):
+    def test_get_api__managed(self, mock_org_config, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -217,8 +232,11 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api__additional_options(self, rest_deploy):
+    def test_get_api__additional_options(self, mock_org_config, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -236,8 +254,11 @@ class TestDeploy:
             assert api.run_tests == ["TestA", "TestB"]
             assert api.test_level == "RunSpecifiedTests"
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api__skip_clean_meta_xml(self, rest_deploy):
+    def test_get_api__skip_clean_meta_xml(self, mock_org_config, rest_deploy):
         with temporary_dir() as path:
             touch("package.xml")
             task = create_task(
@@ -255,8 +276,11 @@ class TestDeploy:
             assert "package.xml" in zf.namelist()
             zf.close()
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api__static_resources(self, rest_deploy):
+    def test_get_api__static_resources(self, mock_org_config, rest_deploy):
         with temporary_dir() as path:
             with open("package.xml", "w") as f:
                 f.write(
@@ -297,8 +321,11 @@ class TestDeploy:
                 assert "<members>TestBundle</members>" in package_xml
                 zf.close()
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api__missing_path(self, rest_deploy):
+    def test_get_api__missing_path(self, mock_org_config, rest_deploy):
         task = create_task(
             Deploy,
             {
@@ -311,8 +338,11 @@ class TestDeploy:
         api = task._get_api()
         assert api is None
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_get_api__empty_package_zip(self, rest_deploy):
+    def test_get_api__empty_package_zip(self, mock_org_config, rest_deploy):
         with temporary_dir() as path:
             task = create_task(
                 Deploy,
@@ -326,7 +356,10 @@ class TestDeploy:
             api = task._get_api()
             assert api is None
 
-    def test_get_api__collision_detected(self):
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
+    def test_get_api__collision_detected(self, mock_org_config):
         with temporary_dir() as path:
             task = create_task(
                 Deploy,
@@ -344,8 +377,11 @@ class TestDeploy:
             api = task._get_api()
             assert api is None
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_init_options(self, rest_deploy):
+    def test_init_options(self, mock_org_config, rest_deploy):
         with pytest.raises(TaskOptionsError):
             create_task(
                 Deploy,
@@ -374,8 +410,11 @@ class TestDeploy:
                 },
             )
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_init_options__transforms(self, rest_deploy):
+    def test_init_options__transforms(self, mock_org_config, rest_deploy):
         d = create_task(
             Deploy,
             {
@@ -388,8 +427,11 @@ class TestDeploy:
         assert len(d.transforms) == 1
         assert isinstance(d.transforms[0], CleanMetaXMLTransform)
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_init_options__bad_transforms(self, rest_deploy):
+    def test_init_options__bad_transforms(self, mock_org_config, rest_deploy):
         with pytest.raises(TaskOptionsError) as e:
             create_task(
                 Deploy,
@@ -402,8 +444,11 @@ class TestDeploy:
 
             assert "transform spec is not valid" in str(e)
 
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig.installed_packages", return_value=[]
+    )
     @pytest.mark.parametrize("rest_deploy", [True, False])
-    def test_freeze_sets_kind(self, rest_deploy):
+    def test_freeze_sets_kind(self, mock_org_config, rest_deploy):
         task = create_task(
             Deploy,
             {

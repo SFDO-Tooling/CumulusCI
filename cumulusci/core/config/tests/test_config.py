@@ -30,11 +30,11 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyResolutionError,
     FlowNotFoundError,
-    GithubException,
     KeychainNotFound,
     NamespaceNotFoundError,
     ServiceNotConfigured,
     TaskNotFoundError,
+    VcsException,
 )
 from cumulusci.core.keychain.base_project_keychain import (
     DEFAULT_CONNECTED_APP,
@@ -240,6 +240,49 @@ class DummyGithub(object):
             return self.repositories[name]
         except KeyError:
             raise AssertionError(f"Unexpected repository: {name}")
+
+
+class DummyGithubRepository(object):
+    """A wrapper around DummyRepository that follows the AbstractRepo interface"""
+
+    def __init__(self, dummy_repo, **kwargs):
+        self.repo = dummy_repo  # This contains the actual DummyRepository
+        self.logger = kwargs.get("logger")
+        self.project_config = kwargs.get("project_config")
+        self.repo_name = dummy_repo.name
+        self.repo_owner = dummy_repo.owner
+        self.repo_url = dummy_repo.html_url
+
+    def latest_release(self):
+        """Return the latest release from the wrapped repository"""
+        return self.repo.latest_release()
+
+    def releases(self):
+        """Return releases from the wrapped repository"""
+        return self.repo.releases()
+
+    def release_from_tag(self, tag_name):
+        """Return release for a specific tag from the wrapped repository"""
+        return self.repo.release_from_tag(tag_name)
+
+
+class DummyService(object):
+    """A dummy VCS service that returns DummyGithubRepository instances"""
+
+    def __init__(self, dummy_github, dummy_project_config=None):
+        self.dummy_github = dummy_github
+        self.logger = None
+        self.project_config = dummy_project_config
+
+    def get_repository(self, options=None):
+        """Return a DummyGithubRepository wrapping the DummyRepository"""
+        # For the test, we'll use the CumulusCI repository
+        dummy_repo = self.dummy_github.repositories["CumulusCI"]
+        if dummy_repo is None:
+            return None  # This will cause the get_repo() method to raise an exception
+        return DummyGithubRepository(
+            dummy_repo, logger=self.logger, project_config=self.project_config
+        )
 
 
 class TestBaseProjectConfig:
@@ -477,23 +520,28 @@ class TestBaseProjectConfig:
 
             assert config.repo_commit is not None
 
-    def test_get_repo_from_url(self):
+    @mock.patch("cumulusci.vcs.bootstrap.get_repo_from_url")
+    def test_get_repo_from_url(self, mock_get_repo):
         config = BaseProjectConfig(
             UniversalConfig(),
             {},
         )
 
-        config.get_github_api = mock.Mock()
+        mock_repo = mock.Mock()
+        mock_get_repo.return_value = mock_repo
 
-        assert config.get_repo_from_url("https://github.com/Test/TestRepo") == (
-            config.get_github_api.return_value.repository.return_value
+        result = config.get_repo_from_url("https://github.com/Test/TestRepo")
+
+        # Assert the result is the same repo returned by the bootstrap function
+        assert result == mock_repo
+
+        # Assert the bootstrap function was called with the correct arguments
+        mock_get_repo.assert_called_once_with(
+            config, "https://github.com/Test/TestRepo"
         )
-        config.get_github_api.assert_called_once_with(
-            "https://github.com/Test/TestRepo"
-        )
-        config.get_github_api.return_value.repository.assert_called_once_with(
-            "Test", "TestRepo"
-        )
+
+        # Assert that the logger was set on the returned repo
+        assert mock_repo.logger == config.logger
 
     def test_get_latest_tag(self):
         config = BaseProjectConfig(
@@ -504,22 +552,14 @@ class TestBaseProjectConfig:
                 }
             },
         )
-        config.get_github_api = mock.Mock(return_value=self._make_github())
+        # Mock the repo service to return our DummyService
+        dummy_github = self._make_github()
+        dummy_service = DummyService(dummy_github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
         result = config.get_latest_tag()
         assert result == "release/1.1"
-
-    def test_get_project_service(self):
-        config = BaseProjectConfig(
-            UniversalConfig(),
-            {
-                "project": {
-                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
-                }
-            },
-        )
-        service, alias = config.get_project_service()
-        assert service == "github"
-        assert alias is None
 
     def test_get_package_data(self):
         config = BaseProjectConfig(
@@ -536,28 +576,6 @@ class TestBaseProjectConfig:
             "foo",
         )
 
-    def test_get_project_service_type_alias(self):
-        config = BaseProjectConfig(
-            UniversalConfig(),
-            {
-                "project": {
-                    "service": {"service_type": "scm", "service_alias": "myalias"}
-                }
-            },
-        )
-        service, alias = config.get_project_service()
-        assert service == "scm"
-        assert alias == "myalias"
-
-    def test_get_project_service_str(self):
-        config = BaseProjectConfig(
-            UniversalConfig(),
-            {"project": {"service": "scm"}},
-        )
-        service, alias = config.get_project_service()
-        assert service == "scm"
-        assert alias is None
-
     def test_get_latest_tag_matching_prefix(self):
         config = BaseProjectConfig(
             UniversalConfig(),
@@ -567,7 +585,9 @@ class TestBaseProjectConfig:
         github.repositories["CumulusCI"]._releases.append(
             DummyRelease("rel/0.9", "0.9")
         )
-        config.get_github_api = mock.Mock(return_value=github)
+        dummy_service = DummyService(github, config)
+        config._repo_info = {"vcs_service": dummy_service}
+
         result = config.get_latest_tag()
         assert result == "rel/0.9"
 
@@ -580,7 +600,11 @@ class TestBaseProjectConfig:
                 }
             },
         )
-        config.get_github_api = mock.Mock(return_value=self._make_github())
+        dummy_github = self._make_github()
+        dummy_service = DummyService(dummy_github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
         result = config.get_latest_tag(beta=True)
         assert result == "beta/1.0-Beta_2"
 
@@ -588,24 +612,33 @@ class TestBaseProjectConfig:
         config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"]._releases = []
-        config.get_github_api = mock.Mock(return_value=github)
-        with pytest.raises(GithubException):
+        dummy_service = DummyService(github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
+        with pytest.raises(VcsException):
             config.get_latest_tag(beta=True)
 
     def test_get_latest_tag__repo_not_found(self):
         config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"] = None
-        config.get_github_api = mock.Mock(return_value=github)
-        with pytest.raises(GithubException):
+        dummy_service = DummyService(github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
+        with pytest.raises(VcsException):
             config.get_latest_tag()
 
     def test_get_latest_tag__release_not_found(self):
         config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"]._releases = []
-        config.get_github_api = mock.Mock(return_value=github)
-        with pytest.raises(GithubException):
+        dummy_service = DummyService(github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
+        with pytest.raises(VcsException):
             config.get_latest_tag()
 
     def test_get_latest_version(self):
@@ -617,7 +650,11 @@ class TestBaseProjectConfig:
                 }
             },
         )
-        config.get_github_api = mock.Mock(return_value=self._make_github())
+        dummy_github = self._make_github()
+        dummy_service = DummyService(dummy_github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
         result = config.get_latest_version()
         assert result == "1.1"
 
@@ -630,7 +667,11 @@ class TestBaseProjectConfig:
                 }
             },
         )
-        config.get_github_api = mock.Mock(return_value=self._make_github())
+        dummy_github = self._make_github()
+        dummy_service = DummyService(dummy_github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
         result = config.get_latest_version(beta=True)
         assert result == "1.0 (Beta 2)"
 
@@ -643,7 +684,11 @@ class TestBaseProjectConfig:
                 }
             },
         )
-        config.get_github_api = mock.Mock(return_value=self._make_github())
+        dummy_github = self._make_github()
+        dummy_service = DummyService(dummy_github, config)
+        dummy_service.logger = config.logger
+        config._repo_info = {"vcs_service": dummy_service}
+
         result = config.get_previous_version()
         assert result == "1.0"
 
@@ -1255,6 +1300,7 @@ class TestOrgConfig:
                     "SubscriberPackage": {
                         "Id": "03350000000DEz4AAG",
                         "NamespacePrefix": "GW_Volunteers",
+                        "Name": "PKG1",
                     },
                     "SubscriberPackageVersionId": "04t1T00000070yqQAA",
                 },
@@ -1262,6 +1308,7 @@ class TestOrgConfig:
                     "SubscriberPackage": {
                         "Id": "03350000000DEz5AAG",
                         "NamespacePrefix": "GW_Volunteers",
+                        "Name": "PKG2",
                     },
                     "SubscriberPackageVersionId": "04t000000000001AAA",
                 },
@@ -1269,6 +1316,7 @@ class TestOrgConfig:
                     "SubscriberPackage": {
                         "Id": "03350000000DEz7AAG",
                         "NamespacePrefix": "TESTY",
+                        "Name": "PKG3",
                     },
                     "SubscriberPackageVersionId": "04t000000000002AAA",
                 },
@@ -1276,6 +1324,7 @@ class TestOrgConfig:
                     "SubscriberPackage": {
                         "Id": "03350000000DEz4AAG",
                         "NamespacePrefix": "blah",
+                        "Name": "PKG4",
                     },
                     "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
                 },
@@ -1283,6 +1332,7 @@ class TestOrgConfig:
                     "SubscriberPackage": {
                         "Id": "03350000000DEz8AAG",
                         "NamespacePrefix": "error",
+                        "Name": "PKG5",
                     },
                     "SubscriberPackageVersionId": "04t0000000ERRORAAA",
                 },
@@ -1347,12 +1397,16 @@ class TestOrgConfig:
                 VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
                 VersionInfo("04t000000000001AAA", StrictVersion("12.0.1")),
             ],
+            "PKG1": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
+            ],
             "GW_Volunteers@3.119": [
                 VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
             ],
             "GW_Volunteers@12.0.1": [
                 VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
             ],
+            "PKG2": [VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))],
             "TESTY": [VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))],
             "TESTY@1.10b5": [
                 VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
@@ -1365,6 +1419,9 @@ class TestOrgConfig:
             ],
             "03350000000DEz7AAG": [
                 VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
+            "PKG3": [
+                VersionInfo(id="04t000000000002AAA", number=StrictVersion("1.10b5"))
             ],
         }
         # get it twice so we can make sure it is cached

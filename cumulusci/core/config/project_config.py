@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.debug import get_debug_mode
-from cumulusci.core.utils import import_global
 from cumulusci.core.versions import PackageVersionNumber
 from cumulusci.plugins.plugin_loader import load_plugins
 from cumulusci.utils.version_strings import LooseVersion
@@ -565,42 +564,24 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         return vcs_service
 
-    # def _get_repo_service_from_path(
-    #     self,
-    #     url: str,
-    #     provider_path: str,
-    #     service_alias: Optional[str] = None,
-    # ) -> Optional["VCSService"]:
-    #     try:
-    #         vcs_service_cls = import_global("cumulusci.vcs.base.VCSService")
-    #         provider_klass = import_global(provider_path)
+    @repo_service.setter
+    def repo_service(self, vcs_service: "VCSService"):
+        """Set the VCS service for this project config."""
+        from cumulusci.vcs.base import VCSService
 
-    #         if issubclass(provider_klass, vcs_service_cls):
-    #             vcs_service: VCSService = provider_klass.get_service_for_url(
-    #                 self, url, options={"service_alias": service_alias}
-    #             )
-    #             return vcs_service
-    #     except ImportError as e:
-    #         raise VcsException(
-    #             f"Failed to import provider class from path '{provider_path}': {e}"
-    #         )
+        if not isinstance(vcs_service, VCSService):
+            raise TypeError("repo_service must be an instance of VCSService")
+
+        self._repo_info["vcs_service"] = vcs_service
 
     def get_service_type_for_repo(
         self, url: str, service_alias: Optional[str] = None
     ) -> "VCSService":
-        """Determines the VCS service type for the repository."""
+        from cumulusci.vcs.bootstrap import get_service_for_repo_url
 
-        vcs_service_cls = import_global("cumulusci.vcs.base.VCSService")
-
-        for service in vcs_service_cls.registered_services():
-            vcs_service: Optional[VCSService] = service.get_service_for_url(
-                self, url, options={"service_alias": service_alias}
-            )
-
-            if vcs_service is None:
-                continue
-
-            return vcs_service
+        vcs_service = get_service_for_repo_url(self, url, service_alias=service_alias)
+        vcs_service.logger = self.logger
+        return vcs_service
 
     def get_tag_for_version(self, prefix: str, version: str) -> str:
         """Given a prefix and version, returns the appropriate tag name to use."""
@@ -635,8 +616,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             )
 
     def get_repo_from_url(self, url: str) -> Optional[AbstractRepo]:
-        vcs_service = self.get_service_type_for_repo(url)
-        return vcs_service.get_repository(options={"repository_url": url})
+        from cumulusci.vcs.bootstrap import get_repo_from_url
+
+        repo = get_repo_from_url(self, url)
+        repo.logger = self.logger
+        return repo
 
     def get_task(self, name: str) -> TaskConfig:
         """Get a TaskConfig by task name

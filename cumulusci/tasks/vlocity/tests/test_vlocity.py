@@ -172,7 +172,7 @@ def test_deploy_omni_studio_site_settings_scratch(
 ):
     for org_type, url in ORG_TYPES.items():
         org_config = mock.Mock(
-            installed_packages=[],
+            installed_packages={},
             instance_url=url,
             instance_name="CS28",
             scratch=True,
@@ -205,7 +205,7 @@ def test_deploy_omni_studio_site_settings(
     project_config, task_config, expected_namespace
 ):
     org_config = mock.Mock(
-        installed_packages=[],
+        installed_packages={},
         instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
         instance_name="CS28",
     )

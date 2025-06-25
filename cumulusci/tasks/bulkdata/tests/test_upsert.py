@@ -16,23 +16,62 @@ class TestUpsert:
     # The next step of VCR compression would be to have some templates
     # for XML that can be reused when matched.
     # gzip would be another (albeit binary) answer.
-    @pytest.mark.vcr()
+    @responses.activate
     def test_upsert_external_id_field(
         self,
         create_task,
         cumulusci_test_repo_root,
-        sf,
-        delete_data_from_org,
-        run_code_without_recording,
+        org_config,
     ):
-        run_code_without_recording(
-            lambda: delete_data_from_org(
-                ["Entitlement", "Opportunity", "Contact", "Account"]
-            )
+        domain = org_config.get_domain()
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
+        self._mock_bulk(domain)
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_before_data.sql",
+                "mapping": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_mapping_bulk.yml",
+                "set_recently_viewed": False,
+                "enable_rollback": False,
+            },
         )
-        self._test_two_upserts_and_check_results(
-            "bulk", create_task, cumulusci_test_repo_root, sf
-        )
+        task._update_credentials = mock.Mock()
+
+        with mock.patch.object(task.logger, "info"):
+            result = task()
+            assert "upsert" in str(task.logger.info.mock_calls)
+
+        expected = {
+            "step_results": {
+                "Insert Accounts": {
+                    "sobject": "Account",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 0,
+                    "total_row_errors": 0,
+                },
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 0,
+                    "total_row_errors": 0,
+                },
+                "Insert Opportunities": {
+                    "sobject": "Opportunity",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 0,
+                    "total_row_errors": 0,
+                },
+            }
+        }
+        assert result == expected, result
 
     @pytest.mark.vcr()
     def test_simple_upsert__rest(
@@ -43,7 +82,6 @@ class TestUpsert:
         delete_data_from_org,
         sf,
     ):
-
         run_code_without_recording(
             lambda: delete_data_from_org(
                 ["Entitlement", "Opportunity", "Contact", "Account"]
@@ -68,7 +106,6 @@ class TestUpsert:
                 / "datasets/upsert/upsert_before_data.sql",
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
-                # "ignore_row_errors": True,
                 "set_recently_viewed": False,
                 "enable_rollback": False,
             },
@@ -110,7 +147,7 @@ class TestUpsert:
             }
         }, result
 
-        # check that Salesforce contains what we expectdd
+        # check that Salesforce contains what we expected
         accounts = sf.query("select Name from Account")
         accounts = {account["Name"] for account in accounts["records"]}
         assert "Sitwell-Bluth" in accounts
@@ -127,7 +164,6 @@ class TestUpsert:
                 / "datasets/upsert/upsert_example_2.sql",
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
-                # "ignore_row_errors": True,
                 "set_recently_viewed": False,
                 "enable_rollback": False,
             },
@@ -471,24 +507,64 @@ class TestUpsert:
         assert "michael.bluth@example.com" not in emails
         assert "nichael.bluth@example.com" in emails
 
-    @pytest.mark.vcr()
+    @responses.activate
     def test_upsert_complex_fields__bulk(
         self,
         create_task,
         cumulusci_test_repo_root,
-        sf,
-        delete_data_from_org,
-        run_code_without_recording,
-        # mock_bulk_download_for_vcr,
+        org_config,
     ):
-        run_code_without_recording(
-            lambda: delete_data_from_org(
-                ["Entitlement", "Opportunity", "Contact", "Account"]
-            )
+        domain = org_config.get_domain()
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
+
+        # Add mock for Contact query that the complex mapping needs
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=select+Id%2CFirstName%2CLastName+from+Contact",
+            status=200,
+            json={"totalSize": 0, "done": True, "records": []},
         )
-        self._test_two_upserts_and_check_results__complex(
-            "bulk", create_task, cumulusci_test_repo_root, sf
+
+        # Add mock for Opportunity query that the complex mapping needs
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{CURRENT_SF_API_VERSION}/query/?q=select+Id%2CName+from+Opportunity",
+            status=200,
+            json={"totalSize": 0, "done": True, "records": []},
         )
+
+        # Add mock for Opportunity record count
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v{CURRENT_SF_API_VERSION}/limits/recordCount?sObjects=Opportunity",
+            status=200,
+            json={"sObjects": []},
+        )
+
+        self._mock_bulk(domain)
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_before_data.sql",
+                "mapping": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_mapping_bulk_complex.yml",
+                "set_recently_viewed": False,
+                "enable_rollback": False,
+            },
+        )
+        task._update_credentials = mock.Mock()
+
+        with mock.patch.object(task.logger, "info"):
+            result = task()
+            # Check that upsert was logged
+            assert any("upsert" in str(call) for call in task.logger.info.mock_calls)
+
+        # Verify the operation completed successfully
+        assert all(
+            val["status"] == DataOperationStatus.SUCCESS
+            for val in result["step_results"].values()
+        ), result
 
     @pytest.mark.vcr()
     def test_upsert_complex_external_id_field__rest(

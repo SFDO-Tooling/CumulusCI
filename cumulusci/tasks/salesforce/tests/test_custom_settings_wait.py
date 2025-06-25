@@ -62,6 +62,7 @@ class TestRunCustomSettingsWait(MockLoggerMixin):
         task = CustomSettingValueWait(
             self.project_config, self.task_config, self.org_config
         )
+        self.org_config._installed_packages = {}
         url = self.base_normal_url
         return task, url
 
