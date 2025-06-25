@@ -297,10 +297,9 @@ def retrieve_components(
             components, profiles = separate_profiles(components)
 
         if components:
-            # Create package.xml in a temp folder inside the project directory
+            # Create package.xml in a temp folder inside the current working directory
             import tempfile
-            project_dir = os.getcwd() if project_config is None else project_config.project_config_dir
-            temp_dir = tempfile.mkdtemp(prefix="cci_retrieve_", dir=project_dir)
+            temp_dir = tempfile.mkdtemp(prefix="cci_retrieve_", dir=os.getcwd())
             package_xml_path = temp_dir
             _write_manifest(components, package_xml_path, api_version)
 
