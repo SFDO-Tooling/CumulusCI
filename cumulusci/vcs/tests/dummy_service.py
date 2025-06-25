@@ -51,7 +51,10 @@ class ConcreteVCSService(VCSService):
 
 
 class DummyCommitDir(AbstractCommitDir):
-    pass
+    def __call__(
+        self, local_dir, branch, repo_dir=None, commit_message=None, dry_run=False
+    ):
+        pass
 
 
 class DummyTag(AbstractGitTag):
