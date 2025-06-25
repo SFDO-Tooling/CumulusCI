@@ -297,35 +297,43 @@ def retrieve_components(
             components, profiles = separate_profiles(components)
 
         if components:
-            # Construct package.xml with components to retrieve, in its own tempdir
-            package_xml_path = stack.enter_context(temporary_dir(chdir=False))
+            # Create package.xml in a temp folder inside the project directory
+            import tempfile
+            project_dir = os.getcwd() if project_config is None else project_config.project_config_dir
+            temp_dir = tempfile.mkdtemp(prefix="cci_retrieve_", dir=project_dir)
+            package_xml_path = temp_dir
             _write_manifest(components, package_xml_path, api_version)
 
-            # Build args list conditionally including --output-dir
-            sfdx_args = [
-                "-a",
-                str(api_version),
-                "-x",
-                os.path.join(package_xml_path, "package.xml"),
-                "-w",
-                "5",
-                "--ignore-conflicts",
-            ]
-            
-            # Only add --output-dir if output_dir was specified
-            if output_dir:
-                sfdx_args.extend(["--output-dir", retrieve_target])
+            try:
+                # Build args list conditionally including --output-dir
+                sfdx_args = [
+                    "-a",
+                    str(api_version),
+                    "-x",
+                    os.path.join(package_xml_path, "package.xml"),
+                    "-w",
+                    "5",
+                    "--ignore-conflicts",
+                ]
+                
+                # Only add --output-dir if output_dir was specified
+                if output_dir:
+                    sfdx_args.extend(["--output-dir", retrieve_target])
 
-            # Retrieve specified components in DX format
-            p = sfdx(
-                "project retrieve start",
-                access_token=org_config.access_token,
-                log_note="Retrieving components",
-                args=sfdx_args,
-                capture_output=capture_output,
-                check_return=True,
-                env={"SF_ORG_INSTANCE_URL": org_config.instance_url},
-            )
+                # Retrieve specified components in DX format
+                p = sfdx(
+                    "project retrieve start",
+                    access_token=org_config.access_token,
+                    log_note="Retrieving components",
+                    args=sfdx_args,
+                    capture_output=capture_output,
+                    check_return=True,
+                    env={"SF_ORG_INSTANCE_URL": org_config.instance_url},
+                )
+            finally:
+                # Clean up the temp directory
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
         # Extract Profiles
         if profiles:
