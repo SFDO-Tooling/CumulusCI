@@ -64,7 +64,7 @@ class SfdxOrgConfig(OrgConfig):
         if org_info["result"].get("password"):
             sfdx_info["password"] = org_info["result"]["password"]
         self._sfdx_info = sfdx_info
-        self._sfdx_info_date = datetime.datetime.utcnow()
+        self._sfdx_info_date = datetime.datetime.now(datetime.timezone.utc)
         self.config.update(sfdx_info)
 
         sfdx_info.update(

@@ -621,7 +621,7 @@ class TestOrgCommands:
                 {
                     "default": False,
                     "scratch": True,
-                    "date_created": datetime.now() - timedelta(days=1),
+                    "date_created": datetime.now(),
                     "days": 7,
                     "config_name": "dev",
                     "username": "test1@example.com",
@@ -755,7 +755,7 @@ class TestOrgCommands:
                 {
                     "default": False,
                     "scratch": True,
-                    "date_created": datetime.now() - timedelta(days=1),
+                    "date_created": datetime.now(),
                     "days": 7,
                     "config_name": "dev",
                     "username": "test1@example.com",
@@ -810,7 +810,7 @@ class TestOrgCommands:
             "test1": {
                 "is_default": False,
                 "name": "test1",
-                "days": "1/7",
+                "days": "2/7",
                 "expired": False,
                 "config": "dev",
                 "domain": "sneaky-master-2330-dev-ed.cs22",
