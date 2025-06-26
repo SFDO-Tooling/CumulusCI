@@ -237,7 +237,7 @@ class MockRelease(AbstractRelease):
 
 # Concrete VCS Service implementations for testing
 class ConcreteVCSService(VCSService):
-    service_type = "github"
+    service_type = "test_service"
 
     @classmethod
     def validate_service(cls, options, keychain):
@@ -251,7 +251,9 @@ class ConcreteVCSService(VCSService):
 
     @classmethod
     def get_service_for_url(cls, project_config, url, service_alias=None):
-        return cls(project_config)
+        return (
+            cls(project_config) if url == "https://test_service.com/test/repo" else None
+        )
 
     @property
     def dynamic_dependency_class(self):
@@ -304,9 +306,9 @@ class TestVCSService:
     def test_service_type_property_class_attribute(self, project_config, keychain):
         """Test service_type property returns class attribute"""
         service = ConcreteVCSService(project_config)
-        assert service.service_type == "github"
+        assert service.service_type == "test_service"
         # Also test that the property returns the class attribute correctly
-        assert ConcreteVCSService.service_type == "github"
+        assert ConcreteVCSService.service_type == "test_service"
 
     def test_service_type_property_raises_not_implemented(
         self, project_config, keychain
@@ -332,7 +334,7 @@ class TestVCSService:
 
             @classmethod
             def get_service_for_url(cls, project_config, url, service_alias=None):
-                return None  # cls(project_config)
+                return cls(project_config)
 
             def get_committer(self, repo: AbstractRepo):
                 return MockCommitDir()
@@ -378,7 +380,7 @@ class TestVCSService:
     def test_get_service_for_url_class_method(self, project_config, keychain):
         """Test get_service_for_url class method"""
         service = ConcreteVCSService.get_service_for_url(
-            project_config, "https://github.com/test/repo", {}
+            project_config, "https://test_service.com/test/repo", {}
         )
         assert isinstance(service, ConcreteVCSService)
 
@@ -615,8 +617,10 @@ class TestVCSService:
         repo = service.get_repository({})
         assert isinstance(repo, MockRepo)
 
-        # Test get_service_for_url with empty options
-        result = ConcreteVCSService.get_service_for_url(project_config, "url", {})
+        # Test get_service_for_url with empty alias
+        result = ConcreteVCSService.get_service_for_url(
+            project_config, "https://test_service.com/test/repo", ""
+        )
         assert isinstance(result, ConcreteVCSService)
 
     def test_none_parameters_handling(self, project_config, keychain):
@@ -661,13 +665,11 @@ class TestVCSService:
         # Test the existing ConcreteVCSService to ensure we hit the return path
         service = ConcreteVCSService(project_config)
         # Access service_type multiple times to ensure coverage
-        result1 = service.service_type
-        result2 = service.service_type
-        assert result1 == "github"
-        assert result2 == "github"
+        assert service.service_type == "test_service"
+        assert service.service_type == "test_service"
 
         # Also test accessing it directly from the class
-        assert ConcreteVCSService.service_type == "github"
+        assert ConcreteVCSService.service_type == "test_service"
 
     def test_service_type_property_implementation(self, project_config, keychain):
         """Test service_type property implementation details"""
@@ -682,5 +684,4 @@ class TestVCSService:
         # Test the property getter directly
         service_type_prop = VCSService.__dict__["service_type"]
         assert isinstance(service_type_prop, property)
-        result = service_type_prop.fget(service)
-        assert result == "github"
+        assert service_type_prop.fget(service) == "test_service"
