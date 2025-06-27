@@ -810,7 +810,7 @@ class TestOrgCommands:
             "test1": {
                 "is_default": False,
                 "name": "test1",
-                "days": "2/7",
+                "days": "1/7",
                 "expired": False,
                 "config": "dev",
                 "domain": "sneaky-master-2330-dev-ed.cs22",

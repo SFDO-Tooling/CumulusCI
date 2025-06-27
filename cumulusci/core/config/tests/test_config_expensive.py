@@ -530,7 +530,7 @@ class TestScratchOrgConfig:
         assert config.format_org_days() == "2"
         now = datetime.now()
         config.date_created = now
-        assert config.format_org_days() == "2/2"
+        assert config.format_org_days() == "1/2"
         config.date_created = now - timedelta(days=3)
         assert config.format_org_days() == "2"
 

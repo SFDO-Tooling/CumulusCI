@@ -61,10 +61,12 @@ class ScratchOrgConfig(SfdxOrgConfig):
     @property
     def days_alive(self) -> Optional[int]:
         if self.date_created and not self.expired:
-            now = datetime.datetime.now(datetime.timezone.utc)
             if self.date_created.tzinfo is None:
-                # Convert naive date_created to UTC for comparison
-                now = now.replace(tzinfo=None)
+                # For naive date_created, use naive local time for consistent comparison
+                now = datetime.datetime.now()
+            else:
+                # For timezone-aware date_created, use timezone-aware UTC time
+                now = datetime.datetime.now(datetime.timezone.utc)
             delta = now - self.date_created
             return delta.days + 1
 
