@@ -70,6 +70,7 @@ class ProjectConfigPropertiesMixin(BaseConfig):
     flows: dict
     plans: dict
     tasks: dict
+    plugins: dict
     dev_config: dict  # this is not documented and should be deprecated
 
 
