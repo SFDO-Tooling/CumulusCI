@@ -14,6 +14,9 @@ def project_config():
         "github_enterprise": {
             "attributes": {"name": {"required": True}, "password": {}},
         },
+        "test_service": {
+            "attributes": {"name": {"required": True}, "password": {}},
+        },
     }
     project_config.project = {"name": "TestProject"}
     return project_config

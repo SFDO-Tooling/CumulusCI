@@ -17,7 +17,7 @@ from cumulusci.vcs.utils import AbstractCommitDir
 
 
 class ConcreteVCSService(VCSService):
-    service_type = "github"
+    service_type = "test_service"
 
     @classmethod
     def validate_service(cls, options, keychain):
@@ -31,7 +31,7 @@ class ConcreteVCSService(VCSService):
 
     @classmethod
     def get_service_for_url(cls, config, url, service_alias=None):
-        return cls(config)
+        return None
 
     @property
     def dynamic_dependency_class(self) -> DynamicDependency:

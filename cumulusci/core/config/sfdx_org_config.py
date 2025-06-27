@@ -64,7 +64,7 @@ class SfdxOrgConfig(OrgConfig):
         if org_info["result"].get("password"):
             sfdx_info["password"] = org_info["result"]["password"]
         self._sfdx_info = sfdx_info
-        self._sfdx_info_date = datetime.datetime.utcnow()
+        self._sfdx_info_date = datetime.datetime.now(datetime.timezone.utc)
         self.config.update(sfdx_info)
 
         sfdx_info.update(
@@ -201,7 +201,13 @@ class SfdxOrgConfig(OrgConfig):
         """Use sfdx org display to refresh token instead of built in OAuth handling"""
         if hasattr(self, "_sfdx_info"):
             # Cache the sfdx_info for 1 hour to avoid unnecessary calls out to sfdx CLI
-            delta = datetime.datetime.utcnow() - self._sfdx_info_date
+            if self._sfdx_info_date.tzinfo is None:
+                # For naive _sfdx_info_date, use naive local time for consistent comparison
+                now = datetime.datetime.now()
+            else:
+                # For timezone-aware _sfdx_info_date, use timezone-aware UTC time
+                now = datetime.datetime.now(datetime.timezone.utc)
+            delta = now - self._sfdx_info_date
             if delta.total_seconds() > 3600:
                 del self._sfdx_info
 

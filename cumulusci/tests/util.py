@@ -49,6 +49,13 @@ def create_project_config(
     )
     if namespace:
         project_config.config["project"]["package"]["namespace"] = namespace
+
+    if project_config.config["services"] is None:
+        project_config.config["services"] = {}
+
+    project_config.config["services"]["test_service"] = {
+        "attributes": {"name": {"required": True}, "password": {}},
+    }
     keychain = BaseProjectKeychain(project_config, None)
     project_config.set_keychain(keychain)
     return project_config

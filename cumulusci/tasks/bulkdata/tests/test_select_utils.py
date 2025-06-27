@@ -637,7 +637,7 @@ def test_annoy_post_process():
         len(closest_records) == 2
     )  # We expect two results (one for each query record)
     assert (
-        closest_records[0]["id"] == "q2"  # Overriding should be "q1"
+        closest_records[0]["id"] == "q1"
     )  # The first query record should match the first load record
 
     # No errors expected

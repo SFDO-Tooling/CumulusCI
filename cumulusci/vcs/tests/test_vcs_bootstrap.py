@@ -67,6 +67,12 @@ class TestBootstrapFunctions:
         """Create a mock project config for testing"""
         config = Mock(spec=BaseProjectConfig)
         config.repo_url = "https://github.com/test/repo"
+        config.config = {}
+        config.config["services"] = {
+            "test_service": {
+                "attributes": {"name": {"required": True}, "password": {}},
+            },
+        }
         config.logger = Mock()
         config.project__git__prefix_feature = "feature/"
         config.project__git__prefix_release = "release/"

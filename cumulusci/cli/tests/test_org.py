@@ -621,7 +621,7 @@ class TestOrgCommands:
                 {
                     "default": False,
                     "scratch": True,
-                    "date_created": datetime.now() - timedelta(days=1),
+                    "date_created": datetime.now(),
                     "days": 7,
                     "config_name": "dev",
                     "username": "test1@example.com",
@@ -755,7 +755,7 @@ class TestOrgCommands:
                 {
                     "default": False,
                     "scratch": True,
-                    "date_created": datetime.now() - timedelta(days=1),
+                    "date_created": datetime.now(),
                     "days": 7,
                     "config_name": "dev",
                     "username": "test1@example.com",
