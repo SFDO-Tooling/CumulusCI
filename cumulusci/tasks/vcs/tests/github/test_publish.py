@@ -768,6 +768,8 @@ class TestPublishSubtree(GithubApiTestMixin):
             assert commit_dir.call_args[1]["commit_message"] == expected_commit_message
 
     def test_included_dirs_match(self):
+        from cumulusci.utils import filter_namelist
+
         test_includes = [
             "orgs/",
             "public/public_readme.md",
@@ -817,5 +819,5 @@ class TestPublishSubtree(GithubApiTestMixin):
             "scripts/public/anon.cls",
             "tasks/move_me.py",
         ]
-        actual_namelist = task._filter_namelist(test_includes, test_namelist)
+        actual_namelist = filter_namelist(task.options["include"], test_namelist)
         assert sorted(expected_namelist) == sorted(actual_namelist)

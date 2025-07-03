@@ -1,20 +1,18 @@
 import copy
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    TaskOptionsError,
-    VcsException,
-    VcsNotFoundError,
-)
+from cumulusci.core.exceptions import TaskOptionsError, VcsException, VcsNotFoundError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.base_source_control_task import BaseSourceControlTask
-from cumulusci.utils import download_extract_vcs_from_repo
+from cumulusci.utils import download_extract_vcs_from_repo, filter_namelist
 from cumulusci.vcs.base import VCSService
 from cumulusci.vcs.bootstrap import get_service_for_repo_url, get_tag_by_name
 from cumulusci.vcs.models import AbstractGitTag, AbstractRelease, AbstractRepo
-from cumulusci.vcs.utils import AbstractCommitDir
+
+if TYPE_CHECKING:
+    from cumulusci.vcs.utils import AbstractCommitDir
 
 
 class PublishSubtree(BaseSourceControlTask):
@@ -141,58 +139,17 @@ class PublishSubtree(BaseSourceControlTask):
                 self._create_release(target, commit.sha)
 
     def _set_ref(self):
-        if "ref" in self.options:
-            self.ref = self.options["ref"]
+        from cumulusci.vcs.utils import get_ref_from_options
 
-        elif "version" in self.options:
-            get_beta = self.options.get("version") == "latest_beta"
-            self.tag_name = self.project_config.get_latest_tag(beta=get_beta)
-            self.ref = f"tags/{self.tag_name}"
-
-        elif "tag_name" in self.options:
-            if self.options["tag_name"] in ("latest", "latest_beta"):
-                get_beta = self.options["tag_name"] == "latest_beta"
-                tag_name = self.project_config.get_latest_tag(beta=get_beta)
-            else:
-                tag_name = self.options["tag_name"]
-
-            self.tag_name = tag_name
-            self.ref = f"tags/{self.tag_name}"
-
-        else:  # pragma: no cover
-            raise CumulusCIException("No ref, version, or tag_name present")
+        self.ref = get_ref_from_options(self.project_config, self.options)
+        self.tag_name = self.ref[5:] if self.ref.startswith("tags/") else None
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_vcs_from_repo(self.get_repo(), ref=self.ref)
-        included_members = self._filter_namelist(
+        included_members = filter_namelist(
             includes=self.options["include"], namelist=zf.namelist()
         )
         zf.extractall(path=path, members=included_members)
-
-    def _filter_namelist(self, includes, namelist):
-        """
-        Filter a zipfile namelist, handling any included directory filenames missing
-        a trailing slash.
-        """
-        included_dirs = []
-        zip_dirs = [
-            filename.rstrip("/") for filename in namelist if filename.endswith("/")
-        ]
-
-        for name in includes:
-            if name.endswith("/"):
-                included_dirs.append(name)
-            elif name in zip_dirs:
-                # append a trailing slash to avoid partial matches
-                included_dirs.append(name + "/")
-
-        return list(
-            {
-                name
-                for name in namelist
-                if name.startswith(tuple(included_dirs)) or name in includes
-            }
-        )
 
     def _rename_files(self, zip_dir):
         for local_name, target_name in self.options["renames"].items():

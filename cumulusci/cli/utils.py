@@ -4,6 +4,7 @@ import re
 import sys
 import time
 from collections import defaultdict
+from typing import Optional
 
 import click
 import requests
@@ -36,11 +37,15 @@ def group_items(items):
 
 
 @contextlib.contextmanager
-def timestamp_file():
+def timestamp_file(
+    config_dir: Optional[str] = None, timestamp_file: str = "cumulus_timestamp"
+):
     """Opens a file for tracking the time of the last version check"""
 
-    config_dir = UniversalConfig.default_cumulusci_dir()
-    timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
+    config_dir = (
+        UniversalConfig.default_cumulusci_dir() if config_dir is None else config_dir
+    )
+    timestamp_file = os.path.join(config_dir, timestamp_file)
 
     try:
         with open(timestamp_file, "r+") as f:

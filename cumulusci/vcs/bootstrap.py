@@ -270,26 +270,3 @@ def get_version_id_from_tag(repo: AbstractRepo, tag_name: str) -> str:
             return version_id
 
     raise VcsException(f"Could not find version_id for tag {tag_name}")
-
-
-# def get_latest_version(beta: bool = False) -> Optional[LooseVersion]:
-#     """Query Github Releases to find the latest production or beta release"""
-#     tag = get_latest_tag(beta)
-#     version = get_version_for_tag(tag)
-#     if version is not None:
-#         return LooseVersion(version)
-
-# def get_version_for_tag(
-#     self,
-#     tag: str,
-#     prefix_beta: Optional[str] = None,
-#     prefix_release: Optional[str] = None,
-# ) -> Optional[str]:
-#     try:
-#         return PackageVersionNumber.parse_tag(
-#             tag,
-#             prefix_beta or self.project__git__prefix_beta,
-#             prefix_release or self.project__git__prefix_release,
-#         ).format()
-#     except ValueError:
-#         pass

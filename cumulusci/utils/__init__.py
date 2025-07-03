@@ -300,7 +300,7 @@ def inject_namespace(
             logger.info(
                 f'  {name}: Replaced {filename_token} with "{namespace_prefix}"'
             )
-        
+
         # Also replace ___NAMESPACED_ORG___ tokens in package.xml
         prev_content = content
         content = content.replace(namespaced_org_file_token, namespaced_org)
@@ -705,3 +705,27 @@ def update_tree(src: Union[str, Path], dest: Union[str, Path]):
                 ):
                     dest_file.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(src_dir, dest_file)
+
+
+def filter_namelist(includes, namelist):
+    """
+    Filter a zipfile namelist, handling any included directory filenames missing
+    a trailing slash.
+    """
+    included_dirs = []
+    zip_dirs = [filename.rstrip("/") for filename in namelist if filename.endswith("/")]
+
+    for name in includes:
+        if name.endswith("/"):
+            included_dirs.append(name)
+        elif name in zip_dirs:
+            # append a trailing slash to avoid partial matches
+            included_dirs.append(name + "/")
+
+    return list(
+        {
+            name
+            for name in namelist
+            if name.startswith(tuple(included_dirs)) or name in includes
+        }
+    )

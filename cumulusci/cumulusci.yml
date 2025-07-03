@@ -747,6 +747,10 @@ tasks:
         options:
             level: info
         group: Utilities
+    download_extract:
+        description: Downloads files and folders from a VCS repository.
+        class_path: cumulusci.tasks.vcs.download_extract.DownloadExtract
+        group: VCS
     generate_dataset_mapping:
         description: Create a mapping for extracting data from an org.
         class_path: cumulusci.tasks.bulkdata.GenerateMapping
