@@ -421,7 +421,7 @@
                 },
                 "namespaced": {
                     "title": "Namespaced",
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "setup_flow": {
                     "title": "Setup Flow",
