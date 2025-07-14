@@ -126,10 +126,10 @@ def test_format_help(runtime):
 
 def test_get_default_command_options():
     opts = task.RunTaskCommand()._get_default_command_options(is_salesforce_task=False)
-    assert len(opts) == 4
+    assert len(opts) == 5
 
     opts = task.RunTaskCommand()._get_default_command_options(is_salesforce_task=True)
-    assert len(opts) == 5
+    assert len(opts) == 6
     assert any([o.name == "org" for o in opts])
 
 

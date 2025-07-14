@@ -1,0 +1,14 @@
+flows:
+  my_custom_flow:
+    description: A custom flow loaded via --load-yml
+    group: Loaded YAML
+    steps:
+      1:
+        task: my_custom_task
+tasks:
+  my_custom_task:
+    description: A custom task loaded via --load-yml
+    group: Loaded YAML
+    class_path: cumulusci.tasks.util.Sleep
+    options:
+      seconds: 1
