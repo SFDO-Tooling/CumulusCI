@@ -61,6 +61,8 @@ class TestDeployBundles:
                                     "subfolder": "unpackaged/test",
                                     "collision_check": False,
                                     "namespace_inject": None,
+                                    'junit_output': 'test_results.xml', 
+                                    'json_output': 'test_results.json',
                                 }
                             ]
                         },
