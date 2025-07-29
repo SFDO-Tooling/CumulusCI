@@ -54,7 +54,7 @@ dependencies = [
     "simple-salesforce==1.11.4",
     "snowfakery>=4.0.0",
     "xmltodict",
-    "docutils>=0.21.2",
+    "docutils==0.21.2",
 ]
 
 [dependency-groups]
