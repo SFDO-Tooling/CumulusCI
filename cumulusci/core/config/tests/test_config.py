@@ -1035,6 +1035,22 @@ class TestOrgConfig:
         config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
         assert config.lightning_base_url == "https://foo.lightning.force.com"
 
+    def test_lightning_base_url__env_provided(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "SF_CUSTOM_URL_RE": "\\.test\\.url\\.dev",
+                "SF_CUSTOM_URL_BASE": ".api.url.dev",
+            },
+        ):
+            config = OrgConfig(
+                {
+                    "instance_url": "https://special.custom.test.url.dev",
+                },
+                "test",
+            )
+            assert config.lightning_base_url == "https://special.custom.api.url.dev"
+
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
