@@ -1,6 +1,7 @@
 import pathlib
 import re
 from typing import Any, Optional, Tuple
+from cumulusci.utils.version_strings import LooseVersion
 
 EMPTY_URL_MESSAGE = """
 The provided URL is empty or no URL under git remote "origin".
@@ -33,14 +34,30 @@ def is_release_branch(branch_name: str, prefix: str) -> bool:
     if not branch_name.startswith(prefix):
         return False
     parts = branch_name[len(prefix) :].split("__")
-    return len(parts) == 1 and parts[0].isdigit()
+    if not parts[0]:
+        return False
+    version = LooseVersion(parts[0])
+    is_version = True
+    for part in version.version:
+        if isinstance(part, str):
+            is_version = False
+            break
+    return len(parts) == 1 and is_version
 
 
 def is_release_branch_or_child(branch_name: str, prefix: str) -> bool:
     if not branch_name.startswith(prefix):
         return False
     parts = branch_name[len(prefix) :].split("__")
-    return len(parts) >= 1 and parts[0].isdigit()
+    if not parts[0]:
+        return False
+    version = LooseVersion(parts[0])
+    is_version = True
+    for part in version.version:
+        if isinstance(part, str):
+            is_version = False
+            break
+    return len(parts) >= 1 and is_version
 
 
 def get_feature_branch_name(branch_name: str, prefix: str) -> Optional[str]:
