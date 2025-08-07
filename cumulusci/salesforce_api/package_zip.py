@@ -12,12 +12,14 @@ from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.source_transforms.transforms import (
     BundleStaticResourcesOptions,
     BundleStaticResourcesTransform,
+    CleanInvalidReferencesMetaXMLTransform,
     CleanMetaXMLTransform,
     NamespaceInjectionOptions,
     NamespaceInjectionTransform,
     RemoveFeatureParametersTransform,
     SourceTransform,
 )
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils.ziputils import hash_zipfile_contents
 
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
@@ -189,6 +191,11 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         # -meta.xml cleaning
         if self.options.get("clean_meta_xml", True):
             transforms.append(CleanMetaXMLTransform())
+
+        # To clean profiles and permissionsets of invalid references
+        if process_bool_arg(self.options.get("clean_invalid_ref") or False):
+            transforms.append(CleanInvalidReferencesMetaXMLTransform())
+
         # Static resource bundling
         relpath = self.options.get("static_resource_path")
         if relpath and os.path.exists(relpath):

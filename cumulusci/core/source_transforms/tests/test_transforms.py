@@ -4,11 +4,13 @@ import typing as T
 import zipfile
 from pathlib import Path, PurePosixPath
 from unittest import mock
+from unittest.mock import patch
 from zipfile import ZipFile
 
 import pytest
 from lxml import etree as ET
 from pydantic import ValidationError
+from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.source_transforms.transforms import (
@@ -23,6 +25,7 @@ from cumulusci.core.source_transforms.transforms import (
     StripUnwantedComponentsOptions,
     StripUnwantedComponentTransform,
 )
+from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import temporary_dir
 
@@ -1089,3 +1092,145 @@ def test_strip_unwanted_files(task_context):
             )
             == builder.zf
         )
+
+
+# Tests for CleanInvalidReferencesMetaXMLTransform
+up_result_dict = {
+    "fields": [
+        {"name": "PermissionsEdit", "type": "boolean"},
+        {"name": "PermissionsView", "type": "boolean"},
+        {"name": "PermissionsViewPackage", "type": "boolean"},
+    ]
+}
+pd_result_dict = {
+    "records": [
+        {"Permission": "ViewSetup", "RequiredPermission": "View"},
+        {"Permission": "EditSetup", "RequiredPermission": "Edit"},
+        {"Permission": "EditSetup", "RequiredPermission": "View"},
+        {"Permission": "ManageSetup", "RequiredPermission": "Manage"},
+        {"Permission": "ViewPackage", "RequiredPermission": "View"},
+    ]
+}
+field_result_dict = {
+    "fields": [
+        {
+            "name": "Field",
+            "picklistValues": [{"value": "Option1"}, {"value": "Option2"}],
+        }
+    ],
+}
+tabs_result_dict = {
+    "records": [
+        {"Name": "Tab1"},
+        {"Name": "Tab2"},
+    ],
+}
+objects_result_dict = {
+    "fields": [
+        {
+            "name": "SobjectType",
+            "picklistValues": [{"value": "Object1"}, {"value": "Object2"}],
+        },
+    ],
+}
+
+
+def return_response(method, urlpath):
+    response = mock.Mock()
+    if "sobjects/PermissionSet/describe" in urlpath:
+        response.json.return_value = up_result_dict
+    elif "sobjects/FieldPermissions/describe" in urlpath:
+        response.json.return_value = field_result_dict
+    elif "sobjects/ObjectPermissions/describe" in urlpath:
+        response.json.return_value = objects_result_dict
+    elif "query/?q=SELECT+Name+FROM+PermissionSetTabSetting+GROUP+BY+Name" in urlpath:
+        response.json.return_value = tabs_result_dict
+    elif (
+        "tooling/query/?q=SELECT+Permission,+RequiredPermission+FROM+PermissionDependency+WHERE+PermissionType+=+'User Permission'+AND+RequiredPermissionType+=+'User Permission'"
+        in urlpath
+    ):
+        response.json.return_value = pd_result_dict
+
+    return response
+
+
+def test_clean_invalid_references(task_context):
+    xml_data = (
+        "<root>\n"
+        "    <objectPermissions>\n"
+        "        <object>Account</object>\n"
+        "    </objectPermissions>\n"
+        "    <objectPermissions>\n"
+        "        <object>Contact</object>\n"
+        "    </objectPermissions>\n"
+        "    <fieldPermissions>\n"
+        "        <field>Opportunity.SomeField</field>\n"
+        "    </fieldPermissions>\n"
+        "    <customPermissions>\n"
+        "        <name>CustomPermission1</name>\n"
+        "    </customPermissions>\n"
+        "    <tabVisibilities>\n"
+        "        <tab>Standard-Account</tab>\n"
+        "    </tabVisibilities>\n"
+        "    <tabVisibilities>\n"
+        "        <tab>Standard-Fake</tab>\n"
+        "    </tabVisibilities>\n"
+        "    <userPermissions>\n"
+        "        <name>ViewPackage</name>\n"
+        "    </userPermissions>\n"
+        "</root>\n"
+    )
+
+    xml_data_clean = (
+        "<?xml version='1.0' encoding='UTF-8'?>\n"
+        "<root>\n"
+        "    <objectPermissions>\n"
+        "        <object>Account</object>\n"
+        "    </objectPermissions>\n"
+        "    <fieldPermissions>\n"
+        "        <field>Opportunity.SomeField</field>\n"
+        "    </fieldPermissions>\n"
+        "    <tabVisibilities>\n"
+        "        <tab>Standard-Account</tab>\n"
+        "    </tabVisibilities>\n"
+        "    <userPermissions>\n"
+        "        <name>ViewPackage</name>\n"
+        "    </userPermissions>\n"
+        "</root>\n"
+    )
+
+    obj_xml = (
+        "<root>\n"
+        "   <fields>\n"
+        "       <fullName>SomeField</fullName>\n"
+        "   </fields>\n"
+        "   <recordTypes>\n"
+        "       <fullName>RecordType1</fullName>\n"
+        "   </recordTypes>\n"
+        "</root>"
+    )
+
+    package_xml = "<Package>\n" "   <version>58.0</version>\n" "</Package>"
+
+    output_zip = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    output_zip.writestr("objects/Opportunity.object", obj_xml)
+    output_zip.writestr("objects/Account.object", obj_xml)
+
+    with patch.object(
+        Salesforce, "_call_salesforce", side_effect=return_response
+    ), patch.object(BaseMetadataApiCall, "__call__", return_value=output_zip):
+        builder = MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec(
+                {
+                    Path("profiles/Foo.profile"): xml_data,
+                    Path("package.xml"): package_xml,
+                }
+            ).as_zipfile(),
+            options={"clean_invalid_ref": True},
+            context=task_context,
+        )
+        for name in builder.zf.namelist():
+            if name == "profiles/Foo.profile":
+                result_root = ET.parse(builder.zf.open(name)).getroot()
+                expected_root = ET.fromstring(xml_data_clean.encode("utf-8"))
+                assert ET.iselement(result_root) == ET.iselement(expected_root)

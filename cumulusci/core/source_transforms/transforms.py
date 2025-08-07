@@ -24,6 +24,7 @@ from cumulusci.utils import (
     tokenize_namespace,
     zip_clean_metaxml,
 )
+from cumulusci.utils.clean_invalid_references import zip_clean_invalid_references
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.ziputils import process_text_in_zipfile
 
@@ -209,7 +210,25 @@ class CleanMetaXMLTransform(SourceTransform):
         context.logger.info(
             "Cleaning meta.xml files of packageVersion elements for deploy"
         )
-        return zip_clean_metaxml(zf)
+        zip_dest = zip_clean_metaxml(zf)
+        context.logger.info("[Done]\n")
+        return zip_dest
+
+
+class CleanInvalidReferencesMetaXMLTransform(SourceTransform):
+    """Source transform that cleans *-meta.xml files of invalid references."""
+
+    options_model = None
+
+    identifier = "clean_invalid_ref"
+
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
+        context.logger.info(
+            "Cleaning profiles and permission sets meta.xml files of invalid references"
+        )
+        zip_dest = zip_clean_invalid_references(zf, context)
+        context.logger.info("Done cleaning profiles and permission sets\n")
+        return zip_dest
 
 
 class BundleStaticResourcesOptions(BaseModel):
