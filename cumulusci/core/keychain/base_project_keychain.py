@@ -256,7 +256,12 @@ class BaseProjectKeychain(BaseConfig):
                 raise CumulusCIException(
                     f"No default service currently set for service type: {service_type}"
                 )
-        service = self._get_service(service_type, alias)
+        try:
+            service = self._get_service(service_type, alias)
+        except Exception as e:
+            raise ServiceNotValid(
+                f"{service_type, alias} cannot be loaded because {e} "
+            ) from e
 
         # transparent migration of github API tokens to new key
         if service_type == "github" and service.password and not service.token:
