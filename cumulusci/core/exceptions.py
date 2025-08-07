@@ -95,7 +95,8 @@ class ConfigError(CumulusCIException):
         self.config_name = config_name
 
     def __str__(self):
-        return f"{self.message} for config {self.config_name}"
+        for_config = f" for config {self.config_name}" if self.config_name else ""
+        return f"{self.message}{for_config}"
 
 
 class ConfigMergeError(ConfigError):

@@ -94,26 +94,22 @@ To define a new task for your project, add the task name under the
 
 For example, let's create a custom task named `deploy_reports` that
 deploys a set of reports stored in your project's unpackaged metadata
-located in `unpackaged/config/reports`.
-
-First, look up the Python class associated with the standard task
-`deploy`. From there we see that the `deploy` task has a `class_path`
-value of `cumulusci.tasks.salesforce.Deploy`.
+located in `unpackaged/config/reports`. It will extend the `deploy`
+task.
 
 Store the task under the `tasks` section of the `cumulusci.yml` file.
 
 ```yaml
 deploy_reports:
     description: Deploy Reports
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: projectName
+    extends: deploy
+    group: My Project
     options:
         path: unpackaged/config/reports
 ```
 
 ```{tip}
-Be sure to include the value we retrieved for `class_path`. Also,
-consider adding a common `group` attribute to make it easier to see the
+Consider adding a common `group` attribute to make it easier to see the
 tasks specific to your project when running `cci task list`.
 ```
 
@@ -154,9 +150,9 @@ create one.
 ```yaml
 tasks:
     my_new_task:
-        description: My custom task to write data to a file
-            class_path: tasks.write_file_custom_task.WriteFileCustomTask
-            group: projectName
+        description: Description of the task
+        class_path: tasks.write_file_custom_task.WriteFileCustomTask
+        group: My Project
 ```
 
 This task will be accessible directly to this project. It will also
@@ -263,7 +259,7 @@ A double underscore (`__`) refers to a subsequent level in the
 ```yaml
 deploy_qa_config:
     description: Deploys additional fields used for QA purposes only
-    class_path: cumulusci.tasks.salesforce.Deploy
+    extends: deploy
     group: Salesforce Metadata
     options:
         path: unpackaged/config/qa

@@ -155,7 +155,8 @@ def decode_to_unicode(content):
     return content
 
 
-def merge_config(configs):
+# TODO: move into cumulusci.utils.yaml
+def merge_configs(configs: T.Mapping):
     """
     First remove any flow steps that are being overridden so that there are no conflicts
     or different step types after merging. Then recursively deep-merge the configs into
