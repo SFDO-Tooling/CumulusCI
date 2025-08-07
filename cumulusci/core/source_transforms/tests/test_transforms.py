@@ -883,6 +883,25 @@ def test_xpath_replace_with_exp_and_index(task_context):
     zip_assert(builder, modified_zip_content)
 
 
+def test_xpath_replace_with_exp_and_index_has_xmlns(task_context):
+    zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore xmlns="foobar"> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Per Bothner</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    patterns = [
+        {"xpath": "/bookstore/book[price>40]/author[2]", "replace": "Rich Author"}
+    ]
+    builder = create_builder(task_context, zip_content, patterns)
+
+    modified_zip_content = {
+        Path(
+            "Foo.xml"
+        ): '<bookstore xmlns="foobar"> <book category="cooking"> <title lang="en">Everyday Italian</title> <author>Giada De Laurentiis</author> <year>2005</year> <price>30.00</price> </book> <book category="children"> <title lang="en">Harry Potter</title> <author>J K. Rowling</author> <year>2005</year> <price>29.99</price> </book> <book category="web"> <title lang="en">XQuery Kick Start</title> <author>James McGovern</author> <author>Rich Author</author> <author>Kurt Cagle</author> <author>James Linn</author> <author>Vaidyanathan Nagarajan</author> <year>2003</year> <price>49.99</price> </book> <book category="web"> <title lang="en">Learning XML</title> <author>Erik T. Ray</author> <year>2003</year> <price>39.95</price> </book> </bookstore>',
+    }
+    zip_assert(builder, modified_zip_content)
+
+
 def test_xpath_replace_with_exp_and_index2(task_context):
     zip_content = {
         Path(
