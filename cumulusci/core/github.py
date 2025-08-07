@@ -603,7 +603,7 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (ConnectionError) as exc:
+        except ConnectionError as exc:
             if error_msg := format_github3_exception(exc):
                 raise GithubApiError(error_msg) from exc
             else:
@@ -663,3 +663,13 @@ def create_gist(github, description, files):
     files - A dict of files in the form of {filename:{'content': content},...}
     """
     return github.create_gist(description, files, public=False)
+
+
+# Utils for GitHub Actions worker environments
+def set_github_output(name: str, value: str):
+    """Set an output parameter for the GitHub Actions runner."""
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if not github_output:
+        return
+    with open(github_output, "a") as f:
+        f.write(f"{name}={value}\n")
