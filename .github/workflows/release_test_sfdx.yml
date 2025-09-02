@@ -48,7 +48,7 @@ jobs:
             - name: Set up uv
               uses: SFDO-Tooling/setup-uv@main
               with:
-                  version: "0.5.0"
+                  version: "0.8.4"
                   enable-cache: true
             - name: Install Python dependencies
               run: uv sync

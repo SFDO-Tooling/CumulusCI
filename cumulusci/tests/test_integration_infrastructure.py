@@ -35,6 +35,7 @@ def capture_orgid_using_task(create_task: callable, tmp_path: str) -> str:
 
 class TestIntegrationInfrastructure:
     "Test our two plugins for doing integration testing"
+
     remembered_cli_specified_org_id = None
 
     @pytest.mark.vcr()
@@ -42,6 +43,7 @@ class TestIntegrationInfrastructure:
         self, create_task, run_code_without_recording
     ):
         "Delete a VCR Cassette to ensure next test creates it."
+
         # only delete the cassette if we can replace it
         def delete_cassette():
             if first_cassette.exists():
@@ -81,7 +83,7 @@ class TestIntegrationInfrastructure:
 
         run_code_without_recording(setup)
 
-    def test_file_was_not_created(self, capture_orgid_using_task):
+    def test_file_was_not_created(self):
         filename = (
             Path(__file__).parent
             / "cassettes/TestIntegrationInfrastructure.test_run_code_without_recording.yaml"

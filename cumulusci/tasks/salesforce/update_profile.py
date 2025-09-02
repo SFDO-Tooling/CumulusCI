@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 
-import pkg_resources
+from packaging import version
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
@@ -69,10 +69,8 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         # not be using a custom `package.xml`
         min_cci_version = self.project_config.minimum_cumulusci_version
         if min_cci_version and "package_xml" not in self.options:
-            parsed_version = pkg_resources.parse_version(min_cci_version)
-            default_packages_arg = parsed_version >= pkg_resources.parse_version(
-                "3.9.0"
-            )
+            parsed_version = version.parse(min_cci_version)
+            default_packages_arg = parsed_version >= version.parse("3.9.0")
         else:
             default_packages_arg = False
 
