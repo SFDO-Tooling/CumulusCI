@@ -1,14 +1,14 @@
 import os
+import shutil
 import urllib.request
 import webbrowser
 from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 from pathlib import Path
 from typing import IO, ContextManager, Text, Tuple, Union
+from urllib.parse import unquote, urlparse
 
 import requests
-from fs import base, copy, open_fs
-from fs import path as fspath
 
 """Utilities for working with files"""
 
@@ -115,13 +115,31 @@ def view_file(path):
 
 
 class FSResource:
-    """Generalization of pathlib.Path to support S3, FTP, etc
+    """Local filesystem resource wrapper (pyfilesystem2-compatible subset).
 
-    Create them through the open_fs_resource module function or static
-    function which will create a context manager that generates an FSResource.
+    This class is a minimal, local-only replacement for the small portion of
+    the PyFilesystem2 API that CumulusCI used. It exposes a pathlib-like
+    interface with a few methods that match prior usage patterns, allowing us
+    to remove the external "fs" dependency while keeping existing call sites
+    working.
 
-    If you don't need the resource management aspects of the context manager,
-    you can call the `new()` classmethod."""
+    Scope and behavior:
+    - Only local filesystem operations are supported. Remote backends (e.g.,
+      S3/FTP/ZIP) and non-"file" schemes are not supported and will raise
+      ValueError when passed as URLs.
+    - Supported operations include: exists, open, unlink, rmdir, removetree,
+      mkdir(parents, exist_ok), copy_to, joinpath, geturl, getsyspath,
+      __fspath__, and path-style division ("/").
+    - "file://" URLs are supported for both absolute and relative paths;
+      other URL schemes are rejected.
+    - getsyspath returns an absolute path without resolving symlinks so that
+      macOS paths under "/var" vs "/private/var" remain textually stable in
+      comparisons.
+    - close() is a no-op in this implementation.
+
+    Create instances via the open_fs_resource() context manager or the
+    FSResource.new() classmethod when you don't need context management.
+    """
 
     def __init__(self):
         raise NotImplementedError("Please use open_fs_resource context manager")
@@ -130,62 +148,80 @@ class FSResource:
     def new(
         cls,
         resource_url_or_path: Union[str, Path, "FSResource"],
-        filesystem: base.FS = None,
+        filesystem=None,
     ):
         """Directly create a new FSResource from a URL or path (absolute or relative)
 
-        You can call this to bypass the context manager in contexts where closing isn't
-        important (e.g. interactive repl experiments)."""
+        The `filesystem` parameter is ignored in this implementation and exists only
+        for backward compatibility with callers. This FSResource operates solely on
+        the local filesystem using pathlib and shutil.
+        """
         self = cls.__new__(cls)
 
-        if isinstance(resource_url_or_path, str) and "://" in resource_url_or_path:
-            path_type = "url"
-        elif isinstance(resource_url_or_path, FSResource):
-            path_type = "resource"
-        else:
-            resource_url_or_path = Path(resource_url_or_path)
-            path_type = "path"
+        if isinstance(resource_url_or_path, FSResource):
+            self._path = Path(resource_url_or_path.getsyspath())
+            return self
 
-        if filesystem:
-            assert path_type != "resource"
-            fs = filesystem
-            filename = str(resource_url_or_path)
-        elif path_type == "resource":  # clone a resource reference
-            fs = resource_url_or_path.fs
-            filename = resource_url_or_path.filename
-        elif path_type == "path":
-            if resource_url_or_path.is_absolute():
-                if resource_url_or_path.drive:
-                    root = resource_url_or_path.drive + "/"
+        # Handle string inputs, including file:// URLs
+        if isinstance(resource_url_or_path, str):
+            if "://" in resource_url_or_path:
+                parsed = urlparse(resource_url_or_path)
+                if parsed.scheme != "file":
+                    raise ValueError(
+                        f"Unsupported URL scheme for FSResource: {parsed.scheme}"
+                    )
+                # Support non-standard relative file URLs like file://relative/path
+                if parsed.netloc:
+                    combined = (parsed.netloc or "") + (parsed.path or "")
+                    # Remove a single leading slash that urlparse keeps before the path segment
+                    if combined.startswith("/"):
+                        combined = combined[1:]
+                    path_str = unquote(combined)
                 else:
-                    root = resource_url_or_path.root
-                filename = resource_url_or_path.relative_to(root).as_posix()
+                    path_str = unquote(parsed.path or "")
+                # On Windows, file URLs may begin with a leading slash before drive
+                if (
+                    os.name == "nt"
+                    and path_str.startswith("/")
+                    and len(path_str) > 3
+                    and path_str[2] == ":"
+                ):
+                    path_str = path_str[1:]
+                self._path = Path(path_str)
             else:
-                root = Path("/").absolute()
-                filename = (
-                    (Path(".") / resource_url_or_path)
-                    .absolute()
-                    .relative_to(root)
-                    .as_posix()
-                )
-            fs = open_fs(str(root))
-        elif path_type == "url":
-            path, filename = resource_url_or_path.replace("\\", "/").rsplit("/", 1)
-            fs = open_fs(path)
+                self._path = Path(resource_url_or_path)
+        else:
+            # Path-like
+            self._path = Path(resource_url_or_path)
 
-        self.fs = fs
-        self.filename = filename
         return self
 
-    exists = proxy("exists")
-    open = proxy("open")
-    unlink = proxy("remove")
-    rmdir = proxy("removedir")
-    removetree = proxy("removetree")
-    geturl = proxy("geturl")
+    def exists(self):
+        # Use os.path.exists to avoid interference from patched Path.exists in tests
+        return os.path.exists(str(self.getsyspath()))
+
+    def open(self, *args, **kwargs):
+        return self.getsyspath().open(*args, **kwargs)
+
+    def unlink(self):
+        self.getsyspath().unlink(missing_ok=True)
+
+    def rmdir(self):
+        self.getsyspath().rmdir()
+
+    def removetree(self):
+        shutil.rmtree(self.getsyspath(), ignore_errors=True)
+
+    def geturl(self):
+        p = self.getsyspath()
+        # Path.as_uri requires absolute path
+        if not p.is_absolute():
+            p = p.resolve()
+        return p.as_uri()
 
     def getsyspath(self):
-        return Path(os.fsdecode(self.fs.getsyspath(self.filename)))
+        # Return absolute path without resolving symlinks to preserve /var vs /private/var semantics on macOS
+        return Path(os.path.abspath(str(self._path)))
 
     def joinpath(self, other):
         """Create a new FSResource based on an existing one
@@ -196,8 +232,7 @@ class FSResource:
         In practice, if you use the new one within the open context
         of the old one, you'll be fine.
         """
-        path = fspath.join(self.filename, other)
-        return FSResource.new(self.fs.geturl(path))
+        return FSResource.new(self.getsyspath() / other)
 
     def copy_to(self, other):
         """Create a new FSResource by copying the underlying resource
@@ -210,13 +245,20 @@ class FSResource:
         """
         if isinstance(other, (str, Path)):
             other = FSResource.new(other)
-        copy.copy_file(self.fs, self.filename, other.fs, other.filename)
+        src = self.getsyspath()
+        dst = other.getsyspath()
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dst)
 
     def mkdir(self, *, parents=False, exist_ok=False):
+        p = self.getsyspath()
         if parents:
-            self.fs.makedirs(self.filename, recreate=exist_ok)
+            p.mkdir(parents=True, exist_ok=exist_ok)
         else:
-            self.fs.makedir(self.filename, recreate=exist_ok)
+            # Emulate pyfilesystem's behavior: raise if exists and exist_ok is False
+            if p.exists() and not exist_ok:
+                raise FileExistsError(str(p))
+            p.mkdir(exist_ok=exist_ok)
 
     def __contains__(self, other):
         return other in str(self.geturl())
@@ -234,31 +276,30 @@ class FSResource:
     def __str__(self):
         rc = self.geturl()
         if rc.startswith("file://"):
-            return rc[6:]
+            return rc[7:] if rc.startswith("file:///") else rc[6:]
+        return rc
 
     def __fspath__(self):
-        return self.fs.getsyspath(self.filename)
+        return str(self.getsyspath())
 
     def close(self):
-        self.fs.close()
+        # No-op for local filesystem-backed resource
+        return None
 
     @staticmethod
     @contextmanager
     def open_fs_resource(
-        resource_url_or_path: Union[str, Path, "FSResource"], filesystem: base.FS = None
+        resource_url_or_path: Union[str, Path, "FSResource"], filesystem=None
     ):
-        """Create a context-managed FSResource
+        """Create a context-managed FSResource (local filesystem only).
 
-        Input is a URL, path (absolute or relative) or FSResource
+        - Accepts a path (absolute or relative), a "file://" URL, or an
+          existing FSResource, and yields a compatible FSResource instance.
+        - Non-"file" URL schemes are not supported.
+        - The optional ``filesystem`` argument is ignored and kept only for
+          backward compatibility with older call sites.
 
-        The function should be used in a context manager. The
-        resource's underlying filesystem will be closed automatically
-        when the context ends and the data will be saved back to the
-        filesystem (local, remote, zipfile, etc.)
-
-        Think of it as a way of "mounting" a filesystem, directory or file.
-
-        For example:
+        Examples:
 
         >>> from tempfile import TemporaryDirectory
         >>> with TemporaryDirectory() as tempdir:
@@ -279,12 +320,11 @@ class FSResource:
 
         """
         resource = FSResource.new(resource_url_or_path, filesystem)
-        if not filesystem:
-            filesystem = resource
         try:
             yield resource
         finally:
-            filesystem.close()
+            # No underlying remote filesystem to close in this implementation
+            pass
 
 
 open_fs_resource = FSResource.open_fs_resource

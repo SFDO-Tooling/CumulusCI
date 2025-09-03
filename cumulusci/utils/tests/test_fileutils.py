@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import urllib.request
+from collections import namedtuple
 from io import BytesIO, UnsupportedOperation
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -10,7 +11,6 @@ from unittest import mock
 
 import pytest
 import responses
-from fs import errors, open_fs
 
 import cumulusci
 from cumulusci.utils import fileutils, temporary_dir, update_tree
@@ -151,7 +151,9 @@ class _TestFSResourceShared:
 
     def test_load_from_file_system(self):
         abspath = os.path.abspath(self.file)
-        fs = open_fs("/")
+        # Backwards compatibility: pass a dummy filesystem and ensure it is ignored
+        DummyFS = namedtuple("DummyFS", [])
+        fs = DummyFS()
         with open_fs_resource(abspath, fs) as f:
             assert abspath in str(f)
 
@@ -234,7 +236,7 @@ class TestFSResourceTempdir(_TestFSResourceShared):
             f.mkdir(parents=False, exist_ok=True)
             assert abspath.exists()
 
-            with pytest.raises(errors.DirectoryExists):
+            with pytest.raises(FileExistsError):
                 f.mkdir(parents=False, exist_ok=False)
             f.rmdir()
 

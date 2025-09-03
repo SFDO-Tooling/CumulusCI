@@ -27,7 +27,6 @@ dependencies = [
     "cryptography",
     "python-dateutil",
     "Faker",
-    "fs",
     "github3.py",
     "jinja2",
     "keyring<=23.0.1",
