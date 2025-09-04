@@ -2,6 +2,20 @@
 
 <!-- latest-start -->
 
+## v4.6.0 (2025-09-04)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes
+
+-   fix: include --output-dir only when output_dir is provided by [@jstvz](https://github.com/jstvz) in [#3920](https://github.com/SFDO-Tooling/CumulusCI/pull/3920)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.5.0...v4.6.0
+
+<!-- latest-stop -->
+
 ## v4.5.0 (2025-08-06)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -23,8 +37,6 @@
 -   @rupeshjSFDC made their first contribution in [#3904](https://github.com/SFDO-Tooling/CumulusCI/pull/3904)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.4.0...v4.5.0
-
-<!-- latest-stop -->
 
 ## v4.4.0 (2025-05-05)
 
@@ -1828,9 +1840,9 @@ Critical Changes:
         subfolders will see a change in resolution behavior. Previously,
         a dependency specified like this:
 
-                                dependencies:
-                                    - github: https://github.com/SalesforceFoundation/NPSP
-                                      subfolder: unpackaged/config/trial
+                                  dependencies:
+                                      - github: https://github.com/SalesforceFoundation/NPSP
+                                        subfolder: unpackaged/config/trial
 
         would always deploy from the latest commit on the default
         branch. Now, this dependency will be resolved to a GitHub commit
@@ -1841,12 +1853,12 @@ Critical Changes:
     -   The `project__dependencies` section in `cumulusci.yml` no longer
         supports nested dependencies specified like this:
 
-                                dependencies:
-                                    - namespace: "test"
-                                      version: "1.0"
-                                      dependencies:
-                                        - namespace: "parent"
-                                          version: "2.2"
+                                  dependencies:
+                                      - namespace: "test"
+                                        version: "1.0"
+                                        dependencies:
+                                          - namespace: "parent"
+                                            version: "2.2"
 
         All dependencies should be listed in install order.
 
@@ -2015,12 +2027,12 @@ Critical changes:
     -   The `project__dependencies` section in `cumulusci.yml` will no
         longer support nested dependencies specified like this :
 
-                                dependencies:
-                                  - namespace: "test"
-                                    version: "1.0"
-                                    dependencies:
-                                      - namespace: "parent"
-                                        version: "2.2"
+                                  dependencies:
+                                    - namespace: "test"
+                                      version: "1.0"
+                                      dependencies:
+                                        - namespace: "parent"
+                                          version: "2.2"
 
     All dependencies should be listed in install order.
 
@@ -3627,33 +3639,33 @@ New features:
 
     : -
 
-                                Added keywords for generating a collection of sObjects according to a template:
+                                  Added keywords for generating a collection of sObjects according to a template:
 
-                                :   -   `Generate Test Data`
-                                    -   `Salesforce Collection Insert`
-                                    -   `Salesforce Collection Update`
+                                  :   -   `Generate Test Data`
+                                      -   `Salesforce Collection Insert`
+                                      -   `Salesforce Collection Update`
 
-                            -
+                              -
 
-                                Changes to Page Objects:
+                                  Changes to Page Objects:
 
-                                :   -   More than one page object can be loaded at once.
-                                        Once loaded, the keywords of a page object remain
-                                        visible in the suite. Robot will give priority to
-                                        keywords in the reverse order in which they were
-                                        imported.
-                                    -   There is a new keyword, `Log Current Page Object`,
-                                        which can be useful to see information about the
-                                        most recently loaded page object.
-                                    -   There is a new keyword, `Get Page Object`, which
-                                        will return the robot library for a given page
-                                        object. This can be used in other keywords to access
-                                        keywords from another page object if necessary.
-                                    -   The `Go To Page` keyword will now automatically load
-                                        the page object for the given page.
+                                  :   -   More than one page object can be loaded at once.
+                                          Once loaded, the keywords of a page object remain
+                                          visible in the suite. Robot will give priority to
+                                          keywords in the reverse order in which they were
+                                          imported.
+                                      -   There is a new keyword, `Log Current Page Object`,
+                                          which can be useful to see information about the
+                                          most recently loaded page object.
+                                      -   There is a new keyword, `Get Page Object`, which
+                                          will return the robot library for a given page
+                                          object. This can be used in other keywords to access
+                                          keywords from another page object if necessary.
+                                      -   The `Go To Page` keyword will now automatically load
+                                          the page object for the given page.
 
-                            -   Added a basic debugger for Robot tests. It can be enabled
-                                using the `-o debug True` option to the robot task.
+                              -   Added a basic debugger for Robot tests. It can be enabled
+                                  using the `-o debug True` option to the robot task.
 
 -   Added support for deploying new metadata types
     `ProfilePasswordPolicy` and `ProfileSessionSetting`.
@@ -3728,8 +3740,8 @@ New features:
     permanently set this option, add this in
     `~/.cumulusci/cumulusci.yml`:
 
-                            cli:
-                                plain_output: True
+                              cli:
+                                  plain_output: True
 
 -   Added additional info to the `cci version` command, including the
     Python version, an upgrade check, and a warning on Python 2.
@@ -5009,12 +5021,12 @@ Resolving a few issues from beta77:
     below. In flows that need to inject the actual namespace prefix,
     override the [unmanaged]{.title-ref} option .. :
 
-                            custom_deploy_task:
-                                class_path: cumulusci.tasks.salesforce.Deploy
-                                options:
-                                    path: your/custom/metadata
-                                    namespace_inject: $project_config.project__package__namespace
-                                    unmanaged: False
+                              custom_deploy_task:
+                                  class_path: cumulusci.tasks.salesforce.Deploy
+                                  options:
+                                      path: your/custom/metadata
+                                      namespace_inject: $project_config.project__package__namespace
+                                      unmanaged: False
 
 ### Enhancements
 
@@ -5729,13 +5741,13 @@ Resolving a few issues from beta77:
 -   **IMPORANT** This release changes the yaml structure for flows. The
     new structure now looks like this:
 
-                            flows:
-                                flow_name:
-                                    tasks:
-                                        1:
-                                            task: deploy
-                                        2:
-                                            task: run_tests
+                              flows:
+                                  flow_name:
+                                      tasks:
+                                          1:
+                                              task: deploy
+                                          2:
+                                              task: run_tests
 
 -   See the new flow customization examples in the cookbook for examples
     of why this change was made and how to use it:
