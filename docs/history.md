@@ -2,6 +2,7 @@
 
 <!-- latest-start -->
 
+
 ## v4.5.0 (2025-08-06)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -1827,6 +1828,7 @@ Critical Changes:
     -   Projects using unmanaged dependencies that reference GitHub
         subfolders will see a change in resolution behavior. Previously,
         a dependency specified like this:
+
 
                                 dependencies:
                                     - github: https://github.com/SalesforceFoundation/NPSP

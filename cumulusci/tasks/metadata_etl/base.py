@@ -7,7 +7,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg, determine_managed_mode
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.utils import inject_namespace
@@ -66,19 +66,16 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
             self.options.get("namespace_inject")
             or self.project_config.project__package__namespace
         )
-        if "managed" in self.options:
-            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
-        else:
-            self.options["managed"] = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
+        self.options["managed"] = determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
         if "namespaced_org" in self.options:
             self.options["namespaced_org"] = process_bool_arg(
                 self.options["namespaced_org"] or False
             )
         else:
             self.options["namespaced_org"] = (
-                bool(namespace) and namespace == self.org_config.namespace
+                bool(namespace) and namespace == getattr(self.org_config, 'namespace', None)
             )
 
     def _inject_namespace(self, text):

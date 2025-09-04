@@ -12,7 +12,7 @@ from cumulusci.core.source_transforms.transforms import (
     SourceTransform,
     SourceTransformList,
 )
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg, determine_managed_mode
 from cumulusci.salesforce_api.metadata import ApiDeploy, ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
@@ -154,9 +154,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
 
     def _has_namespaced_package(self, ns: Optional[str]) -> bool:
-        if "unmanaged" in self.options:
-            return not process_bool_arg(self.options.get("unmanaged", True))
-        return bool(ns) and ns in self.org_config.installed_packages
+        return determine_managed_mode(
+            self.options, self.project_config, self.org_config
+        )
 
     def _is_namespaced_org(self, ns: Optional[str]) -> bool:
         if "namespaced_org" in self.options:

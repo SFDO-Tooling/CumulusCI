@@ -248,6 +248,7 @@ def retrieve_components(
     to a namespace prefix to replace it with a `%%%NAMESPACE%%%` token.
     """
 
+
     # Resolve output_dir if provided; otherwise let sfdx choose defaults
     retrieve_target = os.path.realpath(output_dir) if output_dir else None
     profiles = []
