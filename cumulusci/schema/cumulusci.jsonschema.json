@@ -435,6 +435,10 @@
                     "title": "Release",
                     "enum": ["preview", "previous"],
                     "type": "string"
+                },
+                "snapshot": {
+                    "title": "Snapshot",
+                    "type": "string"
                 }
             },
             "additionalProperties": false

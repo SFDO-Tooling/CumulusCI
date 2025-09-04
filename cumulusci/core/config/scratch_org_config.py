@@ -3,6 +3,7 @@ import json
 import os
 from typing import List, NoReturn, Optional
 
+
 import sarge
 
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
@@ -14,6 +15,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.sfdx import sfdx
 
+import tempfile
 
 class ScratchOrgConfig(SfdxOrgConfig):
     """Salesforce DX Scratch org configuration"""
@@ -24,6 +26,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
     password_failed: bool
     devhub: str
     release: str
+    snapshot: str
 
     createable: bool = True
 
@@ -62,81 +65,108 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
     def create_org(self) -> None:
         """Uses sf org create scratch  to create the org"""
-        if not self.config_file:
-            raise ScratchOrgException(
-                f"Scratch org config {self.name} is missing a config_file"
+        try:
+            if not self.config_file:
+                raise ScratchOrgException(
+                    f"Scratch org config {self.name} is missing a config_file"
+                )
+            if not self.scratch_org_type:
+                self.config["scratch_org_type"] = "workspace"
+
+            args: List[str] = self._build_org_create_args()
+            extra_args = os.environ.get("SFDX_ORG_CREATE_ARGS", "")
+            p: sarge.Command = sfdx(
+                f"org create scratch --json {extra_args}",
+                args=args,
+                username=None,
+                log_note="Creating scratch org",
             )
-        if not self.scratch_org_type:
-            self.config["scratch_org_type"] = "workspace"
+            stdout = p.stdout_text.read()
+            stderr = p.stderr_text.read()
 
-        args: List[str] = self._build_org_create_args()
-        extra_args = os.environ.get("SFDX_ORG_CREATE_ARGS", "")
-        p: sarge.Command = sfdx(
-            f"org create scratch --json {extra_args}",
-            args=args,
-            username=None,
-            log_note="Creating scratch org",
-        )
-        stdout = p.stdout_text.read()
-        stderr = p.stderr_text.read()
+            def raise_error() -> NoReturn:
+                message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
+                try:
+                    output = json.loads(stdout)
+                    if (
+                        output.get("message") == "The requested resource does not exist"
+                        and output.get("name") == "NOT_FOUND"
+                    ):
+                        raise ScratchOrgException(
+                            "The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub."
+                        )
+                except json.decoder.JSONDecodeError:
+                    raise ScratchOrgException(message)
 
-        def raise_error() -> NoReturn:
-            message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
-            try:
-                output = json.loads(stdout)
-                if (
-                    output.get("message") == "The requested resource does not exist"
-                    and output.get("name") == "NOT_FOUND"
-                ):
-                    raise ScratchOrgException(
-                        "The Salesforce CLI was unable to create a scratch org. Ensure you are connected using a valid API version on an active Dev Hub."
-                    )
-            except json.decoder.JSONDecodeError:
                 raise ScratchOrgException(message)
 
-            raise ScratchOrgException(message)
+            result = {}  # for type checker.
+            if p.returncode:
+                raise_error()
+            try:
+                result = json.loads(stdout)
 
-        result = {}  # for type checker.
-        if p.returncode:
-            raise_error()
-        try:
-            result = json.loads(stdout)
+            except json.decoder.JSONDecodeError:
+                raise_error()
 
-        except json.decoder.JSONDecodeError:
-            raise_error()
+            if (
+                not (res := result.get("result"))
+                or ("username" not in res)
+                or ("orgId" not in res)
+            ):
+                raise_error()
 
-        if (
-            not (res := result.get("result"))
-            or ("username" not in res)
-            or ("orgId" not in res)
-        ):
-            raise_error()
+            if res["username"] is None:
+                raise ScratchOrgException(
+                    "SFDX claimed to be successful but there was no username "
+                    "in the output...maybe there was a gack?"
+                )
 
-        if res["username"] is None:
-            raise ScratchOrgException(
-                "SFDX claimed to be successful but there was no username "
-                "in the output...maybe there was a gack?"
+            self.config["org_id"] = res["orgId"]
+            self.config["username"] = res["username"]
+            
+            if self.snapshot:
+                self.config["snapshot"] = self.snapshot
+
+            self.config["date_created"] = datetime.datetime.utcnow()
+
+            self.logger.error(stderr)
+
+            self.logger.info(
+                f"Created: OrgId: {self.config['org_id']}, Username:{self.config['username']}"
             )
 
-        self.config["org_id"] = res["orgId"]
-        self.config["username"] = res["username"]
+            if self.config.get("set_password"):
+                self.generate_password()
 
-        self.config["date_created"] = datetime.datetime.utcnow()
-
-        self.logger.error(stderr)
-
-        self.logger.info(
-            f"Created: OrgId: {self.config['org_id']}, Username:{self.config['username']}"
-        )
-
-        if self.config.get("set_password"):
-            self.generate_password()
-
-        # Flag that this org has been created
-        self.config["created"] = True
+            # Flag that this org has been created
+            self.config["created"] = True
+        finally:
+            # Clean up temporary config file if it exists
+            if hasattr(self, '_tmp_config') and self._tmp_config and os.path.exists(self._tmp_config):
+                try:
+                    os.unlink(self._tmp_config)
+                except Exception as e:
+                    self.logger.warning(f"Failed to clean up temporary config file: {e}")
 
     def _build_org_create_args(self) -> List[str]:
-        args = ["-f", self.config_file, "-w", "120"]
+        config_file = self.config_file
+        self._tmp_config = None
+        if self.snapshot and self.config_file:
+            # When using snapshot, remove features and edition from config
+            with open(self.config_file, "r") as f:
+                org_config = json.load(f)
+                org_config.pop("features", None)
+                org_config.pop("edition", None)
+                
+            # Create temporary config file
+            tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+            json.dump(org_config, tmp, indent=4)
+            tmp.close()
+            config_file = tmp.name
+            self._tmp_config = config_file
+
+        args = ["-f", config_file, "-w", "120"]
         devhub_username: Optional[str] = self._choose_devhub_username()
         if devhub_username:
             args += ["--target-dev-hub", devhub_username]
@@ -157,6 +187,8 @@ class ScratchOrgConfig(SfdxOrgConfig):
             args += [f"--admin-email={self.email_address}"]
         if self.default:
             args += ["--set-default"]
+        if self.snapshot:
+            args += [f"--snapshot={self.snapshot}"]
 
         return args
 
