@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "click>=8.1",
+    "click>=8.2.0",
     "cryptography",
     "python-dateutil",
     "Faker",
@@ -34,6 +34,7 @@ dependencies = [
     "defusedxml",
     "lxml",
     "MarkupSafe",
+    "packaging>=23.0",
     "psutil",
     "pydantic<2",
     "PyJWT",
