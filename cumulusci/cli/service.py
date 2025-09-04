@@ -83,6 +83,25 @@ class ConnectServiceCommand(click.MultiCommand):
         services = self._get_services_config(runtime)
         return sorted(services.keys())
 
+    def invoke(self, ctx):
+        """Override to show available services instead of 'Missing command' error"""
+        try:
+            return super().invoke(ctx)
+        except click.UsageError as e:
+            if "Missing command" in str(e):
+                # No subcommand provided - list available services
+                services = self.list_commands(ctx)
+                if services:
+                    click.echo("Available services:")
+                    for service in services:
+                        click.echo(f"  {service}")
+                else:
+                    click.echo("No services available to configure.")
+                return
+            else:
+                # Re-raise other usage errors
+                raise
+
     def _build_param(self, attribute: str, details: dict) -> click.Option:
         required = details.get("required", False)
         default_factory: Optional[Callable] = self._get_callable_default(
@@ -267,6 +286,7 @@ class ConnectServiceCommand(click.MultiCommand):
     cls=ConnectServiceCommand,
     name="connect",
     help="Connect an external service to CumulusCI",
+    no_args_is_help=False,
 )
 def service_connect():
     pass

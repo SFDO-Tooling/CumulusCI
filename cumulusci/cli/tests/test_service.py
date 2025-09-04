@@ -106,9 +106,10 @@ def test_service_connect__attr_with_default_value():
     # but input of an empty line accepts the default.
     assert "attr (example) [PRESET]: " in result.output
     service_config = runtime.keychain.get_service("test", "test-alias")
-    with mock.patch(
-        "cumulusci.core.config.base_config.STRICT_GETATTR", False
-    ), pytest.warns(DeprecationWarning, match="attr"):
+    with (
+        mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", False),
+        pytest.warns(DeprecationWarning, match="attr"),
+    ):
         assert service_config.lookup("attr") == "PRESET"
         assert service_config.attr == "PRESET"
 
@@ -132,9 +133,10 @@ def test_service_connect__attr_with_default_factory():
 
     # The service should have the attribute value returned by the default factory.
     service_config = runtime.keychain.get_service("test", "test-alias")
-    with mock.patch(
-        "cumulusci.core.config.base_config.STRICT_GETATTR", False
-    ), pytest.warns(DeprecationWarning, match="attr"):
+    with (
+        mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", False),
+        pytest.warns(DeprecationWarning, match="attr"),
+    ):
         assert service_config.lookup("attr") == "CALCULATED"
         assert service_config.attr == "CALCULATED"
 
@@ -155,13 +157,14 @@ def test_service_connect__alias_already_exists():
         "test-type",
         "already-exists",
         runtime=runtime,
-        input="new\ny\n",
+        input="new\ny\nn\n",
     )
 
     service_config = runtime.keychain.get_service("test-type", "already-exists")
-    with mock.patch(
-        "cumulusci.core.config.base_config.STRICT_GETATTR", False
-    ), pytest.warns(DeprecationWarning, match="attr"):
+    with (
+        mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", False),
+        pytest.warns(DeprecationWarning, match="attr"),
+    ):
         assert service_config.lookup("attr") == "new"
         assert service_config.attr == "new"
 
@@ -536,7 +539,7 @@ def test_service_connect__connected_app():
         "connect",
         "connected_app",
         "new",
-        input="\n\nID\nSECRET\n",
+        input="\n\nID\nSECRET\nn\n",
         runtime=runtime,
     )
 
@@ -559,7 +562,7 @@ def test_service_connect__connected_app__with_cli_options():
         "new",
         "--login_url",
         "https://custom",
-        input="\nID\nSECRET\n",  # not prompted for login_url
+        input="\nID\nSECRET\nn\n",  # not prompted for login_url
         runtime=runtime,
     )
 

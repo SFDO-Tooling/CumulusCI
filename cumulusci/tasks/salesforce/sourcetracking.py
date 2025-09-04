@@ -182,7 +182,8 @@ retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_
 retrieve_changes_task_options["output_dir"] = {
     "description": (
         "The output directory for the retrieved metadata. "
-        + "If not specified, defaults to force-app or the target directory passed to retrieve changes."
+        + "If set, this will be passed as the --output-dir option to 'sfdx project retrieve start'. "
+        + "If not set, the default output directory will be used by Salesforce CLI (usually 'force-app')."
     ),
     "required": False,
 }
@@ -247,10 +248,9 @@ def retrieve_components(
     to a namespace prefix to replace it with a `%%%NAMESPACE%%%` token.
     """
 
-    # Always use output_dir if specified, else use target
-    retrieve_target = (
-        os.path.realpath(output_dir) if output_dir else os.path.realpath(target)
-    )
+
+    # Resolve output_dir if provided; otherwise let sfdx choose defaults
+    retrieve_target = os.path.realpath(output_dir) if output_dir else None
     profiles = []
     # If retrieve_complete_profile and project_config is None, raise error
     # This is because project_config is only required if retrieve_complete_profile is True
@@ -302,21 +302,23 @@ def retrieve_components(
             _write_manifest(components, package_xml_path, api_version)
 
             # Retrieve specified components in DX format
+            args = [
+                "-a",
+                str(api_version),
+                "-x",
+                os.path.join(package_xml_path, "package.xml"),
+                "-w",
+                "5",
+                "--ignore-conflicts",
+            ]
+            if retrieve_target is not None:
+                args.extend(["--output-dir", retrieve_target])
+
             p = sfdx(
                 "project retrieve start",
                 access_token=org_config.access_token,
                 log_note="Retrieving components",
-                args=[
-                    "-a",
-                    str(api_version),
-                    "-x",
-                    os.path.join(package_xml_path, "package.xml"),
-                    "-w",
-                    "5",
-                    "--ignore-conflicts",
-                    "--output-dir",
-                    retrieve_target,
-                ],
+                args=args,
                 capture_output=capture_output,
                 check_return=True,
                 env={"SF_ORG_INSTANCE_URL": org_config.instance_url},

@@ -8,8 +8,8 @@ from pathlib import Path
 from unittest import mock
 
 import click
-import pkg_resources
 import pytest
+from packaging import version
 from requests.exceptions import ConnectionError
 from rich.console import Console
 
@@ -402,7 +402,7 @@ def test_cli():
 
 @mock.patch(
     "cumulusci.cli.cci.get_latest_final_version",
-    mock.Mock(return_value=pkg_resources.parse_version("100")),
+    mock.Mock(return_value=version.parse("100")),
 )
 def test_version(capsys):
     run_click_command(cci.version)
@@ -413,7 +413,7 @@ def test_version(capsys):
 
 @mock.patch(
     "cumulusci.cli.cci.get_latest_final_version",
-    mock.Mock(return_value=pkg_resources.parse_version("1")),
+    mock.Mock(return_value=version.parse("1")),
 )
 def test_version__latest(capsys):
     run_click_command(cci.version)
