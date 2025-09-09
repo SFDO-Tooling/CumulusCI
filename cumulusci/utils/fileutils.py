@@ -85,7 +85,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
             yield f, path
     elif "://" in source:  # URL string-like
         url = source
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=30)
         resp.raise_for_status()
         yield StringIO(resp.text), url
     else:  # path-string-like
@@ -261,7 +261,7 @@ class FSResource:
             p.mkdir(exist_ok=exist_ok)
 
     def __contains__(self, other):
-        return other in str(self.geturl())
+        return str(other) in str(self.getsyspath())
 
     @property
     def suffix(self):
@@ -274,10 +274,7 @@ class FSResource:
         return f"<FSResource {self.geturl()}>"
 
     def __str__(self):
-        rc = self.geturl()
-        if rc.startswith("file://"):
-            return rc[7:] if rc.startswith("file:///") else rc[6:]
-        return rc
+        return str(self.getsyspath())
 
     def __fspath__(self):
         return str(self.getsyspath())
