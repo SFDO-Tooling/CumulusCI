@@ -36,7 +36,7 @@ dependencies = [
     "MarkupSafe",
     "packaging>=23.0",
     "psutil",
-    "pydantic<2",
+    "pydantic>=2.0,<3",
     "PyJWT",
     "pytz",
     "pyyaml",
@@ -53,7 +53,7 @@ dependencies = [
     "sarge",
     "selenium<4",
     "simple-salesforce==1.11.4",
-    "snowfakery>=4.0.0",
+    "snowfakery @ git+https://github.com/SFDO-Tooling/snowfakery.git@migrate_to_pydantic_v2",
     "xmltodict",
     "docutils<=0.21.2",
 ]
@@ -104,6 +104,9 @@ Changelog = "https://cumulusci.readthedocs.io/en/stable/history.html"
 
 [tool.hatch.version]
 path = "cumulusci/__about__.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build]
 include = [
