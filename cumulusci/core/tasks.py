@@ -11,7 +11,7 @@ import time
 from contextlib import nullcontext
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from pydantic.error_wrappers import ValidationError
+from pydantic.v1.error_wrappers import ValidationError
 
 from cumulusci import __version__
 from cumulusci.core.config import TaskConfig
