@@ -2,7 +2,7 @@ import re
 import typing as T
 from pathlib import Path
 
-from pydantic import Field, validator
+from pydantic.v1 import Field, validator
 
 from cumulusci.core.enums import StrEnum
 from cumulusci.tasks.bulkdata.utils import DataApi

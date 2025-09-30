@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import IO, Sequence, Union
 
-from pydantic import BaseModel, ValidationError
-from pydantic.error_wrappers import ErrorWrapper
+from pydantic.v1 import BaseModel, ValidationError
+from pydantic.v1.error_wrappers import ErrorWrapper
 
 from cumulusci.utils.yaml.safer_loader import load_from_source, load_yaml_data
 

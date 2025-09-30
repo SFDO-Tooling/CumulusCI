@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-import pydantic
-from pydantic import BaseModel
+import pydantic.v1 as pydantic
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl.base import BaseMetadataSynthesisTask

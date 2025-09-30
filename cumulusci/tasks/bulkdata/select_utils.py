@@ -4,7 +4,7 @@ import re
 import typing as T
 from enum import Enum
 
-from pydantic import Field, root_validator, validator
+from pydantic.v1 import Field, root_validator, validator
 
 from cumulusci.core.enums import StrEnum
 from cumulusci.tasks.bulkdata.utils import CaseInsensitiveDict

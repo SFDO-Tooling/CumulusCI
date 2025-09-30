@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
-from pydantic import Field, ValidationError, root_validator, validator
+from pydantic.v1 import Field, ValidationError, root_validator, validator
 from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
