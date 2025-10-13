@@ -2,7 +2,7 @@
 
 <!-- latest-start -->
 
-## v4.6.0.dev0 (2025-10-13)
+## v4.6.0.dev0 (2025-10-13) 
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
