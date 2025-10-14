@@ -25,17 +25,17 @@ jobs:
         runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v4
-            - name: Set up Python 3.11
+            - name: Set up Python 3.13
               uses: actions/setup-python@v5
               with:
-                  python-version: 3.11
+                  python-version: 3.13
             - name: Set up uv
               uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
             - name: Install dependencies
-              run: uv sync -p 3.11
+              run: uv sync -p 3.13
             - name: Install Salesforce CLI
               run: |
                   mkdir sfdx
@@ -74,17 +74,17 @@ jobs:
                     #   org-shape: "prerelease"
         steps:
             - uses: actions/checkout@v4
-            - name: Set up Python 3.11
+            - name: Set up Python 3.13
               uses: actions/setup-python@v5
               with:
-                  python-version: 3.11
+                  python-version: 3.13
             - name: Set up uv
               uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
             - name: Install Python dependencies
-              run: uv sync -p 3.11
+              run: uv sync -p 3.13
             - name: Install Salesforce CLI
               run: |
                   mkdir sfdx

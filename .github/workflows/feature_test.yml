@@ -22,11 +22,11 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 1
-            - name: Set up Python 3.11
+            - name: Set up Python 3.13
               id: py
               uses: actions/setup-python@v5
               with:
-                  python-version: 3.11
+                  python-version: 3.13
             - name: Set up uv
               uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
@@ -42,11 +42,12 @@ jobs:
     unit_tests:
         name: "Unit tests: ${{ matrix.os }}-${{ matrix.python-version }}"
         runs-on: ${{ matrix.os }}
+        continue-on-error: ${{ matrix.python-version == '3.14' }}
         strategy:
             fail-fast: false
             matrix:
                 os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
-                python-version: ["3.11", "3.12", "3.13"]
+                python-version: ["3.11", "3.12", "3.13", "3.14"]
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python
@@ -66,11 +67,12 @@ jobs:
     unit_tests_opt_deps:
         name: "Unit tests with optional dependencies: ${{ matrix.os }}-${{ matrix.python-version }}"
         runs-on: ${{ matrix.os }}
+        continue-on-error: ${{ matrix.python-version == '3.14' }}
         strategy:
             fail-fast: false
             matrix:
                 os: [macos-latest, SFDO-Tooling-Ubuntu, SFDO-Tooling-Windows]
-                python-version: ["3.11", "3.12", "3.13"]
+                python-version: ["3.11", "3.12", "3.13", "3.14"]
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python
@@ -92,17 +94,17 @@ jobs:
         runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v4
-            - name: Set up Python 3.11
+            - name: Set up Python 3.13
               uses: actions/setup-python@v5
               with:
-                  python-version: 3.11
+                  python-version: 3.13
             - name: Set up uv
               uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
             - name: Install dependencies
-              run: uv sync -p 3.11
+              run: uv sync -p 3.13
             - name: Install sfdx
               run: |
                   mkdir sfdx
