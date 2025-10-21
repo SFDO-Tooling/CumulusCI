@@ -3,11 +3,11 @@ requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cumulusci"
+name = "ntcumulusci"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
 license = { text = "BSD 3-Clause License" }
-requires-python = ">=3.11"
+requires-python = "==3.12.*"
 authors = [
     { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
 ]
@@ -23,39 +23,41 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "click>=8.2.0",
-    "cryptography",
-    "python-dateutil",
-    "Faker",
-    "fs",
-    "github3.py",
-    "jinja2",
-    "keyring<=23.0.1",
-    "defusedxml",
-    "lxml",
-    "MarkupSafe",
-    "packaging>=23.0",
-    "psutil",
-    "pydantic<2",
-    "PyJWT",
-    "pytz",
-    "pyyaml",
-    "requests",
-    "requests-futures",
-    "rich>=13.9.4",
-    "robotframework",
-    "SQLAlchemy<2",
-    "robotframework-pabot",
-    "robotframework-requests",
-    "robotframework-seleniumlibrary<6",
-    "rst2ansi>=0.1.5",
-    "salesforce-bulk",
-    "sarge",
-    "selenium<4",
-    "simple-salesforce==1.11.4",
-    "snowfakery>=4.0.0",
-    "xmltodict",
-    "docutils<=0.21.2",
+    "setuptools==80.8.0",
+    "click==8.2.1",
+    "cryptography==43.0.1",
+    "python-dateutil==2.9.0.post0",
+    "Faker==37.5.3",
+    "fs==2.4.16",
+    "github3.py==4.0.1",
+    "jinja2==3.1.6",
+    "keyring==23.0.1",
+    "defusedxml==0.7.1",
+    "lxml==6.0.0",
+    "MarkupSafe==3.0.2",
+    "packaging==25.0",
+    "psutil==7.0.0",
+    "pydantic==1.10.22",
+    "PyJWT==2.10.1",
+    "pytz==2025.2",
+    "pyyaml==6.0.2",
+    "requests==2.29", #todo(mr) switch to 2.32.4 once playwright is used
+    "requests-futures==1.0.2",
+    "rich==14.1.0",
+    "robotframework==7.3.2",
+    "SQLAlchemy==1.4.54",
+    "robotframework-pabot==4.3.2",
+    "robotframework-requests==0.9.7",
+    "robotframework-seleniumlibrary==5.1.3",
+    "rst2ansi==0.1.5",
+    "salesforce-bulk==2.2.0",
+    "sarge==0.1.7.post1",
+    "selenium==3.141.0",
+    "simple-salesforce==1.12.9",
+    "snowfakery==4.0.0",
+    "xmltodict==0.14.2",
+    "docutils==0.21.2",
+    "dotenv==0.9.9",
 ]
 
 [dependency-groups]
@@ -98,7 +100,7 @@ cci = "cumulusci.cli.cci:main"
 snowfakery = "snowfakery.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/SFDO-Tooling/CumulusCI"
+Homepage = "https://github.com/Northteq/NTCumulusCI"
 Changelog = "https://cumulusci.readthedocs.io/en/stable/history.html"
 "Bug Tracker" = "https://github.com/SFDO-Tooling/CumulusCI/issues"
 

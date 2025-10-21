@@ -152,7 +152,7 @@ def show_debug_info():
 
 def show_version_info():
     console = rich.get_console()
-    console.print(f"CumulusCI version: {cumulusci.__version__} ({sys.argv[0]})")
+    console.print(f"NT CumulusCI version: {cumulusci.__version__} ({sys.argv[0]})")
     console.print(f"Python version: {sys.version.split()[0]} ({sys.executable})")
     console.print()
     warn_if_no_long_paths(console=console)

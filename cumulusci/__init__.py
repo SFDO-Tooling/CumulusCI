@@ -7,7 +7,7 @@ from simple_salesforce import api, bulk
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 try:
-    __version__ = version("cumulusci")
+    __version__ = version("ntcumulusci")
 except PackageNotFoundError:
     __version__ = "unknown"
 

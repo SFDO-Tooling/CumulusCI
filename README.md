@@ -1,3 +1,10 @@
+# Northteq
+
+This is a fork of CumulusCI for Northteq to better deal with the python package dependencies.  
+This is to avoid errors due to python package dependenices.  
+Follow the install guide for mac   
+
+
 # CumulusCI
 
 [![Code Coverage](https://coveralls.io/repos/github/SFDO-Tooling/CumulusCI/badge.svg?branch=main)](https://coveralls.io/github/SFDO-Tooling/CumulusCI?branch=main)

@@ -168,7 +168,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
                 # only wait for half of the timeout before doing some additional
                 # checks. This seems to work better than one long timeout.
                 self.browser.wait_for_navigation(
-                    expected_url, timeout_seconds // 2, PageLoadStates.networkidle
+                    expected_url, timeout_seconds // 2, PageLoadStates.domcontentloaded
                 )
                 self.wait_until_loading_is_complete(locator)
                 # No errors? We're golden.
