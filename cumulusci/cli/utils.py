@@ -66,7 +66,7 @@ def get_latest_final_version():
     """return the latest version of cumulusci in pypi, be defensive"""
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = safe_json_from_response(
-        requests.get("https://test.pypi.org/pypi/ntcumulusci/json", timeout=5)
+        requests.get("https://pypi.org/pypi/ntcumulusci/json", timeout=5)
     )
     with timestamp_file() as f:
         f.write(str(time.time()))

@@ -161,12 +161,12 @@ def show_version_info():
     latest_version = get_latest_final_version()
 
     if not latest_version > current_version:
-        console.print("You have the latest version of CumulusCI :sun_behind_cloud:\n")
+        console.print("You have the latest version of NTCumulusCI :sun_behind_cloud:\n")
         display_release_notes_link(str(latest_version))
         return
 
     console.print(
-        f"[yellow]There is a newer version of CumulusCI available: {str(latest_version)}"
+        f"[yellow]There is a newer version of NTCumulusCI available: {str(latest_version)}"
     )
     console.print(f"To upgrade, run `{get_cci_upgrade_command()}`")
     display_release_notes_link(str(latest_version))
