@@ -52,7 +52,7 @@ dependencies = [
     "salesforce-bulk",
     "sarge",
     "selenium<4",
-    "simple-salesforce==1.11.4",
+    "simple-salesforce==1.12.9",
     "snowfakery>=4.1.0",
     "xmltodict",
     "docutils<=0.21.2",
