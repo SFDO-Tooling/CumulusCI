@@ -1868,8 +1868,9 @@ class TestValidateOnlyMode:
 
         assert result is not None
         assert isinstance(result, ValidationResult)
-        # Should have warnings about missing field
-        assert any("Nonsense__c" in warning for warning in result.warnings)
+        assert result.has_errors()
+        # Should have errors about missing field
+        assert any("Nonsense__c" in error for error in result.errors)
 
     @responses.activate
     def test_validate_only_collects_missing_required_field_errors(self):
@@ -1930,8 +1931,9 @@ class TestValidateOnlyMode:
 
         assert result is not None
         assert isinstance(result, ValidationResult)
-        # Should have warning about missing object
-        assert any("InvalidObject__c" in warning for warning in result.warnings)
+        assert result.has_errors()
+        # Should have error about missing object
+        assert any("InvalidObject__c" in error for error in result.errors)
 
     @responses.activate
     def test_validate_only_collects_lookup_errors(self):
@@ -2068,7 +2070,7 @@ class TestValidationResultParameter:
         assert "Name" in caplog.text
 
     def test_validate_sobject_with_validation_result(self):
-        """Test _validate_sobject adds warnings to ValidationResult"""
+        """Test _validate_sobject adds errors to ValidationResult"""
         from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
 
         ms = MappingStep(
@@ -2087,13 +2089,11 @@ class TestValidationResultParameter:
         )
 
         assert not result
-        assert len(validation_result.warnings) > 0
-        assert any(
-            "InvalidObject__c" in warning for warning in validation_result.warnings
-        )
+        assert validation_result.has_errors()
+        assert any("InvalidObject__c" in error for error in validation_result.errors)
 
     def test_validate_field_dict_with_validation_result(self):
-        """Test _validate_field_dict adds warnings to ValidationResult"""
+        """Test _validate_field_dict adds errors to ValidationResult"""
         from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
 
         ms = MappingStep(
@@ -2114,10 +2114,8 @@ class TestValidationResultParameter:
         )
 
         assert not result
-        assert len(validation_result.warnings) > 0
-        assert any(
-            "NonexistentField__c" in warning for warning in validation_result.warnings
-        )
+        assert validation_result.has_errors()
+        assert any("NonexistentField__c" in error for error in validation_result.errors)
 
     def test_infer_and_validate_lookups_with_validation_result(self):
         """Test _infer_and_validate_lookups adds errors to ValidationResult"""
@@ -2235,10 +2233,11 @@ class TestValidationResultCoverage:
         )
 
         assert not result
-        # Should have warning about incorrect permissions
+        assert validation_result.has_errors()
+        # Should have error about incorrect permissions
         assert any(
-            "does not have the correct permissions" in warning
-            for warning in validation_result.warnings
+            "does not have the correct permissions" in error
+            for error in validation_result.errors
         )
 
     def test_validate_sobject_permission_error_with_validation_result(self):
@@ -2261,10 +2260,11 @@ class TestValidationResultCoverage:
         )
 
         assert not result
-        # Should have warning about incorrect permissions
+        assert validation_result.has_errors()
+        # Should have error about incorrect permissions
         assert any(
-            "does not have the correct permissions" in warning
-            for warning in validation_result.warnings
+            "does not have the correct permissions" in error
+            for error in validation_result.errors
         )
 
     def test_infer_and_validate_lookups_invalid_reference_with_validation_result(self):

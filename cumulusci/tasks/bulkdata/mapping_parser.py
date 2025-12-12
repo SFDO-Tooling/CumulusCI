@@ -444,9 +444,9 @@ class MappingStep(CCIDictModel):
             except KeyError:
                 message = f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
                 if validation_result:
-                    validation_result.add_warning(message)
+                    validation_result.add_error(message)
                 else:
-                    logger.warning(message)
+                    logger.error(message)
             else:
                 del field_dict[f]
                 field_dict[new_name] = entry
@@ -463,9 +463,9 @@ class MappingStep(CCIDictModel):
             if f not in describe:
                 message = f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
                 if validation_result:
-                    validation_result.add_warning(message)
+                    validation_result.add_error(message)
                 else:
-                    logger.warning(message)
+                    logger.error(message)
                 error_in_f = True
             elif not self._check_field_permission(
                 describe,
@@ -480,9 +480,9 @@ class MappingStep(CCIDictModel):
                     + f"{relevant_permissions} for this operation."
                 )
                 if validation_result:
-                    validation_result.add_warning(message)
+                    validation_result.add_error(message)
                 else:
-                    logger.warning(message)
+                    logger.error(message)
                 error_in_f = True
 
             if error_in_f:
@@ -514,9 +514,9 @@ class MappingStep(CCIDictModel):
         except KeyError:
             message = f"sObject {self.sf_object} does not exist or is not visible to the current user."
             if validation_result:
-                validation_result.add_warning(message)
+                validation_result.add_error(message)
             else:
-                logger.warning(message)
+                logger.error(message)
             return False
 
         # Validate our access to this sObject.
@@ -525,9 +525,9 @@ class MappingStep(CCIDictModel):
         ):
             message = f"sObject {self.sf_object} does not have the correct permissions for {data_operation_type}."
             if validation_result:
-                validation_result.add_warning(message)
+                validation_result.add_error(message)
             else:
-                logger.warning(message)
+                logger.error(message)
             return False
 
         return True
