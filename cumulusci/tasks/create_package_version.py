@@ -1,7 +1,9 @@
 import base64
 import io
 import json
+import os
 import pathlib
+import tempfile
 import zipfile
 from typing import List, Optional
 
@@ -27,7 +29,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
@@ -58,6 +60,9 @@ class PackageConfig(BaseModel):
     org_dependent: bool = False
     post_install_script: Optional[str] = None
     uninstall_script: Optional[str] = None
+    unmanaged_metadata: Optional[str] = None
+    apex_test_permissions: Optional[list] = None
+    apex_test_permission_licenses: Optional[list] = None
     namespace: Optional[str] = None
     version_name: str
     version_base: Optional[str] = None
@@ -150,6 +155,17 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If True, create unlocked packages for unpackaged metadata in this project and dependencies. "
             "Defaults to False."
         },
+        "unpackaged_metadata": {
+            "description": "The path to any unpackaged metadata that should be included during package version creation for Apex tests."
+        },
+        "apex_test_permission_sets": {
+            "description": "Sometimes the Apex tests that you write require a user to have certain permission sets. "
+            "Use this setting to assign permission sets to the user in whose context your Apex tests get run at package version creation."
+        },
+        "apex_test_permission_licenses": {
+            "description": "Sometimes the Apex tests that you write require a user to have certain permission set licenses. "
+            "Use this setting to assign permission set licenses to the user in whose context your Apex tests get run at package version creation."
+        }
     }
 
     def _init_options(self, kwargs):
@@ -171,6 +187,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         else:
             uninstall_script = self.project_config.project__package__uninstall_class
 
+        self.options["apex_test_permission_sets"] = process_list_arg(self.options.get("apex_test_permission_sets"))
+        self.options["apex_test_permission_licenses"] = process_list_arg(self.options.get("apex_test_permission_licenses"))
         self.package_config = PackageConfig(
             package_name=self.options.get("package_name")
             or self.project_config.project__package__name,
@@ -184,6 +202,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             version_name=self.options.get("version_name") or "Release",
             version_base=self.options.get("version_base"),
             version_type=self.options.get("version_type") or VersionTypeEnum("build"),
+            unpackaged_metadata=self.options.get("unpackaged_metadata"),
+            apex_test_permission_sets=self.options.get("apex_test_permission_sets"),
+            apex_test_permission_licenses=self.options.get("apex_test_permission_licenses"),
         )
         self.options["skip_validation"] = process_bool_arg(
             self.options.get("skip_validation") or False
@@ -429,6 +450,19 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                         "settings.zip", settings_zip_builder.as_bytes()
                     )
 
+            if self.options["unpackaged_metadata"]:
+                with convert_sfdx_source(
+                    self.options["unpackaged_metadata"],
+                    "",
+                    self.logger,
+                ) as path:
+                    unpackaged_zip_builder = MetadataPackageZipBuilder(
+                        path=path, context=self.context,
+                    )
+                    version_info.writestr(
+                        "unpackaged-metadata-package.zip", unpackaged_zip_builder.as_bytes()
+                    )
+
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
             if (
@@ -440,12 +474,23 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             if dependencies:
                 package_descriptor["dependencies"] = dependencies
 
+            if self.options["apex_test_permission_sets"]:
+                package_descriptor["permissionSetNames"] = self.options["apex_test_permission_sets"]
+
+            if self.options["apex_test_permission_licenses"]:
+                package_descriptor["permissionSetLicenseDeveloperNames"] = self.options["apex_test_permission_licenses"]
+
             # Add package descriptor to version info
             version_info.writestr(
                 "package2-descriptor.json", json.dumps(package_descriptor)
             )
         finally:
             version_info.close()
+            tmpdir = tempfile.mkdtemp()
+            zip_fn = os.path.join(tmpdir, 'package-version-info.zip')
+            with open(zip_fn, "wb") as f:
+                f.write(version_bytes.getbuffer())
+            self.logger.debug(f"Package request save to {zip_fn}")
         version_info = base64.b64encode(version_bytes.getvalue()).decode("utf-8")
         Package2CreateVersionRequest = self._get_tooling_object(
             "Package2VersionCreateRequest"
