@@ -189,6 +189,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         self.options["apex_test_permission_sets"] = process_list_arg(self.options.get("apex_test_permission_sets"))
         self.options["apex_test_permission_licenses"] = process_list_arg(self.options.get("apex_test_permission_licenses"))
+        self.options["unpackaged_metadata"] = self.options.get("unpackaged_metadata")
         self.package_config = PackageConfig(
             package_name=self.options.get("package_name")
             or self.project_config.project__package__name,
