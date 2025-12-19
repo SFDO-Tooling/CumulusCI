@@ -141,8 +141,11 @@ class Snowfakery(BaseSalesforceApiTask):
             "Defaults to False."
         },
         "validate_only": {
-            "description": "Boolean: if True, only validate the generated mapping against the org schema without loading data. "
+            "description": "Boolean: if True, validates snowfakery recipe and generated mapping against the org schema without loading data. "
             "Defaults to False."
+        },
+        "strict_mode": {
+            "description": "Boolean: If True, validates the Snowfakery recipe and generated mapping against the org schema (strict mode) and then proceeds with the run",
         },
     }
 
@@ -165,6 +168,7 @@ class Snowfakery(BaseSalesforceApiTask):
             self.options.get("drop_missing_schema", False)
         )
         self.validate_only = process_bool_arg(self.options.get("validate_only", False))
+        self.strict_mode = process_bool_arg(self.options.get("strict_mode", False))
 
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
@@ -614,6 +618,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "ignore_row_errors": self.ignore_row_errors,
             "drop_missing_schema": self.drop_missing_schema,
             "validate_only": validate_only,
+            "strict_mode": self.strict_mode,
         }
         subtask_config = TaskConfig({"options": options})
         subtask = GenerateAndLoadDataFromYaml(

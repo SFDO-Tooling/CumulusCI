@@ -237,6 +237,59 @@ def run_snowfakery_and_inspect_mapping(
     return _run_snowfakery_and_inspect_mapping
 
 
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_snowfakery_validate_only_passes_flags(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {"validation_result": "ok"}
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        validate_only=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+            validate_only=True,
+        )
+
+    # task_config passed into subtask should carry validate_only=True and strict_mode flag
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["validate_only"] is True
+    assert task_config.options["strict_mode"] is False
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_snowfakery_strict_mode_passes_flags(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {"validation_result": "ok"}
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        strict_mode=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+            validate_only=False,
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["validate_only"] is False
+    assert task_config.options["strict_mode"] is True
+
+
 def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
     """Find the shared mapping file and return it."""
     template_dir = SnowfakeryWorkingDirectory(results.working_dir / "template_1/")

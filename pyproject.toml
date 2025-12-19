@@ -53,7 +53,7 @@ dependencies = [
     "sarge",
     "selenium<4",
     "simple-salesforce==1.11.4",
-    "snowfakery>=4.1.0",
+    "snowfakery @ git+https://github.com/SFDO-Tooling/Snowfakery.git@W-19976090/standard-function-validation",
     "xmltodict",
     "docutils<=0.21.2",
 ]

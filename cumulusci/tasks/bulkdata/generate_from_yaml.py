@@ -95,6 +95,9 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         self.working_directory = self.options.get("working_directory")
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
+        # These flags may be provided internally by callers (e.g., Snowfakery task)
+        self.strict_mode = bool(self.options.get("strict_mode", False))
+        self.validate_only = bool(self.options.get("validate_only", False))
 
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
@@ -171,6 +174,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                     "project_config": self.project_config,
                     **self.plugin_options,
                 },
+                strict_mode=self.strict_mode or self.validate_only,
             )
 
         if (
