@@ -1,12 +1,12 @@
 ---
 name: Bug report
-description: Report a problem in CumulusCI functionality
+description: Report a problem in Clariti CumulusCI functionality
 labels: bug
 body:
     - type: markdown
       attributes:
           value: |
-              If you are seeking support on using CumulusCI, please do not open an Issue. Instead, please visit us on the [Trailblazer Community](https://trailhead.salesforce.com/trailblazer-community/groups/0F9300000009M9ZCAU).
+              If you are seeking support on using Clariti CumulusCI or Offical CumulusCI, please do not open an Issue. Instead, please visit on the [Trailblazer Community](https://trailhead.salesforce.com/trailblazer-community/groups/0F9300000009M9ZCAU).
     - type: textarea
       id: bug_description
       validations:
@@ -71,7 +71,7 @@ body:
       id: error_gist
       attributes:
           label: Error Gist
-          description: If applicable, please use the `cci error gist` command to create a Gist from your error log and include the link here. See the [documentation](https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors) to learn how to create a Gist.
+          description: If applicable, please use the `cci error gist` command to create a Gist from your error log and include the link here. See the [documentation](https://claritisoftware.github.io/CumulusCI/features.html#working-with-errors) to learn how to create a Gist. **Recommended:** [Enable telemetry](https://claritisoftware.github.io/CumulusCI/env-var-reference.html#telemetry) and reproduce the issue so we automatically receive the error report.
     - type: textarea
       id: additional_information
       attributes:
