@@ -4,12 +4,12 @@ This document provides guidance for maintainers of Clariti CumulusCI.
 
 ## Table of Contents
 
-- [Version Management](#version-management)
-- [Python Version Requirements](#python-version-requirements)
-- [Release Process](#release-process)
-- [Syncing with Upstream](#syncing-with-upstream)
-- [Key Files Reference](#key-files-reference)
-- [Common Maintenance Tasks](#common-maintenance-tasks)
+-   [Version Management](#version-management)
+-   [Python Version Requirements](#python-version-requirements)
+-   [Release Process](#release-process)
+-   [Syncing with Upstream](#syncing-with-upstream)
+-   [Key Files Reference](#key-files-reference)
+-   [Common Maintenance Tasks](#common-maintenance-tasks)
 
 ---
 
@@ -41,11 +41,11 @@ hatch version beta     # 4.6.0 -> 4.6.0b1
 
 We follow semantic versioning with optional pre-release tags:
 
-- **Release**: `4.6.0`
-- **Development**: `4.6.0.dev1`
-- **Beta**: `4.6.0b1`
-- **Alpha**: `4.6.0a1`
-- **Release Candidate**: `4.6.0rc1`
+-   **Release**: `4.6.0`
+-   **Development**: `4.6.0.dev1`
+-   **Beta**: `4.6.0b1`
+-   **Alpha**: `4.6.0a1`
+-   **Release Candidate**: `4.6.0rc1`
 
 ---
 
@@ -55,14 +55,14 @@ When changing the minimum Python version, update **ALL** of these locations:
 
 ### Files to Update
 
-| File | Location | Current Value |
-|------|----------|---------------|
-| `pyproject.toml` | Line 10 | `requires-python = ">=3.11"` |
-| `cumulusci/__init__.py` | Line 26 | `sys.version_info < (3, 11)` |
-| `cumulusci/cli/utils.py` | Line 18 | `LOWEST_SUPPORTED_VERSION = (3, 11, 0)` |
-| `cumulusci/cli/utils.py` | Line 108 | Error message mentioning Python version |
-| `docs/get-started.md` | Line 72 | Python download instructions |
-| `.github/workflows/*.yml` | Various | `python-version` in matrix |
+| File                      | Location | Current Value                           |
+| ------------------------- | -------- | --------------------------------------- |
+| `pyproject.toml`          | Line 10  | `requires-python = ">=3.11"`            |
+| `cumulusci/__init__.py`   | Line 26  | `sys.version_info < (3, 11)`            |
+| `cumulusci/cli/utils.py`  | Line 18  | `LOWEST_SUPPORTED_VERSION = (3, 11, 0)` |
+| `cumulusci/cli/utils.py`  | Line 108 | Error message mentioning Python version |
+| `docs/get-started.md`     | Line 72  | Python download instructions            |
+| `.github/workflows/*.yml` | Various  | `python-version` in matrix              |
 
 ### Checklist for Python Version Bump
 
@@ -97,7 +97,68 @@ grep -r "3\.11" --include="*.py" --include="*.toml" --include="*.yml" --include=
 3. [ ] Changelog updated in `docs/history.md`
 4. [ ] Documentation builds successfully
 
-### Creating a Release
+### CI-Based Release (Recommended)
+
+The recommended way to release is using GitHub Actions workflows:
+
+#### 1. Trigger the Pre-Release Workflow
+
+Go to **Actions** → **Draft release pull request** → **Run workflow**
+
+-   Select version bump type: `major`, `minor`, `patch`, `dev`, `alpha`, `beta`, `preview`
+-   This automatically:
+    -   Bumps the version in `cumulusci/__about__.py`
+    -   Generates changelog from GitHub PRs/commits
+    -   Creates a release PR
+
+#### 2. Review and Merge the PR
+
+-   Review the auto-generated changelog in `docs/history.md`
+-   Make any manual edits if needed
+-   Merge the PR to `main`
+
+#### 3. Automatic Publishing
+
+Once merged, the `release.yml` workflow automatically:
+
+-   Builds the package (`hatch build`)
+-   Publishes to PyPI (`hatch publish`)
+-   Creates a GitHub Release with changelog and artifacts
+
+**Workflow Files:**
+
+-   `.github/workflows/pre-release.yml` - Creates release PR
+-   `.github/workflows/release.yml` - Publishes on merge
+
+**PyPI Trusted Publishing Setup:**
+
+No API tokens needed! Uses OIDC authentication. The workflow automatically selects the environment based on version:
+
+| Version Pattern      | Example               | Environment   | GitHub Release |
+| -------------------- | --------------------- | ------------- | -------------- |
+| `*.dev*`             | `4.6.0.dev2`          | `development` | Pre-release    |
+| `*a*`, `*b*`, `*rc*` | `4.6.0b1`, `4.6.0rc1` | `staging`     | Pre-release    |
+| Final                | `4.6.0`               | `production`  | Release        |
+
+**Configure Trusted Publishers in PyPI:**
+
+Go to https://pypi.org/manage/project/clariti-cumulusci/settings/publishing/ and add:
+
+| Environment   | Owner             | Repository  | Workflow      |
+| ------------- | ----------------- | ----------- | ------------- |
+| `development` | `ClaritiSoftware` | `CumulusCI` | `release.yml` |
+| `staging`     | `ClaritiSoftware` | `CumulusCI` | `release.yml` |
+| `production`  | `ClaritiSoftware` | `CumulusCI` | `release.yml` |
+
+**Note:** Create matching GitHub environments in repo Settings → Environments. Production can require approval.
+
+---
+
+### Manual Release (Fallback)
+
+Use this if CI is unavailable or for emergency releases.
+
+#### Creating a Release
 
 ```bash
 # 1. Ensure you're on main and up to date
@@ -107,43 +168,50 @@ git pull origin main
 # 2. Run tests
 make test
 
-# 3. Build docs
-make docs
-
-# 4. Create release branch
+# 3. Create release branch
 git checkout -b release-v4.7.0
 
-# 5. Bump version
+# 4. Bump version
 hatch version minor
 
-# 6. Update changelog
-# Edit docs/history.md
+# 5. Update changelog in docs/history.md
 
-# 7. Commit and push
-git add .
-git commit -m "Release v4.7.0"
+# 6. Commit and push
+git add -A
+git commit -m "TICKET-XXX release: v4.7.0"
 git push origin release-v4.7.0
 
-# 8. Create PR and merge
-
-# 9. Tag the release (after merge)
-git checkout main
-git pull origin main
-git tag -a v4.7.0 -m "Release v4.7.0"
-git push origin v4.7.0
+# 7. Create PR and merge to main
 ```
 
-### Publishing to PyPI
+#### Publishing to PyPI
 
 ```bash
 # Build the package
 hatch build
 
-# Check the build
-twine check dist/*
+# Publish to PyPI (will prompt for credentials if not configured)
+hatch publish
 
-# Upload to PyPI
-twine upload dist/*
+# Or using twine (alternative)
+# pip install twine
+# twine check dist/*
+# twine upload dist/*
+```
+
+### Dev Release (Pre-release)
+
+```bash
+# Bump to next dev version
+hatch version dev      # e.g., 4.6.0.dev1 -> 4.6.0.dev2
+
+# Update changelog in docs/history.md
+
+# Commit
+git add -A && git commit -m "TICKET-XXX release: bump version to vX.X.X.devX with changelog"
+
+# Build and publish
+hatch build && hatch publish
 ```
 
 ---
@@ -187,13 +255,13 @@ git push origin sync-upstream-YYYY-MM-DD
 
 ### Conflict Resolution Priority
 
-| File Category | Resolution |
-|---------------|------------|
-| Branding files (README, LICENSE, pyproject.toml) | Keep ours |
-| Documentation URLs | Keep ours (claritisoftware.github.io) |
-| Core functionality | Merge carefully, prefer upstream bug fixes |
-| New features from upstream | Accept if compatible |
-| CI/CD workflows | Review case by case |
+| File Category                                    | Resolution                                 |
+| ------------------------------------------------ | ------------------------------------------ |
+| Branding files (README, LICENSE, pyproject.toml) | Keep ours                                  |
+| Documentation URLs                               | Keep ours (claritisoftware.github.io)      |
+| Core functionality                               | Merge carefully, prefer upstream bug fixes |
+| New features from upstream                       | Accept if compatible                       |
+| CI/CD workflows                                  | Review case by case                        |
 
 ---
 
@@ -201,45 +269,45 @@ git push origin sync-upstream-YYYY-MM-DD
 
 ### Package Metadata
 
-| File | Purpose |
-|------|---------|
-| `pyproject.toml` | Package configuration, dependencies, metadata |
-| `cumulusci/__about__.py` | Version string (single source of truth) |
-| `cumulusci/__init__.py` | Package initialization, version export |
+| File                     | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `pyproject.toml`         | Package configuration, dependencies, metadata |
+| `cumulusci/__about__.py` | Version string (single source of truth)       |
+| `cumulusci/__init__.py`  | Package initialization, version export        |
 
 ### Branding & Legal
 
-| File | Purpose |
-|------|---------|
-| `README.md` | Main project documentation |
-| `LICENSE` | BSD 3-Clause license with copyrights |
-| `LEGAL.md` | Legal compliance documentation |
-| `AUTHORS.rst` | Contributors list |
+| File          | Purpose                              |
+| ------------- | ------------------------------------ |
+| `README.md`   | Main project documentation           |
+| `LICENSE`     | BSD 3-Clause license with copyrights |
+| `LEGAL.md`    | Legal compliance documentation       |
+| `AUTHORS.rst` | Contributors list                    |
 
 ### CLI & User-Facing
 
-| File | Purpose |
-|------|---------|
-| `cumulusci/cli/utils.py` | Version checking, upgrade commands |
-| `cumulusci/cli/error.py` | Error help URLs |
-| `cumulusci/utils/__init__.py` | PIP/PIPX upgrade command strings |
+| File                          | Purpose                            |
+| ----------------------------- | ---------------------------------- |
+| `cumulusci/cli/utils.py`      | Version checking, upgrade commands |
+| `cumulusci/cli/error.py`      | Error help URLs                    |
+| `cumulusci/utils/__init__.py` | PIP/PIPX upgrade command strings   |
 
 ### Documentation
 
-| File | Purpose |
-|------|---------|
-| `docs/conf.py` | Sphinx configuration |
-| `docs/get-started.md` | Installation instructions |
-| `docs/contributing.md` | Contribution guidelines |
+| File                   | Purpose                   |
+| ---------------------- | ------------------------- |
+| `docs/conf.py`         | Sphinx configuration      |
+| `docs/get-started.md`  | Installation instructions |
+| `docs/contributing.md` | Contribution guidelines   |
 
 ### CI/CD
 
-| File | Purpose |
-|------|---------|
-| `.github/workflows/feature_test.yml` | Main CI workflow |
-| `.github/workflows/docs.yml` | Documentation deployment |
-| `.github/workflows/pre-release.yml` | Release automation |
-| `.github/CODEOWNERS` | Code review assignments |
+| File                                 | Purpose                  |
+| ------------------------------------ | ------------------------ |
+| `.github/workflows/feature_test.yml` | Main CI workflow         |
+| `.github/workflows/docs.yml`         | Documentation deployment |
+| `.github/workflows/pre-release.yml`  | Release automation       |
+| `.github/CODEOWNERS`                 | Code review assignments  |
 
 ---
 
@@ -306,20 +374,19 @@ python scripts/run_workflow.py feature_test --dry-run
 ### Reverting a Bad Release
 
 ```bash
-# 1. Yank from PyPI (doesn't delete, just hides)
-pip install twine
-twine upload --skip-existing dist/*  # This won't work for yanking
-
-# Use PyPI web interface to yank the release
+# 1. Yank from PyPI (use web interface)
+#    Go to https://pypi.org/manage/project/clariti-cumulusci/releases/
+#    Select the version and click "Yank" (hides but doesn't delete)
 
 # 2. Create hotfix
 git checkout -b hotfix-v4.7.1
 # Fix the issue
 hatch version patch
-git commit -am "Hotfix: description"
+git add -A && git commit -m "TICKET-XXX fix: description of hotfix"
 git push origin hotfix-v4.7.1
 
-# 3. Merge and release
+# 3. Merge PR, then build and publish
+hatch build && hatch publish
 ```
 
 ### Rolling Back a Merge
@@ -333,6 +400,6 @@ git push origin main
 
 ## Contact
 
-- **Primary Maintainer**: Dipak Parmar (@dipakparmar)
-- **Team**: @ClaritiSoftware/cci-maintainers
-- **Email**: oss@claritisoftware.com
+-   **Primary Maintainer**: Dipak Parmar (@dipakparmar)
+-   **Team**: @ClaritiSoftware/cci-maintainers
+-   **Email**: oss@claritisoftware.com
