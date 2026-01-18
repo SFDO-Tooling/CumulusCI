@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+This is **Clariti CumulusCI** (`clariti-cumulusci`), a maintained fork of CumulusCI by Clariti Cloud Inc. See `LEGAL.md` for licensing details and `MAINTAINERS.md` for release procedures.
+
 ## Project Structure & Module Organization
 - `cumulusci/` holds the package; CLI commands live in `cli/`, pluggable tasks in `tasks/`, and shared helpers in `utils/`.
 - Tests sit in `cumulusci/tests`, org-level suites in `integration_tests/`, Robot assets in `robot/`, and docs in `docs/`.
@@ -11,6 +13,16 @@
 - `uv run pytest -q` (or `make test`) runs the fast pytest suite; add `-k keyword` to focus runs.
 - `make lint` invokes flake8; run `uv run black .` and `uv run isort .` before committing for consistent formatting.
 - `make docs` builds the Sphinx site, `make dist` creates release artifacts, and `uv run cci doctor` verifies CLI wiring.
+
+## Local GitHub Actions Testing
+Test workflows locally before pushing using `act` (install: `brew install act`):
+- `make workflow-list` — list available workflows.
+- `make workflow WORKFLOW=feature_test` — run a workflow locally.
+- `make workflow WORKFLOW=feature_test JOB=lint` — run a specific job.
+- `make workflow-dry-run WORKFLOW=feature_test` — show command without executing.
+- `python scripts/run_workflow.py --help` — see all options including `--event`.
+
+Setup: copy `.vars.example` to `.vars` and `.secrets.example` to `.secrets` (gitignored).
 
 ## Coding Style & Naming Conventions
 - Target Python 3.11+, 4-space indentation, Black's 88-character width, snake_case for modules/functions, CapWords for classes.
@@ -32,3 +44,8 @@
 ## Configuration & Security Tips
 - Never store Salesforce credentials in the repo; rely on CumulusCI keychains or environment variables instead.
 - Regenerate `cumulusci/schema/cumulusci.jsonschema.json` with `make schema` when expanding `cumulusci.yml` structures and validate new YAML against it.
+
+## Key Documentation
+- `MAINTAINERS.md` — runbook for version bumps, releases, and syncing with upstream.
+- `LEGAL.md` — BSD 3-Clause license compliance and attribution requirements.
+- `docs/contributing.md` — contribution guidelines and development setup.
