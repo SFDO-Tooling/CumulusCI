@@ -147,6 +147,10 @@ def build_command(
     if args.platform and not args.no_platform:
         cmd.extend(["-P", args.platform])
 
+    # Matrix filters
+    for matrix_filter in args.matrix:
+        cmd.extend(["--matrix", matrix_filter])
+
     # Specific job
     if args.job:
         cmd.extend(["-j", args.job])
@@ -248,6 +252,13 @@ Environment variables:
         "--no-platform",
         action="store_true",
         help="Disable platform mapping",
+    )
+    parser.add_argument(
+        "--matrix",
+        "-m",
+        action="append",
+        default=[],
+        help="Matrix filter (e.g., --matrix os:ubuntu-latest). Can be specified multiple times.",
     )
     parser.add_argument(
         "--act",

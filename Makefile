@@ -149,8 +149,8 @@ endif
 workflow-lint: check-act ## run the lint job locally
 	python scripts/run_workflow.py feature_test --job lint
 
-workflow-test: check-act ## run the unit_tests job locally
-	python scripts/run_workflow.py feature_test --job unit_tests
+workflow-test: check-act ## run the unit_tests job locally (ubuntu only)
+	python scripts/run_workflow.py feature_test --job unit_tests --matrix os:ubuntu-latest
 
 workflow-docs: check-act ## run the docs build job locally
 	python scripts/run_workflow.py feature_test --job docs
