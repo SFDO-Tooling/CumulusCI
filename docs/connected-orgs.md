@@ -142,11 +142,11 @@ $ cci service list
 Default   Type              Name         Description
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✔         connected_app     built-in     A Connected App is required to connect to and run commands
-                                         against persistent orgs. See https://cumulusci.readthedocs.io/
+                                         against persistent orgs. See https://claritisoftware.github.io/CumulusCI/
                                          en/latest/connected-orgs.html#use-a-custom-connected-app for
                                          more info.
           connected_app     custom       A Connected App is required to connect to and run commands
-                                         against persistent orgs. See https://cumulusci.readthedocs.io/
+                                         against persistent orgs. See https://claritisoftware.github.io/CumulusCI/
                                          en/latest/connected-orgs.html#use-a-custom-connected-app for
                                          more info.
 ```

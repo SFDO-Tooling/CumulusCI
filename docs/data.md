@@ -1006,7 +1006,7 @@ You can learn more about Snowfakery syntax in the next section.
 
 It is possible to use CumulusCI to generate arbitrary amounts of
 synthetic data using the `snowfakery`
-[task](https://cumulusci.readthedocs.io/en/latest/tasks.html#snowfakery).
+[task](https://claritisoftware.github.io/CumulusCI/tasks.html#snowfakery).
 That task is built on the [Snowfakery
 language](https://snowfakery.readthedocs.io/en/docs/). CumulusCI ships
 with Snowfakery embedded, so you do not need to install it.
@@ -1118,7 +1118,7 @@ goal (800K Accounts) and finish the job.
 Another reason you might choose smaller batch sizes is to minimize the
 risk of row locking errors when you have triggers enabled. Turning off
 triggers is generally preferable, and CumulusCI [has a
-task](https://cumulusci.readthedocs.io/en/latest/tasks.html#disable-tdtm-trigger-handlers)
+task](https://claritisoftware.github.io/CumulusCI/tasks.html#disable-tdtm-trigger-handlers)
 for doing for TDTM trigger handlers, but sometimes you cannot avoid
 them. Using smaller batch sizes may be preferable to switching to serial
 mode. If every SObject in a batch uploads less than 10,000 rows then you
