@@ -25,22 +25,18 @@ def test_get_installed_version():
 def test_get_latest_final_version():
     responses.add(
         method="GET",
-        url="https://pypi.org/pypi/cumulusci/json",
+        url="https://pypi.org/pypi/clariti-cumulusci/json",
         body=json.dumps(
             {
                 "releases": {
-                    "1.0b1": {},
-                    "1.0": {},
-                    "1.0.1.dev0": {},
-                    "1.0.1": {},
-                    "1.0.post1": {},
+                    "4.6.0": {},
                 }
             }
         ),
         status=200,
     )
     result = utils.get_latest_final_version()
-    assert result.base_version == "1.0.1"
+    assert result.base_version == "4.6.0"
 
 
 @mock.patch("cumulusci.cli.utils.get_installed_version")

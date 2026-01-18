@@ -28,7 +28,7 @@ class TestCliRuntime:
 
         for key in {"cumulusci", "tasks", "flows", "services", "orgs", "project"}:
             assert key in config.universal_config.config
-        assert config.project_config.project__name == "CumulusCI"
+        assert config.project_config.project__name == "Clariti-CumulusCI"
         for key in {"services", "orgs"}:
             assert key in config.keychain.config
         assert config.project_config.repo_root in sys.path

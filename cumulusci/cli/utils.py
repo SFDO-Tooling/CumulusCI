@@ -91,7 +91,7 @@ def check_latest_version():
     if check:
         try:
             latest_version = get_latest_final_version()
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, IndexError) as e:
             click.echo("Error checking cci version:", err=True)
             click.echo(str(e), err=True)
             return
