@@ -300,11 +300,15 @@ Environment variables:
 
     # Require workflow name if not listing
     if not args.workflow:
-        parser.error("workflow name is required (use --list to see available workflows)")
+        parser.error(
+            "workflow name is required (use --list to see available workflows)"
+        )
 
     # Validate event
     if args.event not in VALID_EVENTS:
-        print(f"Warning: '{args.event}' is not a standard GitHub event", file=sys.stderr)
+        print(
+            f"Warning: '{args.event}' is not a standard GitHub event", file=sys.stderr
+        )
         print(f"Valid events: {', '.join(VALID_EVENTS)}", file=sys.stderr)
 
     # Resolve workflow
@@ -318,7 +322,9 @@ Environment variables:
     # Check if act is available
     if not shutil.which(args.act_binary):
         print(f"Error: 'act' not found at '{args.act_binary}'", file=sys.stderr)
-        print("Install act: https://github.com/nektos/act#installation", file=sys.stderr)
+        print(
+            "Install act: https://github.com/nektos/act#installation", file=sys.stderr
+        )
         print("  brew install act  # macOS", file=sys.stderr)
         return 1
 
