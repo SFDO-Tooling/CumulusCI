@@ -1,5 +1,9 @@
+Copyright (c) 2025, Clariti Cloud Inc.
 Copyright (c) 2021, Salesforce.com, Inc.
 All rights reserved.
+
+This is a fork of CumulusCI maintained by Clariti Cloud Inc.
+Original project: https://github.com/SFDO-Tooling/CumulusCI
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
