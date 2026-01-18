@@ -28,7 +28,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 # Default configuration
 DEFAULTS = {
     "workflow_dir": ".github/workflows",

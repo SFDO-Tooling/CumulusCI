@@ -49,6 +49,17 @@ clean-test: ## remove test and coverage artifacts
 lint: ## check style with flake8
 	flake8 cumulusci tests
 
+format: ## format code with black and isort
+	uv run black .
+	uv run isort .
+
+format-check: ## check code formatting without making changes
+	uv run black --check .
+	uv run isort --check .
+
+pre-commit: ## run all pre-commit hooks
+	uv run pre-commit run --all-files
+
 test: ## run tests quickly with the default Python
 	pytest
 
