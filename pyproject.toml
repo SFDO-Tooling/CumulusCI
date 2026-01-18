@@ -3,15 +3,18 @@ requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cumulusci"
+name = "clariti-cumulusci"
 dynamic = ["readme", "version"]
-description = "Build and release tools for Salesforce developers"
+description = "CumulusCI fork maintained by Clariti Cloud - Build and release tools for Salesforce developers"
 license = { text = "BSD 3-Clause License" }
 requires-python = ">=3.11"
 authors = [
-    { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
+    { name = "Clariti Cloud Inc.", email = "oss@claritisoftware.com" },
 ]
-keywords = ["cumulusci", "salesforce"]
+maintainers = [
+    { name = "dipakparmar" },
+]
+keywords = ["clariti-cumulusci", "cumulusci", "salesforce"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -99,9 +102,11 @@ cci = "cumulusci.cli.cci:main"
 snowfakery = "snowfakery.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/SFDO-Tooling/CumulusCI"
-Changelog = "https://cumulusci.readthedocs.io/en/stable/history.html"
-"Bug Tracker" = "https://github.com/SFDO-Tooling/CumulusCI/issues"
+Homepage = "https://github.com/ClaritiSoftware/CumulusCI"
+Documentation = "https://claritisoftware.github.io/CumulusCI/"
+Changelog = "https://claritisoftware.github.io/CumulusCI/history.html"
+"Bug Tracker" = "https://github.com/ClaritiSoftware/CumulusCI/issues"
+"Upstream" = "https://github.com/SFDO-Tooling/CumulusCI"
 
 [tool.hatch.version]
 path = "cumulusci/__about__.py"

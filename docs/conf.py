@@ -74,8 +74,8 @@ rst_epilog = f"""
 master_doc = "index"
 
 # General information about the project.
-project = "CumulusCI"
-copyright = "2022, Salesforce.org"
+project = "Clariti CumulusCI"
+copyright = "2025, Clariti Cloud Inc. (Fork), 2022, Salesforce.org (Original)"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -229,7 +229,7 @@ html_extra_path = ["robot"]
 suppress_warnings = ["ref.duplicate_label"]
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "cumuluscidoc"
+htmlhelp_basename = "clariti-cumuluscidoc"
 
 
 # -- Options for LaTeX output ------------------------------------------
@@ -248,13 +248,12 @@ latex_elements = {
 latex_documents = [
     (
         "index",
-        "cumulusci.tex",
-        "CumulusCI Documentation",
+        "clariti-cumulusci.tex",
+        "Clariti CumulusCI Documentation",
         r"""
         \parbox{\textwidth}{\raggedleft
-        {\fontsize{15}{12} Kamalnath Devarakonda}\\
-        {\fontsize{14}{12}\selectfont Sr. Director, Software Engineering}\\
-        {\fontsize{13}{12}\selectfont kdevarakonda@salesforce.com}
+        {\fontsize{15}{12} Clariti Cloud Inc.}\\
+        {\fontsize{14}{12}\selectfont oss@claritisoftware.com}
         }
         """,
         "manual",
@@ -288,9 +287,9 @@ latex_documents = [
 man_pages = [
     (
         "index",
-        "cumulusci",
-        "CumulusCI Documentation",
-        ["Cumulus Suite Development Team"],
+        "clariti-cumulusci",
+        "Clariti CumulusCI Documentation",
+        ["Clariti Cloud Inc."],
         1,
     )
 ]
@@ -307,11 +306,11 @@ man_pages = [
 texinfo_documents = [
     (
         "index",
-        "cumulusci",
-        "CumulusCI Documentation",
-        "Cumulus Suite Development Team",
-        "cumulusci",
-        "One line description of project.",
+        "clariti-cumulusci",
+        "Clariti CumulusCI Documentation",
+        "Clariti Cloud Inc.",
+        "clariti-cumulusci",
+        "CumulusCI fork maintained by Clariti Cloud - Build and release tools for Salesforce developers.",
         "Miscellaneous",
     )
 ]

@@ -1,10 +1,13 @@
-# CumulusCI
+# Clariti CumulusCI
 
-[![Code Coverage](https://coveralls.io/repos/github/SFDO-Tooling/CumulusCI/badge.svg?branch=main)](https://coveralls.io/github/SFDO-Tooling/CumulusCI?branch=main)
-[![PyPI](https://img.shields.io/pypi/v/cumulusci)](https://pypi.org/project/cumulusci/)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cumulusci)
-![PyPI - License](https://img.shields.io/pypi/l/cumulusci)
-[![Documentation Status](https://readthedocs.org/projects/cumulusci/badge/?version=latest)](https://cumulusci.readthedocs.io/en/latest/?badge=latest)
+[![PyPI](https://img.shields.io/pypi/v/clariti-cumulusci)](https://pypi.org/project/clariti-cumulusci/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/clariti-cumulusci)
+![PyPI - License](https://img.shields.io/pypi/l/clariti-cumulusci)
+[![GitHub Actions](https://github.com/ClaritiSoftware/CumulusCI/actions/workflows/feature_test.yml/badge.svg)](https://github.com/ClaritiSoftware/CumulusCI/actions)
+
+> **This is a fork of [CumulusCI](https://github.com/SFDO-Tooling/CumulusCI) maintained by [Clariti Cloud Inc.](https://claritisoftware.com)**
+>
+> We maintain this fork to provide faster bug fixes, enhanced features, and better support for our internal development workflows. Contributions from the community are welcome!
 
 CumulusCI helps build great applications on the Salesforce platform by
 automating org setup, testing, and deployment for everyone --- from
@@ -26,10 +29,10 @@ own.
     specific requirements.
 -   Run builds in continuous integration systems.
 -   Create end-to-end browser tests and setup automation using [Robot
-    Framework](https://cumulusci.readthedocs.io/en/latest/robotframework.html).
+    Framework](https://claritisoftware.github.io/CumulusCI/robotframework.html).
 -   Generate synthetic data on any scale, from a single record to a
     million, using
-    [Snowfakery](https://cumulusci.readthedocs.io/en/latest/cookbook.html#large-volume-data-synthesis-with-snowfakery).
+    [Snowfakery](https://claritisoftware.github.io/CumulusCI/cookbook.html#large-volume-data-synthesis-with-snowfakery).
 
 **Build anywhere.** Automation defined using CumulusCI is portable. It
 is stored in a source repository and can be run from your local command
@@ -37,6 +40,18 @@ line, from a continuous integration system, or from a customer-facing
 MetaDeploy installer. CumulusCI can run automation on scratch orgs
 created using the Salesforce CLI, or on persistent orgs like sandboxes,
 production orgs, and Developer Edition orgs.
+
+## Installation
+
+```bash
+pip install clariti-cumulusci
+```
+
+Or using pipx for isolated installation:
+
+```bash
+pipx install clariti-cumulusci
+```
 
 ## Learn more
 
@@ -46,10 +61,10 @@ CumulusCI](https://trailhead.salesforce.com/en/content/learn/trails/build-applic
 trail on Trailhead.
 
 To go in depth, read the [full
-documentation](https://cumulusci.readthedocs.io/en/latest/).
+documentation](https://claritisoftware.github.io/CumulusCI/).
 
 If you just want a quick intro, watch [these screencast
-demos](https://cumulusci.readthedocs.io/en/latest/demos.html) of using
+demos](https://claritisoftware.github.io/CumulusCI/demos.html) of using
 CumulusCI to configure a Salesforce project from a GitHub repository.
 
 For a live demo with voiceover, please see Jason Lantz\'s [PyCon 2020
@@ -58,11 +73,12 @@ presentation](https://www.youtube.com/watch?v=XL77lRTVF3g) from minute
 
 ## Questions?
 
-Ask in the [CumulusCI (CCI) group in the Trailblazer
-Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU).
+- For Clariti CumulusCI specific issues: [Open an issue](https://github.com/ClaritiSoftware/CumulusCI/issues)
+- For general CumulusCI questions: Ask in the [CumulusCI (CCI) group in the Trailblazer
+Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU)
 
-_Please note:_ CumulusCI is distributed under an [open source
-license](https://github.com/SFDO-Tooling/CumulusCI/blob/main/LICENSE)
+_Please note:_ This fork is distributed under the [BSD 3-Clause
+license](https://github.com/ClaritiSoftware/CumulusCI/blob/main/LICENSE)
 and is not covered by the Salesforce Master Subscription Agreement.
 
 <!-- Changelog -->
