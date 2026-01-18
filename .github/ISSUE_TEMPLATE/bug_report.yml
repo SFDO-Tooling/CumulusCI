@@ -6,7 +6,7 @@ body:
     - type: markdown
       attributes:
           value: |
-              If you are seeking support on using Clariti CumulusCI or Offical CumulusCI, please do not open an Issue. Instead, please visit on the [Trailblazer Community](https://trailhead.salesforce.com/trailblazer-community/groups/0F9300000009M9ZCAU).
+              If you are seeking support on using Clariti CumulusCI or Official CumulusCI, please do not open an Issue. Instead, please visit the [Trailblazer Community](https://trailhead.salesforce.com/trailblazer-community/groups/0F9300000009M9ZCAU).
     - type: textarea
       id: bug_description
       validations:

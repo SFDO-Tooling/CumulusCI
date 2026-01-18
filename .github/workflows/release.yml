@@ -32,19 +32,24 @@ jobs:
                   echo "version=$VERSION" >> $GITHUB_OUTPUT
 
                   # Determine environment based on version pattern
+                  ENVIRONMENT=""
+                  PRERELEASE=""
                   if [[ "$VERSION" == *".dev"* ]]; then
-                      echo "environment=development" >> $GITHUB_OUTPUT
-                      echo "prerelease=true" >> $GITHUB_OUTPUT
+                      ENVIRONMENT="development"
+                      PRERELEASE="true"
                   elif [[ "$VERSION" == *"a"* ]] || [[ "$VERSION" == *"b"* ]] || [[ "$VERSION" == *"rc"* ]]; then
-                      echo "environment=staging" >> $GITHUB_OUTPUT
-                      echo "prerelease=true" >> $GITHUB_OUTPUT
+                      ENVIRONMENT="staging"
+                      PRERELEASE="true"
                   else
-                      echo "environment=production" >> $GITHUB_OUTPUT
-                      echo "prerelease=false" >> $GITHUB_OUTPUT
+                      ENVIRONMENT="production"
+                      PRERELEASE="false"
                   fi
 
+                  echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+                  echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+
                   echo "📦 Version: $VERSION"
-                  echo "🌍 Environment: $(grep environment= $GITHUB_OUTPUT | cut -d= -f2)"
+                  echo "🌍 Environment: $ENVIRONMENT"
 
     publish-to-pypi:
         name: Publish ${{ needs.determine-environment.outputs.version }} to PyPI
