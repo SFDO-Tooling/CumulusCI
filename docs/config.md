@@ -30,6 +30,9 @@ A `cumulusci.yml` file contains these top-level sections.
 -   `plans`: Contains any custom plans defined to install your project
     into a customer org. See the [](metadeploy-publish) task for more
     information.
+-   `plugins`: Configures third-party plugins that extend CumulusCI
+    functionality. See [](plugin-configurations) for configuration
+    options in this section.
 
 (task-configurations)=
 
@@ -96,7 +99,9 @@ Options
     Require at least X percent code coverage across the org following the test run.
     Default: 90
 ```
+
 (add-a-custom-task)=
+
 ### Add a Custom Task
 
 To define a new task for your project, add the task name under the
@@ -606,6 +611,36 @@ sources:
         allow_remote_code: True
 ```
 
+### Sources vs. Plugins
+
+CumulusCI provides two ways to extend functionality from external sources: **sources** and **plugins**. While both allow you to use tasks and flows from outside your project, they serve different purposes and work differently.
+
+| Aspect                 | Sources                                              | Plugins                                                          |
+| ---------------------- | ---------------------------------------------------- | ---------------------------------------------------------------- |
+| **What it is**         | Reference to another CumulusCI project (GitHub repo) | Python package installed via pip                                 |
+| **Syntax**             | `namespace:task_name` (e.g., `npsp:robot`)           | `@plugin:task_name` (e.g., `@cci-slack:notify`)                  |
+| **Installation**       | Fetched from GitHub on demand                        | Installed via `pip install`                                      |
+| **Capabilities**       | Tasks and flows only                                 | Tasks, flows, services, CLI commands, Robot libraries, and hooks |
+| **Versioning**         | Git tags, branches, commits, resolution strategies   | Python package versions (semantic versioning)                    |
+| **Custom Python code** | Requires `allow_remote_code: True`                   | Controlled via trust levels                                      |
+| **Discovery**          | Must be explicitly configured in `sources:`          | Auto-discovered via Python entry points                          |
+
+**When to use sources:**
+
+-   You want to reuse tasks/flows from another CumulusCI project
+-   The external project is a GitHub repository
+-   You need specific version control via Git (branches, tags, commits)
+-   You're referencing a project like NPSP or EDA
+
+**When to use plugins:**
+
+-   You need functionality beyond tasks/flows (services, CLI commands, hooks)
+-   You want to install reusable extensions from PyPI
+-   You need to react to CumulusCI events (task completion, flow start, etc.)
+-   You're building shareable extensions for the CumulusCI ecosystem
+
+For more information about plugins, see [](plugin-configurations) and the [Plugin Development Guide](plugins).
+
 (scratch-org-configurations)=
 
 ## Scratch Org Configurations
@@ -646,6 +681,120 @@ orgs:
     dev:
         days: 15
 ```
+
+(plugin-configurations)=
+
+## Plugin Configurations
+
+The `plugins` section enables and configures third-party plugins that extend CumulusCI's functionality. Plugins can add custom tasks, flows, services, CLI commands, and Robot Framework libraries.
+
+### Enable a Plugin
+
+After installing a plugin package (e.g., `pip install cci-slack`), enable it in your `cumulusci.yml`:
+
+```yaml
+plugins:
+    cci-slack:
+        enabled: true
+```
+
+Plugins with the `cci-` prefix are auto-enabled when installed, but you can explicitly control their state.
+
+### Configure Trust Levels
+
+Plugins operate at different trust levels that determine what capabilities they can use:
+
+| Trust Level | Capabilities                                              |
+| ----------- | --------------------------------------------------------- |
+| `untrusted` | Read-only access to configuration                         |
+| `standard`  | Can register tasks, flows, and services (default)         |
+| `trusted`   | Full access including CLI extension and credential access |
+
+Configure the trust level for a plugin:
+
+```yaml
+plugins:
+    my-plugin:
+        enabled: true
+        trust_level: trusted
+```
+
+```{warning}
+Only grant `trusted` access to plugins you fully trust, as they can extend
+the CLI and access stored credentials.
+```
+
+### Pass Configuration to Plugins
+
+Plugins can accept custom configuration values:
+
+```yaml
+plugins:
+    cci-slack:
+        enabled: true
+        config:
+            webhook_url: ${SLACK_WEBHOOK_URL}
+            channel: "#builds"
+            notify_on_failure: true
+```
+
+The available configuration options depend on the specific plugin. Refer to the plugin's documentation for details.
+
+### Use Plugin Tasks and Flows
+
+Once a plugin is enabled, its tasks and flows become available. Reference them using the `@plugin:name` syntax:
+
+```bash
+# Run a plugin task
+cci task run @cci-slack:notify
+
+# Run a plugin flow
+cci flow run @cci-slack:notify_flow
+```
+
+You can also include plugin tasks in your own flows:
+
+```yaml
+flows:
+    deploy_with_notification:
+        steps:
+            1:
+                flow: deploy_dev
+            2:
+                task: "@cci-slack:notify"
+                options:
+                    message: "Deployment complete!"
+```
+
+### List Available Plugins
+
+Use the `cci plugin` commands to manage plugins:
+
+```bash
+# List all discovered plugins
+cci plugin list
+
+# Show details about a specific plugin
+cci plugin info cci-slack
+
+# List tasks from all enabled plugins
+cci plugin tasks
+
+# List flows from all enabled plugins
+cci plugin flows
+```
+
+### Disable a Plugin
+
+To disable an auto-enabled plugin or one you've previously enabled:
+
+```yaml
+plugins:
+    cci-slack:
+        enabled: false
+```
+
+For more information about developing plugins, see the [Plugin Development Guide](plugins).
 
 ## Configuration Scopes
 

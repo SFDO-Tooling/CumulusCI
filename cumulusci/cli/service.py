@@ -29,7 +29,15 @@ def service_list(runtime, plain, print_json):
         runtime.project_config.services
         if runtime.project_config is not None
         else runtime.universal_config.services
-    )
+    ).copy()
+
+    # Merge plugin services
+    if hasattr(runtime, "plugin_manager"):
+        plugin_services = runtime.plugin_manager.get_all_services()
+        for service_name, service_def in plugin_services.items():
+            if service_name not in services:
+                services[service_name] = service_def
+
     supported_service_types = list(services.keys())
     supported_service_types.sort()
 
@@ -71,11 +79,20 @@ def service_list(runtime, plain, print_json):
 
 class ConnectServiceCommand(click.MultiCommand):
     def _get_services_config(self, runtime):
-        return (
+        services = (
             runtime.project_config.services
             if runtime.project_config
             else runtime.universal_config.services
-        )
+        ).copy()
+
+        # Merge plugin services
+        if hasattr(runtime, "plugin_manager"):
+            plugin_services = runtime.plugin_manager.get_all_services()
+            for service_name, service_def in plugin_services.items():
+                if service_name not in services:
+                    services[service_name] = service_def
+
+        return services
 
     def list_commands(self, ctx):
         """list the services that can be configured"""
@@ -256,6 +273,13 @@ class ConnectServiceCommand(click.MultiCommand):
                 config_instance,
             )
             click.echo(f"Service {service_type}:{service_name} is now connected")
+
+            # Call plugin hook for service connect
+            if hasattr(runtime, "plugin_manager"):
+                runtime.plugin_manager.hook_manager.hook.cci_service_connect(
+                    service_type=service_type,
+                    service_config=serv_conf,
+                )
 
             if set_as_default:
                 runtime.keychain.set_default_service(service_type, service_name)

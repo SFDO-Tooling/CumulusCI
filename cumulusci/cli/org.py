@@ -2,6 +2,7 @@ import code
 import json
 import runpy
 import webbrowser
+from typing import Optional
 from urllib.parse import urlencode, urlparse
 
 import click
@@ -10,10 +11,8 @@ from rich.console import Console
 from cumulusci.cli.ui import CliTable, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import CumulusCIException, OrgNotFound
-from cumulusci.core.org_import import (
-    import_sfdx_org_to_keychain,
-    calculate_org_days as _core_calculate_org_days,
-)
+from cumulusci.core.org_import import calculate_org_days as _core_calculate_org_days
+from cumulusci.core.org_import import import_sfdx_org_to_keychain
 from cumulusci.oauth.client import (
     PROD_LOGIN_URL,
     SANDBOX_LOGIN_URL,
@@ -21,8 +20,6 @@ from cumulusci.oauth.client import (
     OAuth2ClientConfig,
 )
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from typing import Optional
-
 from cumulusci.utils.clariti import (
     ClaritiError,
     build_default_org_name,
@@ -44,6 +41,7 @@ def set_org_name(required):
 
     `required` is a boolean for whether org_name is required
     """
+
     # could be generalized to work for any mutex pair (or list) but no obvious need
     def callback(ctx, param, value):
         """Callback which enforces mutex and 'required' behaviour (if required)."""
@@ -167,6 +165,26 @@ def connect_org_to_keychain(
 
     org_config.save()
 
+    # Call plugin hook for org connect
+    _call_org_connect_hook(runtime, org_config, org_name, is_new=True)
+
+
+def _call_org_connect_hook(runtime, org_config, org_name, is_new=False):
+    """Call plugin hook for org connect."""
+    try:
+        if hasattr(runtime, "plugin_manager"):
+            context = {
+                "org_name": org_name,
+                "is_scratch": getattr(org_config, "scratch", False),
+                "is_new": is_new,
+            }
+            runtime.plugin_manager.hook_manager.hook.cci_org_connect(
+                org_config=org_config,
+                context=context,
+            )
+    except Exception:
+        pass  # Don't fail org connect due to hook errors
+
 
 @org.command(
     name="connect", help="Connects a new org's credentials using OAuth Web Flow"
@@ -245,7 +263,9 @@ def org_default(runtime, org_name, unset):
             click.echo("There is no default org")
 
 
-@org.command(name="import", help="Import an org from Salesforce DX or Clariti Org Pooling System")
+@org.command(
+    name="import", help="Import an org from Salesforce DX or Clariti Org Pooling System"
+)
 @click.argument("username_or_alias", required=False)
 @orgname_option_or_argument(required=False)
 @click.option(
@@ -287,9 +307,7 @@ def org_import(
             raise click.ClickException(str(err)) from err
 
         if resolved_pool_id:
-            click.echo(
-                f"Checking out org from Clariti pool {resolved_pool_id}..."
-            )
+            click.echo(f"Checking out org from Clariti pool {resolved_pool_id}...")
         else:
             click.echo(
                 "Checking out org from Clariti pool configured in .clariti.json..."
@@ -322,8 +340,7 @@ def org_import(
         alias_success, alias_error = set_sf_alias(org_name, checkout.username)
         if alias_success:
             click.echo(
-                f"Set Salesforce CLI alias '{org_name}' "
-                f"for {checkout.username}"
+                f"Set Salesforce CLI alias '{org_name}' " f"for {checkout.username}"
             )
         elif alias_error:
             click.echo(

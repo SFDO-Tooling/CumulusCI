@@ -226,6 +226,20 @@ class CumulusCLIConfig(CCIDictModel):
     plain_output: bool = None
 
 
+class PluginConfig(CCIDictModel):
+    """Configuration for a CumulusCI plugin.
+
+    Attributes:
+        enabled: Whether the plugin is enabled (default: True)
+        trust_level: Trust level for the plugin (untrusted, standard, trusted)
+        config: Plugin-specific configuration options
+    """
+
+    enabled: bool = True
+    trust_level: Literal["untrusted", "standard", "trusted"] = "standard"
+    config: Dict[str, Any] = VSCodeFriendlyDict
+
+
 class CumulusCIRoot(CCIDictModel):
     tasks: Dict[str, Task] = {}
     flows: Dict[str, Flow] = {}
@@ -237,6 +251,7 @@ class CumulusCIRoot(CCIDictModel):
     minimum_cumulusci_version: str = None
     sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
+    plugins: Dict[str, PluginConfig] = {}
 
     @validator("plans")
     def validate_plan_tiers(cls, plans):
@@ -275,6 +290,7 @@ def validate_data(
 
 class ErrorDict(TypedDict):
     "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
+
     loc: Sequence[Union[str, int]]
     msg: str
     type: str

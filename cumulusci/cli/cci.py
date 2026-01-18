@@ -27,6 +27,7 @@ from .flow import flow
 from .logger import get_tempfile_logger, init_logger
 from .org import org
 from .plan import plan
+from .plugin import plugin
 from .project import project
 from .robot import robot
 from .runtime import CliRuntime, pass_runtime
@@ -364,7 +365,9 @@ def shell(runtime, script=None, python=None):
         code.interact(local=variables)
 
 
-@cli.command(name="telemetry", help="Show telemetry status and what data would be collected")
+@cli.command(
+    name="telemetry", help="Show telemetry status and what data would be collected"
+)
 def telemetry():
     """Display telemetry configuration and data that would be collected."""
     console = rich.get_console()
@@ -431,4 +434,5 @@ cli.add_command(service)
 cli.add_command(task)
 cli.add_command(flow)
 cli.add_command(plan)
+cli.add_command(plugin)
 cli.add_command(robot)

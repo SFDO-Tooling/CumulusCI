@@ -576,8 +576,22 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     def get_task(self, name: str) -> TaskConfig:
         """Get a TaskConfig by task name
 
-        If the name has a colon, look for it in a different project config.
+        Supports the following syntax:
+        - `task_name`: Local or built-in task
+        - `namespace:task_name`: Task from an external source
+        - `@plugin_name:task_name`: Task from a plugin
         """
+        # Check for plugin task syntax (@plugin:task_name)
+        if name.startswith("@"):
+            plugin_ref = name[1:]
+            if ":" not in plugin_ref:
+                raise ConfigError(
+                    f"Invalid plugin task syntax: {name}. Use @plugin_name:task_name"
+                )
+            plugin_name, task_name = plugin_ref.split(":", 1)
+            return self._get_plugin_task(plugin_name, task_name)
+
+        # Check for namespace syntax
         if ":" in name:
             ns, name = name.split(":")
             other_config = self.get_namespace(ns)
@@ -588,11 +602,58 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             task_config.project_config = self
         return task_config
 
+    def _get_plugin_task(self, plugin_name: str, task_name: str) -> TaskConfig:
+        """Get a task from a loaded plugin.
+
+        Args:
+            plugin_name: Name of the plugin
+            task_name: Name of the task within the plugin
+
+        Returns:
+            TaskConfig for the plugin task
+
+        Raises:
+            TaskNotFoundError: If the plugin or task is not found
+        """
+        from cumulusci.core.exceptions import TaskNotFoundError
+        from cumulusci.core.plugins import get_plugin_manager
+
+        plugin_manager = get_plugin_manager()
+        class_path = plugin_manager.get_plugin_task(plugin_name, task_name)
+
+        if not class_path:
+            raise TaskNotFoundError(
+                f"Task '{task_name}' not found in plugin '{plugin_name}'"
+            )
+
+        task_config = TaskConfig(
+            {
+                "class_path": class_path,
+                "description": f"Task from plugin {plugin_name}",
+            }
+        )
+        task_config.project_config = self
+        return task_config
+
     def get_flow(self, name) -> FlowConfig:
         """Get a FlowConfig by flow name
 
-        If the name has a colon, look for it in a different project config.
+        Supports the following syntax:
+        - `flow_name`: Local or built-in flow
+        - `namespace:flow_name`: Flow from an external source
+        - `@plugin_name:flow_name`: Flow from a plugin
         """
+        # Check for plugin flow syntax (@plugin:flow_name)
+        if name.startswith("@"):
+            plugin_ref = name[1:]
+            if ":" not in plugin_ref:
+                raise ConfigError(
+                    f"Invalid plugin flow syntax: {name}. Use @plugin_name:flow_name"
+                )
+            plugin_name, flow_name = plugin_ref.split(":", 1)
+            return self._get_plugin_flow(plugin_name, flow_name)
+
+        # Check for namespace syntax
         if ":" in name:
             ns, name = name.split(":")
             other_config = self.get_namespace(ns)
@@ -603,6 +664,35 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             flow_config = super().get_flow(name)
             flow_config.name = name
             flow_config.project_config = self
+        return flow_config
+
+    def _get_plugin_flow(self, plugin_name: str, flow_name: str) -> FlowConfig:
+        """Get a flow from a loaded plugin.
+
+        Args:
+            plugin_name: Name of the plugin
+            flow_name: Name of the flow within the plugin
+
+        Returns:
+            FlowConfig for the plugin flow
+
+        Raises:
+            FlowNotFoundError: If the plugin or flow is not found
+        """
+        from cumulusci.core.exceptions import FlowNotFoundError
+        from cumulusci.core.plugins import get_plugin_manager
+
+        plugin_manager = get_plugin_manager()
+        flow_config_dict = plugin_manager.get_plugin_flow(plugin_name, flow_name)
+
+        if not flow_config_dict:
+            raise FlowNotFoundError(
+                f"Flow '{flow_name}' not found in plugin '{plugin_name}'"
+            )
+
+        flow_config = FlowConfig(flow_config_dict)
+        flow_config.name = flow_name
+        flow_config.project_config = self
         return flow_config
 
     def get_namespace(self, ns: str) -> "BaseProjectConfig":

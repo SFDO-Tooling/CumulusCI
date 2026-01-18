@@ -414,6 +414,94 @@ To remove a service use:
 $ cci service remove <service_type> <service_name>
 ```
 
+(manage-plugins)=
+
+## Manage Plugins
+
+Plugins extend CumulusCI's functionality with custom tasks, flows, services, and CLI commands. The `cci plugin` commands help you discover, enable, and manage plugins.
+
+### List Plugins
+
+View all discovered plugins and their status:
+
+```console
+$ cci plugin list
+```
+
+This displays a table showing each plugin's name, version, status (enabled/disabled), and trust level.
+
+To see all discovered plugins including those not enabled:
+
+```console
+$ cci plugin list --all
+```
+
+### Get Plugin Information
+
+View detailed information about a specific plugin:
+
+```console
+$ cci plugin info <plugin_name>
+```
+
+This shows the plugin's version, description, author, homepage, and a list of tasks, flows, and services it provides.
+
+### Enable or Disable Plugins
+
+Enable a plugin for your project:
+
+```console
+$ cci plugin enable <plugin_name>
+```
+
+Disable a plugin:
+
+```console
+$ cci plugin disable <plugin_name>
+```
+
+### Configure Trust Levels
+
+Plugins operate at different trust levels. To grant higher trust to a plugin:
+
+```console
+$ cci plugin trust <plugin_name> --level trusted
+```
+
+Available trust levels:
+
+-   `untrusted`: Read-only access
+-   `standard`: Can register tasks, flows, and services (default)
+-   `trusted`: Full access including CLI commands and credentials
+
+### List Plugin Tasks and Flows
+
+View tasks provided by enabled plugins:
+
+```console
+$ cci plugin tasks
+```
+
+View flows provided by enabled plugins:
+
+```console
+$ cci plugin flows
+```
+
+### Run Plugin Tasks and Flows
+
+Plugin tasks and flows use the `@plugin:name` syntax:
+
+```console
+# Run a plugin task
+$ cci task run @cci-slack:notify --org dev
+
+# Run a plugin flow
+$ cci flow run @cci-slack:notify_flow --org dev
+```
+
+For more information about configuring plugins in `cumulusci.yml`, see [](plugin-configurations). For developing your own plugins, see the [Plugin Development Guide](plugins).
+
 ## Troubleshoot Errors
 
 Errors happen! That's why `cci` provides tools to extract error details

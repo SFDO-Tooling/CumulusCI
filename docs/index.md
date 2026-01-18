@@ -13,6 +13,7 @@ config
 scratch-orgs
 connected-orgs
 dev
+plugins
 data
 robot
 continuous-integration

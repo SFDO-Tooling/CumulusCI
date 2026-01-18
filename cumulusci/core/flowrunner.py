@@ -1,4 +1,4 @@
-""" FlowRunner contains the logic for actually running a flow.
+"""FlowRunner contains the logic for actually running a flow.
 
 Flows are an integral part of CCI, they actually *do the thing*. We've been getting
 along quite nicely with BaseFlow, which turns a flow definition into a callable
@@ -490,6 +490,10 @@ class FlowCoordinator:
         self.logger.info("Starting execution")
         self._rule(new_line=True)
 
+        # Call plugin hook for flow start
+        self._call_flow_start_hook()
+
+        flow_exception = None
         try:
             for step in self.steps:
                 self._run_step(step)
@@ -497,8 +501,43 @@ class FlowCoordinator:
             self.logger.info(
                 f"Completed flow {flow_name}on org {org_config.name} successfully!"
             )
+        except Exception as e:
+            flow_exception = e
+            raise
         finally:
             self.callbacks.post_flow(self)
+            # Call plugin hook for flow complete
+            self._call_flow_complete_hook(flow_exception)
+
+    def _call_flow_start_hook(self):
+        """Call plugin hook for flow start."""
+        try:
+            from cumulusci.core.plugins import get_hook_manager
+
+            hook_manager = get_hook_manager()
+            context = {
+                "org_config": self.org_config,
+                "flow_name": self.name,
+                "options": self.options,
+            }
+            hook_manager.hook.cci_flow_start(flow=self, context=context)
+        except Exception as e:
+            self.logger.debug(f"Error calling flow start hook: {e}")
+
+    def _call_flow_complete_hook(self, exception=None):
+        """Call plugin hook for flow complete."""
+        try:
+            from cumulusci.core.plugins import get_hook_manager
+
+            hook_manager = get_hook_manager()
+            result = {
+                "success": exception is None,
+                "exception": exception,
+                "steps_completed": len(self.results),
+            }
+            hook_manager.hook.cci_flow_complete(flow=self, result=result)
+        except Exception as e:
+            self.logger.debug(f"Error calling flow complete hook: {e}")
 
     def _run_step(self, step: StepSpec):
         if step.skip:
@@ -525,7 +564,15 @@ class FlowCoordinator:
         self._rule(fill="-", new_line=True)
 
         self.callbacks.pre_task(step)
+
+        # Call plugin hook for task start
+        self._call_task_start_hook(step)
+
         result = TaskRunner.from_flow(self, step).run_step()
+
+        # Call plugin hook for task complete
+        self._call_task_complete_hook(step, result)
+
         self.callbacks.post_task(step, result)
 
         self.results.append(
@@ -534,6 +581,37 @@ class FlowCoordinator:
 
         if result.exception and not step.allow_failure:
             raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
+
+    def _call_task_start_hook(self, step: StepSpec):
+        """Call plugin hook for task start."""
+        try:
+            from cumulusci.core.plugins import get_hook_manager
+
+            hook_manager = get_hook_manager()
+            context = {
+                "step_num": step.step_num,
+                "flow_name": self.name,
+                "options": step.task_config.options if step.task_config else {},
+            }
+            # Note: We pass step info since actual task instance isn't created yet
+            hook_manager.hook.cci_task_start(task=step, context=context)
+        except Exception as e:
+            self.logger.debug(f"Error calling task start hook: {e}")
+
+    def _call_task_complete_hook(self, step: StepSpec, result):
+        """Call plugin hook for task complete."""
+        try:
+            from cumulusci.core.plugins import get_hook_manager
+
+            hook_manager = get_hook_manager()
+            result_dict = {
+                "success": result.exception is None,
+                "exception": result.exception,
+                "return_values": result.return_values,
+            }
+            hook_manager.hook.cci_task_complete(task=step, result=result_dict)
+        except Exception as e:
+            self.logger.debug(f"Error calling task complete hook: {e}")
 
     def _init_logger(self) -> logging.Logger:
         """

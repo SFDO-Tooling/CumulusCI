@@ -360,6 +360,49 @@ which must be explicitly imported by any test suite that needs them.
 -   All other libraries listed in the Standard tab of the [Robot
     libraries documentation](https://robotframework.org/##libraries).
 
+### Plugin Libraries
+
+CumulusCI plugins can provide additional Robot Framework keyword libraries.
+When a plugin is enabled, its Robot libraries become available for import
+in your test suites.
+
+To import a plugin-provided library, use the `Import Plugin Library` keyword:
+
+```robotframework
+*** Settings ***
+Library    cumulusci.robotframework.CumulusCI    ${ORG}
+
+*** Test Cases ***
+Use Plugin Library
+    Import Plugin Library    MyPluginLibrary
+    ${result}=    My Plugin Keyword    test_value
+    Should Be Equal    ${result}    expected_value
+```
+
+You can also import plugin libraries in the Settings section by specifying
+the full class path provided by the plugin's manifest:
+
+```robotframework
+*** Settings ***
+Library    cumulusci.robotframework.CumulusCI    ${ORG}
+Library    my_plugin.robot.MyLibrary
+```
+
+To see which Robot libraries are available from enabled plugins:
+
+```console
+$ cci plugin list
+```
+
+The plugin info command shows the Robot libraries a specific plugin provides:
+
+```console
+$ cci plugin info my-plugin
+```
+
+For more information about plugins, see [](plugin-configurations) and the
+[Plugin Development Guide](plugins).
+
 ### Test Cases
 
 In the `Test Cases` section of the `.robot` file, each test case gets
