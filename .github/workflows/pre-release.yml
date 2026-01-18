@@ -44,7 +44,7 @@ jobs:
                   gh api \
                     --method POST \
                     -H "Accept: application/vnd.github.v3+json" \
-                    /repos/SFDO-Tooling/CumulusCI/releases/generate-notes \
+                    /repos/ClaritiSoftware/CumulusCI/releases/generate-notes \
                     -f previous_tag_name=$PREVIOUS_VERSION \
                     -f target_commitish='main' \
                     -f tag_name=$NEXT_VERSION \

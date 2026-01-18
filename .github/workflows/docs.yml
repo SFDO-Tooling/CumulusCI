@@ -37,7 +37,7 @@ jobs:
                   python-version: "3.11"
 
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: astral-sh/setup-uv@v5
               with:
                   version: "0.8.4"
                   enable-cache: true
