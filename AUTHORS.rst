@@ -2,10 +2,18 @@
 Credits
 =======
 
-Development Team
-----------------
+Clariti Fork Maintainers
+------------------------
 
-CumulusCI is developed by the Salesforce.org Release Engineering team:
+This fork is maintained by the Clariti Cloud Inc. engineering team:
+
+* Dipak Parmar (dipakparmar)
+* Jessica Sun (jsun-clariti)
+
+Original Development Team
+-------------------------
+
+CumulusCI was originally developed by the Salesforce.org Release Engineering team:
 
 * Jason Lantz
 * David Glick
@@ -18,14 +26,14 @@ CumulusCI is developed by the Salesforce.org Release Engineering team:
 * Marcel Pufal
 * David Ray
 
-Developers Emeritus
--------------------
+Original Developers Emeritus
+----------------------------
 
 * Chris Polcyn
 * Christian Carter
 
-Contributors
-------------
+Community Contributors
+----------------------
 
 Thanks to the many community and Salesforce.org staff
 contributors!
