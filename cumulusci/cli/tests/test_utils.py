@@ -15,7 +15,10 @@ from .. import utils
 
 def test_get_installed_version():
     result = utils.get_installed_version()
-    assert cumulusci.__version__ == str(result)
+    if cumulusci.__version__ == "unknown":
+        assert str(result) == "0"
+    else:
+        assert cumulusci.__version__ == str(result)
 
 
 @responses.activate

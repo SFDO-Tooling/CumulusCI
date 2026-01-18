@@ -270,7 +270,7 @@ def cleanup_old_flow_step_replace_syntax(step_config: dict):
         if step_config["flow"] == "None" and step_config["task"] == "None":
             raise CumulusCIException(
                 "Cannot have both step types declared with a value of 'None'."
-                "For information on replacing a flow step see: https://cumulusci.readthedocs.io/en/latest/config.html#replace-a-flow-step"
+                "For information on replacing a flow step see: https://claritisoftware.github.io/CumulusCI/config.html#replace-a-flow-step"
             )
         elif step_config["flow"] == "None":
             del step_config["flow"]

@@ -84,7 +84,7 @@ class TaskConfig(BaseConfig):
                         "is not an approved source for running third party Python code.",
                         "If this task is custom Python, that would explain the problem.",
                         "Otherwise, it might just be a mistyped `class_name`.",
-                        "More info: https://cumulusci.readthedocs.io/en/stable/config.html?highlight=sources#tasks-and-flows-from-a-different-project",
+                        "More info: https://claritisoftware.github.io/CumulusCI/config.html?highlight=sources#tasks-and-flows-from-a-different-project",
                     )
                 )
             raise TaskImportError(message) from e

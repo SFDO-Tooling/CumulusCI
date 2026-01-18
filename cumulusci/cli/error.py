@@ -37,7 +37,7 @@ def error():
     command line option.
 
     For more information on working with errors in CumulusCI visit:
-    https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
+    https://claritisoftware.github.io/CumulusCI/features.html#working-with-errors
     """
 
 

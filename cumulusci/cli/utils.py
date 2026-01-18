@@ -15,7 +15,7 @@ from cumulusci.core.config import UniversalConfig
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
-LOWEST_SUPPORTED_VERSION = (3, 8, 0)
+LOWEST_SUPPORTED_VERSION = (3, 11, 0)
 WIN_LONG_PATH_WARNING = """
 WARNING: Long path support is not enabled. This can lead to errors with some
 tasks. Your administrator will need to activate the "Enable Win32 long paths"
@@ -56,17 +56,17 @@ FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
 def is_final_release(version: str) -> bool:
     """Returns bool whether version string should be considered a final release.
 
-    cumulusci versions are considered final if they contain only digits and periods.
+    Clariti CumulusCI versions are considered final if they contain only digits and periods.
     e.g. 1.0.1 is final but 2.0b1 and 2.0.dev0 are not.
     """
     return bool(FINAL_VERSION_RE.match(version))
 
 
 def get_latest_final_version():
-    """return the latest version of cumulusci in pypi, be defensive"""
+    """return the latest version of clariti-cumulusci in pypi, be defensive"""
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = safe_json_from_response(
-        requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5)
+        requests.get("https://pypi.org/pypi/clariti-cumulusci/json", timeout=5)
     )
     with timestamp_file() as f:
         f.write(str(time.time()))
@@ -80,7 +80,7 @@ def get_latest_final_version():
 
 
 def check_latest_version():
-    """checks for the latest version of cumulusci from pypi, max once per hour"""
+    """checks for the latest version of clariti-cumulusci from pypi, max once per hour"""
     check = True
 
     with timestamp_file() as f:
@@ -99,24 +99,29 @@ def check_latest_version():
         result = latest_version > get_installed_version()
         if result:
             click.echo(
-                f"""An update to CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}""",
+                f"""An update to Clariti CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}""",
                 err=True,
             )
 
         if sys.version_info < LOWEST_SUPPORTED_VERSION:
             click.echo(
-                "Sorry! Your Python version is not supported. Please upgrade to Python 3.9.",
+                "Sorry! Your Python version is not supported. Please upgrade to Python 3.11+.",
                 err=True,
             )
 
 
 def parse_version(versionstring: str) -> packaging_version.Version:
     """Parse a version string into a Version object."""
-    return packaging_version.parse(versionstring)
+    try:
+        return packaging_version.parse(versionstring)
+    except packaging_version.InvalidVersion:
+        return packaging_version.parse("0")
 
 
 def get_installed_version() -> packaging_version.Version:
-    """Get the installed version of CumulusCI."""
+    """Get the installed version of Clariti CumulusCI."""
+    if __version__ == "unknown":
+        return packaging_version.parse("0")
     return parse_version(__version__)
 
 
