@@ -533,6 +533,19 @@ def get_plugin_manager() -> PluginManager:
     return _plugin_manager
 
 
+def set_plugin_manager(manager: PluginManager) -> None:
+    """Set the global plugin manager instance.
+
+    This is called by the runtime to register its plugin manager
+    as the global instance so that project_config can access it.
+
+    Args:
+        manager: The PluginManager instance to set as global
+    """
+    global _plugin_manager
+    _plugin_manager = manager
+
+
 def reset_plugin_manager() -> None:
     """Reset the global plugin manager.
 

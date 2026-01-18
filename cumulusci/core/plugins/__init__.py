@@ -65,6 +65,7 @@ from cumulusci.core.plugins.manager import (
     PluginManager,
     get_plugin_manager,
     reset_plugin_manager,
+    set_plugin_manager,
 )
 from cumulusci.core.plugins.registry import (
     PluginRegistry,
@@ -83,6 +84,7 @@ __all__ = [
     "PluginManager",
     "get_plugin_manager",
     "reset_plugin_manager",
+    "set_plugin_manager",
     # Hooks
     "CCIHookSpec",
     "HookManager",

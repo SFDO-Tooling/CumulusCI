@@ -179,6 +179,11 @@ class CCIPlugin(ABC):
         """Return the CumulusCI runtime instance."""
         return self._runtime
 
+    @runtime.setter
+    def runtime(self, value: Optional["BaseCumulusCI"]) -> None:
+        """Set the CumulusCI runtime instance."""
+        self._runtime = value
+
     @property
     def enabled(self) -> bool:
         """Return whether the plugin is currently enabled."""

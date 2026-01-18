@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cci-slack"
+version = "1.0.0"
+description = "Slack notifications plugin for CumulusCI"
+readme = "README.md"
+license = "BSD-3-Clause"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+keywords = ["cumulusci", "slack", "notifications", "plugin"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "clariti-cumulusci>=4.5.0",
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourname/cci-slack"
+Documentation = "https://github.com/yourname/cci-slack#readme"
+Repository = "https://github.com/yourname/cci-slack.git"
+
+[project.entry-points."cumulusci.plugins"]
+cci-slack = "cci_slack:CCISlackPlugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cci_slack"]

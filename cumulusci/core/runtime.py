@@ -8,7 +8,7 @@ from cumulusci.core.debug import DebugMode, get_debug_mode
 from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
 from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.plugins import PluginManager
+from cumulusci.core.plugins import PluginManager, set_plugin_manager
 
 if TYPE_CHECKING:
     from cumulusci.core.plugins import PluginManager as PluginManagerType
@@ -34,8 +34,9 @@ class BaseCumulusCI:
         self.keychain = None
         self.debug_mode = get_debug_mode()
 
-        # Initialize plugin manager early
+        # Initialize plugin manager early and register as global singleton
         self.plugin_manager = PluginManager(self)
+        set_plugin_manager(self.plugin_manager)
 
         self._load_universal_config()
 
