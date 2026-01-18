@@ -1,0 +1,10 @@
+# GitHub Actions Variables for Local Testing
+# Copy this file to .vars and modify as needed
+
+# GitHub context variables
+GITHUB_REPOSITORY=ClaritiSoftware/CumulusCI
+GITHUB_REF=refs/heads/main
+GITHUB_SHA=local
+
+# Optional overrides
+# PYTHON_VERSION=3.11

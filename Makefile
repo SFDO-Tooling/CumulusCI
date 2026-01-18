@@ -111,3 +111,46 @@ schema:
 	python -c 'from cumulusci.utils.yaml import cumulusci_yml; open("cumulusci/schema/cumulusci.jsonschema.json", "w").write(cumulusci_yml.CumulusCIRoot.schema_json(indent=4))'
 	@pre-commit run prettier --files cumulusci/schema/cumulusci.jsonschema.json > /dev/null || true
 	@echo cumulusci/schema/cumulusci.jsonschema.json
+
+# ============================================================================
+# Local GitHub Actions Testing (requires 'act': brew install act)
+# ============================================================================
+
+.PHONY: workflow workflow-list workflow-lint workflow-test workflow-docs check-act
+
+check-act: ## check if act is installed
+	@command -v act >/dev/null 2>&1 || { echo "Error: 'act' is not installed. Run: brew install act"; exit 1; }
+
+workflow-list: ## list available GitHub Actions workflows
+	@python scripts/run_workflow.py --list
+
+workflow: check-act ## run a workflow locally (usage: make workflow WORKFLOW=feature_test)
+ifndef WORKFLOW
+	@echo "Usage: make workflow WORKFLOW=<workflow_name>"
+	@echo "       make workflow WORKFLOW=feature_test"
+	@echo "       make workflow WORKFLOW=feature_test JOB=lint"
+	@echo ""
+	@python scripts/run_workflow.py --list
+else
+ifdef JOB
+	python scripts/run_workflow.py $(WORKFLOW) --job $(JOB)
+else
+	python scripts/run_workflow.py $(WORKFLOW)
+endif
+endif
+
+workflow-dry-run: check-act ## dry run a workflow (shows command without executing)
+ifndef WORKFLOW
+	@echo "Usage: make workflow-dry-run WORKFLOW=<workflow_name>"
+else
+	python scripts/run_workflow.py $(WORKFLOW) --dry-run
+endif
+
+workflow-lint: check-act ## run the lint job locally
+	python scripts/run_workflow.py feature_test --job lint
+
+workflow-test: check-act ## run the unit_tests job locally
+	python scripts/run_workflow.py feature_test --job unit_tests
+
+workflow-docs: check-act ## run the docs build job locally
+	python scripts/run_workflow.py feature_test --job docs
