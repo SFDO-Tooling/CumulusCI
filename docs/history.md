@@ -13,7 +13,7 @@
 -   Fix tests for rebranded package name references
 -   Handle IndexError in version check when no final releases exist on PyPI
 
-**Full Changelog**: https://github.com/ClaritiSoftware/CumulusCI/compare/v4.6.0.dev1...v4.6.0.dev2
+**Full Changelog**: <https://github.com/ClaritiSoftware/CumulusCI/compare/v4.6.0.dev1...v4.6.0.dev2>
 
 ## v4.6.0.dev1 (2025-10-21)
 

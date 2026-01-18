@@ -48,7 +48,7 @@ and the output that it produces.
 
 When you initialize a repository to work with CumulusCI (see [Start a
 new CumulusCI
-Project](https://claritisoftware.github.io/CumulusCI/get-started.html?highlight=project%20init##start-a-new-cumulusci-project)),
+Project](https://claritisoftware.github.io/CumulusCI/get-started.html#start-a-new-cumulusci-project)),
 you automatically get a preconfigured `robot` task to run all of your
 Robot tests at the same time. We also install one example test,
 `create_contact.robot`, that shows how to write both browser-based and
