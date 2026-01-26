@@ -299,5 +299,5 @@ EDIT_MAPPING_WARNING = """# Editing this file is usually not recommended because
 # You can change this file's contents permanently by creating a
 # .load.yml file and re-capturing:
 #
-#  https://cumulusci.readthedocs.io/en/stable/data.html#extracting-and-loading-sample-datasets
+#  https://claritisoftware.github.io/CumulusCI/data.html#extracting-and-loading-sample-datasets
 """

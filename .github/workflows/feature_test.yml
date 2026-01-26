@@ -8,11 +8,20 @@ on:
         branches:
             - main
 
+permissions:
+    contents: read
+
 jobs:
     lint:
         name: Lint
         if: ${{ contains(fromJSON('["workflow_dispatch", "pull_request"]'), github.event_name) }}
-        uses: SFDO-Tooling/.github/.github/workflows/pre-commit.yml@main
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+            - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
     docs:
         name: Build Docs
         if: ${{ github.event_name == 'pull_request' }}
@@ -28,7 +37,7 @@ jobs:
               with:
                   python-version: 3.11
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
               with:
                   version: "0.8.4"
                   enable-cache: true
@@ -54,7 +63,7 @@ jobs:
               with:
                   python-version: "${{ matrix.python-version }}"
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
               with:
                   version: "0.8.4"
                   enable-cache: true
@@ -78,7 +87,7 @@ jobs:
               with:
                   python-version: "${{ matrix.python-version }}"
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
               with:
                   version: "0.8.4"
                   enable-cache: true
@@ -97,7 +106,7 @@ jobs:
               with:
                   python-version: 3.11
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
               with:
                   version: "0.8.4"
                   enable-cache: true

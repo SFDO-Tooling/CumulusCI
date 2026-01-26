@@ -48,7 +48,7 @@ and the output that it produces.
 
 When you initialize a repository to work with CumulusCI (see [Start a
 new CumulusCI
-Project](https://cumulusci.readthedocs.io/en/stable/get-started.html?highlight=project%20init##start-a-new-cumulusci-project)),
+Project](https://claritisoftware.github.io/CumulusCI/get-started.html#start-a-new-cumulusci-project)),
 you automatically get a preconfigured `robot` task to run all of your
 Robot tests at the same time. We also install one example test,
 `create_contact.robot`, that shows how to write both browser-based and
@@ -243,7 +243,7 @@ CumulusCI provides a set of keywords unique to both Salesforce and
 CumulusCI for acceptance testing. These keywords can run other tasks,
 interact with Salesforce applications, call Salesforce APIs, and so on.
 For a list of all custom keywords provided by CumulusCI, see
-[Keywords.html](https://cumulusci.readthedocs.io/en/stable/Keywords.html).
+[Keywords.html](https://claritisoftware.github.io/CumulusCI/Keywords.html).
 
 ```{tip}
 In addition to the keywords that come with CumulusCI, you can write
@@ -338,9 +338,9 @@ primary method of importing all keywords and variables provided by
 CumulusCI, so it's best practice for the file to be the first item
 imported as a `Resource` under `Settings`. It also imports the
 [CumulusCI
-Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.CumulusCI),
+Library](https://claritisoftware.github.io/CumulusCI/Keywords.html#file-cumulusci.robotframework.CumulusCI),
 the [Salesforce
-Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.Salesforce),
+Library](https://claritisoftware.github.io/CumulusCI/Keywords.html#file-cumulusci.robotframework.Salesforce),
 the third-party
 [SeleniumLibrary](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html)
 for browser testing via Selenium, and these most commonly used Robot
@@ -704,7 +704,7 @@ keyword to examine the screenshot taken of the landing page.
 
 The Selenium library comes with a keyword for opening the browser.
 However, CumulusCI comes with its own keyword, [Open Test
-Browser](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.robot.Open%20Test%20Browser),
+Browser](https://claritisoftware.github.io/CumulusCI/Keywords.html#Salesforce.robot.Open%20Test%20Browser),
 which not only opens the browser but also takes care of the details of
 logging into the org. This keyword uses a variable named `${BROWSER}`,
 which can be set from the command line or in the `cumulusci.yml` file to

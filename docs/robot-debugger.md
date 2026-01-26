@@ -3,9 +3,9 @@
 CumulusCI includes a rudimentary Robot debugger which can be enabled by
 setting the `robot_debug` option of the `robot` task to `true`. When the
 debugger is enabled you can use the
-[Breakpoint](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Breakpoint) keyword from the
+[Breakpoint](https://claritisoftware.github.io/CumulusCI/Keywords.html#Salesforce.Breakpoint) keyword from the
 [Salesforce
-Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.Salesforce) keyword
+Library](https://claritisoftware.github.io/CumulusCI/Keywords.html#file-cumulusci.robotframework.Salesforce) keyword
 library to pause execution.
 
 Once the `Breakpoint` keyword is encountered you will be given a prompt

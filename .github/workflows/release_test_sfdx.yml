@@ -1,5 +1,8 @@
 name: SFDX Integration Test
 
+permissions:
+    contents: read
+
 on:
     workflow_call:
         inputs:
@@ -46,7 +49,7 @@ jobs:
               with:
                   python-version: 3.11
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
               with:
                   version: "0.8.4"
                   enable-cache: true

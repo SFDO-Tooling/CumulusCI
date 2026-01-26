@@ -16,6 +16,10 @@ on:
                     - preview
                     - dev
 
+permissions:
+    contents: write
+    pull-requests: write
+
 jobs:
     generate-changelog:
         name: Create a PR to update version and release notes
@@ -44,7 +48,7 @@ jobs:
                   gh api \
                     --method POST \
                     -H "Accept: application/vnd.github.v3+json" \
-                    /repos/SFDO-Tooling/CumulusCI/releases/generate-notes \
+                    /repos/ClaritiSoftware/CumulusCI/releases/generate-notes \
                     -f previous_tag_name=$PREVIOUS_VERSION \
                     -f target_commitish='main' \
                     -f tag_name=$NEXT_VERSION \

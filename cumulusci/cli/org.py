@@ -702,8 +702,8 @@ The cumulusci shell gives you access to the following objects and functions:
 * help(obj) - for help on any specific Python object or module
 
 [1] https://github.com/simple-salesforce/simple-salesforce
-[2] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
-[3] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
+[2] https://claritisoftware.github.io/CumulusCI/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
+[3] https://claritisoftware.github.io/CumulusCI/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
 """
 
 

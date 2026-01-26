@@ -1,7 +1,6 @@
 import os
 import sys
 import warnings
-from importlib.metadata import PackageNotFoundError, version
 
 # Suppress pkg_resources deprecation warning from PyFilesystem (fs) package
 # See: https://github.com/PyFilesystem/pyfilesystem2/issues/577
@@ -15,13 +14,10 @@ from simple_salesforce import api, bulk
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
-try:
-    __version__ = version("cumulusci")
-except PackageNotFoundError:
-    __version__ = "unknown"
+from .__about__ import __version__
 
-if sys.version_info < (3, 8):  # pragma: no cover
-    raise Exception("CumulusCI requires Python 3.8+.")
+if sys.version_info < (3, 11):  # pragma: no cover
+    raise Exception("Clariti CumulusCI requires Python 3.11+.")
 
 api.OrderedDict = dict
 bulk.OrderedDict = dict

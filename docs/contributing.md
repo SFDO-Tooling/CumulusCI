@@ -1,6 +1,8 @@
-# Contribute to CumulusCI
+# Contribute to Clariti CumulusCI
 
 Contributions are welcome, and they are greatly appreciated!
+
+This is a fork of CumulusCI maintained by Clariti Cloud Inc. We welcome contributions from both internal teams and the community.
 
 ## Types of Contributions
 
@@ -8,7 +10,7 @@ You can contribute in many ways:
 
 ### Report Bugs
 
-Report bugs at <https://github.com/SFDO-Tooling/CumulusCI/issues>.
+Report bugs at <https://github.com/ClaritiSoftware/CumulusCI/issues>.
 
 When reporting a bug, please include:
 
@@ -37,7 +39,7 @@ posts, articles, and such.
 ### Submit Feedback
 
 The best way to send feedback is to file an
-[issue](https://github.com/SFDO-Tooling/CumulusCI/issues).
+[issue](https://github.com/ClaritiSoftware/CumulusCI/issues).
 
 If you are proposing a feature:
 

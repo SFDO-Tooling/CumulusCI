@@ -19,8 +19,8 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 class TestCumulusciYml:
     def test_cumulusci_yaml(self):
         cciyml = parse_from_yaml("cumulusci.yml")
-        assert cciyml.project.package.name == "CumulusCI"
-        assert cciyml["project"]["package"]["name"] == "CumulusCI"
+        assert cciyml.project.package.name == "Clariti-CumulusCI"
+        assert cciyml["project"]["package"]["name"] == "Clariti-CumulusCI"
         assert (
             cciyml.tasks["robot"].options["suites"]
             == cciyml["tasks"]["robot"]["options"]["suites"]

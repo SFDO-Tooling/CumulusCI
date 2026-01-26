@@ -81,3 +81,7 @@ robot/CumulusCI/results/
 .vscode/
 .idea/
 tags
+
+# Local GitHub Actions testing (act)
+.secrets
+.vars

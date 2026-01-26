@@ -34,13 +34,13 @@ API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
 
 BREW_DEPRECATION_MSG = (
-    "It looks like you have installed CumulusCI using brew."
-    "This method of installation is no longer supported."
-    "Please use the following to install CumulusCI with pipx:\n"
-    "brew uninstall cumulusci\nbrew install pipx\npipx ensurepath\npipx install cumulusci"
+    "It looks like you have installed CumulusCI using brew. "
+    "This method of installation is no longer supported. "
+    "Please use the following to install Clariti CumulusCI with pipx:\n"
+    "brew uninstall cumulusci\nbrew install pipx\npipx ensurepath\npipx install clariti-cumulusci"
 )
-PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
-PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
+PIP_UPDATE_CMD = "pip install --upgrade clariti-cumulusci"
+PIPX_UPDATE_CMD = "pipx upgrade clariti-cumulusci"
 
 
 def parse_api_datetime(value):

@@ -2,6 +2,19 @@
 
 <!-- latest-start -->
 
+## v4.6.0.dev2 (2026-01-17)
+
+### Changes
+
+-   Fork and rebrand as Clariti CumulusCI (`clariti-cumulusci`)
+-   Add local GitHub Actions testing support with `act` (`make workflow-test`, `make workflow-lint`)
+-   Add `make format` and `make pre-commit` targets for code formatting
+-   Update documentation with LEGAL.md, MAINTAINERS.md, and AGENTS.md
+-   Fix tests for rebranded package name references
+-   Handle IndexError in version check when no final releases exist on PyPI
+
+**Full Changelog**: <https://github.com/ClaritiSoftware/CumulusCI/compare/v4.6.0.dev1...v4.6.0.dev2>
+
 ## v4.6.0.dev1 (2025-10-21)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->

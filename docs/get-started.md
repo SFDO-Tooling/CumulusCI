@@ -2,7 +2,7 @@
 
 (install-cumulusci)=
 
-## Install CumulusCI
+## Install Clariti CumulusCI
 
 ```{tip}
 These installation instructions assume some familiarity with entering
@@ -31,14 +31,14 @@ $ brew install pipx
 $ pipx ensurepath
 ```
 
-After `pipx` installs, install CumulusCI:
+After `pipx` installs, install Clariti CumulusCI:
 
 ```console
-$ pipx install cumulusci
+$ pipx install clariti-cumulusci
 ```
 
 ```{note}
-Upgrading Homebrew's Python version can result in a `bad interpreter` error. To resolve this, run `pipx reinstall cumulusci`.
+Upgrading Homebrew's Python version can result in a `bad interpreter` error. To resolve this, run `pipx reinstall clariti-cumulusci`.
 ```
 
 When finished, [verify your installation](verify-your-installation).
@@ -54,10 +54,10 @@ computer. **We cannot recommend it enough!**
 Installation instructions for `pipx` can be found
 [here](https://pipxproject.github.io/pipx/installation/).
 
-After `pipx` installs, install CumulusCI:
+After `pipx` installs, install Clariti CumulusCI:
 
 ```console
-$ pipx install cumulusci
+$ pipx install clariti-cumulusci
 ```
 
 When finished, [verify your installation](verify-your-installation).
@@ -69,7 +69,7 @@ When finished, [verify your installation](verify-your-installation).
 1.  Go to the [Python downloads
     page](https://www.python.org/downloads/windows/).
 
-2.  Download the latest Python 3.9 release. Most users select the
+2.  Download the latest Python 3.11+ release. Most users select the
     "Windows Installer (64-bit)" link, but it depends on your
     particular computer setup.
 
@@ -114,10 +114,10 @@ If you encounter an error, such as
 `'pipx' is not recognized as an internal or external command, operable program or batch file.`,
 you can try [updating your environment variables manually](#update-environment-variables-manually).
 
-Finally, install CumulusCI with this command:
+Finally, install Clariti CumulusCI with this command:
 
 ```console
-pipx install cumulusci
+pipx install clariti-cumulusci
 ```
 
 When finished, [verify your installation](verify-your-installation).
@@ -132,7 +132,7 @@ When finished, [verify your installation](verify-your-installation).
     (administrator rights) to your machine. Add these paths to your PATH
     environment variable:
     -   `%USERPROFILE%\.local\bin`
-    -   `%USERPROFILE%\AppData\Roaming\Python\Python38\Scripts`
+    -   `%USERPROFILE%\AppData\Roaming\Python\Python311\Scripts`
 
 ![image](images/env-var2.png)
 

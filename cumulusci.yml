@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=cumulusci/schema/cumulusci.jsonschema.json
 project:
-    name: CumulusCI
+    name: Clariti-CumulusCI
     package:
-        name: CumulusCI
+        name: Clariti-CumulusCI
 
 sources:
     ccitest:

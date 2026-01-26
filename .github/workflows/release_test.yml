@@ -5,6 +5,9 @@ on:
     pull_request:
         types: [opened, synchronize, reopened] # Default
 
+permissions:
+    contents: read
+
 jobs:
     test_artifacts:
         name: "Test Package Artifacts"
@@ -24,14 +27,14 @@ jobs:
                   hatch build
             - name: Test install of wheel
               run: |
-                  pip install dist/cumulusci*.whl
-                  pip show cumulusci
-                  pip uninstall -y cumulusci
+                  pip install dist/clariti_cumulusci*.whl
+                  pip show clariti-cumulusci
+                  pip uninstall -y clariti-cumulusci
             - name: Test install of sdist
               run: |
-                  pip install dist/cumulusci*.tar.gz
-                  pip show cumulusci
-                  pip uninstall -y cumulusci
+                  pip install dist/clariti_cumulusci*.tar.gz
+                  pip show clariti-cumulusci
+                  pip uninstall -y clariti-cumulusci
             - name: Store artifacts
               if: failure()
               uses: actions/upload-artifact@v4
