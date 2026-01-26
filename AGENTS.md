@@ -54,21 +54,8 @@ Setup: copy `.vars.example` to `.vars` and `.secrets.example` to `.secrets` (git
 -   Never store Salesforce credentials in the repo; rely on CumulusCI keychains or environment variables instead.
 -   Regenerate `cumulusci/schema/cumulusci.jsonschema.json` with `make schema` when expanding `cumulusci.yml` structures and validate new YAML against it.
 
-## Plugin Framework
-
-CumulusCI includes a plugin system that allows third-party packages to extend functionality:
-
--   **Core modules**: `cumulusci/core/plugins/` contains the plugin infrastructure (base classes, manager, hooks, registry).
--   **CLI commands**: `cci plugin list|info|enable|disable|trust|tasks|flows` for plugin management.
--   **Plugin syntax**: Use `@plugin:task_name` to reference plugin tasks/flows (vs `namespace:task_name` for sources).
--   **Trust levels**: `untrusted` (read-only), `standard` (tasks/flows/services), `trusted` (CLI commands, credentials).
--   **Hook system**: Plugins can react to events via pluggy hooks (`cci_task_complete`, `cci_flow_start`, etc.).
--   **Configuration**: Enable plugins in `cumulusci.yml` under `plugins:` section with `enabled`, `trust_level`, and `config` options.
--   **Documentation**: See `docs/plugins.md` for the plugin development guide.
-
 ## Key Documentation
 
 -   `MAINTAINERS.md` — runbook for version bumps, releases, and syncing with upstream.
 -   `LEGAL.md` — BSD 3-Clause license compliance and attribution requirements.
 -   `docs/contributing.md` — contribution guidelines and development setup.
--   `docs/plugins.md` — plugin development guide for extending CumulusCI.

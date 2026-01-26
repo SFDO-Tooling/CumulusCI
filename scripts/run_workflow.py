@@ -128,14 +128,22 @@ def build_command(
     var_file = Path(args.var_file)
     if var_file.exists() and not args.no_var_file:
         cmd.extend(["--var-file", str(var_file)])
-    elif not var_file.exists() and args.var_file != DEFAULTS["var_file"]:
+    elif (
+        not var_file.exists()
+        and args.var_file != DEFAULTS["var_file"]
+        and not args.no_var_file
+    ):
         print(f"Warning: var file '{args.var_file}' not found", file=sys.stderr)
 
     # Add secret file if exists
     secret_file = Path(args.secret_file)
     if secret_file.exists() and not args.no_secret_file:
         cmd.extend(["--secret-file", str(secret_file)])
-    elif not secret_file.exists() and args.secret_file != DEFAULTS["secret_file"]:
+    elif (
+        not secret_file.exists()
+        and args.secret_file != DEFAULTS["secret_file"]
+        and not args.no_secret_file
+    ):
         print(f"Warning: secret file '{args.secret_file}' not found", file=sys.stderr)
 
     # Container architecture

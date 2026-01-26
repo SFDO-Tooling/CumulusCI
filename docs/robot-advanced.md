@@ -68,7 +68,7 @@ Timer](https://claritisoftware.github.io/CumulusCI/Keywords.html#Salesforce.Star
 starts a timer. The [Stop Performance
 Timer](https://claritisoftware.github.io/CumulusCI/Keywords.html#Salesforce.Stop-Performance-Timer) keyword
 stops the timer and stores the result with [Set Test Elapsed
-Time](https://claritisoftware.github.io/CumulusCI/Keywords.html#Set-Test-Elapsed-Time).
+Time](https://claritisoftware.github.io/CumulusCI/Keywords.html#Salesforce.Set-Test-Elapsed-Time).
 
 ### Setting Test Metrics
 

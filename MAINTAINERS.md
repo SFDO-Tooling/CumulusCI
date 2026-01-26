@@ -122,7 +122,7 @@ Go to **Actions** → **Draft release pull request** → **Run workflow**
 Once merged, the `release.yml` workflow automatically:
 
 -   Builds the package (`hatch build`)
--   Publishes to PyPI (`hatch publish`)
+-   Publishes to PyPI via the `pypa/gh-action-pypi-publish` GitHub Action (using OIDC trusted publishing)
 -   Creates a GitHub Release with changelog and artifacts
 
 **Workflow Files:**

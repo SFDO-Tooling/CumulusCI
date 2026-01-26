@@ -134,12 +134,11 @@ def win32_long_paths_enabled() -> bool:
     # Only present on windows, so import it here instead
     import winreg
 
-    access_registry = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-    access_key = winreg.OpenKey(
-        access_registry, r"SYSTEM\CurrentControlSet\Control\FileSystem"
-    )
-
-    is_enabled, _ = winreg.QueryValueEx(access_key, "LongPathsEnabled")
+    with winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE) as registry:
+        with winreg.OpenKey(
+            registry, r"SYSTEM\CurrentControlSet\Control\FileSystem"
+        ) as key:
+            is_enabled, _ = winreg.QueryValueEx(key, "LongPathsEnabled")
 
     return is_enabled == 1
 

@@ -16,6 +16,10 @@ on:
                     - preview
                     - dev
 
+permissions:
+    contents: write
+    pull-requests: write
+
 jobs:
     generate-changelog:
         name: Create a PR to update version and release notes

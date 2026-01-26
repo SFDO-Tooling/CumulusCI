@@ -132,7 +132,7 @@ When finished, [verify your installation](verify-your-installation).
     (administrator rights) to your machine. Add these paths to your PATH
     environment variable:
     -   `%USERPROFILE%\.local\bin`
-    -   `%USERPROFILE%\AppData\Roaming\Python\Python38\Scripts`
+    -   `%USERPROFILE%\AppData\Roaming\Python\Python311\Scripts`
 
 ![image](images/env-var2.png)
 
