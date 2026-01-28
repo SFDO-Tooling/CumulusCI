@@ -3066,6 +3066,7 @@ class TestLoadDataIntegrationTests:
             {
                 "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
                 "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "ignore_row_errors": True,
             },
         )
         with mock.patch("cumulusci.tasks.bulkdata.step.DEFAULT_BULK_BATCH_SIZE", 3):
