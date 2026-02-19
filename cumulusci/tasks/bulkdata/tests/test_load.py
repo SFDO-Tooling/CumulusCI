@@ -979,7 +979,7 @@ class TestLoadData:
             sql_path=Path(__file__).parent / "test_query_db__joins_self_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
             mapping_step_name="Update Accounts",
-            expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(accounts.parent_id as varchar) ORDER BY accounts.parent_id""",
+            expected="""SELECT accounts.id AS accounts_id, accounts."Name" AS "accounts_Name", CASE WHEN (cumulusci_id_table_1.sf_id IS NOT NULL) THEN cumulusci_id_table_1.sf_id WHEN (is_salesforce_id(accounts.parent_id) = ?) THEN accounts.parent_id END AS anon_1 FROM accounts LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(accounts.parent_id as varchar) ORDER BY accounts.parent_id""",
             old_format=True,
         )
 
@@ -989,7 +989,7 @@ class TestLoadData:
             sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db_joins_lookups_select.yml",
             mapping_step_name="Select Event",
-            expected='''SELECT events.id AS events_id, events."subject" AS "events_subject", "whoid_contacts_alias"."firstname" AS "whoid_contacts_alias_firstname", "whoid_contacts_alias"."lastname" AS "whoid_contacts_alias_lastname", "whoid_leads_alias"."lastname" AS "whoid_leads_alias_lastname", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN contacts AS "whoid_contacts_alias" ON "whoid_contacts_alias".id=events."whoid" LEFT OUTER JOIN leads AS "whoid_leads_alias" ON "whoid_leads_alias".id=events."whoid" LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id=? || cast(events."whoid" as varchar) ORDER BY events."whoid"''',
+            expected='''SELECT events.id AS events_id, events."subject" AS "events_subject", "whoid_contacts_alias"."firstname" AS "whoid_contacts_alias_firstname", "whoid_contacts_alias"."lastname" AS "whoid_contacts_alias_lastname", "whoid_leads_alias"."lastname" AS "whoid_leads_alias_lastname", CASE WHEN (cumulusci_id_table_1.sf_id IS NOT NULL) THEN cumulusci_id_table_1.sf_id WHEN (is_salesforce_id(events."whoid") = ?) THEN events."whoid" END AS anon_1 FROM events LEFT OUTER JOIN contacts AS "whoid_contacts_alias" ON "whoid_contacts_alias".id=events."whoid" LEFT OUTER JOIN leads AS "whoid_leads_alias" ON "whoid_leads_alias".id=events."whoid" LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id=? || cast(events."whoid" as varchar) ORDER BY events."whoid"''',
         )
 
     def test_query_db__joins_polymorphic_lookups(self):
@@ -998,7 +998,7 @@ class TestLoadData:
             sql_path=Path(__file__).parent / "test_query_db_joins_lookups.sql",
             mapping=Path(__file__).parent / "test_query_db_joins_lookups.yml",
             mapping_step_name="Update Event",
-            expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", cumulusci_id_table_1.sf_id AS cumulusci_id_table_1_sf_id FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(events."WhoId" as varchar) ORDER BY events."WhoId" """,
+            expected="""SELECT events.id AS events_id, events."Subject" AS "events_Subject", CASE WHEN (cumulusci_id_table_1.sf_id IS NOT NULL) THEN cumulusci_id_table_1.sf_id WHEN (is_salesforce_id(events."WhoId") = ?) THEN events."WhoId" END AS anon_1 FROM events LEFT OUTER JOIN cumulusci_id_table AS cumulusci_id_table_1 ON cumulusci_id_table_1.id = ? || cast(events."WhoId" as varchar) ORDER BY events."WhoId" """,
         )
 
     @responses.activate
@@ -1109,12 +1109,13 @@ class TestLoadData:
         )  # check that query chaining from above worked.
 
         query_columns, added_filters = _inspect_query(query)
-        # Validate that the column set is accurate
-        assert query_columns == (
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
-        )
+        # Validate that the initialization columns are accurate
+        assert query_columns[0] == model.sf_id
+        assert query_columns[1] == model.__table__.columns["name"]
+        # Third column is a CASE expression for smart lookup resolution
+        assert len(query_columns) == 3
+        assert "CASE" in str(query_columns[2]).upper()
+        assert "is_salesforce_id" in str(query_columns[2])
 
         # Validate person contact records WERE filtered out
         filter_out_contacts, *rest = added_filters
@@ -1182,12 +1183,13 @@ class TestLoadData:
                 added_columns.extend(args)
         all_columns = initialization_columns + tuple(added_columns)
 
-        # Validate that the column set is accurate
-        assert all_columns == (
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
-        )
+        # Validate that the initialization columns are accurate
+        assert all_columns[0] == model.sf_id
+        assert all_columns[1] == model.__table__.columns["name"]
+        # Third column is a CASE expression for smart lookup resolution
+        assert len(all_columns) == 3
+        assert "CASE" in str(all_columns[2]).upper()
+        assert "is_salesforce_id" in str(all_columns[2])
 
         # Validate person contact records were not filtered out
         task._can_load_person_accounts.assert_called_once_with(mapping)
@@ -1240,12 +1242,13 @@ class TestLoadData:
         query = task._query_db(mapping)
         query_columns, added_filters = _inspect_query(query)
 
-        # Validate that the column set is accurate
-        assert query_columns == (
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
-        )
+        # Validate that the initialization columns are accurate
+        assert query_columns[0] == model.sf_id
+        assert query_columns[1] == model.__table__.columns["name"]
+        # Third column is a CASE expression for smart lookup resolution
+        assert len(query_columns) == 3
+        assert "CASE" in str(query_columns[2]).upper()
+        assert "is_salesforce_id" in str(query_columns[2])
 
         # Validate person contact db records had their Name updated as blank
         task._can_load_person_accounts.assert_not_called()
@@ -2715,8 +2718,6 @@ class TestLoadData:
         chunks_index = 0
 
         def fetchmany(batch_size):
-            nonlocal chunks_index
-
             assert 200 == batch_size
 
             # _generate_contact_id_map_for_person_accounts should break if fetchmany returns falsy.
@@ -3021,6 +3022,38 @@ class TestLoadData:
         task._init_task()
         task._init_mapping()
 
+    def test_smart_lookup__mixed_sf_ids_and_local_refs(self):
+        """Test that smart lookup handles both pre-resolved SF IDs and local references"""
+        base_path = Path(__file__).parent
+        sql_path = base_path / "test_smart_lookup.sql"
+        mapping_path = base_path / "test_smart_lookup.yml"
+
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": sql_path,
+                    "mapping": mapping_path,
+                }
+            },
+        )
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
+        ), mock.patch.object(task, "sf", create=True):
+            task._init_mapping()
+
+        with task._init_db():
+            task._old_format = False
+            query = task._query_db(task.mapping["Insert PricebookEntry"])
+            results = list(query.all())
+            results_by_id = {row[0]: row[2] for row in results}
+            assert results_by_id["PricebookEntry-1"] == "01sSG00000Dsd89YAB"
+            assert results_by_id["PricebookEntry-2"] == "01s000000000001AAA"
+            assert results_by_id["PricebookEntry-3"] == "01sSG00000Dsd89"
+            assert results_by_id["PricebookEntry-4"] is None
+            assert results_by_id["PricebookEntry-5"] is None
+
 
 class TestLoadDataIntegrationTests:
     # bulk API not supported by VCR yet
@@ -3033,6 +3066,7 @@ class TestLoadDataIntegrationTests:
             {
                 "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
                 "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "ignore_row_errors": True,
             },
         )
         with mock.patch("cumulusci.tasks.bulkdata.step.DEFAULT_BULK_BATCH_SIZE", 3):

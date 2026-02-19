@@ -237,6 +237,59 @@ def run_snowfakery_and_inspect_mapping(
     return _run_snowfakery_and_inspect_mapping
 
 
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_snowfakery_validate_only_passes_flags(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {"validation_result": "ok"}
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        validate_only=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+            validate_only=True,
+        )
+
+    # task_config passed into subtask should carry validate_only=True and strict_mode flag
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["validate_only"] is True
+    assert task_config.options["strict_mode"] is False
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_snowfakery_strict_mode_passes_flags(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {"validation_result": "ok"}
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        strict_mode=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+            validate_only=False,
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["validate_only"] is False
+    assert task_config.options["strict_mode"] is True
+
+
 def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
     """Find the shared mapping file and return it."""
     template_dir = SnowfakeryWorkingDirectory(results.working_dir / "template_1/")
@@ -823,6 +876,139 @@ class TestSnowfakery:
                 "channeltest-c",
                 "Account",
             }
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_mode(self, mock_subtask, create_task):
+        """Test that validate_only mode validates without loading data"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        # Mock subtask return value
+        validation_result = ValidationResult()
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": True,
+            },
+        )
+
+        task()
+
+        # Verify subtask was called with validate_only=True
+        mock_subtask.assert_called_once()
+        call_args = mock_subtask.call_args
+        assert call_args.kwargs.get("validate_only")
+
+        # Verify return values contain validation_result
+        assert "validation_result" in task.return_values
+        assert task.return_values["validation_result"] == validation_result
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_with_errors(self, mock_subtask, create_task):
+        """Test that validate_only mode returns errors without raising exception"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        # Mock ValidationResult with errors
+        validation_result = ValidationResult()
+        validation_result.add_error("Test error: Field does not exist")
+        validation_result.add_warning("Test warning: Field has no permissions")
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": True,
+            },
+        )
+
+        # Should not raise exception even with errors
+        task()
+
+        # Verify subtask was called
+        mock_subtask.assert_called_once()
+
+        # Verify return values contain validation_result with errors
+        assert "validation_result" in task.return_values
+        assert task.return_values["validation_result"].has_errors()
+        assert len(task.return_values["validation_result"].errors) == 1
+        assert len(task.return_values["validation_result"].warnings) == 1
+
+    def test_validate_only_false_loads_data(self, mock_load_data, create_task):
+        """Test that validate_only=False performs normal data loading"""
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": False,
+            },
+        )
+
+        task()
+
+        # Verify load WAS called
+        assert len(mock_load_data.mock_calls) > 0
+
+        # Verify return values do not contain validation_result
+        assert "validation_result" not in task.return_values
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_with_working_directory(self, mock_subtask, snowfakery):
+        """Test that validate_only respects working_directory option"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        validation_result = ValidationResult()
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        with TemporaryDirectory() as t:
+            working_dir = Path(t) / "snowfakery_validation"
+            task = snowfakery(
+                recipe=sample_yaml,
+                validate_only=True,
+                working_directory=str(working_dir),
+            )
+
+            task()
+
+            # Verify subtask was called
+            mock_subtask.assert_called_once()
+
+            # Verify working directory was created
+            assert working_dir.exists()
+
+            # Verify return values contain validation_result
+            assert "validation_result" in task.return_values
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_skips_channels_and_queues(self, mock_subtask, create_task):
+        """Test that validate_only does not set up channels and queues"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        validation_result = ValidationResult()
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": True,
+            },
+        )
+
+        task()
+
+        # Verify queue_manager was never created
+        assert not hasattr(task, "queue_manager")
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_serial_mode(self, mock_load_data, create_task):

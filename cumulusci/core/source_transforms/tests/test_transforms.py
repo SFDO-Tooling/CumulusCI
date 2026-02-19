@@ -8,7 +8,7 @@ from zipfile import ZipFile
 
 import pytest
 from lxml import etree as ET
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.source_transforms.transforms import (

@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
-from pydantic import Field, ValidationError, root_validator, validator
+from pydantic.v1 import Field, ValidationError, root_validator, validator
 from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
@@ -21,6 +21,28 @@ from cumulusci.utils import convert_to_snake_case
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 logger = getLogger(__name__)
+
+
+class ValidationResult:
+    """Collects validation errors and warnings during mapping validation."""
+
+    def __init__(self):
+        self.errors = []
+        self.warnings = []
+
+    def add_error(self, message: str):
+        """Add an error message."""
+        self.errors.append(message)
+        logger.error(message)
+
+    def add_warning(self, message: str):
+        """Add a warning message."""
+        self.warnings.append(message)
+        logger.warning(message)
+
+    def has_errors(self) -> bool:
+        """Check if there are any errors."""
+        return len(self.errors) > 0
 
 
 class MappingLookup(CCIDictModel):
@@ -382,6 +404,7 @@ class MappingStep(CCIDictModel):
         strip: Optional[Callable[[str], str]],
         drop_missing: bool,
         data_operation_type: DataOperationType,
+        validation_result: Optional["ValidationResult"] = None,
     ) -> bool:
         ret = True
 
@@ -405,9 +428,11 @@ class MappingStep(CCIDictModel):
 
             if inject and self._is_injectable(f) and inject(f) not in orig_fields:
                 if f in describe and inject(f) in describe:
-                    logger.warning(
-                        f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
-                    )
+                    message = f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
+                    if validation_result:
+                        validation_result.add_warning(message)
+                    else:
+                        logger.warning(message)
 
                 f = replace_if_necessary(field_dict, f, inject(f))
             if strip:
@@ -417,9 +442,11 @@ class MappingStep(CCIDictModel):
             try:
                 new_name = describe.canonical_key(f)
             except KeyError:
-                logger.warning(
-                    f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
-                )
+                message = f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
+                if validation_result:
+                    validation_result.add_error(message)
+                else:
+                    logger.error(message)
             else:
                 del field_dict[f]
                 field_dict[new_name] = entry
@@ -434,9 +461,11 @@ class MappingStep(CCIDictModel):
             error_in_f = False
 
             if f not in describe:
-                logger.warning(
-                    f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
-                )
+                message = f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
+                if validation_result:
+                    validation_result.add_error(message)
+                else:
+                    logger.error(message)
                 error_in_f = True
             elif not self._check_field_permission(
                 describe,
@@ -446,10 +475,14 @@ class MappingStep(CCIDictModel):
                 relevant_permissions = self._get_required_permission_types(
                     relevant_operation
                 )
-                logger.warning(
+                message = (
                     f"Field {self.sf_object}.{f} does not have the correct permissions "
                     + f"{relevant_permissions} for this operation."
                 )
+                if validation_result:
+                    validation_result.add_error(message)
+                else:
+                    logger.error(message)
                 error_in_f = True
 
             if error_in_f:
@@ -466,6 +499,7 @@ class MappingStep(CCIDictModel):
         inject: Optional[Callable[[str], str]],
         strip: Optional[Callable[[str], str]],
         data_operation_type: DataOperationType,
+        validation_result: Optional["ValidationResult"] = None,
     ) -> bool:
         # Determine whether we need to inject or strip our sObject.
 
@@ -478,23 +512,29 @@ class MappingStep(CCIDictModel):
         try:
             self.sf_object = global_describe.canonical_key(self.sf_object)
         except KeyError:
-            logger.warning(
-                f"sObject {self.sf_object} does not exist or is not visible to the current user."
-            )
+            message = f"sObject {self.sf_object} does not exist or is not visible to the current user."
+            if validation_result:
+                validation_result.add_error(message)
+            else:
+                logger.error(message)
             return False
 
         # Validate our access to this sObject.
         if not self._check_object_permission(
             global_describe, self.sf_object, data_operation_type
         ):
-            logger.warning(
-                f"sObject {self.sf_object} does not have the correct permissions for {data_operation_type}."
-            )
+            message = f"sObject {self.sf_object} does not have the correct permissions for {data_operation_type}."
+            if validation_result:
+                validation_result.add_error(message)
+            else:
+                logger.error(message)
             return False
 
         return True
 
-    def check_required(self, fields_describe):
+    def check_required(
+        self, fields_describe, validation_result: Optional["ValidationResult"] = None
+    ):
         required_fields = set()
         for field in fields_describe:
             defaulted = (
@@ -505,12 +545,14 @@ class MappingStep(CCIDictModel):
             if fields_describe[field]["createable"] and not defaulted:
                 required_fields.add(field)
         missing_fields = required_fields.difference(
-            set(self.fields.keys()) | set(self.lookups)
+            set(self.fields.keys()) | set(self.lookups) | set(self.static.keys())
         )
         if len(missing_fields) > 0:
-            logger.error(
-                f"One or more required fields are missing for loading on {self.sf_object} :{missing_fields}"
-            )
+            message = f"One or more required fields are missing for loading on {self.sf_object} :{missing_fields}"
+            if validation_result:
+                validation_result.add_error(message)
+            else:
+                logger.error(message)
             return False
         else:
             return True
@@ -523,6 +565,7 @@ class MappingStep(CCIDictModel):
         inject_namespaces: bool = False,
         drop_missing: bool = False,
         is_load: bool = False,
+        validation_result: Optional["ValidationResult"] = None,
     ):
         """Process the schema elements in this step.
 
@@ -554,7 +597,9 @@ class MappingStep(CCIDictModel):
         global_describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in sf.describe()["sobjects"]}
         )
-        if not self._validate_sobject(global_describe, inject, strip, operation):
+        if not self._validate_sobject(
+            global_describe, inject, strip, operation, validation_result
+        ):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
 
@@ -562,16 +607,31 @@ class MappingStep(CCIDictModel):
         # By this point, we know the attribute is valid.
         describe = self.describe_data(sf)
         fields_correct = self._validate_field_dict(
-            describe, self.fields, inject, strip, drop_missing, operation
+            describe,
+            self.fields,
+            inject,
+            strip,
+            drop_missing,
+            operation,
+            validation_result,
         )
 
         lookups_correct = self._validate_field_dict(
-            describe, self.lookups, inject, strip, drop_missing, operation
+            describe,
+            self.lookups,
+            inject,
+            strip,
+            drop_missing,
+            operation,
+            validation_result,
         )
 
         if is_load:
-            # Show warning logs for unspecified required fields
-            self.check_required(describe)
+            # Check for unspecified required fields
+            required_fields_present = self.check_required(describe, validation_result)
+            # Only block if drop_missing is False, otherwise just warn
+            if not required_fields_present and not drop_missing:
+                return False
 
         if not (fields_correct and lookups_correct):
             return False
@@ -587,6 +647,7 @@ class MappingStep(CCIDictModel):
                 strip,
                 drop_missing=False,
                 data_operation_type=operation,
+                validation_result=validation_result,
             ):
                 return False
             self.update_key = tuple(update_keys.keys())
@@ -638,7 +699,11 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
     return MappingSteps.parse_from_yaml(source)
 
 
-def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
+def _infer_and_validate_lookups(
+    mapping: Dict,
+    sf: Salesforce,
+    validation_result: Optional["ValidationResult"] = None,
+):
     """Validate that all the lookup tables mentioned are valid references
     to the lookup. Also verify that the mapping for the tables are mentioned
     before they are mentioned in the lookups"""
@@ -673,14 +738,18 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                     if sf_object in reference_to_objects:
                         target_objects.append(sf_object)
                     else:
-                        logger.error(
-                            f"The lookup {sf_object} is not a valid lookup for {lookup_name} in sf_object: {m.sf_object}"
-                        )
+                        message = f"The lookup {sf_object} is not a valid lookup for {lookup_name} in sf_object: {m.sf_object}"
+                        if validation_result:
+                            validation_result.add_error(message)
+                        else:
+                            logger.error(message)
                         fail = True
                 except KeyError:
-                    logger.error(
-                        f"The table {table} does not exist in the mapping file"
-                    )
+                    message = f"The table {table} does not exist in the mapping file"
+                    if validation_result:
+                        validation_result.add_error(message)
+                    else:
+                        logger.error(message)
                     fail = True
 
             if fail:
@@ -701,14 +770,18 @@ def _infer_and_validate_lookups(mapping: Dict, sf: Salesforce):
                     list(sf_objects.values()).index(t) for t in target_objects
                 ]
                 if not all([target_index < idx for target_index in target_indices]):
-                    logger.error(
+                    message = (
                         f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup_name} "
                         f"must precede {m.sf_object} in the mapping."
                     )
+                    if validation_result:
+                        validation_result.add_error(message)
+                    else:
+                        logger.error(message)
                     fail = True
                     continue
 
-    if fail:
+    if fail and validation_result is None:
         raise BulkDataException(
             "One or more relationship errors blocked the operation."
         )
@@ -723,23 +796,36 @@ def validate_and_inject_mapping(
     inject_namespaces: bool,
     drop_missing: bool,
     org_has_person_accounts_enabled: bool = False,
-):
+    validate_only: bool = False,
+) -> Optional[ValidationResult]:
     # Check if operation is load or extract
     is_load = True if data_operation == DataOperationType.INSERT else False
 
+    # Create ValidationResult if validate_only is True
+    validation_result = ValidationResult() if validate_only else None
+
     should_continue = [
         m.validate_and_inject_namespace(
-            sf, namespace, data_operation, inject_namespaces, drop_missing, is_load
+            sf,
+            namespace,
+            data_operation,
+            inject_namespaces,
+            drop_missing,
+            is_load,
+            validation_result,
         )
         for m in mapping.values()
     ]
 
     if not drop_missing and not all(should_continue):
-        raise BulkDataException(
-            "One or more schema or permissions errors blocked the operation.\n"
-            "If you would like to attempt the load regardless, you can specify "
-            "'--drop_missing_schema True' on the command option and ensure all required fields are included in the mapping file."
-        )
+        if validate_only and validation_result:
+            return validation_result
+        else:
+            raise BulkDataException(
+                "One or more schema or permissions errors blocked the operation.\n"
+                "If you would like to attempt the load regardless, you can specify "
+                "'--drop_missing_schema True' on the command option and ensure all required fields are included in the mapping file."
+            )
 
     if drop_missing:
         # Drop any steps with sObjects that are not present.
@@ -767,15 +853,22 @@ def validate_and_inject_mapping(
                     # Make sure this didn't cause the operation to be invalid
                     # by dropping a required field.
                     if not describe[field]["nillable"]:
-                        raise BulkDataException(
+                        message = (
                             f"{m.sf_object}.{field} is a required field, but the target object "
                             f"{describe[field]['referenceTo']} was removed from the operation "
                             "due to missing permissions."
                         )
+                        if validate_only and validation_result:
+                            validation_result.add_error(message)
+                            return validation_result
+                        else:
+                            raise BulkDataException(message)
 
     # Infer/validate lookups
     if is_load:
-        _infer_and_validate_lookups(mapping, sf)
+        _infer_and_validate_lookups(mapping, sf, validation_result)
+        if validate_only and validation_result:
+            return validation_result
 
     # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".
     # IsPersonAccount field values are used to properly load person account records.
@@ -783,6 +876,8 @@ def validate_and_inject_mapping(
         for step in mapping.values():
             if step["sf_object"] in ("Account", "Contact"):
                 step["fields"]["IsPersonAccount"] = "IsPersonAccount"
+
+    return validation_result
 
 
 def _inject_or_strip_name(name, transform, global_describe):

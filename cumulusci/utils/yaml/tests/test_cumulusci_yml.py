@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import (

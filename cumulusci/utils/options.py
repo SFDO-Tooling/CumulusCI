@@ -2,7 +2,7 @@ import json
 from inspect import signature
 from typing import Any, Dict, List
 
-from pydantic import DirectoryPath, Field, FilePath, create_model
+from pydantic.v1 import DirectoryPath, Field, FilePath, create_model
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils.yaml.model_parser import CCIDictModel

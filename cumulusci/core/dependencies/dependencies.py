@@ -6,10 +6,10 @@ import os
 from typing import List, Optional
 from zipfile import ZipFile
 
-import pydantic
+import pydantic.v1 as pydantic
 from github3.exceptions import NotFoundError
 from github3.repos.repo import Repository
-from pydantic.networks import AnyUrl
+from pydantic.v1.networks import AnyUrl
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig

@@ -9,8 +9,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic import Field, root_validator, validator
-from pydantic.types import DirectoryPath
+from pydantic.v1 import Field, root_validator, validator
+from pydantic.v1.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
 from cumulusci.core.enums import StrEnum
@@ -280,7 +280,6 @@ class ErrorDict(TypedDict):
 
 def _log_yaml_errors(logger, errors: List[ErrorDict]):
     "Format and log a Pydantic-style error dictionary"
-    global has_shown_yaml_error_message
     plural = "" if len(errors) <= 1 else "s"
     logger.warning(f"CumulusCI Configuration Warning{plural}:")
     for error in errors:

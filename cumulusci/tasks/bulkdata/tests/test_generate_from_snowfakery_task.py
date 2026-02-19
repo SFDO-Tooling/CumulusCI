@@ -206,6 +206,102 @@ class TestGenerateFromDataTask:
             assert "Foo" in str(e.value)
         assert len(generate_data.mock_calls) == 1
 
+    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate_data")
+    def test_validate_only_forces_strict_mode(self, generate_data):
+        with temp_sqlite_database_url() as database_url:
+            task = _make_task(
+                GenerateDataFromYaml,
+                {
+                    "options": {
+                        "generator_yaml": simple_yaml,
+                        "database_url": database_url,
+                        "validate_only": True,
+                    }
+                },
+            )
+            task()
+
+        assert len(generate_data.mock_calls) == 1
+        _, kwargs = generate_data.call_args
+        assert kwargs["strict_mode"] is True
+
+    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate_data")
+    def test_strict_mode_only(self, generate_data):
+        with temp_sqlite_database_url() as database_url:
+            task = _make_task(
+                GenerateDataFromYaml,
+                {
+                    "options": {
+                        "generator_yaml": simple_yaml,
+                        "database_url": database_url,
+                        "strict_mode": True,
+                    }
+                },
+            )
+            task()
+
+        assert len(generate_data.mock_calls) == 1
+        _, kwargs = generate_data.call_args
+        assert kwargs["strict_mode"] is True
+
+    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate_data")
+    def test_defaults_no_strict_no_validate(self, generate_data):
+        with temp_sqlite_database_url() as database_url:
+            task = _make_task(
+                GenerateDataFromYaml,
+                {
+                    "options": {
+                        "generator_yaml": simple_yaml,
+                        "database_url": database_url,
+                    }
+                },
+            )
+            task()
+
+        assert len(generate_data.mock_calls) == 1
+        _, kwargs = generate_data.call_args
+        assert kwargs["strict_mode"] is False
+
+    def test_validate_only_runs_and_creates_mapping(self):
+        with temporary_file_path("mapping.yml") as mapping_path:
+            with temp_sqlite_database_url() as database_url:
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "generator_yaml": simple_yaml,
+                            "database_url": database_url,
+                            "generate_mapping_file": mapping_path,
+                            "validate_only": True,
+                        }
+                    },
+                )
+                task()
+
+            assert mapping_path.exists()
+            mapping = yaml.safe_load(open(mapping_path))
+            assert mapping  # ensure something was written
+
+    def test_strict_mode_runs_and_creates_mapping(self):
+        with temporary_file_path("mapping.yml") as mapping_path:
+            with temp_sqlite_database_url() as database_url:
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "generator_yaml": simple_yaml,
+                            "database_url": database_url,
+                            "generate_mapping_file": mapping_path,
+                            "strict_mode": True,
+                        }
+                    },
+                )
+                task()
+
+            assert mapping_path.exists()
+            mapping = yaml.safe_load(open(mapping_path))
+            assert mapping  # ensure something was written
+
     @mock.patch(
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
     )

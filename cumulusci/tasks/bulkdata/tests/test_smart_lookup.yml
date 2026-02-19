@@ -1,0 +1,15 @@
+Insert Pricebook2:
+    sf_object: Pricebook2
+    table: Pricebook2
+    fields:
+        Name: Name
+
+Insert PricebookEntry:
+    sf_object: PricebookEntry
+    table: PricebookEntry
+    fields:
+        UnitPrice: UnitPrice
+    lookups:
+        Pricebook2Id:
+            table: Pricebook2
+            key_field: Pricebook2Id

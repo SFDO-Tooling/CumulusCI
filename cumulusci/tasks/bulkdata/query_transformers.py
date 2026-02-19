@@ -1,7 +1,8 @@
+import re
 import typing as T
 from functools import cached_property
 
-from sqlalchemy import String, and_, func, text
+from sqlalchemy import String, and_, case, func, text
 from sqlalchemy.orm import Query, aliased
 from sqlalchemy.sql import literal_column
 
@@ -9,6 +10,29 @@ from cumulusci.core.exceptions import BulkDataException
 
 Criterion = T.Any
 ID_TABLE_NAME = "cumulusci_id_table"
+
+# Salesforce ID pattern: 15 or 18 alphanumeric characters
+# This matches the OID_REGEX pattern used in robotframework/Salesforce.py
+SF_ID_PATTERN = re.compile(r"^[a-zA-Z0-9]{15}$|^[a-zA-Z0-9]{18}$")
+
+
+def is_salesforce_id(value: T.Optional[str]) -> bool:
+    """Check if a value looks like a valid Salesforce ID."""
+    if value is None:
+        return False
+    return bool(SF_ID_PATTERN.match(str(value)))
+
+
+def _is_salesforce_id_sqlite(value: T.Optional[str]) -> int:
+    """SQLite UDF wrapper for is_salesforce_id."""
+    return 1 if is_salesforce_id(value) else 0
+
+
+def register_sqlite_functions(connection) -> None:
+    """Register custom SQLite functions on a database connection."""
+    # Get the underlying DBAPI connection
+    dbapi_connection = connection.connection.dbapi_connection
+    dbapi_connection.create_function("is_salesforce_id", 1, _is_salesforce_id_sqlite)
 
 
 class LoadQueryExtender:
@@ -61,9 +85,26 @@ class AddLookupsToQuery(LoadQueryExtender):
 
     @cached_property
     def columns_to_add(self):
+        """Build column expressions for lookup fields with smart ID resolution."""
+        columns = []
         for lookup in self.lookups:
             lookup.aliased_table = aliased(self.metadata.tables[ID_TABLE_NAME])
-        return [lookup.aliased_table.columns.sf_id for lookup in self.lookups]
+            key_field = lookup.get_lookup_key_field(self.model)
+            value_column = getattr(self.model, key_field)
+
+            # The resolved SF ID from the ID table join (may be NULL)
+            sf_id_from_table = lookup.aliased_table.columns.sf_id
+
+            smart_lookup = case(
+                # If we found a match in the ID table, use that
+                (sf_id_from_table.isnot(None), sf_id_from_table),
+                # If the original value is already a SF ID, use it directly
+                (func.is_salesforce_id(value_column) == 1, value_column),
+                # Otherwise return NULL (lookup not found)
+                else_=None,
+            )
+            columns.append(smart_lookup)
+        return columns
 
     @cached_property
     def outerjoins_to_add(self):

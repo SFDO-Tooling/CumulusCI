@@ -3,7 +3,7 @@ import logging
 import zipfile
 from unittest import mock
 
-import pydantic
+import pydantic.v1 as pydantic
 import pytest
 
 from cumulusci.core.dependencies.dependencies import (

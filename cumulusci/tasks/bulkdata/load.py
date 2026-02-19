@@ -28,6 +28,7 @@ from cumulusci.tasks.bulkdata.query_transformers import (
     AddPersonAccountsToQuery,
     AddRecordTypesToQuery,
     DynamicLookupQueryExtender,
+    register_sqlite_functions,
 )
 from cumulusci.tasks.bulkdata.step import (
     DEFAULT_BULK_BATCH_SIZE,
@@ -766,6 +767,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with self._database_url() as database_url:
             parent_engine = create_engine(database_url)
             with parent_engine.connect() as connection:
+                # Register custom SQLite functions for smart lookup resolution
+                register_sqlite_functions(connection)
+
                 # initialize the DB session
                 self.session = Session(connection)
 
