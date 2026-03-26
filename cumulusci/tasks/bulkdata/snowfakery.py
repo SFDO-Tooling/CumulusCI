@@ -147,6 +147,9 @@ class Snowfakery(BaseSalesforceApiTask):
         "strict_mode": {
             "description": "Boolean: If True, validates the Snowfakery recipe and generated mapping against the org schema (strict mode) and then proceeds with the run",
         },
+        "enable_rollback": {
+            "description": "Boolean: When True, performs a rollback of all loaded records in case of an error. Defaults to False."
+        },
     }
 
     def _validate_options(self):
@@ -169,6 +172,21 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         self.validate_only = process_bool_arg(self.options.get("validate_only", False))
         self.strict_mode = process_bool_arg(self.options.get("strict_mode", False))
+        self.enable_rollback = process_bool_arg(
+            self.options.get("enable_rollback", False)
+        )
+        if self.enable_rollback and any(
+            self.options.get(k)
+            for k in (
+                "run_until_records_in_org",
+                "run_until_records_loaded",
+                "run_until_recipe_repeated",
+            )
+        ):
+            raise TaskOptionsError(
+                "enable_rollback=True cannot be combined with run_until_* options "
+                "because each batch commits independently; only the failing batch would be rolled back."
+            )
 
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
@@ -290,6 +308,7 @@ class Snowfakery(BaseSalesforceApiTask):
         additional_load_options = {
             "ignore_row_errors": self.ignore_row_errors,
             "drop_missing_schema": self.drop_missing_schema,
+            "enable_rollback": self.enable_rollback,
         }
         subtask_configurator = SubtaskConfigurator(
             self.recipe, self.run_until, self.bulk_mode, additional_load_options
@@ -619,6 +638,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "drop_missing_schema": self.drop_missing_schema,
             "validate_only": validate_only,
             "strict_mode": self.strict_mode,
+            "enable_rollback": self.enable_rollback,
         }
         subtask_config = TaskConfig({"options": options})
         subtask = GenerateAndLoadDataFromYaml(

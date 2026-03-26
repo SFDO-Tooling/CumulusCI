@@ -238,6 +238,81 @@ def run_snowfakery_and_inspect_mapping(
 
 
 @mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_enable_rollback_passes_flag_to_subtask(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {
+        "load_results": [
+            {
+                "step_results": {
+                    "Insert Account": {
+                        "sobject": "Account",
+                        "record_type": None,
+                        "status": "Success",
+                        "records_processed": 1,
+                        "total_row_errors": 0,
+                    }
+                }
+            }
+        ]
+    }
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        enable_rollback=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["enable_rollback"] is True
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_enable_rollback_defaults_to_false(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {
+        "load_results": [
+            {
+                "step_results": {
+                    "Insert Account": {
+                        "sobject": "Account",
+                        "record_type": None,
+                        "status": "Success",
+                        "records_processed": 1,
+                        "total_row_errors": 0,
+                    }
+                }
+            }
+        ]
+    }
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["enable_rollback"] is False
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
 def test_snowfakery_validate_only_passes_flags(mock_subtask_cls, snowfakery):
     mock_subtask = mock.Mock()
     mock_subtask.__call__ = mock.Mock(return_value=None)
@@ -404,6 +479,24 @@ class TestSnowfakery:
         assert len(threads_instead_of_processes.mock_calls) == 2
         for call in mock_load_data.mock_calls:
             assert call.task_config.config["options"]["drop_missing_schema"] is True
+
+    @pytest.mark.parametrize(
+        "run_until_option,run_until_value",
+        [
+            ("run_until_recipe_repeated", "7"),
+            ("run_until_records_loaded", "Account:10"),
+            ("run_until_records_in_org", "Account:10"),
+        ],
+    )
+    def test_enable_rollback_rejected_with_run_until(
+        self, run_until_option, run_until_value, snowfakery
+    ):
+        with pytest.raises(exc.TaskOptionsError, match="enable_rollback"):
+            snowfakery(
+                recipe=str(simple_salesforce_yaml),
+                enable_rollback=True,
+                **{run_until_option: run_until_value},
+            )
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part(
