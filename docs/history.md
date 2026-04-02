@@ -6,7 +6,7 @@
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
-## What's Changed
+## What's Changed 
 
 ### Changes
 
