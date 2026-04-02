@@ -131,6 +131,25 @@ class TestLoadData:
                 hh_ids = next(c.execute("SELECT * from cumulusci_id_table"))
                 assert hh_ids == ("households-1", "001000000000000")
 
+    def test_enable_rollback_warns_when_ignore_row_errors_also_set(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "mapping": "mapping.yml",
+                    "database_url": "sqlite://",
+                    "enable_rollback": True,
+                    "ignore_row_errors": True,
+                }
+            },
+        )
+        with mock.patch.object(task, "logger") as mock_logger:
+            task._init_options({})
+            warning_messages = [
+                str(call) for call in mock_logger.warning.call_args_list
+            ]
+            assert any("enable_rollback" in msg for msg in warning_messages)
+
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
     def test__insert_rollback(self, dml_mock):

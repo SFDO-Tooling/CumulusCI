@@ -127,6 +127,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["enable_rollback"] = process_bool_arg(
             self.options.get("enable_rollback", False)
         )
+        if self.options["enable_rollback"] and self.options["ignore_row_errors"]:
+            self.logger.warning(
+                "enable_rollback=True has no effect on row-level errors when "
+                "ignore_row_errors=True, because row errors are suppressed before rollback can trigger."
+            )
         self._id_generators = {}
         self._old_format = False
         self.ID_TABLE_NAME = ID_TABLE_NAME
