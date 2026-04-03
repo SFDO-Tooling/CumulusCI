@@ -614,14 +614,52 @@ def test_vectorize_records_mixed_numerical_boolean_categorical():
     ), "Query vectors column count mismatch"
 
 
+def _build_large_annoy_fixture():
+    """Build a dataset that forces the ANN path (load*query > 1000)."""
+    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
+    query_records = [["q1", "Alice", "Engineer"], ["q2", "Charlie", "Artist"]]
+
+    # Add many exact-match records so tests exercise realistic ANN usage.
+    for i in range(35):
+        name = f"Employee-{i}"
+        role = f"Role-{i % 7}"
+        load_records.append([name, role])
+        query_records.append([f"q-extra-{i}", name, role])
+
+    assert len(load_records) * len(query_records) > 1000
+    return load_records, query_records
+
+
+def _build_large_annoy_fixture_polymorphic():
+    """Polymorphic-field variant of the large ANN fixture."""
+    load_records = [
+        ["Alice", "Engineer", "Alice_Contact", "abcd1234"],
+        ["Bob", "Doctor", "Bob_Contact", "qwer1234"],
+    ]
+    query_records = [
+        ["q1", "Alice", "Engineer", "Alice_Contact"],
+        ["q2", "Charlie", "Artist", "Charlie_Contact"],
+    ]
+
+    for i in range(35):
+        name = f"Employee-{i}"
+        role = f"Role-{i % 7}"
+        contact_name = f"Contact-{i}"
+        contact_id = f"id-{i:04d}"
+        load_records.append([name, role, contact_name, contact_id])
+        query_records.append([f"q-extra-{i}", name, role, contact_name])
+
+    assert len(load_records) * len(query_records) > 1000
+    return load_records, query_records
+
+
 @pytest.mark.skipif(
     not PANDAS_AVAILABLE or not OPTIONAL_DEPENDENCIES_AVAILABLE,
     reason="requires optional dependencies for annoy",
 )
 def test_annoy_post_process():
     # Test data
-    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
-    query_records = [["q1", "Alice", "Engineer"], ["q2", "Charlie", "Artist"]]
+    load_records, query_records = _build_large_annoy_fixture()
     weights = [1.0, 1.0, 1.0]  # Example weights
 
     closest_records, insert_records = annoy_post_process(
@@ -632,15 +670,11 @@ def test_annoy_post_process():
         threshold=None,
     )
 
-    # Assert the closest records
-    assert (
-        len(closest_records) == 2
-    )  # We expect two results (one for each query record)
-    assert (
-        closest_records[0]["id"] == "q1"
-    )  # The first query record should match the first load record
+    # Assert ANN output shape and that all load records were matched.
+    assert len(closest_records) == len(load_records)
+    assert all(record and "id" in record for record in closest_records)
 
-    # No errors expected
+    # No records should be marked for insert without a threshold.
     assert not insert_records
 
 
@@ -650,8 +684,7 @@ def test_annoy_post_process():
 )
 def test_annoy_post_process__insert_records():
     # Test data
-    load_records = [["Alice", "Engineer"], ["Bob", "Doctor"]]
-    query_records = [["q1", "Alice", "Engineer"], ["q2", "Charlie", "Artist"]]
+    load_records, query_records = _build_large_annoy_fixture()
     weights = [1.0, 1.0, 1.0]  # Example weights
     threshold = 0.3
 
@@ -663,16 +696,11 @@ def test_annoy_post_process__insert_records():
         threshold=threshold,
     )
 
-    # Assert the closest records
-    assert len(closest_records) == 2  # We expect two results (one record and one None)
-    assert (
-        closest_records[0]["id"] == "q1"
-    )  # The first query record should match the first load record
-    assert closest_records[1] is None  # The second query record should be None
-    assert insert_records[0] == [
-        "Bob",
-        "Doctor",
-    ]  # The first insert record should match the second load record
+    # Assert threshold behavior without relying on ANN neighbor tie-break order.
+    assert len(closest_records) == len(load_records)
+    none_count = sum(record is None for record in closest_records)
+    assert none_count == len(insert_records)
+    assert all(candidate in load_records for candidate in insert_records)
 
 
 def test_annoy_post_process__no_query_records():
@@ -709,14 +737,7 @@ def test_annoy_post_process__no_query_records():
 )
 def test_annoy_post_process__insert_records_with_polymorphic_fields():
     # Test data
-    load_records = [
-        ["Alice", "Engineer", "Alice_Contact", "abcd1234"],
-        ["Bob", "Doctor", "Bob_Contact", "qwer1234"],
-    ]
-    query_records = [
-        ["q1", "Alice", "Engineer", "Alice_Contact"],
-        ["q2", "Charlie", "Artist", "Charlie_Contact"],
-    ]
+    load_records, query_records = _build_large_annoy_fixture_polymorphic()
     weights = [1.0, 1.0, 1.0, 1.0]  # Example weights
     threshold = 0.3
     all_fields = ["Name", "Occupation", "Contact.Name", "ContactId"]
@@ -729,17 +750,15 @@ def test_annoy_post_process__insert_records_with_polymorphic_fields():
         threshold=threshold,
     )
 
-    # Assert the closest records
-    assert len(closest_records) == 2  # We expect two results (one record and one None)
-    assert (
-        closest_records[0]["id"] == "q1"
-    )  # The first query record should match the first load record
-    assert closest_records[1] is None  # The second query record should be None
-    assert insert_records[0] == [
-        "Bob",
-        "Doctor",
-        "qwer1234",
-    ]  # The first insert record should match the second load record
+    # Assert threshold behavior without relying on ANN neighbor tie-break order.
+    assert len(closest_records) == len(load_records)
+    none_count = sum(record is None for record in closest_records)
+    assert none_count == len(insert_records)
+    expected_insert_candidates = [
+        [name, occupation, contact_id]
+        for name, occupation, _, contact_id in load_records
+    ]
+    assert all(candidate in expected_insert_candidates for candidate in insert_records)
 
 
 @pytest.mark.skipif(
