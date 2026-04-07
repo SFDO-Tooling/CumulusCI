@@ -234,9 +234,16 @@ class TestRestDeploy(unittest.TestCase):
         )
         actual_output_zip = deployer._reformat_zip(input_zip)
 
-        self.assertEqual(
-            base64.b64encode(actual_output_zip).decode("utf-8"), expected_zip
-        )
+        # ZIP container metadata (for example file timestamps) can differ between
+        # platforms even when file names and contents are identical.
+        expected_bytes = base64.b64decode(expected_zip)
+        with zipfile.ZipFile(io.BytesIO(actual_output_zip), "r") as actual_zip:
+            with zipfile.ZipFile(io.BytesIO(expected_bytes), "r") as expected_zip_file:
+                self.assertEqual(actual_zip.namelist(), expected_zip_file.namelist())
+                for name in expected_zip_file.namelist():
+                    self.assertEqual(
+                        actual_zip.read(name), expected_zip_file.read(name)
+                    )
 
     def test_purge_on_delete(self):
         test_data = [

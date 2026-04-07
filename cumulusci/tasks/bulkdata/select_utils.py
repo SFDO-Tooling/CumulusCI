@@ -388,6 +388,7 @@ def annoy_post_process(
         annoy_index.add_item(i, final_query_vectors[i])
 
     # Build the index
+    annoy_index.set_seed(42)
     annoy_index.build(num_trees)
 
     # Find nearest neighbors for each query vector
@@ -395,8 +396,12 @@ def annoy_post_process(
 
     for i, load_vector in enumerate(final_load_vectors):
         # Get nearest neighbors' indices and distances
+        # Use a sufficiently large search_k to avoid approximate misses in small datasets.
         nearest_neighbors = annoy_index.get_nns_by_vector(
-            load_vector, n_neighbors, include_distances=True
+            load_vector,
+            n_neighbors,
+            search_k=max(num_trees * len(final_query_vectors), n_neighbors),
+            include_distances=True,
         )
         neighbor_indices = nearest_neighbors[0]  # Indices of nearest neighbors
         neighbor_distances = [

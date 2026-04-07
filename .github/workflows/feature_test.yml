@@ -24,11 +24,11 @@ jobs:
                   fetch-depth: 1
             - name: Set up Python 3.11
               id: py
-              uses: actions/setup-python@v4
+              uses: actions/setup-python@v5
               with:
                   python-version: 3.11
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
@@ -50,11 +50,11 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python
-              uses: actions/setup-python@v4
+              uses: actions/setup-python@v5
               with:
                   python-version: "${{ matrix.python-version }}"
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
@@ -74,11 +74,11 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python
-              uses: actions/setup-python@v4
+              uses: actions/setup-python@v5
               with:
                   python-version: "${{ matrix.python-version }}"
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
@@ -93,11 +93,11 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python 3.11
-              uses: actions/setup-python@v4
+              uses: actions/setup-python@v5
               with:
                   python-version: 3.11
             - name: Set up uv
-              uses: SFDO-Tooling/setup-uv@main
+              uses: SFDO-Tooling/setup-uv@v8.0.0-sfdo.1
               with:
                   version: "0.8.4"
                   enable-cache: true
