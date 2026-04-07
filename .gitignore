@@ -1,6 +1,9 @@
 # OS cruft
 .DS_Store
 
+# Git worktrees
+.worktrees/
+
 # CumulusCI config and output
 .cci
 docs/api/
