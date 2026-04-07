@@ -179,3 +179,31 @@ def task_context(org_config, project_config):
     return TaskContext(
         org_config=org_config, project_config=project_config, logger=getLogger()
     )
+
+
+@pytest.fixture()
+def capture_orgid_using_task(create_task, tmp_path):
+    """Returns a callable that captures the org ID by running a SOQL query task.
+
+    Moved from test_integration_infrastructure.py to ensure pytest 8.x
+    discovers this fixture when tests run with --org.
+    """
+
+    def _capture_orgid_using_task():
+        from cumulusci.tasks.salesforce import SOQLQuery
+
+        csv_output = Path(tmp_path) / "foo.csv"
+        t = create_task(
+            SOQLQuery,
+            {
+                "query": "select Id from Organization",
+                "object": "Organization",
+                "result_file": csv_output,
+            },
+        )
+        t()
+        assert csv_output.exists()
+        org_id = csv_output.read_text().split("\n")[1].split(",")[0]
+        return org_id.strip('"')
+
+    return _capture_orgid_using_task

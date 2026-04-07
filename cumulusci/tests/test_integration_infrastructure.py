@@ -13,26 +13,6 @@ first_cassette = (
 )
 
 
-@pytest.fixture()
-def capture_orgid_using_task(create_task: callable, tmp_path: str) -> str:
-    def _capture_orgid_using_task():
-        csv_output = Path(tmp_path) / "foo.csv"
-        t = create_task(
-            SOQLQuery,
-            {
-                "query": "select Id from Organization",
-                "object": "Organization",
-                "result_file": csv_output,
-            },
-        )
-        t()
-        assert csv_output.exists()
-        org_id = csv_output.read_text().split("\n")[1].split(",")[0]
-        return org_id.strip('"')
-
-    return _capture_orgid_using_task
-
-
 class TestIntegrationInfrastructure:
     "Test our two plugins for doing integration testing"
 

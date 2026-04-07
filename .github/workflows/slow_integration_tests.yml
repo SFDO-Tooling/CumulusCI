@@ -91,7 +91,9 @@ jobs:
                   wget -qO- https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Initialize Browser/Playwright
-              run: uv run cci robot install_playwright
+              run: |
+                  uv pip install robotframework-browser
+                  uv run python -m Browser.entry init
             - name: Authenticate Dev Hub
               run: |
                   sf plugins --core
