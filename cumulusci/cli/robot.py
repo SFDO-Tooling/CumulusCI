@@ -1,4 +1,5 @@
 import importlib.metadata
+import shutil
 import sys
 
 import click
@@ -37,9 +38,19 @@ def robot_install_playwright(runtime, dry_run):
 def robot_uninstall_playwright():
     """Attempt to uninstall playwright"""
     p1 = sarge.Command([sys.executable, "-m", "Browser.entry", "clean-node"])
-    p2 = sarge.Command(
-        [sys.executable, "-m", "pip", "uninstall", "robotframework-browser", "--yes"]
-    )
+    if shutil.which("uv"):
+        p2 = sarge.Command(["uv", "pip", "uninstall", "robotframework-browser"])
+    else:
+        p2 = sarge.Command(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "uninstall",
+                "robotframework-browser",
+                "--yes",
+            ]
+        )
 
     click.echo("removing node modules...")
     click.echo(f"running {' '.join(p1.args)}")
@@ -53,7 +64,11 @@ def robot_uninstall_playwright():
 
 
 def _install_browser_library(dry_run=False):
-    pip_cmd = [sys.executable, "-m", "pip", "install", "robotframework-browser"]
+    if shutil.which("uv"):
+        pip_cmd = ["uv", "pip", "install", "robotframework-browser"]
+    else:
+        pip_cmd = [sys.executable, "-m", "pip", "install", "robotframework-browser"]
+
     click.echo("installing robotframework-browser ...")
     if dry_run:
         click.echo(f"would run {' '.join(pip_cmd)}")
