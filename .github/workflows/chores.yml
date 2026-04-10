@@ -48,14 +48,20 @@ jobs:
               run: |
                   git config user.name github-actions[bot]
                   git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-                  git switch -c "update-sfdc-api-v$VERSION"
+                  git switch -C "update-sfdc-api-v$VERSION"
                   git add cumulusci/cumulusci.yml
                   git commit -m "Automated update to sfdc API version $VERSION"
-                  git push origin "update-sfdc-api-v$VERSION"
-            - env:
+                  git push --force-with-lease origin "update-sfdc-api-v$VERSION"
+            - name: Create or update PR
+              env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  gh pr create --fill --label 'auto-pr'
+                  existing_pr=$(gh pr list --head "update-sfdc-api-v$VERSION" --json number -q '.[0].number')
+                  if [ -n "$existing_pr" ]; then
+                      echo "PR #$existing_pr already exists for update-sfdc-api-v$VERSION"
+                  else
+                      gh pr create --fill --label 'auto-pr'
+                  fi
     test_sfdx_release_candidate:
         uses: ./.github/workflows/release_test_sfdx.yml
         with:

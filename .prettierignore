@@ -1,1 +1,5 @@
 Test*.yaml
+docs/diagram/
+**/*.min.js
+**/*.min.css
+cumulusci/files/templates/

@@ -57,9 +57,11 @@ def test_is_package_installed(mock_distribution):
     assert result is False
 
 
+@mock.patch("cumulusci.cli.robot.shutil.which")
 @mock.patch("cumulusci.cli.robot.sarge")
-def test_happy_path(sarge):
+def test_happy_path(sarge, which):
     """Verify the happy path is indeed happy"""
+    which.return_value = False
     sarge.Command.side_effect = mock_Command()
     with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
         run_cli_command("robot", "install_playwright")
@@ -69,6 +71,30 @@ def test_happy_path(sarge):
             [
                 sys.executable,
                 "-m",
+                "pip",
+                "install",
+                "robotframework-browser",
+            ],
+            [sys.executable, "-m", "Browser.entry", "init"],
+        ]
+        msg = f"\n-- expected --\n{expected_calls}\n\n-- actual --\n{actual_calls}"
+
+        assert actual_calls == expected_calls, msg
+
+
+@mock.patch("cumulusci.cli.robot.shutil.which")
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_happy_path_uv(sarge, which):
+    """Verify the happy path is indeed happy with uv"""
+    which.return_value = True
+    sarge.Command.side_effect = mock_Command()
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        run_cli_command("robot", "install_playwright")
+        actual_calls = [call.args[0] for call in sarge.Command.mock_calls]
+        expected_calls = [
+            "npm --version",
+            [
+                "uv",
                 "pip",
                 "install",
                 "robotframework-browser",
@@ -100,9 +126,11 @@ def test_no_npm(sarge):
     assert sarge.Command.mock_calls[0].args[0] == "npm --version"
 
 
+@mock.patch("cumulusci.cli.robot.shutil.which")
 @mock.patch("cumulusci.cli.robot.sarge")
-def test_playwright_dry_run(sarge):
+def test_playwright_dry_run(sarge, which):
     """Verify the output of a dry run"""
+    which.return_value = False
     sarge.Command.side_effect = mock_Command(returncodes={"npm --version": 0})
     with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
         result = run_cli_command("robot", "install_playwright", "--dry_run")
@@ -130,9 +158,11 @@ def test_playwright_failure_to_initialize_browser_library(sarge):
             run_cli_command("robot", "install_playwright")
 
 
+@mock.patch("cumulusci.cli.robot.shutil.which")
 @mock.patch("cumulusci.cli.robot.sarge")
-def test_playwright_failure_to_install_browser_library(sarge):
+def test_playwright_failure_to_install_browser_library(sarge, which):
     """Verify we raise an exception if we can't install playwright"""
+    which.return_value = False
     cmd = str([sys.executable, "-m", "pip", "install", "robotframework-browser"])
     sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
     with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
@@ -154,9 +184,11 @@ def test_playwright_already_installed(sarge):
         )
 
 
+@mock.patch("cumulusci.cli.robot.shutil.which")
 @mock.patch("cumulusci.cli.robot.sarge")
-def test_uninstall_playwright(sarge):
+def test_uninstall_playwright(sarge, which):
     """Verify calling 'robot uninstall_playwright' calls the right utilities"""
+    which.return_value = False
     sarge.Command.side_effect = mock_Command()
     with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
         run_cli_command("robot", "uninstall_playwright")

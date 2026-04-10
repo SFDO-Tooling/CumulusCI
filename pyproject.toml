@@ -7,7 +7,7 @@ name = "cumulusci"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
 license = { text = "BSD 3-Clause License" }
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 authors = [
     { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
 ]
