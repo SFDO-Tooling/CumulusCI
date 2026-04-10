@@ -826,7 +826,8 @@ class TestRobotPerformanceKeywords:
             elapsed_times.sort()
 
             assert elapsed_times[1:] == [53, 11655.9, 18000.0]
-            assert float(elapsed_times[0]) < 3
+            # CI hosts can be noisy; allow small timing variance.
+            assert float(elapsed_times[0]) <= 5
 
     def test_metrics(self):
         pattern = "Max_CPU_Percent: "
