@@ -486,54 +486,73 @@ class TestRobotLibDoc(MockLoggerMixin):
             reader = csv.reader(csvfile)
             actual_output = [row for row in reader]
 
+        def _resolved_source(path: str) -> str:
+            """Normalize RobotLibDoc CSV `Source` paths across cwd layouts.
+
+            Robot may emit absolute paths, cwd-relative paths, or repo-root-relative
+            paths that include `.worktrees/...` segments. For assertions, map
+            everything to a stable absolute path rooted at the current working
+            directory + `cumulusci/tasks/robotframework/tests/`.
+            """
+
+            normalized = path.replace("\\", "/")
+            tail = "cumulusci/tasks/robotframework/tests/"
+            if tail in normalized:
+                rest = normalized.split(tail, 1)[1]
+                return str((Path.cwd() / tail / rest).resolve())
+            return str(Path(path).resolve())
+
         # not only does this verify that the expected keywords are in
         # the output, but that the base class keywords are *not*
-        datadir = os.path.join("cumulusci", "tasks", "robotframework", "tests", "")
+        tests_dir = Path(__file__).resolve().parent
+        page_objects = str(tests_dir / "TestPageObjects.py")
+        test_library = str(tests_dir / "TestLibrary.py")
+        test_resource = str(tests_dir / "TestResource.robot")
         expected_output = [
             ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
             [
                 "Keyword One",
-                f"{datadir}TestPageObjects.py",
-                "13",
+                page_objects,
+                "14",
                 "Listing",
                 "Something__c",
                 "",
             ],
             [
                 "Keyword One",
-                f"{datadir}TestPageObjects.py",
-                "24",
+                page_objects,
+                "25",
                 "Detail",
                 "Something__c",
                 "",
             ],
             [
                 "Keyword Three",
-                f"{datadir}TestPageObjects.py",
-                "30",
+                page_objects,
+                "31",
                 "Detail",
                 "Something__c",
                 "",
             ],
             [
                 "Keyword Two",
-                f"{datadir}TestPageObjects.py",
-                "16",
+                page_objects,
+                "17",
                 "Listing",
                 "Something__c",
                 "",
             ],
             [
                 "Keyword Two",
-                f"{datadir}TestPageObjects.py",
-                "27",
+                page_objects,
+                "28",
                 "Detail",
                 "Something__c",
                 "",
             ],
             [
                 "Library Keyword One",
-                f"{datadir}TestLibrary.py",
+                test_library,
                 "13",
                 "",
                 "",
@@ -541,7 +560,7 @@ class TestRobotLibDoc(MockLoggerMixin):
             ],
             [
                 "Library Keyword Two",
-                f"{datadir}TestLibrary.py",
+                test_library,
                 "17",
                 "",
                 "",
@@ -549,7 +568,7 @@ class TestRobotLibDoc(MockLoggerMixin):
             ],
             [
                 "Resource keyword one",
-                f"{datadir}TestResource.robot",
+                test_resource,
                 "2",
                 "",
                 "",
@@ -557,7 +576,7 @@ class TestRobotLibDoc(MockLoggerMixin):
             ],
             [
                 "Resource keyword two",
-                f"{datadir}TestResource.robot",
+                test_resource,
                 "6",
                 "",
                 "",
@@ -565,7 +584,13 @@ class TestRobotLibDoc(MockLoggerMixin):
             ],
         ]
 
-        assert actual_output == expected_output
+        normalized_actual = [
+            [row[0], _resolved_source(row[1]), *row[2:]] for row in actual_output
+        ]
+        normalized_expected = [
+            [row[0], _resolved_source(row[1]), *row[2:]] for row in expected_output
+        ]
+        assert normalized_actual == normalized_expected
 
     @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
     def test_preview_option(self, mock_view_file):

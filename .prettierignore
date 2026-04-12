@@ -1,5 +1,13 @@
-Test*.yaml
+# Jinja-templated HTML: Prettier lowercases <!DOCTYPE>, which breaks
+# xml.etree.ElementTree.parse() in RobotLibDoc tests.
+cumulusci/tasks/robotframework/template.html
+
+# VCR cassettes are YAML-shaped but not reliably parseable by Prettier's YAML
+# formatter (multi-line quoted bodies, anchors, etc.).
+**/cassettes/**
+
+# Bundled third-party diagram assets (minified JS/CSS).
 docs/diagram/
-**/*.min.js
-**/*.min.css
+
+# Jinja-templated JSON/YAML shipped as project templates.
 cumulusci/files/templates/
