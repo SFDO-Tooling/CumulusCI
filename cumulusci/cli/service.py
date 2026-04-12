@@ -69,7 +69,7 @@ def service_list(runtime, plain, print_json):
     console.print(table)
 
 
-class ConnectServiceCommand(click.MultiCommand):
+class ConnectServiceCommand(click.Group):
     def _get_services_config(self, runtime):
         return (
             runtime.project_config.services
