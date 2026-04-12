@@ -86,7 +86,9 @@ Options
     Require at least X percent code coverage across the org following the test run.
     Default: 90
 ```
+
 (add-a-custom-task)=
+
 ### Add a Custom Task
 
 To define a new task for your project, add the task name under the
