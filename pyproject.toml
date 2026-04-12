@@ -67,6 +67,7 @@ dev = [
     "factory-boy>=3.3.1",
     "furo>=2023.3.27",
     "jsonschema>=4.23.0",
+    "ruff>=0.15.8",
     "pytest>=7.0.1",
     "pytest-cov>=5.0.0",
     "pytest-random-order>=1.1.1",
@@ -117,7 +118,6 @@ include = [
 [tool.hatch.build.targets.sdist]
 include = [
     "/cumulusci",
-    "/requirements/*", # Needed by tox
     "README.md",       # needed by hatch-fancy-pypi-readme
     "docs/history.md",
     # ditto
