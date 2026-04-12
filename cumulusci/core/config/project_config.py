@@ -141,9 +141,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     def _load_config(self):
         """Loads the configuration from YAML, if no override config was passed in initially."""
 
-        if (
-            self.config
-        ):  # any config being pre-set at init will short circuit out, but not a plain {}
+        if self.config:  # any config being pre-set at init will short circuit out, but not a plain {}
             return
 
         # Verify that we're in a project

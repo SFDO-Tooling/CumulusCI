@@ -152,7 +152,7 @@ def test_namespace_injection_ignores_binary(task_context):
         ZipFileSpec(
             {
                 Path("ns__Foo.cls"): "System.debug('ns__blah');",
-                Path("b.staticResource"): b"ns__\xFF\xFF",
+                Path("b.staticResource"): b"ns__\xff\xff",
             }
         ).as_zipfile(),
         options={"namespace_tokenize": "ns", "unmanaged": False},
@@ -162,7 +162,7 @@ def test_namespace_injection_ignores_binary(task_context):
         ZipFileSpec(
             {
                 Path("___NAMESPACE___Foo.cls"): "System.debug('%%%NAMESPACE%%%blah');",
-                Path("b.staticResource"): b"ns__\xFF\xFF",
+                Path("b.staticResource"): b"ns__\xff\xff",
             }
         )
         == builder.zf

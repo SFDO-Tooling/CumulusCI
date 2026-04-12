@@ -72,9 +72,9 @@ class TestCumulusCILibrary(MockLoggerMixin):
             self.cumulusci.run_task("get_pwd")
             args, kwargs = self.cumulusci._run_task.call_args
             task = args[0]
-            assert hasattr(
-                task.logger, "warning"
-            ), "robot logger should have a warning method but doesn't"
+            assert hasattr(task.logger, "warning"), (
+                "robot logger should have a warning method but doesn't"
+            )
 
     def test_robot_logger_supports_log(self):
         """Verify that 'run task' uses a logger that supports .log()
@@ -89,7 +89,6 @@ class TestCumulusCILibrary(MockLoggerMixin):
             args, kwargs = self.cumulusci._run_task.call_args
             task = args[0]
             with mock.patch.object(task.logger, "write") as logger_write:
-
                 task.logger.log(logging.CRITICAL, "a critical message")
                 task.logger.log(logging.ERROR, "an error message")
                 task.logger.log(logging.WARN, "a warning message")
@@ -269,7 +268,6 @@ class TestCumulusCILibrary(MockLoggerMixin):
         with mock.patch.object(
             self.cumulusci.org, "get_access_token", return_value="super-secret-token"
         ):
-
             url = self.cumulusci.login_url(username="test@example.com")
             self.cumulusci.org.get_access_token.assert_called_once_with(
                 username="test@example.com"

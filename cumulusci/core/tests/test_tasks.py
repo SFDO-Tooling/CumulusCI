@@ -1,4 +1,4 @@
-""" Tests for the CumulusCI task module """
+"""Tests for the CumulusCI task module"""
 
 import collections
 import logging

@@ -53,9 +53,9 @@ class Step(CCIDictModel):
     def _check(cls, values):
         has_task = values.get("task") and values["task"] != "None"
         has_flow = values.get("flow") and values["flow"] != "None"
-        assert not (
-            has_task and has_flow
-        ), "Steps must have either task or flow but not both"
+        assert not (has_task and has_flow), (
+            "Steps must have either task or flow but not both"
+        )
         return values
 
 
@@ -273,6 +273,7 @@ def validate_data(
 
 class ErrorDict(TypedDict):
     "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
+
     loc: Sequence[Union[str, int]]
     msg: str
     type: str
@@ -292,9 +293,9 @@ def cci_safe_load(
 ) -> dict:
     """Load a CumulusCI.yml file and issue warnings for unknown structures."""
     errors = []
-    assert not (
-        on_error and logger
-    ), "Please specify either on_error or logger but not both"
+    assert not (on_error and logger), (
+        "Please specify either on_error or logger but not both"
+    )
     on_error = on_error or errors.append
 
     logger = logger or default_logger

@@ -44,9 +44,9 @@ def flow_doc(runtime, project=False):
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),
-        key=lambda group: flow_info_groups.index(group)
-        if group in flow_info_groups
-        else 100,
+        key=lambda group: (
+            flow_info_groups.index(group) if group in flow_info_groups else 100
+        ),
     )
 
     for group in flow_groups:

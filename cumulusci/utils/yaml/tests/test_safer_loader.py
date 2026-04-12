@@ -28,7 +28,7 @@ def test_simple_load(caplog):
 
 def test_convert_nbsp(caplog):
     yaml = """xyz:
-        \u00A0 y: abc"""
+        \u00a0 y: abc"""
     cciyml = load_yaml_data(StringIO(yaml))
     assert "space character" in caplog.text
 
@@ -38,7 +38,7 @@ def test_convert_nbsp(caplog):
 
 def test_converter():
     inp = """xyz:
-        \u00A0 y: abc"""
+        \u00a0 y: abc"""
     outp = """xyz:
           y: abc"""
 
@@ -48,7 +48,7 @@ def test_converter():
 
 def test_converter_is_selective():
     inp = """xyz:
-            y: abc\u00A0"""
+            y: abc\u00a0"""
 
     rc = _replace_nbsp(inp, "filename")
     assert rc == inp

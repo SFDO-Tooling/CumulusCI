@@ -27,8 +27,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         },
         "profile_names": {
             "description": (
-                "List of Profile Names to add as NetworkMemberGroups "
-                "for this Network."
+                "List of Profile Names to add as NetworkMemberGroups for this Network."
             ),
             "required": False,
         },

@@ -376,9 +376,7 @@ class TestBuildSettingsPackage:
         <label>Default</label>
         <active>true</active>
     </recordTypes>
-</Object>""".translate(
-                    rm_ws
-                )
+</Object>""".translate(rm_ws)
             )
             assert (
                 (pathlib.Path(path) / "objects" / "Solution.object")
@@ -401,7 +399,5 @@ class TestBuildSettingsPackage:
             <fullName>Draft</fullName>
         </values>
     </businessProcesses>
-</Object>""".translate(
-                    rm_ws
-                )
+</Object>""".translate(rm_ws)
             )

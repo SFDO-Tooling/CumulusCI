@@ -72,7 +72,6 @@ ALWAYS_RETRY_EXCEPTIONS = (
 
 
 class RetryingSeleniumLibraryMixin(object):
-
     debug = False
 
     @property

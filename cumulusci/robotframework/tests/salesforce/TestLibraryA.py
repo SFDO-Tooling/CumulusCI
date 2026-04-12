@@ -2,6 +2,7 @@
 This is a library used by locators.robot for testing
 custom locator strategies
 """
+
 from cumulusci.robotframework.locator_manager import (
     register_locators,
     translate_locator,

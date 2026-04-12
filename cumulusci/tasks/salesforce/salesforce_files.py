@@ -72,9 +72,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
         file_list = self.options["file_list"]
 
-        if (
-            file_list
-        ):  # If the list of names of files to be downloaded is specified, fetch only those files.
+        if file_list:  # If the list of names of files to be downloaded is specified, fetch only those files.
             items_list = [item.strip() for item in file_list.split(",")]
             conditions = []
             for item in items_list:
@@ -99,7 +97,7 @@ class RetrieveFiles(BaseSalesforceApiTask):
 
         self.logger.info(f"Found {len(available_files)} files in the org.\n")
         self.logger.info(
-            f'Files will be downloaded in the directory: {self.options["path"]} \n'
+            f"Files will be downloaded in the directory: {self.options['path']} \n"
         )
 
         for current_file in available_files:

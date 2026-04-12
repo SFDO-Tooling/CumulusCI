@@ -1,4 +1,4 @@
-""" a task for waiting on a specific custom settings value """
+"""a task for waiting on a specific custom settings value"""
 
 from simple_salesforce.exceptions import SalesforceError
 

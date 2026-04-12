@@ -301,9 +301,9 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
     def _process_completed_deploy(self, response_data: Dict):
         deploy_status = response_data["status"]
-        assert (
-            deploy_status != IN_PROGRESS_STATUSES
-        ), "Deploy should be in a completed state before processing."
+        assert deploy_status != IN_PROGRESS_STATUSES, (
+            "Deploy should be in a completed state before processing."
+        )
 
         self.poll_complete = True
         if deploy_status in FINISHED_STATUSES:

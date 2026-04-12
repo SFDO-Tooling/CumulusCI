@@ -34,12 +34,10 @@ class SourceTransform(abc.ABC):
     options_model: T.Optional[T.Type[BaseModel]]
     identifier: str
 
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     @abc.abstractmethod
-    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
-        ...
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile: ...
 
 
 class SourceTransformSpec(BaseModel):
@@ -314,8 +312,7 @@ class FindReplaceBaseSpec(BaseModel, abc.ABC):
         return values
 
     @abc.abstractmethod
-    def get_replace_string(self, context: TaskContext) -> str:
-        ...
+    def get_replace_string(self, context: TaskContext) -> str: ...
 
 
 class FindReplaceSpec(FindReplaceBaseSpec):

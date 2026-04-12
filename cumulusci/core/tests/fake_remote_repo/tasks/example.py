@@ -8,7 +8,6 @@ class ExampleTask(BaseTask):
 
 
 class StaticPreflightTask(BaseTask):
-
     task_options = {
         "task_name": {
             "description": "Task that this preflight is for",
@@ -35,7 +34,7 @@ class StaticSleep(Sleep):
                 "description": "Task that this preflight is for",
                 "required": True,
             },
-        }
+        },
     )
 
     def _run_task(self):

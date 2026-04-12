@@ -1,5 +1,4 @@
-""" Tests for the SFDX Command Wrapper"""
-
+"""Tests for the SFDX Command Wrapper"""
 
 from unittest import mock
 from unittest.mock import MagicMock, patch

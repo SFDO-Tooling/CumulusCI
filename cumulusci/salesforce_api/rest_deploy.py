@@ -138,7 +138,7 @@ class RestDeploy:
 
     # Construct an error message from deployment failure details
     def _construct_error_message(self, failure):
-        error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][len(PARENT_DIR_NAME)+len('/'):]}: {failure['problem']}"
+        error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][len(PARENT_DIR_NAME) + len('/') :]}: {failure['problem']}"
 
         if failure["lineNumber"] and failure["columnNumber"]:
             error_message += (

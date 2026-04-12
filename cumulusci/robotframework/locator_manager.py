@@ -69,7 +69,7 @@ def add_location_strategies():
     # exists, so we use a flag to make sure this code is called
     # only once.
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
-    for (prefix, strategy) in LOCATORS.items():
+    for prefix, strategy in LOCATORS.items():
         try:
             logger.debug(f"adding location strategy for '{prefix}'")
             selenium.add_location_strategy(

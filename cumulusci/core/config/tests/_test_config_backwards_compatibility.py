@@ -12,7 +12,6 @@ class TestConfigBackwardsCompatibility:
     @patch.dict(os.environ)
     def test_temporary_backwards_compatibility_hacks(self):
         with pytest.warns(ClassMovedWarning):
-
             from cumulusci.core.config.OrgConfig import OrgConfig
 
             assert isinstance(OrgConfig, type)

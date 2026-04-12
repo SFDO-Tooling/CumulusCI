@@ -315,8 +315,7 @@ class TestPublishingGithubReleaseNotesGenerator(GithubApiTestMixin):
     def test_publish_update_content_between(self):
         tag = "prod/1.4"
         expected_release_body = (
-            "# Critical Changes\r\n\r\nfaz\r\n\r\n"
-            "# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz"
+            "# Critical Changes\r\n\r\nfaz\r\n\r\n# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz"
         )
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
@@ -348,8 +347,7 @@ class TestPublishingGithubReleaseNotesGenerator(GithubApiTestMixin):
         self.mock_util.mock_get_release(
             tag=tag,
             body=(
-                "goo\n# Critical Changes\nbar\n"
-                "# Foo\nfoo\n# Changes\nbiz\n# Zoo\nzoo"
+                "goo\n# Critical Changes\nbar\n# Foo\nfoo\n# Changes\nbiz\n# Zoo\nzoo"
             ),
         )
         # create generator

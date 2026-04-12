@@ -148,10 +148,13 @@ class TestUploadFiles(unittest.TestCase):
 
         # Mock file discovery
         mock_listdir.return_value = ["file1.txt", "file2.txt"]
-        mock_isfile.side_effect = lambda filepath: filepath in [
-            os.path.join("test_dir", "file1.txt"),
-            os.path.join("test_dir", "file2.txt"),
-        ]
+        mock_isfile.side_effect = lambda filepath: (
+            filepath
+            in [
+                os.path.join("test_dir", "file1.txt"),
+                os.path.join("test_dir", "file2.txt"),
+            ]
+        )
 
         # Mock requests response
         mock_response = Mock()

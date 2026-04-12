@@ -67,7 +67,6 @@ def keychain(project_config, key) -> EncryptedFileProjectKeychain:
 
 
 class TestEncryptedFileProjectKeychain:
-
     project_name = "TestProject"
 
     def _write_file(self, filepath, contents):
@@ -138,7 +137,6 @@ class TestEncryptedFileProjectKeychain:
         self, keychain, org_config, withdifferentformats
     ):
         with temporary_dir() as temp:
-            env = EnvironmentVarGuard()
             with EnvironmentVarGuard() as env:
                 env.set("CUMULUSCI_KEYCHAIN_CLASS", "EnvironmentProjectKeychain")
                 with mock.patch.object(
@@ -281,7 +279,6 @@ class TestEncryptedFileProjectKeychain:
     def test_load_orgs_from_environment(self, keychain, org_config):
         scratch_config = org_config.config.copy()
         scratch_config["scratch"] = True
-        env = EnvironmentVarGuard()
         with EnvironmentVarGuard() as env:
             env.set(
                 f"{keychain.env_org_var_prefix}dev",
@@ -299,7 +296,6 @@ class TestEncryptedFileProjectKeychain:
         assert _simplify_config(actual_config.config) == org_config.config
 
     def test_load_orgs_from_environment__empty_throws_error(self, keychain, org_config):
-        env = EnvironmentVarGuard()
         with EnvironmentVarGuard() as env:
             env.set(
                 f"{keychain.env_org_var_prefix}dev",
@@ -311,7 +307,6 @@ class TestEncryptedFileProjectKeychain:
     def test_load_orgs_from_environment__invalid_json_throws_error(
         self, keychain, org_config
     ):
-        env = EnvironmentVarGuard()
         with EnvironmentVarGuard() as env:
             env.set(
                 f"{keychain.env_org_var_prefix}dev",
@@ -384,7 +379,6 @@ class TestEncryptedFileProjectKeychain:
 
     def test_load_services_from_env__empty_throws_error(self, keychain):
         service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
-        env = EnvironmentVarGuard()
         with EnvironmentVarGuard() as env:
             env.set(
                 f"{service_prefix}github",
@@ -395,7 +389,6 @@ class TestEncryptedFileProjectKeychain:
 
     def test_load_services_from_env__invalid_json_throws_error(self, keychain):
         service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
-        env = EnvironmentVarGuard()
         with EnvironmentVarGuard() as env:
             env.set(
                 f"{service_prefix}github",

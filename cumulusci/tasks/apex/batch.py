@@ -1,4 +1,5 @@
-""" a task for waiting on a Batch Apex job to complete """
+"""a task for waiting on a Batch Apex job to complete"""
+
 from datetime import datetime
 from typing import Optional, Sequence
 

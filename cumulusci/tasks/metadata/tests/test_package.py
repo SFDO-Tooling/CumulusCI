@@ -262,9 +262,7 @@ class TestMetadataXmlElementParser:
             assert """    <types>
         <members>Test.Test</members>
         <name>TestMDT</name>
-    </types>""" == "\n".join(
-                result
-            )
+    </types>""" == "\n".join(result)
 
     def test_parser__missing_item_xpath(self):
         with pytest.raises(ParserConfigurationError):

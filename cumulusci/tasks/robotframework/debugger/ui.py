@@ -160,7 +160,7 @@ class DebuggerCli(cmd.Cmd, object):
                     self.builtin.set_test_variable(vars[0], result)
                     print("{} was set to {}".format(vars[0], result), file=self.stdout)
                 else:
-                    for (varname, value) in zip(vars, result):
+                    for varname, value in zip(vars, result):
                         self.builtin.set_test_variable(varname, value)
                         print(
                             "{} was set to {}".format(varname, value), file=self.stdout

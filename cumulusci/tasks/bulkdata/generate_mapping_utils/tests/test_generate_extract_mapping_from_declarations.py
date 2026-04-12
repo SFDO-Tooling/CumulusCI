@@ -34,7 +34,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "api": "smart",
                     "sf_object": "Account",
                     "fields": ["Name", "Description"],
-                    "soql_filter": "Name != 'Sample Account for " "Entitlements'",
+                    "soql_filter": "Name != 'Sample Account for Entitlements'",
                 }
             }
 

@@ -1,15 +1,16 @@
 """This hybrid library/listener can be used to verify messages that
-    have been logged and keywords have been called.
+have been logged and keywords have been called.
 
-    This works by listening for log messages and keywords via the
-    listener interface, and saving them in a cache. Keywords are
-    provided for doing assertions on called keywords and for resetting
-    the cache.
+This works by listening for log messages and keywords via the
+listener interface, and saving them in a cache. Keywords are
+provided for doing assertions on called keywords and for resetting
+the cache.
 
-    The keyword cache is reset for each test case to help keep it
-    from growing too large.
+The keyword cache is reset for each test case to help keep it
+from growing too large.
 
 """
+
 import re
 
 

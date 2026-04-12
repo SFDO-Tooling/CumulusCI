@@ -92,9 +92,9 @@ class Dataset:
             self.schema_context.__exit__(*args, **kwargs)  # type: ignore
 
     def create(self):
-        assert (
-            self.initialized
-        ), "You must open this context manager. e.g. `with Dataset() as dataset`"
+        assert self.initialized, (
+            "You must open this context manager. e.g. `with Dataset() as dataset`"
+        )
 
         if not self.path.exists():
             self.path.mkdir()

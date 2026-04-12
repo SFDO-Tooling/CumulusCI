@@ -174,21 +174,24 @@ class TestWorkerQueue:
             assert len(q.queued_job_dirs) == 3
 
     def test_worker_queues_together(self, tmpdir):
-        with self.configure_worker_queue(
-            parent_dir=tmpdir,
-            name="start",
-            task_class=Sleep,
-            make_task_options=lambda *args, **kwargs: {"seconds": 0},
-            queue_size=3,
-            num_workers=2,
-        ) as q1, self.configure_worker_queue(
-            parent_dir=tmpdir,
-            name="next",
-            task_class=Sleep,
-            make_task_options=lambda *args, **kwargs: {"seconds": 0},
-            queue_size=3,
-            num_workers=2,
-        ) as q2:
+        with (
+            self.configure_worker_queue(
+                parent_dir=tmpdir,
+                name="start",
+                task_class=Sleep,
+                make_task_options=lambda *args, **kwargs: {"seconds": 0},
+                queue_size=3,
+                num_workers=2,
+            ) as q1,
+            self.configure_worker_queue(
+                parent_dir=tmpdir,
+                name="next",
+                task_class=Sleep,
+                make_task_options=lambda *args, **kwargs: {"seconds": 0},
+                queue_size=3,
+                num_workers=2,
+            ) as q2,
+        ):
             q1.feeds_data_to(q2)
             q1.push(name="a")
             assert not q1.full
@@ -220,21 +223,24 @@ class TestWorkerQueue:
             q2.tick()
 
     def test_worker_queues_together__outbox_cannot_be_removed(self, tmpdir):
-        with self.configure_worker_queue(
-            parent_dir=tmpdir,
-            name="start",
-            task_class=Sleep,
-            make_task_options=lambda *args, **kwargs: {"seconds": 0},
-            queue_size=3,
-            num_workers=2,
-        ) as q1, self.configure_worker_queue(
-            parent_dir=tmpdir,
-            name="next",
-            task_class=Sleep,
-            make_task_options=lambda *args, **kwargs: {"seconds": 0},
-            queue_size=3,
-            num_workers=2,
-        ) as q2:
+        with (
+            self.configure_worker_queue(
+                parent_dir=tmpdir,
+                name="start",
+                task_class=Sleep,
+                make_task_options=lambda *args, **kwargs: {"seconds": 0},
+                queue_size=3,
+                num_workers=2,
+            ) as q1,
+            self.configure_worker_queue(
+                parent_dir=tmpdir,
+                name="next",
+                task_class=Sleep,
+                make_task_options=lambda *args, **kwargs: {"seconds": 0},
+                queue_size=3,
+                num_workers=2,
+            ) as q2,
+        ):
             q1.outbox_dir.rmdir()
             with mock.patch(
                 "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.logger.info"
@@ -253,21 +259,24 @@ class TestWorkerQueue:
             assert path.parent.name == parentdirs.pop(0), path.parent.name
             return {"seconds": 0}
 
-        with self.configure_worker_queue(
-            parent_dir=tmpdir,
-            name="start",
-            task_class=Sleep,
-            make_task_options=make_task_options,
-            queue_size=3,
-            num_workers=2,
-        ) as q1, self.configure_worker_queue(
-            parent_dir=tmpdir,
-            name="next",
-            task_class=Sleep,
-            make_task_options=make_task_options,
-            queue_size=3,
-            num_workers=2,
-        ) as q2:
+        with (
+            self.configure_worker_queue(
+                parent_dir=tmpdir,
+                name="start",
+                task_class=Sleep,
+                make_task_options=make_task_options,
+                queue_size=3,
+                num_workers=2,
+            ) as q1,
+            self.configure_worker_queue(
+                parent_dir=tmpdir,
+                name="next",
+                task_class=Sleep,
+                make_task_options=make_task_options,
+                queue_size=3,
+                num_workers=2,
+            ) as q2,
+        ):
             q1.feeds_data_to(q2)
             foo = tmpdir / "foo"
             foo.mkdir()
@@ -296,7 +305,11 @@ class TestWorkerQueue:
 
 class TestParallelWorker:
     def test_terminate_parallel_worker(self):
-        with TemporaryDirectory() as failures_dir, TemporaryDirectory() as outbox_dir, TemporaryDirectory() as working_dir:
+        with (
+            TemporaryDirectory() as failures_dir,
+            TemporaryDirectory() as outbox_dir,
+            TemporaryDirectory() as working_dir,
+        ):
             config = WorkerConfig(
                 project_config=dummy_project_config,
                 org_config=dummy_org_config,
@@ -316,7 +329,11 @@ class TestParallelWorker:
 
 class TestTaskWorker:
     def test_worker__cannot_move_to_outdir(self):
-        with TemporaryDirectory() as failures_dir, TemporaryDirectory() as outbox_dir, TemporaryDirectory() as working_dir:
+        with (
+            TemporaryDirectory() as failures_dir,
+            TemporaryDirectory() as outbox_dir,
+            TemporaryDirectory() as working_dir,
+        ):
             config = WorkerConfig(
                 project_config=dummy_project_config,
                 org_config=dummy_org_config,
@@ -339,6 +356,7 @@ class TestTaskWorker:
 # Meaningful tests of keychain stuff are by definition integration
 # tests, and we only use connected apps for persistent orgs, which
 # makes this even more messy.
+
 
 # Also we usually mock refresh_oauth_token which is what would
 # invoke this. In other words, using integration tests to cover this

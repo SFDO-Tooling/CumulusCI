@@ -21,16 +21,17 @@ def setup_test(org_config):
         describe_for("Contact"),
         describe_for("Opportunity"),
     )
-    with mock.patch.object(
-        type(org_config), "is_person_accounts_enabled", False
-    ), mock.patch(
-        "cumulusci.tasks.sample_data.load_sample_data.get_org_schema",
-        lambda _sf, org_config, **kwargs: _fake_get_org_schema(
-            org_config,
-            obj_describes,
-            object_counts,
-            included_objects=["Account", "Contact", "Opportunity"],
-            **kwargs,
+    with (
+        mock.patch.object(type(org_config), "is_person_accounts_enabled", False),
+        mock.patch(
+            "cumulusci.tasks.sample_data.load_sample_data.get_org_schema",
+            lambda _sf, org_config, **kwargs: _fake_get_org_schema(
+                org_config,
+                obj_describes,
+                object_counts,
+                included_objects=["Account", "Contact", "Opportunity"],
+                **kwargs,
+            ),
         ),
     ):
         yield

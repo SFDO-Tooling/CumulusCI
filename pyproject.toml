@@ -79,9 +79,7 @@ dev = [
     "vcrpy>=6.0.2",
 ]
 lint = [
-    "black>=24.8.0",
-    "flake8<4",
-    "isort>=5.13.2",
+    "ruff>=0.15.8",
     "pre-commit>=3.5.0",
 ]
 
@@ -140,9 +138,6 @@ end-before = "\n\n<!-- latest-stop -->"
 #######################
 # Tool configurations #
 #######################
-[tool.black]
-exclude = '^/(\.|dist|pybuild|venv)'
-
 [tool.coverage.run]
 omit = ["*/tests/*", "cumulusci/files/*"]
 source = ["cumulusci"]
@@ -164,12 +159,23 @@ filterwarnings = [
     "ignore::SyntaxWarning:.*.selenium",
 ]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-skip_glob = "cumulusci/**/__init__.py"
-known_first_party = "cumulusci"
-known_third_party = "robot"
+[tool.ruff]
+target-version = "py311"
+exclude = [".git", "dist", "pybuild", "venv", ".tox", ".eggs"]
+
+[tool.ruff.lint]
+# Match the historical .flake8 `select` that was checked in CI. The file listed
+# B, B9, and T4, but flake8-bugbear / flake8-print were not installed, so those
+# codes were effectively no-ops. Enforce the subset that actually ran: E, F, W, C.
+select = ["E", "F", "W", "C90"]
+ignore = ["E203", "E266", "E402", "E501", "C901"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cumulusci"]
+known-third-party = ["robot"]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = false
 
 [tool.pyright]
 reportMissingImports = "none"

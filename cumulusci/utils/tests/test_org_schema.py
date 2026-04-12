@@ -152,17 +152,20 @@ class TestOrgSchema:
         #         This time it has nothing new to tell us so nothing
         # should be written to the local database except an updated
         # LastModifiedDate.
-        with mock_return_cached_responses(), patch(
-            "cumulusci.salesforce_api.org_schema.create_row"
-        ) as create_row, get_org_schema(FakeSF(), org_config) as schema:
+        with (
+            mock_return_cached_responses(),
+            patch("cumulusci.salesforce_api.org_schema.create_row") as create_row,
+            get_org_schema(FakeSF(), org_config) as schema,
+        ):
             self.validate_schema_data(schema)
             for call in create_row.mock_calls:
                 assert call[1][1].__name__ == "FileMetadata"
 
     def test_errors(self, org_config):
-        with mock_return_uncached_responses(self.cassette_data), get_org_schema(
-            FakeSF(), org_config
-        ) as schema:
+        with (
+            mock_return_uncached_responses(self.cassette_data),
+            get_org_schema(FakeSF(), org_config) as schema,
+        ):
             with pytest.raises(KeyError):
                 schema["Foo"]
 
@@ -315,15 +318,18 @@ class TestOrgSchema:
                 pass
 
     def test_minimal_schema(self, sf, org_config, vcr):
-        with vcr.use_cassette(
-            "ManualEditTestDescribeOrg.test_minimal_schema.yaml",
-            record_mode="none",
-        ), get_org_schema(
-            sf,
-            org_config,
-            included_objects=["Account", "Opportunity"],
-            force_recache=True,
-        ) as schema:
+        with (
+            vcr.use_cassette(
+                "ManualEditTestDescribeOrg.test_minimal_schema.yaml",
+                record_mode="none",
+            ),
+            get_org_schema(
+                sf,
+                org_config,
+                included_objects=["Account", "Opportunity"],
+                force_recache=True,
+            ) as schema,
+        ):
             assert list(schema.keys()) == ["Account", "Opportunity"]
 
     def test_filter_by_name(self, sf, org_config):
@@ -399,30 +405,42 @@ class TestOrgSchema:
 
     def test_filter_by_populated(self, sf, org_config):
         with mock_return_uncached_responses(self.cassette_data):
-            with patch(
-                "cumulusci.salesforce_api.org_schema.count_sobjects",
-                lambda *args: (
-                    {"Account": 10, "Contact": 5, "PermissionSet": 0},
-                    [],
-                    [],
+            with (
+                patch(
+                    "cumulusci.salesforce_api.org_schema.count_sobjects",
+                    lambda *args: (
+                        {"Account": 10, "Contact": 5, "PermissionSet": 0},
+                        [],
+                        [],
+                    ),
                 ),
-            ), get_org_schema(
-                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
-            ) as schema:
+                get_org_schema(
+                    FakeSF(),
+                    org_config,
+                    include_counts=True,
+                    filters=[Filters.populated],
+                ) as schema,
+            ):
                 assert "Account" in schema
                 assert "PermissionSet" not in schema
 
     def test_error_while_counting(self, sf, org_config, caplog):
         with mock_return_uncached_responses(self.cassette_data):
-            with patch(
-                "cumulusci.salesforce_api.org_schema.count_sobjects",
-                lambda *args: (
-                    {"Account": 10, "Contact": 5, "PermissionSet": 0},
-                    [],
-                    [HTTPRequestError("Error! Apostasy!", None)] * 15,
+            with (
+                patch(
+                    "cumulusci.salesforce_api.org_schema.count_sobjects",
+                    lambda *args: (
+                        {"Account": 10, "Contact": 5, "PermissionSet": 0},
+                        [],
+                        [HTTPRequestError("Error! Apostasy!", None)] * 15,
+                    ),
                 ),
-            ), get_org_schema(
-                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+                get_org_schema(
+                    FakeSF(),
+                    org_config,
+                    include_counts=True,
+                    filters=[Filters.populated],
+                ),
             ):
                 pass
             assert "Apostasy" in caplog.text
@@ -430,11 +448,17 @@ class TestOrgSchema:
 
     def test_old_schema_version(self, sf, org_config, caplog):
         with mock_return_uncached_responses(self.cassette_data):
-            with patch(
-                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 7
-            ), get_org_schema(
-                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
-            ) as schema:
+            with (
+                patch(
+                    "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 7
+                ),
+                get_org_schema(
+                    FakeSF(),
+                    org_config,
+                    include_counts=True,
+                    filters=[Filters.populated],
+                ) as schema,
+            ):
                 assert schema.version == 7
 
             class FakeSilentMigration(Exception):
@@ -443,14 +467,21 @@ class TestOrgSchema:
                 def __init__(self, *args, **kwargs):
                     self.__class__.called = True
 
-            with patch(
-                "cumulusci.salesforce_api.org_schema.SilentMigration",
-                FakeSilentMigration,
-            ), patch(
-                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 8
-            ), get_org_schema(
-                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
-            ) as schema:
+            with (
+                patch(
+                    "cumulusci.salesforce_api.org_schema.SilentMigration",
+                    FakeSilentMigration,
+                ),
+                patch(
+                    "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 8
+                ),
+                get_org_schema(
+                    FakeSF(),
+                    org_config,
+                    include_counts=True,
+                    filters=[Filters.populated],
+                ) as schema,
+            ):
                 assert schema.version == 8
                 assert FakeSilentMigration.called
 
@@ -471,9 +502,9 @@ class TestOrgSchema:
             ) as schema:
                 assert "Account" in schema, schema.keys()
                 assert "Case" not in schema, schema.keys()  # not in included_objects
-                assert (
-                    "Opportunity" not in schema
-                ), schema.keys()  # because not populated
+                assert "Opportunity" not in schema, (
+                    schema.keys()
+                )  # because not populated
 
             # Create one case and ensure it is noticed.
             with ensure_records({"Case": [{}]}):
@@ -482,9 +513,9 @@ class TestOrgSchema:
                 ) as schema:
                     assert "Account" in schema, schema.keys()
                     assert "Case" in schema, schema.keys()
-                    assert (
-                        "Opportunity" not in schema
-                    ), schema.keys()  # because not populated
+                    assert "Opportunity" not in schema, (
+                        schema.keys()
+                    )  # because not populated
 
 
 @pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume

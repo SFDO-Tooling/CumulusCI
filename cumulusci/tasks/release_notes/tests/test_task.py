@@ -76,7 +76,6 @@ class TestGithubReleaseNotes:
 
 
 class TestParentPullRequestNotes(GithubApiTestMixin):
-
     BUILD_NOTES_LABEL = "Build Change Notes"
     PARENT_BRANCH_NAME = "feature/long-feature"
     CHILD_BRANCH_NAME = "feature/long-feature__child-branch"

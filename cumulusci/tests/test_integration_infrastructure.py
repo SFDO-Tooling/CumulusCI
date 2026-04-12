@@ -74,9 +74,9 @@ class TestIntegrationInfrastructure:
     @pytest.mark.needs_org()
     def test_cli_specified_org(self, capture_orgid_using_task):
         self.__class__.remembered_cli_specified_org_id = capture_orgid_using_task()
-        assert self.remembered_cli_specified_org_id.startswith(
-            "00D"
-        ), self.__class__.remembered_cli_specified_org_id
+        assert self.remembered_cli_specified_org_id.startswith("00D"), (
+            self.__class__.remembered_cli_specified_org_id
+        )
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()

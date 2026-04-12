@@ -207,7 +207,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             self.browser.click("a.switch-to-lightning")
             return True
 
-        except (AssertionError):
+        except AssertionError:
             return False
 
     def breakpoint(self):

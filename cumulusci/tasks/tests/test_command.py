@@ -1,5 +1,4 @@
-""" Tests for the Command tasks """
-
+"""Tests for the Command tasks"""
 
 from io import BytesIO
 from unittest import mock

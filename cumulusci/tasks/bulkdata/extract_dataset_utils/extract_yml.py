@@ -43,9 +43,9 @@ class ExtractDeclaration(HashableBaseModel):
 
     def assert_sf_object_fits_pattern(self):
         if self.is_group:
-            assert (
-                self.group_type in SFObjectGroupTypes
-            ), f"Expected OBJECTS(ALL), OBJECTS(CUSTOM) or OBJECTS(STANDARD), not `{self.group_type.upper()}`"
+            assert self.group_type in SFObjectGroupTypes, (
+                f"Expected OBJECTS(ALL), OBJECTS(CUSTOM) or OBJECTS(STANDARD), not `{self.group_type.upper()}`"
+            )
         else:
             assert self.sf_object.isidentifier(), (
                 "Value should start with OBJECTS( or be a simple alphanumeric field name"
@@ -55,9 +55,9 @@ class ExtractDeclaration(HashableBaseModel):
 
     def assert_check_where_against_complex(self):
         """Check that a where clause was not used with a group declaration."""
-        assert not (
-            self.where and self.is_group
-        ), "Cannot specify a `where` clause on a declaration for multiple kinds of objects."
+        assert not (self.where and self.is_group), (
+            "Cannot specify a `where` clause on a declaration for multiple kinds of objects."
+        )
 
     @validator("fields_")
     def normalize_fields(cls, vals):

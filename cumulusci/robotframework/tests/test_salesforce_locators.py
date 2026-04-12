@@ -66,8 +66,8 @@ class TestLocators:
         keys_56 = set(locators_56.lex_locators)
         keys_57 = set(locators_57.lex_locators)
 
-        assert id(locators_56.lex_locators) != id(
-            locators_57.lex_locators
-        ), "locators_56.lex_locators and locators_57.lex_locators are the same object"
+        assert id(locators_56.lex_locators) != id(locators_57.lex_locators), (
+            "locators_56.lex_locators and locators_57.lex_locators are the same object"
+        )
         assert len(keys_56) > 0
         assert keys_57.issubset(keys_56)

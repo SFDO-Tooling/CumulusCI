@@ -16,9 +16,9 @@ def serialize_xml_for_salesforce(
     else:
         root = element_or_tree
 
-    assert hasattr(
-        root, "nsmap"
-    ), "Passed object should be lxml.etree._ElementTree or lxml.etree._ElementTree"
+    assert hasattr(root, "nsmap"), (
+        "Passed object should be lxml.etree._ElementTree or lxml.etree._ElementTree"
+    )
 
     if include_parent_namespaces:
         new_namespace_declarations = {prefix: url for prefix, url in root.nsmap.items()}

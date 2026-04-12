@@ -13,7 +13,6 @@ from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class CreateRelease(BaseGithubTask):
-
     task_options = {
         "version": {
             "description": "The managed package version number.  Ex: 1.2",

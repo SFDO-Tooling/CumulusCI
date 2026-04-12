@@ -16,7 +16,7 @@ lex_locators = {
     "div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]",
     "list_view_menu": {
         "button": "css:button[title='List View Controls']",
-        "item": "//div[@title='List View " "Controls']//ul[@role='menu']//li/a[.='{}']",
+        "item": "//div[@title='List View Controls']//ul[@role='menu']//li/a[.='{}']",
     },
     "loading_box": "css: div.auraLoadingBox.oneLoadingBox",
     "modal": {
@@ -27,8 +27,7 @@ lex_locators = {
         "field_alert": "//div[contains(@class, 'forceFormPageError')]",
         "has_error": "css: div.forceFormPageError",
         "is_open": "css: div.uiModal div.panel.slds-modal",
-        "review_alert": "//a[@records-recordediterror_recordediterror "
-        "and text()='{}']",
+        "review_alert": "//a[@records-recordediterror_recordediterror and text()='{}']",
     },
     "object": {
         "button": "//div[contains(@class, "

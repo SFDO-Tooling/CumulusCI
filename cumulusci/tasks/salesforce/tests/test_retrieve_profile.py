@@ -178,7 +178,7 @@ def test_save_profile_file_existing(retrieve_profile_task, tmpdir):
 
 
 def test_add_flow_accesses(retrieve_profile_task):
-    profile_content = "<Profile>\n" "    <some_tag>Hello</some_tag>\n" "</Profile>"
+    profile_content = "<Profile>\n    <some_tag>Hello</some_tag>\n</Profile>"
     flows = ["Flow1", "Flow2"]
     expected_content = (
         "<Profile>\n"
@@ -197,7 +197,7 @@ def test_add_flow_accesses(retrieve_profile_task):
     assert modified_content == expected_content
 
     # Content without the </Profile> tag
-    profile_content = "<Profile>\n" "    <some_tag>Hello</some_tag>\n"
+    profile_content = "<Profile>\n    <some_tag>Hello</some_tag>\n"
     modified_content = retrieve_profile_task.add_flow_accesses(profile_content, flows)
     assert modified_content == profile_content
 
@@ -206,16 +206,17 @@ def test_run_task(retrieve_profile_task, tmpdir, caplog):
     retrieve_profile_task.extract_dir = tmpdir
     temp_zipfile = create_temp_zip_file()
 
-    with patch.object(
-        RetrieveProfileApi,
-        "_retrieve_permissionable_entities",
-        return_value=({"ApexClass": ["TestApexClass"]}, {"Profile1": ["Flow1"]}),
-    ), patch.object(
-        RetrieveProfileApi, "_init_task", return_value="something"
-    ), patch.object(
-        ApiRetrieveUnpackaged, "__call__", return_value=temp_zipfile
-    ), patch.object(
-        RetrieveProfileApi, "_retrieve_existing_profiles", return_value=["Profile1"]
+    with (
+        patch.object(
+            RetrieveProfileApi,
+            "_retrieve_permissionable_entities",
+            return_value=({"ApexClass": ["TestApexClass"]}, {"Profile1": ["Flow1"]}),
+        ),
+        patch.object(RetrieveProfileApi, "_init_task", return_value="something"),
+        patch.object(ApiRetrieveUnpackaged, "__call__", return_value=temp_zipfile),
+        patch.object(
+            RetrieveProfileApi, "_retrieve_existing_profiles", return_value=["Profile1"]
+        ),
     ):
         retrieve_profile_task._run_task()
 

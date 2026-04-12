@@ -45,7 +45,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
-    "myst_parser"  # ,
+    "myst_parser",  # ,
     #    "recommonmark"
 ]
 
@@ -237,8 +237,8 @@ latex_engine = "xelatex"
 
 
 latex_elements = {
-    'preamble': r'''\renewcommand{\familydefault}{\sfdefault}  % Set default font to sans-serif
-''',
+    "preamble": r"""\renewcommand{\familydefault}{\sfdefault}  % Set default font to sans-serif
+""",
 }
 
 

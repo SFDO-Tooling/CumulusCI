@@ -128,9 +128,9 @@ def check_round_trip(data: dict, logger: Logger) -> Optional[bytes]:
         return None
     try:
         test_load = load_config_from_json_or_pickle(as_json_text)
-        assert _simplify_config(test_load) == _simplify_config(
-            data
-        ), f"JSON did not round-trip-cleanly {test_load}, {data}"
+        assert _simplify_config(test_load) == _simplify_config(data), (
+            f"JSON did not round-trip-cleanly {test_load}, {data}"
+        )
     except Exception as e:  # pragma: no cover
         report_error("CumulusCI found a problem saving your config:", e, logger)
         return None

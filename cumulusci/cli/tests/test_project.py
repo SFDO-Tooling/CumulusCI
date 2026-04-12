@@ -230,6 +230,4 @@ class TestProjectCommands:
             - list
         \x1b[1mdict:\x1b[0m
             \x1b[1mkey:\x1b[0m value
-        \x1b[1mstr:\x1b[0m str""" == "\n".join(
-            out
-        )
+        \x1b[1mstr:\x1b[0m str""" == "\n".join(out)

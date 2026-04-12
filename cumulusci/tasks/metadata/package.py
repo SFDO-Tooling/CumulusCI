@@ -46,7 +46,6 @@ def process_common_components(response_messages: List, components: Dict):
     if not response_messages or not components:
         return components
     for message in response_messages:
-
         message_list = message.firstChild.nextSibling.firstChild.nodeValue.split("'")
         if len(message_list) > 1:
             component_type = message_list[1]
@@ -353,7 +352,6 @@ class ParserConfigurationError(Exception):
 
 
 class MetadataXmlElementParser(BaseMetadataParser):
-
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
     def __init__(

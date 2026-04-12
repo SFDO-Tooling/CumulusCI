@@ -89,7 +89,7 @@ class CommitDir(object):
         """
         if not item["path"].startswith(self.repo_dir):
             # outside target dir in repo - keep in tree
-            self.logger.debug(f'Unchanged (outside target path): {item["path"]}')
+            self.logger.debug(f"Unchanged (outside target path): {item['path']}")
             return None
 
         local_path, content = self._find_and_read_item(item)
@@ -105,7 +105,7 @@ class CommitDir(object):
             new_item.pop("sha", None)
             new_item.update(self._get_content_or_sha(content, self.dry_run))
         else:
-            self.logger.debug(f'Unchanged: {item["path"]}')
+            self.logger.debug(f"Unchanged: {item['path']}")
             return None
         return new_item
 
@@ -124,7 +124,7 @@ class CommitDir(object):
                     if local_file_subpath not in new_tree_target_subpaths:
                         repo_path = f"{self.repo_dir}/" if self.repo_dir else ""
                         new_item = {
-                            "path": f'{repo_path}{local_file_subpath.replace(os.sep, "/")}',
+                            "path": f"{repo_path}{local_file_subpath.replace(os.sep, '/')}",
                             "mode": "100644",  # FIXME: This is wrong
                             "type": "blob",
                         }

@@ -40,12 +40,15 @@ class MockBulkAPIResponses:
         @wraps(func)
         def wrapper(*args, **kwds):
             self.mock_bulk_API_responses_context = MockBulkAPIResponsesContext()
-            with mock.patch(
-                "cumulusci.tasks.bulkdata.update_data.get_query_operation",
-                self.mock_bulk_API_responses_context.get_query_operation,
-            ), mock.patch(
-                "cumulusci.tasks.bulkdata.update_data.get_dml_operation",
-                self.mock_bulk_API_responses_context.get_dml_operation,
+            with (
+                mock.patch(
+                    "cumulusci.tasks.bulkdata.update_data.get_query_operation",
+                    self.mock_bulk_API_responses_context.get_query_operation,
+                ),
+                mock.patch(
+                    "cumulusci.tasks.bulkdata.update_data.get_dml_operation",
+                    self.mock_bulk_API_responses_context.get_dml_operation,
+                ),
             ):
                 try:
                     ret = func(*args, **kwds)
@@ -492,7 +495,6 @@ class TestUpdates:
 
 
 class TestUpdatesIntegrationTests:
-
     # VCR doesn't match because of randomized data
     @pytest.mark.vcr()
     def test_updates_task(self, create_task, ensure_accounts):

@@ -92,9 +92,9 @@ def httpd_thread(oauth_client, expected_error=None):
             break
         time.sleep(0.01)
 
-    assert (
-        oauth_client.httpd
-    ), "HTTPD did not start. Perhaps port 8080 cannot be accessed."
+    assert oauth_client.httpd, (
+        "HTTPD did not start. Perhaps port 8080 cannot be accessed."
+    )
 
     try:
         yield oauth_client

@@ -1,6 +1,7 @@
 """
 This class is used by test_pageobjects
 """
+
 from cumulusci.robotframework.pageobjects import ListingPage, pageobject
 
 

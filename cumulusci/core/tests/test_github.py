@@ -280,7 +280,7 @@ class TestGithub(GithubApiTestMixin):
     )
     def test_determine_github_client(self, domain, client):
         client_result = _determine_github_client(domain, {})
-        assert type(client_result) == client
+        assert isinstance(client_result, client)
 
     @responses.activate
     def test_get_pull_requests_by_head(self, mock_util, repo):

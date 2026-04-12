@@ -45,13 +45,13 @@ class MergeBranch(BaseGithubTask):
         if "commit" not in self.options:
             self.options["commit"] = self.project_config.repo_commit
         if "branch_prefix" not in self.options:
-            self.options[
-                "branch_prefix"
-            ] = self.project_config.project__git__prefix_feature
+            self.options["branch_prefix"] = (
+                self.project_config.project__git__prefix_feature
+            )
         if "source_branch" not in self.options:
-            self.options[
-                "source_branch"
-            ] = self.project_config.project__git__default_branch
+            self.options["source_branch"] = (
+                self.project_config.project__git__default_branch
+            )
         if "skip_future_releases" not in self.options:
             self.options["skip_future_releases"] = True
         else:

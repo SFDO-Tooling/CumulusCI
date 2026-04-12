@@ -1,4 +1,4 @@
-""" CumulusCI Tasks for running Apex Tests """
+"""CumulusCI Tasks for running Apex Tests"""
 
 import html
 import io
@@ -264,7 +264,6 @@ class RunApexTests(BaseSalesforceApiTask):
     def _get_namespace_filter(self):
 
         if self.options.get("managed"):
-
             namespace = self.options.get("namespace")
 
             if not namespace:
@@ -430,9 +429,9 @@ class RunApexTests(BaseSalesforceApiTask):
 
         for test_result in result["records"]:
             class_name = self.classes_by_id[test_result["ApexClassId"]]
-            self.results_by_class_name[class_name][
-                test_result["MethodName"]
-            ] = test_result
+            self.results_by_class_name[class_name][test_result["MethodName"]] = (
+                test_result
+            )
             self.counts[test_result["Outcome"]] += 1
 
         # If we have class-level failures that did not come with line-level

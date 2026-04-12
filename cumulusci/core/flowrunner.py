@@ -1,4 +1,4 @@
-""" FlowRunner contains the logic for actually running a flow.
+"""FlowRunner contains the logic for actually running a flow.
 
 Flows are an integral part of CCI, they actually *do the thing*. We've been getting
 along quite nicely with BaseFlow, which turns a flow definition into a callable

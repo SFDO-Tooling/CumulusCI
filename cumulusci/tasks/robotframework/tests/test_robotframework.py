@@ -199,7 +199,8 @@ class TestRobot:
         # first, verify that not specifying any listener options
         # results in no listeners...
         task = create_task(
-            Robot, {"suites": "test"}  # required, or the task will raise an exception
+            Robot,
+            {"suites": "test"},  # required, or the task will raise an exception
         )
         assert len(task.options["options"]["listener"]) == 0
 
@@ -227,9 +228,9 @@ class TestRobot:
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        assert (
-            DebugListener in listener_classes
-        ), "DebugListener was not in task options"
+        assert DebugListener in listener_classes, (
+            "DebugListener was not in task options"
+        )
 
     def test_verbose_option(self):
         """Verify that setting verbose to True attaches the appropriate listener"""
@@ -243,9 +244,9 @@ class TestRobot:
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        assert (
-            KeywordLogger in listener_classes
-        ), "KeywordLogger was not in task options"
+        assert KeywordLogger in listener_classes, (
+            "KeywordLogger was not in task options"
+        )
 
     def test_user_defined_listeners_option(self):
         """Verify that our listeners don't replace user-defined listeners"""
@@ -771,9 +772,11 @@ class TestRobotPerformanceKeywords:
     ):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
-        with temporary_dir() as d, mock.patch(
-            "cumulusci.robotframework.Salesforce.Salesforce._init_locators"
-        ), responses.RequestsMock():
+        with (
+            temporary_dir() as d,
+            mock.patch("cumulusci.robotframework.Salesforce.Salesforce._init_locators"),
+            responses.RequestsMock(),
+        ):
             project_config.repo_info["root"] = d
             suite = Path(self.datadir) / "../../../robotframework/" / suite_path
             task = create_task(

@@ -518,21 +518,26 @@ def _fake_get_org_schema(
     object_counts: T.Dict[str, int],
     **kwargs,
 ):
-    with mock.patch(
-        "cumulusci.salesforce_api.org_schema.count_sobjects",
-        lambda *args: (
-            object_counts,
-            [],
-            [],
+    with (
+        mock.patch(
+            "cumulusci.salesforce_api.org_schema.count_sobjects",
+            lambda *args: (
+                object_counts,
+                [],
+                [],
+            ),
         ),
-    ), mock.patch(
-        "cumulusci.salesforce_api.org_schema.ZippableTempDb", FakeZippableTempDb
-    ), mock.patch(
-        "cumulusci.salesforce_api.org_schema.deep_describe",
-        return_value=((desc, "Sat, 1 Jan 2000 00:00:01 GMT") for desc in org_describes),
-    ), get_org_schema(
-        FakeSF(), org_config, **kwargs
-    ) as schema:
+        mock.patch(
+            "cumulusci.salesforce_api.org_schema.ZippableTempDb", FakeZippableTempDb
+        ),
+        mock.patch(
+            "cumulusci.salesforce_api.org_schema.deep_describe",
+            return_value=(
+                (desc, "Sat, 1 Jan 2000 00:00:01 GMT") for desc in org_describes
+            ),
+        ),
+        get_org_schema(FakeSF(), org_config, **kwargs) as schema,
+    ):
         yield schema
 
 

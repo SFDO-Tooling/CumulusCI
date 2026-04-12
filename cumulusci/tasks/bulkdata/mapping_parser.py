@@ -47,6 +47,7 @@ class ValidationResult:
 
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
+
     table: Union[str, List[str]]  # Support for polymorphic lookups
     key_field: Optional[str] = None
     value_field: Optional[str] = None
@@ -102,6 +103,7 @@ ENUM_VALUES = {
 
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
+
     sf_object: str
     table: Optional[str] = None
     fields_: Dict[str, str] = Field({}, alias="fields")
@@ -113,9 +115,9 @@ class MappingStep(CCIDictModel):
     batch_size: int = None
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
-    bulk_mode: Optional[
-        Literal["Serial", "Parallel"]
-    ] = None  # default should come from task options
+    bulk_mode: Optional[Literal["Serial", "Parallel"]] = (
+        None  # default should come from task options
+    )
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
     select_options: Optional[SelectOptions] = Field(
@@ -138,9 +140,9 @@ class MappingStep(CCIDictModel):
         if isinstance(val, str):
             return tuple(v.strip() for v in val.split(","))
         else:
-            assert isinstance(
-                val, (str, list, tuple)
-            ), "`update_key` should be a field name or list of field names."
+            assert isinstance(val, (str, list, tuple)), (
+                "`update_key` should be a field name or list of field names."
+            )
             assert False, "Should be unreachable"  # pragma: no cover
 
     @root_validator
@@ -336,9 +338,9 @@ class MappingStep(CCIDictModel):
 
         if action == DataOperationType.UPSERT:
             assert update_key, "'update_key' must always be supplied for upsert."
-            assert (
-                len(update_key) == 1
-            ), "simple upserts can only support one field at a time."
+            assert len(update_key) == 1, (
+                "simple upserts can only support one field at a time."
+            )
         elif action in (DataOperationType.ETL_UPSERT, DataOperationType.SMART_UPSERT):
             assert update_key, "'update_key' must always be supplied for upsert."
         else:
@@ -346,9 +348,9 @@ class MappingStep(CCIDictModel):
 
         if update_key:
             for key in update_key:
-                assert key.lower() in (
-                    f.lower() for f in v["fields_"]
-                ), f"`update_key`: {key} not found in `fields``"
+                assert key.lower() in (f.lower() for f in v["fields_"]), (
+                    f"`update_key`: {key} not found in `fields``"
+                )
 
         return v
 
@@ -677,6 +679,7 @@ class MappingStep(CCIDictModel):
 
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
+
     __root__: Dict[str, MappingStep]
 
     @root_validator(pre=False)
@@ -684,9 +687,9 @@ class MappingSteps(CCIDictModel):
     def validate_and_inject_mapping(cls, values):
         if values:
             oids = ["Id" in s.fields_ for s in values["__root__"].values()]
-            assert all(oids) or not any(
-                oids
-            ), "Id must be mapped in all steps or in no steps."
+            assert all(oids) or not any(oids), (
+                "Id must be mapped in all steps or in no steps."
+            )
 
         return values
 

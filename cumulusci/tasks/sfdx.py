@@ -1,4 +1,4 @@
-""" Wrapper tasks for the SFDX CLI
+"""Wrapper tasks for the SFDX CLI
 
 
 TODO: Instead of everyone overriding random attrs, especially as future
@@ -11,6 +11,7 @@ Actually do this in Command. have it expose command segments.
 Then here in SFDX we will add an additional metalayer for
 how the CLI formats args opts commands etc.
 """
+
 import json
 
 from cumulusci.core.config import ScratchOrgConfig
