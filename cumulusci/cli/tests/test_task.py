@@ -252,9 +252,34 @@ def test_task_doc_project_write(doc_task, echo, Path):
 def test_task_info(doc_task, rst2ansi):
     runtime = Mock()
     runtime.project_config.tasks__test = {"options": {}}
-    run_click_command(task.task_info, runtime=runtime, task_name="test")
+    run_click_command(task.task_info, runtime=runtime, task_name="test", extra_yaml=())
     doc_task.assert_called_once()
     rst2ansi.assert_called_once()
+
+
+@patch("cumulusci.cli.task.rst2ansi")
+@patch("cumulusci.cli.task.doc_task")
+def test_task_info__extra_yaml_applied(doc_task, rst2ansi, tmp_path):
+    extra = tmp_path / "extra.yml"
+    extra.write_text(
+        "tasks:\n"
+        "  injected_task:\n"
+        "    description: injected\n"
+        "    class_path: cumulusci.tasks.util.Sleep\n"
+    )
+    runtime = Mock()
+    runtime.project_config.tasks__injected_task = {"options": {}}
+
+    run_click_command(
+        task.task_info,
+        runtime=runtime,
+        task_name="injected_task",
+        extra_yaml=(str(extra),),
+    )
+
+    runtime.reload_project_config.assert_called_once()
+    call_kwargs = runtime.reload_project_config.call_args.kwargs
+    assert "injected" in call_kwargs["additional_yaml"]
 
 
 class SetTrace(Exception):

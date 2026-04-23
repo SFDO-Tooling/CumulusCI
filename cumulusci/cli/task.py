@@ -5,6 +5,7 @@ import click
 from rich.console import Console
 from rst2ansi import rst2ansi
 
+from cumulusci.cli.extra_yaml import resolve_extra_yaml
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.utils import doc_task
@@ -95,8 +96,21 @@ def task_doc(runtime, project=False, write=False):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
+@click.option(
+    "--extra-yaml",
+    "extra_yaml",
+    multiple=True,
+    type=click.Path(),
+    help=(
+        "Path to an additional YAML file to merge into the project config "
+        "for this command only. Can be specified multiple times; later files "
+        "override earlier ones. Also honors CUMULUSCI_EXTRA_YAML env var "
+        "(colon-separated paths) as a fallback."
+    ),
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def task_info(runtime, task_name):
+def task_info(runtime, task_name, extra_yaml):
+    runtime.reload_project_config(additional_yaml=resolve_extra_yaml(extra_yaml))
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
