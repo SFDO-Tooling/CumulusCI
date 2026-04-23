@@ -480,6 +480,35 @@ All CumulusCI commands can be passed the `--debug` flag, so that:
 To exit a debugging session, type the command `quit` or `exit`.
 ```
 
+### The `--extra-yaml` Flag
+
+`cci flow run`, `cci flow info`, `cci task run`, and `cci task info`
+accept a `--extra-yaml PATH` option that merges an additional YAML file
+into the project config for that single command. The flag can be
+repeated; later files override earlier ones via deep merge.
+
+```console
+$ cci task run my_task --extra-yaml migrations/v2.yml
+$ cci flow run dev_org --extra-yaml base.yml --extra-yaml override.yml
+```
+
+The `CUMULUSCI_EXTRA_YAML` environment variable (colon-separated paths)
+supplies a default when the flag is absent. When both are set, the flag
+wins; they are not merged.
+
+Extra YAML is merged using the same deep-merge semantics as the project
+`cumulusci.yml`. Mappings and scalars are overridden; lists are
+concatenated, not replaced. See
+[Configuration Scopes](config.md#configuration-scopes) for details.
+Per-option overrides via `-o taskname__option value` still win over
+extra YAML.
+
+```{warning}
+Extra YAML can redefine any `class_path` entry and therefore trigger
+arbitrary Python imports when the task runs. Only load files you trust.
+A stderr warning is printed each time the flag is used.
+```
+
 ### Log Files
 
 CumulusCI creates a log file every time a cci command runs. There are
