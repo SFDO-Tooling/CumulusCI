@@ -8,8 +8,10 @@ import os
 from typing import Optional, Tuple
 
 import click
+import yaml
 
 from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.utils import dictmerge
 
 ENV_VAR = "CUMULUSCI_EXTRA_YAML"
 
@@ -23,8 +25,10 @@ def resolve_extra_yaml(paths: Tuple[str, ...]) -> Optional[str]:
             ``CUMULUSCI_EXTRA_YAML`` (colon-separated paths).
 
     Returns:
-        Concatenated YAML content with ``\\n---\\n`` separators between files,
-        or ``None`` if no paths were resolved.
+        A single YAML document representing the deep-merge of all input files
+        (later files override earlier files), or ``None`` if no paths were
+        resolved. The returned string is a valid single-document YAML stream
+        suitable for ``BaseProjectConfig(additional_yaml=...)``.
 
     Raises:
         CumulusCIUsageError: If any listed path does not exist or is unreadable.
@@ -45,13 +49,22 @@ def resolve_extra_yaml(paths: Tuple[str, ...]) -> Optional[str]:
         err=True,
     )
 
-    contents = []
+    merged: dict = {}
     for path in effective_paths:
         if not os.path.isfile(path):
             raise CumulusCIUsageError(f"--extra-yaml file not found: {path}")
         try:
             with open(path, "r", encoding="utf-8") as f:
-                contents.append(f.read())
+                raw = f.read()
         except OSError as e:
             raise CumulusCIUsageError(f"--extra-yaml could not read {path}: {e}")
-    return "\n---\n".join(contents)
+        try:
+            parsed = yaml.safe_load(raw) or {}
+        except yaml.YAMLError as e:
+            raise CumulusCIUsageError(f"--extra-yaml could not parse {path}: {e}")
+        if not isinstance(parsed, dict):
+            raise CumulusCIUsageError(
+                f"--extra-yaml expects a YAML mapping at the top level in {path}"
+            )
+        merged = dictmerge(merged, parsed)
+    return yaml.safe_dump(merged, default_flow_style=False)
