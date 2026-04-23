@@ -16,6 +16,14 @@ information from `HEROKU_TEST_RUN_BRANCH` and
 If present, will instruct CumulusCI to not refresh OAuth tokens for
 orgs.
 
+## `CUMULUSCI_EXTRA_YAML`
+
+Colon-separated list of paths to additional YAML files to merge into
+the project config for each `cci task run`, `cci task info`,
+`cci flow run`, and `cci flow info` invocation. The `--extra-yaml`
+flag on those commands takes precedence when both are set. See
+[the CLI reference](cli.md#the-extra-yaml-flag) for merge semantics.
+
 ## `CUMULUSCI_KEY`
 
 An alphanumeric string used to encrypt org credentials at rest when an
@@ -27,6 +35,7 @@ Used for specifying a GitHub Repository for CumulusCI to use when
 running in a CI environment.
 
 (cumulusci-system-certs)=
+
 ## `CUMULUSCI_SYSTEM_CERTS`
 
 If set to `True`, CumulusCI will configure the Python `requests` library
@@ -44,6 +53,7 @@ Contents of a JSON Web Token (JWT) used to [authenticate a GitHub
 app](https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/##authenticating-as-a-github-app).
 
 (github-token)=
+
 ## `GITHUB_TOKEN`
 
 A GitHub [personal access
