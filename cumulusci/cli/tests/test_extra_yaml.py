@@ -1,6 +1,10 @@
+import textwrap
+from contextlib import contextmanager
+
 import pytest
 
 from cumulusci.cli.extra_yaml import resolve_extra_yaml
+from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.exceptions import CumulusCIUsageError
 
 
@@ -87,3 +91,98 @@ def test_resolve_extra_yaml__empty_env_var_segments_ignored(tmp_path, monkeypatc
     result = resolve_extra_yaml(())
     assert result is not None
     assert "project: {}" in result
+
+
+@contextmanager
+def _minimal_project(tmp_path, monkeypatch):
+    """Create a minimal cci project dir and chdir into it."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / "cumulusci.yml").write_text(
+        textwrap.dedent(
+            """\
+            minimum_cumulusci_version: '3.0.0'
+            project:
+                name: extra_yaml_test
+                package:
+                    name: ExtraYamlTest
+                    api_version: '58.0'
+                git:
+                    default_branch: main
+            tasks:
+                existing_task:
+                    description: From cumulusci.yml
+                    class_path: cumulusci.tasks.util.Sleep
+                    options:
+                        seconds: 1
+            """
+        )
+    )
+    yield tmp_path
+
+
+def test_extra_yaml__overrides_existing_task_option(tmp_path, monkeypatch):
+    monkeypatch.delenv("CUMULUSCI_EXTRA_YAML", raising=False)
+    with _minimal_project(tmp_path, monkeypatch):
+        extra = tmp_path / "extra.yml"
+        extra.write_text("tasks:\n  existing_task:\n    options:\n      seconds: 99\n")
+        runtime = CliRuntime(load_keychain=False)
+        runtime.reload_project_config(additional_yaml=resolve_extra_yaml((str(extra),)))
+        assert runtime.project_config is not None
+        task_cfg = runtime.project_config.get_task("existing_task")
+        assert task_cfg.options["seconds"] == 99
+        # Description from cumulusci.yml still present (deep merge).
+        assert task_cfg.description == "From cumulusci.yml"
+
+
+def test_extra_yaml__multi_file_last_wins(tmp_path, monkeypatch):
+    monkeypatch.delenv("CUMULUSCI_EXTRA_YAML", raising=False)
+    with _minimal_project(tmp_path, monkeypatch):
+        a = tmp_path / "a.yml"
+        a.write_text("tasks:\n  existing_task:\n    options:\n      seconds: 10\n")
+        b = tmp_path / "b.yml"
+        b.write_text("tasks:\n  existing_task:\n    options:\n      seconds: 20\n")
+        runtime = CliRuntime(load_keychain=False)
+        runtime.reload_project_config(
+            additional_yaml=resolve_extra_yaml((str(a), str(b)))
+        )
+        assert runtime.project_config is not None
+        task_cfg = runtime.project_config.get_task("existing_task")
+        assert task_cfg.options["seconds"] == 20
+
+
+def test_extra_yaml__defines_new_task(tmp_path, monkeypatch):
+    monkeypatch.delenv("CUMULUSCI_EXTRA_YAML", raising=False)
+    with _minimal_project(tmp_path, monkeypatch):
+        extra = tmp_path / "extra.yml"
+        extra.write_text(
+            "tasks:\n"
+            "  brand_new_task:\n"
+            "    description: defined in extra\n"
+            "    class_path: cumulusci.tasks.util.Sleep\n"
+            "    options:\n"
+            "      seconds: 0\n"
+        )
+        runtime = CliRuntime(load_keychain=False)
+        runtime.reload_project_config(additional_yaml=resolve_extra_yaml((str(extra),)))
+        assert runtime.project_config is not None
+        task_cfg = runtime.project_config.get_task("brand_new_task")
+        assert task_cfg.description == "defined in extra"
+
+
+def test_extra_yaml__class_path_override_imports_new_class(tmp_path, monkeypatch):
+    """Extra YAML can swap class_path to any importable class.
+
+    Demonstrates (rather than prevents) the documented trust posture.
+    """
+    monkeypatch.delenv("CUMULUSCI_EXTRA_YAML", raising=False)
+    with _minimal_project(tmp_path, monkeypatch):
+        extra = tmp_path / "extra.yml"
+        extra.write_text(
+            "tasks:\n  existing_task:\n    class_path: cumulusci.tasks.util.LogLine\n"
+        )
+        runtime = CliRuntime(load_keychain=False)
+        runtime.reload_project_config(additional_yaml=resolve_extra_yaml((str(extra),)))
+        assert runtime.project_config is not None
+        task_cfg = runtime.project_config.get_task("existing_task")
+        assert task_cfg.class_path == "cumulusci.tasks.util.LogLine"
