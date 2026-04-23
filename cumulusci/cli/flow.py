@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from cumulusci.cli.extra_yaml import resolve_extra_yaml
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
@@ -106,8 +107,21 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
+@click.option(
+    "--extra-yaml",
+    "extra_yaml",
+    multiple=True,
+    type=click.Path(),
+    help=(
+        "Path to an additional YAML file to merge into the project config "
+        "for this command only. Can be specified multiple times; later files "
+        "override earlier ones. Also honors CUMULUSCI_EXTRA_YAML env var "
+        "(colon-separated paths) as a fallback."
+    ),
+)
 @pass_runtime(require_keychain=True)
-def flow_info(runtime, flow_name):
+def flow_info(runtime, flow_name, extra_yaml):
+    runtime.reload_project_config(additional_yaml=resolve_extra_yaml(extra_yaml))
     try:
         coordinator = runtime.get_flow(flow_name)
         output = coordinator.get_summary(verbose=True)
@@ -141,8 +155,21 @@ def flow_info(runtime, flow_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
+@click.option(
+    "--extra-yaml",
+    "extra_yaml",
+    multiple=True,
+    type=click.Path(),
+    help=(
+        "Path to an additional YAML file to merge into the project config "
+        "for this command only. Can be specified multiple times; later files "
+        "override earlier ones. Also honors CUMULUSCI_EXTRA_YAML env var "
+        "(colon-separated paths) as a fallback."
+    ),
+)
 @pass_runtime(require_keychain=True)
-def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
+def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt, extra_yaml):
+    runtime.reload_project_config(additional_yaml=resolve_extra_yaml(extra_yaml))
 
     # Get necessary configs
     org, org_config = runtime.get_org(org)
