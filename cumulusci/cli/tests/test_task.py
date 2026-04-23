@@ -101,6 +101,48 @@ def test_task_run__extra_yaml_missing_path_raises(runtime):
             multi_cmd.resolve_command(ctx, ["dummy-task", "--extra-yaml"])
 
 
+def test_task_run__dash_o_overrides_extra_yaml(runtime):
+    """``-o taskname__option value`` wins over ``--extra-yaml``.
+
+    Extra YAML merges into the project config at load time; ``-o`` options
+    are applied to ``task_config.config["options"]`` at invocation time
+    (see ``task.py`` -- after ``reload_project_config``). The final task
+    receives the ``-o`` value.
+
+    ``reload_project_config`` is mocked because the fixture builds a fake
+    project in-memory; the relevant assertion is that ``-o`` wins over any
+    option already present in ``task_config.config['options']`` regardless
+    of whether that value came from ``cumulusci.yml`` or from extra YAML.
+    """
+    # Pretend the extra YAML already set tasks.dummy-task.options.color
+    # (the runtime fixture lets us just pre-populate the config).
+    runtime.project_config.config["tasks"]["dummy-task"]["options"] = {
+        "color": "red-from-extra-yaml",
+    }
+    runtime.reload_project_config = Mock()
+
+    captured = {}
+
+    def _capture_options(self):
+        captured["color"] = self.options["color"]
+
+    DummyTask._run_task = _capture_options
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "dummy-task")
+        cmd.callback(
+            runtime,
+            "dummy-task",
+            o=(("color", "blue"),),
+            no_prompt=False,
+            debug=False,
+            debug_before=False,
+            debug_after=False,
+        )
+
+    assert captured["color"] == "blue"
+
+
 def test_task_run__no_project(runtime):
     runtime.project_config = None
     runtime.project_config_error = Exception("Broken")
