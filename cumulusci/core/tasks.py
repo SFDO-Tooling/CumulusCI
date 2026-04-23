@@ -158,7 +158,7 @@ class BaseTask:
 
         if self.Options:
             try:
-                specials = ["debug_before", "debug_after", "no_prompt"]
+                specials = ["debug_before", "debug_after", "no_prompt", "extra_yaml"]
                 options_without_specials = {
                     opt: val for opt, val in self.options.items() if opt not in specials
                 }

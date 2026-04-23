@@ -49,6 +49,58 @@ def test_task_run(runtime):
     DummyTask._run_task.assert_called_once()
 
 
+def test_task_run__extra_yaml_applied(runtime, tmp_path):
+    """--extra-yaml resolves via resolve_command before get_task runs."""
+    extra = tmp_path / "extra.yml"
+    extra.write_text(
+        "tasks:\n  dummy-task:\n    description: Overridden from --extra-yaml\n"
+    )
+
+    DummyTask._run_task = Mock()
+    runtime.reload_project_config = Mock()
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        multi_cmd.resolve_command(ctx, ["dummy-task", "--extra-yaml", str(extra)])
+
+    runtime.reload_project_config.assert_called_once()
+    call_kwargs = runtime.reload_project_config.call_args.kwargs
+    assert "Overridden from --extra-yaml" in call_kwargs["additional_yaml"]
+
+
+def test_task_run__extra_yaml_equals_syntax(runtime, tmp_path):
+    """--extra-yaml=<path> form is also accepted."""
+    extra = tmp_path / "extra.yml"
+    extra.write_text("tasks:\n  dummy-task:\n    description: eq-syntax\n")
+
+    DummyTask._run_task = Mock()
+    runtime.reload_project_config = Mock()
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        multi_cmd.resolve_command(ctx, ["dummy-task", f"--extra-yaml={extra}"])
+
+    runtime.reload_project_config.assert_called_once()
+    assert (
+        "eq-syntax" in runtime.reload_project_config.call_args.kwargs["additional_yaml"]
+    )
+
+
+def test_task_run__no_extra_yaml_still_calls_reload_with_none(runtime):
+    DummyTask._run_task = Mock()
+    runtime.reload_project_config = Mock()
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        multi_cmd.resolve_command(ctx, ["dummy-task"])
+
+    runtime.reload_project_config.assert_called_once_with(additional_yaml=None)
+
+
+def test_task_run__extra_yaml_missing_path_raises(runtime):
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        with pytest.raises(CumulusCIUsageError, match="requires a path"):
+            multi_cmd.resolve_command(ctx, ["dummy-task", "--extra-yaml"])
+
+
 def test_task_run__no_project(runtime):
     runtime.project_config = None
     runtime.project_config_error = Exception("Broken")
@@ -110,6 +162,18 @@ def test_task_run__list_commands(runtime):
     assert commands == ["dummy-derived-task", "dummy-task"]
 
 
+def test_task_run__list_commands_with_extra_yaml_in_args(runtime, tmp_path):
+    """--help paths reach list_commands/format_help directly, not through
+    resolve_command. --extra-yaml in the arg vector must not break them."""
+    extra = tmp_path / "extra.yml"
+    extra.write_text("tasks:\n  dummy-task:\n    description: from extra\n")
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        ctx.args = ["--extra-yaml", str(extra)]
+        commands = multi_cmd.list_commands(ctx)
+    assert "dummy-task" in commands
+
+
 def test_format_help(runtime):
     runtime.universal_config = Mock()
     multi_cmd = task.RunTaskCommand()
@@ -126,11 +190,12 @@ def test_format_help(runtime):
 
 def test_get_default_command_options():
     opts = task.RunTaskCommand()._get_default_command_options(is_salesforce_task=False)
-    assert len(opts) == 4
+    assert len(opts) == 5
 
     opts = task.RunTaskCommand()._get_default_command_options(is_salesforce_task=True)
-    assert len(opts) == 5
+    assert len(opts) == 6
     assert any([o.name == "org" for o in opts])
+    assert any([o.name == "extra_yaml" for o in opts])
 
 
 def test_collect_task_options():

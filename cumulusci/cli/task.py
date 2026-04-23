@@ -121,6 +121,29 @@ def task_info(runtime, task_name, extra_yaml):
     click.echo(rst2ansi(doc))
 
 
+def _peek_extra_yaml(args):
+    """Extract --extra-yaml values from args before Click parses them.
+
+    Matches both ``--extra-yaml PATH`` and ``--extra-yaml=PATH`` forms.
+    Returns a tuple suitable for resolve_extra_yaml().
+    """
+    paths = []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--extra-yaml":
+            if i + 1 >= len(args):
+                raise CumulusCIUsageError("--extra-yaml requires a path argument")
+            paths.append(args[i + 1])
+            i += 2
+        elif arg.startswith("--extra-yaml="):
+            paths.append(arg.split("=", 1)[1])
+            i += 1
+        else:
+            i += 1
+    return tuple(paths)
+
+
 class RunTaskCommand(click.MultiCommand):
     # options that are not task specific
     global_options = {
@@ -140,12 +163,37 @@ class RunTaskCommand(click.MultiCommand):
             "help": "Drops into the Python debugger at task completion.",
             "is_flag": True,
         },
+        "extra-yaml": {
+            "help": (
+                "Path to an additional YAML file to merge into the project "
+                "config for this command only. Can be specified multiple times; "
+                "later files override earlier ones. Also honors "
+                "CUMULUSCI_EXTRA_YAML env var (colon-separated paths) as a "
+                "fallback."
+            ),
+            "is_flag": False,
+            "multiple": True,
+        },
     }
 
     def list_commands(self, ctx):
         runtime = ctx.obj
         tasks = runtime.get_available_tasks()
         return sorted([t["name"] for t in tasks])
+
+    def resolve_command(self, ctx, args):
+        # Peek at --extra-yaml / CUMULUSCI_EXTRA_YAML before Click resolves
+        # the task. Click's MultiCommand protocol calls resolve_command ->
+        # get_command; by the time get_command runs, ctx.args is empty. We
+        # read from the raw `args` list here so --extra-yaml values are
+        # available before get_task() runs.
+        runtime = ctx.obj
+        if runtime is not None and runtime.project_config is not None:
+            extra_yaml_paths = _peek_extra_yaml(args)
+            runtime.reload_project_config(
+                additional_yaml=resolve_extra_yaml(extra_yaml_paths)
+            )
+        return super().resolve_command(ctx, args)
 
     def get_command(self, ctx, task_name):
         runtime = ctx.obj
@@ -285,6 +333,7 @@ class RunTaskCommand(click.MultiCommand):
                 click.Option(
                     param_decls=(f"--{opt_name}",),
                     is_flag=config["is_flag"],
+                    multiple=config.get("multiple", False),
                     help=config["help"],
                 )
             )
