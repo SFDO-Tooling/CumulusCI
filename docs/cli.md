@@ -492,9 +492,10 @@ $ cci task run my_task --extra-yaml migrations/v2.yml
 $ cci flow run dev_org --extra-yaml base.yml --extra-yaml override.yml
 ```
 
-The `CUMULUSCI_EXTRA_YAML` environment variable (colon-separated paths)
+The `CUMULUSCI_EXTRA_YAML` environment variable (comma-separated paths)
 supplies a default when the flag is absent. When both are set, the flag
-wins; they are not merged.
+wins; they are not merged. Paths containing commas cannot be expressed
+in the env var; pass them via the repeatable `--extra-yaml` flag instead.
 
 Extra YAML is merged using the same deep-merge semantics as the project
 `cumulusci.yml`. Mappings and scalars are overridden; lists are

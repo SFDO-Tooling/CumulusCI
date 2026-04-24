@@ -56,7 +56,7 @@ def test_resolve_extra_yaml__env_var_fallback(tmp_path, monkeypatch):
     assert "env-loaded" in result
 
 
-def test_resolve_extra_yaml__env_var_multiple_colon_separated(tmp_path, monkeypatch):
+def test_resolve_extra_yaml__env_var_multiple_comma_separated(tmp_path, monkeypatch):
     """Env var with multiple paths produces a deep-merged document."""
     import yaml
 
@@ -64,7 +64,7 @@ def test_resolve_extra_yaml__env_var_multiple_colon_separated(tmp_path, monkeypa
     a.write_text("tasks:\n  a:\n    description: from A\n")
     b = tmp_path / "b.yml"
     b.write_text("tasks:\n  b:\n    description: from B\n")
-    monkeypatch.setenv("CUMULUSCI_EXTRA_YAML", f"{a}:{b}")
+    monkeypatch.setenv("CUMULUSCI_EXTRA_YAML", f"{a},{b}")
     result = resolve_extra_yaml(())
     assert result is not None
     parsed = yaml.safe_load(result)
@@ -87,7 +87,7 @@ def test_resolve_extra_yaml__flag_overrides_env_var(tmp_path, monkeypatch):
 def test_resolve_extra_yaml__empty_env_var_segments_ignored(tmp_path, monkeypatch):
     p = tmp_path / "x.yml"
     p.write_text("project: {}\n")
-    monkeypatch.setenv("CUMULUSCI_EXTRA_YAML", f"::{p}::")
+    monkeypatch.setenv("CUMULUSCI_EXTRA_YAML", f",,{p},,")
     result = resolve_extra_yaml(())
     assert result is not None
     assert "project: {}" in result

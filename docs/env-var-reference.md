@@ -18,10 +18,12 @@ orgs.
 
 ## `CUMULUSCI_EXTRA_YAML`
 
-Colon-separated list of paths to additional YAML files to merge into
+Comma-separated list of paths to additional YAML files to merge into
 the project config for each `cci task run`, `cci task info`,
 `cci flow run`, and `cci flow info` invocation. The `--extra-yaml`
-flag on those commands takes precedence when both are set. See
+flag on those commands takes precedence when both are set. Paths
+containing commas cannot be expressed here; use the repeatable
+`--extra-yaml` flag instead. See
 [the CLI reference](cli.md#the-extra-yaml-flag) for merge semantics.
 
 ## `CUMULUSCI_KEY`

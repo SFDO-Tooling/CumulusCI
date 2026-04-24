@@ -105,7 +105,7 @@ def task_doc(runtime, project=False, write=False):
         "Path to an additional YAML file to merge into the project config "
         "for this command only. Can be specified multiple times; later files "
         "override earlier ones. Also honors CUMULUSCI_EXTRA_YAML env var "
-        "(colon-separated paths) as a fallback."
+        "(comma-separated paths) as a fallback."
     ),
 )
 @pass_runtime(require_project=False, require_keychain=True)
@@ -168,7 +168,7 @@ class RunTaskCommand(click.MultiCommand):
                 "Path to an additional YAML file to merge into the project "
                 "config for this command only. Can be specified multiple times; "
                 "later files override earlier ones. Also honors "
-                "CUMULUSCI_EXTRA_YAML env var (colon-separated paths) as a "
+                "CUMULUSCI_EXTRA_YAML env var (comma-separated paths) as a "
                 "fallback."
             ),
             "is_flag": False,
