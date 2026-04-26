@@ -413,9 +413,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         self.options["output_dir"] = output_dir
 
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = (
+                self.project_config.project__package__api_version
+            )
 
     def _run_task(self):
         self._load_snapshot()
@@ -464,7 +464,6 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
 
 
 class SnapshotChanges(ListChanges):
-
     task_options = {}
 
     def _init_options(self, kwargs):

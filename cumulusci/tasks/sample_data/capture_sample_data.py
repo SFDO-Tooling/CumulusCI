@@ -50,18 +50,21 @@ class CaptureSampleData(BaseSalesforceApiTask):
             if not loading_rules.exists():
                 raise TaskOptionsError(f"Cannot find {loading_rules}")
 
-        with get_org_schema(
-            self.sf,
-            self.org_config,
-            include_counts=True,
-            filters=[Filters.extractable, Filters.createable],
-        ) as schema, Dataset(
-            name,
-            self.project_config,
-            self.sf,
-            self.org_config,
-            schema,
-        ) as dataset:
+        with (
+            get_org_schema(
+                self.sf,
+                self.org_config,
+                include_counts=True,
+                filters=[Filters.extractable, Filters.createable],
+            ) as schema,
+            Dataset(
+                name,
+                self.project_config,
+                self.sf,
+                self.org_config,
+                schema,
+            ) as dataset,
+        ):
             if not dataset.path.exists():
                 dataset.create()
                 verb = "Created"

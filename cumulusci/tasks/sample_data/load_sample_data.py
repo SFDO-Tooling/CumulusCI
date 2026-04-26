@@ -30,18 +30,21 @@ class LoadSampleData(BaseSalesforceApiTask):
         name = self._find_dataset()
         if not name:
             return
-        with get_org_schema(
-            self.sf,
-            self.org_config,
-            include_counts=True,
-            filters=[Filters.extractable, Filters.createable],
-        ) as schema, Dataset(
-            name,
-            self.project_config,
-            self.sf,
-            self.org_config,
-            schema,
-        ) as dataset:
+        with (
+            get_org_schema(
+                self.sf,
+                self.org_config,
+                include_counts=True,
+                filters=[Filters.extractable, Filters.createable],
+            ) as schema,
+            Dataset(
+                name,
+                self.project_config,
+                self.sf,
+                self.org_config,
+                schema,
+            ) as dataset,
+        ):
             self.return_values = dataset.load(self.options, self.logger) or {}
         return self.return_values
 

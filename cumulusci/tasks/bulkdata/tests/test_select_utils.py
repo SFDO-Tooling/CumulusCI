@@ -397,9 +397,9 @@ def test_calculate_levenshtein_distance_basic():
     expected_distance = (1 / 5 * 1.0 + 1 / 5 * 1.0) / 2  # Averaged over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
-    assert result == pytest.approx(
-        expected_distance
-    ), "Basic distance calculation failed."
+    assert result == pytest.approx(expected_distance), (
+        "Basic distance calculation failed."
+    )
 
     # Empty fields
     record1 = ["hello", ""]
@@ -411,9 +411,9 @@ def test_calculate_levenshtein_distance_basic():
     expected_distance = (1 / 5 * 1.0 + 0 * 1.0) / 2  # Averaged over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
-    assert result == pytest.approx(
-        expected_distance
-    ), "Basic distance calculation with empty fields failed."
+    assert result == pytest.approx(expected_distance), (
+        "Basic distance calculation with empty fields failed."
+    )
 
     # Partial empty fields
     record1 = ["hello", "world"]
@@ -427,9 +427,9 @@ def test_calculate_levenshtein_distance_basic():
     ) / 2  # Averaged over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
-    assert result == pytest.approx(
-        expected_distance
-    ), "Basic distance calculation with partial empty fields failed."
+    assert result == pytest.approx(expected_distance), (
+        "Basic distance calculation with partial empty fields failed."
+    )
 
 
 def test_calculate_levenshtein_distance_weighted():
@@ -443,9 +443,9 @@ def test_calculate_levenshtein_distance_weighted():
     ) / 2.5  # Weighted average over two fields
 
     result = calculate_levenshtein_distance(record1, record2, weights)
-    assert result == pytest.approx(
-        expected_distance
-    ), "Weighted distance calculation failed."
+    assert result == pytest.approx(expected_distance), (
+        "Weighted distance calculation failed."
+    )
 
 
 def test_calculate_levenshtein_distance_records_length_doesnt_match():
@@ -600,18 +600,18 @@ def test_vectorize_records_mixed_numerical_boolean_categorical():
 
     # Check the shape of the output vectors
     assert final_db_vectors.shape[0] == len(db_records), "DB vectors row count mismatch"
-    assert final_query_vectors.shape[0] == len(
-        query_records
-    ), "Query vectors row count mismatch"
+    assert final_query_vectors.shape[0] == len(query_records), (
+        "Query vectors row count mismatch"
+    )
 
     # Expected dimensions: numerical (1) + categorical hashed features (4)
     expected_feature_count = 2 + hash_features
-    assert (
-        final_db_vectors.shape[1] == expected_feature_count
-    ), "DB vectors column count mismatch"
-    assert (
-        final_query_vectors.shape[1] == expected_feature_count
-    ), "Query vectors column count mismatch"
+    assert final_db_vectors.shape[1] == expected_feature_count, (
+        "DB vectors column count mismatch"
+    )
+    assert final_query_vectors.shape[1] == expected_feature_count, (
+        "Query vectors column count mismatch"
+    )
 
 
 def _build_large_annoy_fixture():

@@ -201,8 +201,7 @@ class OAuth2Client(object):
             keyfile = "key.pem"
             if not Path(certfile).is_file() or not Path(keyfile).is_file():
                 create_key_and_self_signed_cert()
-            # FIXME: Use ssl.PROTOCOL_TLS_SERVER after dropping 3.8 support
-            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)
+            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS_SERVER)
             ssl_context.load_cert_chain(certfile, keyfile)
             httpd.socket = ssl_context.wrap_socket(
                 httpd.socket,

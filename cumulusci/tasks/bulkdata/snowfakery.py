@@ -61,7 +61,6 @@ WAIT_TIME = 3
 
 
 class Snowfakery(BaseSalesforceApiTask):
-
     task_docs = """
     Do a data load with Snowfakery.
 

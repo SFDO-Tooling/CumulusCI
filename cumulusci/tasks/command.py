@@ -1,4 +1,4 @@
-""" Tasks for running a command in a subprocess
+"""Tasks for running a command in a subprocess
 
 Command - run a command with optional environment variables
 SalesforceCommand - run a command with credentials passed

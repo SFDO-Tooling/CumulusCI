@@ -376,7 +376,9 @@ class TestGenerateFromDataTask:
                 )
                 task()
             continuation_file = yaml.safe_load(open(temp_continuation_file))
-            assert continuation_file  # internals of this file are not important to CumulusCI
+            assert (
+                continuation_file
+            )  # internals of this file are not important to CumulusCI
 
     def _get_mapping_file(self, **options):
         with temporary_file_path("mapping.yml") as temp_mapping:

@@ -38,9 +38,10 @@ def test_init_task(retrieve_profile_api_instance):
 def test_retrieve_existing_profiles(retrieve_profile_api_instance):
     profiles = ["Profile1", "Profile2", "Admin"]
     result = {"records": [{"Name": "Profile1"}]}
-    with patch.object(
-        RetrieveProfileApi, "_build_query", return_value="some_query"
-    ), patch.object(RetrieveProfileApi, "_run_query", return_value=result):
+    with (
+        patch.object(RetrieveProfileApi, "_build_query", return_value="some_query"),
+        patch.object(RetrieveProfileApi, "_run_query", return_value=result),
+    ):
         existing_profiles = retrieve_profile_api_instance._retrieve_existing_profiles(
             profiles
         )
@@ -174,14 +175,18 @@ def test_process_setupEntityAccess_results(retrieve_profile_api_instance):
         "ApexPage": [{"Id": "002def", "Name": "TestApexPage"}],
         "CustomPermission": [],
     }
-    with patch.object(
-        RetrieveProfileApi, "_build_query", return_value="SELECT Id, Name FROM Table"
-    ) as mock_build_query, patch.object(
-        RunParallelQueries,
-        "_run_queries_in_parallel",
-        return_value=queries_result,
-    ) as mock_run_queries:
-
+    with (
+        patch.object(
+            RetrieveProfileApi,
+            "_build_query",
+            return_value="SELECT Id, Name FROM Table",
+        ) as mock_build_query,
+        patch.object(
+            RunParallelQueries,
+            "_run_queries_in_parallel",
+            return_value=queries_result,
+        ) as mock_run_queries,
+    ):
         (
             entities,
             result,
@@ -222,29 +227,34 @@ def test_process_all_results(retrieve_profile_api_instance):
         "customTab": "some_result",
         "profileFlow": "some_result",
     }
-    with patch.object(
-        RetrieveProfileApi,
-        "_process_setupEntityAccess_results",
-        return_value=(
-            {
-                "ApexClass": ["TestApexClass"],
-                "ApexPage": ["TestApexPage"],
-                "FlowDefinition": ["TestFlow"],
-            },
-            {"FlowDefinition": ["some_result"]},
+    with (
+        patch.object(
+            RetrieveProfileApi,
+            "_process_setupEntityAccess_results",
+            return_value=(
+                {
+                    "ApexClass": ["TestApexClass"],
+                    "ApexPage": ["TestApexPage"],
+                    "FlowDefinition": ["TestFlow"],
+                },
+                {"FlowDefinition": ["some_result"]},
+            ),
         ),
-    ), patch.object(
-        RetrieveProfileApi,
-        "_process_sObject_results",
-        return_value={"CustomObject": ["TestObject"]},
-    ), patch.object(
-        RetrieveProfileApi,
-        "_process_customTab_results",
-        return_value={"CustomTab": ["TestTab"]},
-    ), patch.object(
-        RetrieveProfileApi,
-        "_match_profiles_and_flows",
-        return_value={"Profile1": ["Flow1"]},
+        patch.object(
+            RetrieveProfileApi,
+            "_process_sObject_results",
+            return_value={"CustomObject": ["TestObject"]},
+        ),
+        patch.object(
+            RetrieveProfileApi,
+            "_process_customTab_results",
+            return_value={"CustomTab": ["TestTab"]},
+        ),
+        patch.object(
+            RetrieveProfileApi,
+            "_match_profiles_and_flows",
+            return_value={"Profile1": ["Flow1"]},
+        ),
     ):
         entities, profile_flow = retrieve_profile_api_instance._process_all_results(
             result_dict
@@ -291,16 +301,19 @@ def test_retrieve_permissionable_entities(retrieve_profile_api_instance):
         {"Profile1": ["Flow1"]},
     )
 
-    with patch.object(
-        RunParallelQueries, "_run_queries_in_parallel"
-    ) as mock_run_queries, patch.object(
-        RetrieveProfileApi,
-        "_queries_retrieve_permissions",
-        return_value=expected_queries,
-    ), patch.object(
-        RetrieveProfileApi, "_process_all_results", return_value=expected_result
+    with (
+        patch.object(
+            RunParallelQueries, "_run_queries_in_parallel"
+        ) as mock_run_queries,
+        patch.object(
+            RetrieveProfileApi,
+            "_queries_retrieve_permissions",
+            return_value=expected_queries,
+        ),
+        patch.object(
+            RetrieveProfileApi, "_process_all_results", return_value=expected_result
+        ),
     ):
-
         result = retrieve_profile_api_instance._retrieve_permissionable_entities(
             profiles
         )

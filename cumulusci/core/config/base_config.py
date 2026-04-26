@@ -28,9 +28,9 @@ class BaseConfig(object):
                     if not type_for_value:
                         warnings.warn(f"{k}: {v} not declared for {type(self)}")
                     if (v is not None) and (type_for_value is not None):
-                        assert isinstance(
-                            v, type_for_value
-                        ), f"{k}: {v} should be of type {type_for_value}, not {type(v)} for {type(self)}"
+                        assert isinstance(v, type_for_value), (
+                            f"{k}: {v} should be of type {type_for_value}, not {type(v)} for {type(self)}"
+                        )
             self.config = config.copy()
 
         self._init_logger()

@@ -45,12 +45,15 @@ def mock_extract_jobs(task, extracted_records):
     def get_results(self):
         return extracted_records[self.sobject]
 
-    with mock.patch(
-        "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
-        get_results,
-    ), mock.patch(
-        "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
-        _job_state_from_batches,
+    with (
+        mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
+            get_results,
+        ),
+        mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+            _job_state_from_batches,
+        ),
     ):
         yield
 
@@ -81,7 +84,6 @@ class MockScalableBulkQueryOperation(MockBulkQueryOperation):
 
 
 class TestExtractData:
-
     mapping_file_v1 = "mapping_v1.yml"
     mapping_file_v2 = "mapping_v2.yml"
     mapping_file_poly = "mapping_poly.yml"
@@ -187,7 +189,6 @@ class TestExtractData:
 
             task()
             with create_engine(task.options["database_url"]).connect() as conn:
-
                 household = next(conn.execute("select * from households"))
                 assert household.sf_id == "1"
                 assert household.IsPersonAccount == "false"
@@ -238,12 +239,12 @@ class TestExtractData:
                 task()
 
             assert os.path.exists("testdata.sql")
-            assert ce_mock.mock_calls[0][1][0].endswith(
-                "temp_db.db"
-            ), ce_mock.mock_calls[0][1][0]
-            assert ce_mock.mock_calls[0][1][0].startswith(
-                "sqlite:///"
-            ), ce_mock.mock_calls[0][1][0]
+            assert ce_mock.mock_calls[0][1][0].endswith("temp_db.db"), (
+                ce_mock.mock_calls[0][1][0]
+            )
+            assert ce_mock.mock_calls[0][1][0].startswith("sqlite:///"), (
+                ce_mock.mock_calls[0][1][0]
+            )
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -757,9 +758,7 @@ class TestExtractData:
         }
 
         task.session.query.return_value.filter.return_value.count.return_value = 0
-        task.session.query.return_value.filter.return_value.update.return_value.rowcount = (
-            0
-        )
+        task.session.query.return_value.filter.return_value.update.return_value.rowcount = 0
         task._convert_lookups_to_id(
             MappingStep(
                 sf_object="Opportunity",
@@ -1199,8 +1198,9 @@ class TestExtractData:
                     ]
                 ],
             }
-            with mock_extract_jobs(task, extracted_records), mock_salesforce_client(
-                task
+            with (
+                mock_extract_jobs(task, extracted_records),
+                mock_salesforce_client(task),
             ):
                 task()
             with create_engine(task.options["database_url"]).connect() as conn:
@@ -1303,9 +1303,9 @@ class TestExtractData:
             )
 
             soql = task._soql_for_mapping(mapping)
-            assert (
-                "WHERE Name = 'John Doe'" in soql
-            ), "filter should be applied just on name"
-            assert (
-                "DeveloperName" not in soql
-            ), "DeveloperName should not appear in the soql query as it is missing in mapping"
+            assert "WHERE Name = 'John Doe'" in soql, (
+                "filter should be applied just on name"
+            )
+            assert "DeveloperName" not in soql, (
+                "DeveloperName should not appear in the soql query as it is missing in mapping"
+            )

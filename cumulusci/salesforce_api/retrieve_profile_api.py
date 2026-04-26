@@ -266,7 +266,7 @@ class RetrieveProfileApi(BaseSalesforceApiTask):
                         and item["NamespacePrefix"] is not None
                     ):
                         extracted_values[data.package_xml_name].append(
-                            f'{item["NamespacePrefix"]}__{item[data.columns[0]]}'
+                            f"{item['NamespacePrefix']}__{item[data.columns[0]]}"
                         )
                     else:
                         extracted_values[data.package_xml_name].append(

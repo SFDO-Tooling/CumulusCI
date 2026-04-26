@@ -211,9 +211,9 @@ class SalesforceAPI(BaseLibrary):
         | Salesforce Collection Insert  ${objects}
 
         """
-        assert (
-            not obj.get("id", None) for obj in objects
-        ), "Insertable objects should not have IDs"
+        assert (not obj.get("id", None) for obj in objects), (
+            "Insertable objects should not have IDs"
+        )
         assert len(objects) <= SF_COLLECTION_INSERTION_LIMIT, (
             "Cannot insert more than %s objects with this keyword"
             % SF_COLLECTION_INSERTION_LIMIT
@@ -261,9 +261,9 @@ class SalesforceAPI(BaseLibrary):
 
         """
         for obj in objects:
-            assert obj[
-                "id"
-            ], "Should be a list of objects with Ids returned by Salesforce Collection Insert"
+            assert obj["id"], (
+                "Should be a list of objects with Ids returned by Salesforce Collection Insert"
+            )
             if STATUS_KEY in obj:
                 del obj[STATUS_KEY]
 

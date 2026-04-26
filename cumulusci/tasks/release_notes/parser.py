@@ -60,7 +60,6 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
             # Add all content once in the section
             if self._in_section:
-
                 # End when the end of section is found
                 if self._is_end_line(line):
                     self._in_section = False

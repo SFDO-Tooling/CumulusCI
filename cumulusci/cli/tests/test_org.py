@@ -887,9 +887,9 @@ class TestOrgCommands:
 
         run_click_command(org.org_list, runtime=runtime, json_flag=False, plain=False)
 
-        assert "Cannot load org config for `test1`" in str(
+        assert "Cannot load org config for `test1`" in str(echo.mock_calls), (
             echo.mock_calls
-        ), echo.mock_calls
+        )
         assert "NOPE!" in str(echo.mock_calls), echo.mock_calls
         assert "Cannot cleanup org cache dirs" in str(echo.mock_calls), echo.mock_calls
 

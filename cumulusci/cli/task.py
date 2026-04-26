@@ -107,7 +107,7 @@ def task_info(runtime, task_name):
     click.echo(rst2ansi(doc))
 
 
-class RunTaskCommand(click.MultiCommand):
+class RunTaskCommand(click.Group):
     # options that are not task specific
     global_options = {
         "no-prompt": {

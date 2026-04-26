@@ -1,4 +1,4 @@
-""" simple task(s) for reporting on push upgrade jobs.
+"""simple task(s) for reporting on push upgrade jobs.
 
 this doesn't use the nearby push_api module, and was just a quick ccistyle
 get the job done kinda moment.

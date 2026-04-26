@@ -266,11 +266,14 @@ class TestLoadData:
         task.metadata = mock.Mock()
         task.metadata.sorted_tables = [table_insert, table_upsert]
 
-        with mock.patch.object(
-            CreateRollback, "_perform_rollback"
-        ) as mock_insert_rollback, mock.patch.object(
-            UpdateRollback, "_perform_rollback"
-        ) as mock_upsert_rollback:
+        with (
+            mock.patch.object(
+                CreateRollback, "_perform_rollback"
+            ) as mock_insert_rollback,
+            mock.patch.object(
+                UpdateRollback, "_perform_rollback"
+            ) as mock_upsert_rollback,
+        ):
             Rollback._perform_rollback(task)
 
             mock_insert_rollback.assert_called_once_with(task, table_insert)
@@ -862,9 +865,10 @@ class TestLoadData:
             "Who.Contact.LastName",
             "Who.Lead.LastName",
         }
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
-        ), mock.patch.object(task, "sf", create=True):
+        with (
+            mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"),
+            mock.patch.object(task, "sf", create=True),
+        ):
             task._init_mapping()
         with task._init_db():
             task._old_format = mock.Mock(return_value=False)
@@ -911,9 +915,10 @@ class TestLoadData:
             "Account.Name",
             "Account.AccountNumber",
         }
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
-        ), mock.patch.object(task, "sf", create=True):
+        with (
+            mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"),
+            mock.patch.object(task, "sf", create=True),
+        ):
             task._init_mapping()
         with task._init_db():
             task._old_format = mock.Mock(return_value=False)
@@ -981,15 +986,17 @@ class TestLoadData:
         task.sf = mock.Mock()
         task.sf.query.return_value = {"records": []}
         with pytest.raises(BulkDataException) as e:
-            task._get_statics(
-                MappingStep(
-                    sf_object="Account",
-                    action="insert",
-                    fields={"Id": "sf_id", "Name": "Name"},
-                    static={"Industry": "Technology"},
-                    record_type="Organization",
-                )
-            ),
+            (
+                task._get_statics(
+                    MappingStep(
+                        sf_object="Account",
+                        action="insert",
+                        fields={"Id": "sf_id", "Name": "Name"},
+                        static={"Industry": "Technology"},
+                        record_type="Organization",
+                    )
+                ),
+            )
         assert "RecordType" in str(e.value)
 
     def test_query_db__joins_self_lookups(self):
@@ -1290,7 +1297,7 @@ class TestLoadData:
             id_table.create()
             task._initialize_id_table(True)
             new_id_table = task.metadata.tables["cumulusci_id_table"]
-            assert not (new_id_table is id_table)
+            assert new_id_table is not id_table
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
         task = _make_task(
@@ -1469,9 +1476,10 @@ class TestLoadData:
 
         mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
 
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
-        ), pytest.raises(BulkDataException) as e:
+        with (
+            mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"),
+            pytest.raises(BulkDataException) as e,
+        ):
             task._process_job_results(mapping, step, local_ids)
 
         assert "Error on record with id" in str(e.value)
@@ -1880,11 +1888,15 @@ class TestLoadData:
             ]
         )
 
-        with pytest.raises(BulkDataException) as e, mock.patch(
-            "cumulusci.tasks.bulkdata.load.Rollback._perform_rollback"
-        ) as mock_rollback, mock.patch(
-            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
-        ) as mock_insert_records:
+        with (
+            pytest.raises(BulkDataException) as e,
+            mock.patch(
+                "cumulusci.tasks.bulkdata.load.Rollback._perform_rollback"
+            ) as mock_rollback,
+            mock.patch(
+                "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+            ) as mock_insert_records,
+        ):
             task._generate_results_id_map(
                 step, ["001000000000009", "001000000000010", "001000000000011"]
             )
@@ -2880,14 +2892,16 @@ class TestLoadData:
             MEGABYTE = 2**20
 
             # FIXME: more anlysis about the number below
-            with mock.patch(
-                "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
-                _job_state_from_batches,
-            ), mock.patch(
-                "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
-                get_results,
-            ), assert_max_memory_usage(
-                15 * MEGABYTE
+            with (
+                mock.patch(
+                    "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+                    _job_state_from_batches,
+                ),
+                mock.patch(
+                    "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
+                    get_results,
+                ),
+                assert_max_memory_usage(15 * MEGABYTE),
             ):
                 task()
 
@@ -3057,9 +3071,10 @@ class TestLoadData:
             },
         )
 
-        with mock.patch(
-            "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
-        ), mock.patch.object(task, "sf", create=True):
+        with (
+            mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"),
+            mock.patch.object(task, "sf", create=True),
+        ):
             task._init_mapping()
 
         with task._init_db():
@@ -3193,9 +3208,10 @@ def _validate_query_for_mapping_step(
             }
         },
     )
-    with mock.patch(
-        "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
-    ), mock.patch.object(task, "sf", create=True):
+    with (
+        mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"),
+        mock.patch.object(task, "sf", create=True),
+    ):
         task._init_mapping()
     with task._init_db():
         task._old_format = mock.Mock(return_value=old_format)

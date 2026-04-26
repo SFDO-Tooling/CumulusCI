@@ -23,6 +23,7 @@ from cumulusci.core.utils import import_global
 
 class SharedConfig(BaseModel):
     "Properties available both in the Queue and also each worker"
+
     task_class: type
     project_config: BaseProjectConfig
     org_config: OrgConfig

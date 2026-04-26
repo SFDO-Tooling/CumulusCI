@@ -102,7 +102,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
         elapsed = datetime.now() - self.time_start
         if elapsed.total_seconds() > self.options["timeout"]:
             raise CumulusCIException(
-                f'Sharing enablement not completed after {self.options["timeout"]} seconds'
+                f"Sharing enablement not completed after {self.options['timeout']} seconds"
             )
 
         for sobject in self.owds:

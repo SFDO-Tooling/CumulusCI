@@ -255,10 +255,13 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         task.bulk = FakeBulkAPI()
         task.sf = salesforce_client
 
-    with mock.patch(
-        "cumulusci.core.config.org_config.OrgConfig.is_person_accounts_enabled",
-        lambda: is_person_accounts_enabled,
-    ), mock.patch.object(task, "_init_task", _init_task):
+    with (
+        mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.is_person_accounts_enabled",
+            lambda: is_person_accounts_enabled,
+        ),
+        mock.patch.object(task, "_init_task", _init_task),
+    ):
         yield
 
 
@@ -290,8 +293,9 @@ def mock_env(
         **ENV_CLONE,
     }
 
-    with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
-        os.environ, new_environment, clear=True
+    with (
+        mock.patch("pathlib.Path.home", lambda: Path(home)),
+        mock.patch.dict(os.environ, new_environment, clear=True),
     ):
         yield
 

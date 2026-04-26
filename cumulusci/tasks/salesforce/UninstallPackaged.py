@@ -4,7 +4,6 @@ from cumulusci.utils import temporary_dir, zip_subfolder
 
 
 class UninstallPackaged(UninstallLocal):
-
     task_options = {
         "package": {
             "description": "The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name",

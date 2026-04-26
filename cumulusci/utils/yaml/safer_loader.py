@@ -10,7 +10,7 @@ from yaml.error import MarkedYAMLError
 from cumulusci.core.exceptions import YAMLParseException
 from cumulusci.utils.fileutils import FSResource, load_from_source
 
-NBSP = "\u00A0"
+NBSP = "\u00a0"
 
 pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 

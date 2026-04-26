@@ -34,6 +34,7 @@ def set_org_name(required):
 
     `required` is a boolean for whether org_name is required
     """
+
     # could be generalized to work for any mutex pair (or list) but no obvious need
     def callback(ctx, param, value):
         """Callback which enforces mutex and 'required' behaviour (if required)."""
@@ -474,7 +475,6 @@ def org_prune(runtime, include_active=False):
     org_shapes_skipped = []
     active_orgs_skipped = []
     for org_name in runtime.keychain.list_orgs():
-
         org_config = runtime.keychain.get_org(org_name)
 
         if org_name in predefined_scratch_configs:

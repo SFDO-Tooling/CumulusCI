@@ -27,6 +27,7 @@ Used for specifying a GitHub Repository for CumulusCI to use when
 running in a CI environment.
 
 (cumulusci-system-certs)=
+
 ## `CUMULUSCI_SYSTEM_CERTS`
 
 If set to `True`, CumulusCI will configure the Python `requests` library
@@ -44,6 +45,7 @@ Contents of a JSON Web Token (JWT) used to [authenticate a GitHub
 app](https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/##authenticating-as-a-github-app).
 
 (github-token)=
+
 ## `GITHUB_TOKEN`
 
 A GitHub [personal access

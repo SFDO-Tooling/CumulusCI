@@ -246,7 +246,6 @@ def init_from_context(context: Dict[str, object], echo: bool = False):
 
     # Create sfdx-project.json
     if not os.path.isfile("sfdx-project.json"):
-
         sfdx_project = {
             "packageDirectories": [{"path": "force-app", "default": True}],
             "namespace": context["package_namespace"],

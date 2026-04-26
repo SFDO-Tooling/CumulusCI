@@ -1,7 +1,8 @@
-""" Tasks are the basic unit of execution in CumulusCI.
+"""Tasks are the basic unit of execution in CumulusCI.
 
 Subclass BaseTask or a descendant to define custom task logic
 """
+
 import contextlib
 import logging
 import os

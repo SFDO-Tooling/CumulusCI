@@ -95,7 +95,6 @@ class FakeLoadData(BaseSalesforceApiTask):
         in a normal mock_values structure."""
 
         with self.lock:  # the code below looks thread-safe but better safe than sorry
-
             # tasks usually aren't called twice after being instantiated
             # that would usually be a bug.
             assert self not in self.mock_calls
@@ -153,11 +152,14 @@ def mock_load_data(
 ):
 
     fake_load_data = FakeLoadData
-    with mock.patch(
-        "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", fake_load_data
-    ), mock.patch(
-        "cumulusci.tasks.bulkdata.snowfakery_utils.queue_manager.LoadData",
-        fake_load_data,
+    with (
+        mock.patch(
+            "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", fake_load_data
+        ),
+        mock.patch(
+            "cumulusci.tasks.bulkdata.snowfakery_utils.queue_manager.LoadData",
+            fake_load_data,
+        ),
     ):
         fake_load_data.reset()
 
@@ -187,12 +189,15 @@ def fake_processes_and_threads(request):
 
     process_manager = FakeProcessManager()
 
-    with mock.patch(
-        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Thread",
-        process_manager,
-    ), mock.patch(
-        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
-        process_manager,
+    with (
+        mock.patch(
+            "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Thread",
+            process_manager,
+        ),
+        mock.patch(
+            "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+            process_manager,
+        ),
     ):
         yield process_manager
 
@@ -394,9 +399,9 @@ def get_record_counts_from_snowfakery_results(
     channeled_outboxes = tuple(results.working_dir.glob("*/data_load_outbox/*"))
     regular_outboxes = tuple(results.working_dir.glob("data_load_outbox/*"))
 
-    assert bool(regular_outboxes) ^ bool(
-        channeled_outboxes
-    ), f"One of regular_outboxes or channeled_outboxes should be available: {channeled_outboxes}, {regular_outboxes}"
+    assert bool(regular_outboxes) ^ bool(channeled_outboxes), (
+        f"One of regular_outboxes or channeled_outboxes should be available: {channeled_outboxes}, {regular_outboxes}"
+    )
     outboxes = tuple(channeled_outboxes) + tuple(regular_outboxes)
     for subdir in outboxes:
         record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()
@@ -559,9 +564,9 @@ class TestSnowfakery:
             )
             task()
         assert len(mock_load_data.mock_calls) == 0, mock_load_data.mock_calls
-        assert (
-            len(threads_instead_of_processes.mock_calls) == 0
-        ), threads_instead_of_processes.mock_calls
+        assert len(threads_instead_of_processes.mock_calls) == 0, (
+            threads_instead_of_processes.mock_calls
+        )
 
     @pytest.mark.vcr()
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 5)
@@ -600,9 +605,9 @@ class TestSnowfakery:
             task()
 
         assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
-        assert (
-            len(threads_instead_of_processes.mock_calls) == 1
-        ), threads_instead_of_processes.mock_calls
+        assert len(threads_instead_of_processes.mock_calls) == 1, (
+            threads_instead_of_processes.mock_calls
+        )
 
     def test_inaccessible_generator_yaml(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
@@ -622,9 +627,12 @@ class TestSnowfakery:
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_record_count(self, snowfakery, mock_load_data):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
-        with mock.patch.object(task, "logger") as logger, mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            mock.patch.object(task, "logger") as logger,
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(
@@ -904,9 +912,12 @@ class TestSnowfakery:
                 "recipe_options": {"xyzzy": "Nothing happens", "some_number": 37},
             },
         )
-        with pytest.raises(exc.TaskOptionsError) as e, mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            pytest.raises(exc.TaskOptionsError) as e,
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(
@@ -933,9 +944,12 @@ class TestSnowfakery:
                 / "snowfakery/simple_snowfakery_channels.load.yml",
             },
         )
-        with pytest.warns(UserWarning), mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            pytest.warns(UserWarning),
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(
@@ -1159,9 +1173,12 @@ class TestSnowfakery:
                 / "snowfakery/simple_snowfakery_channels_2.load.yml",
             },
         )
-        with pytest.raises(exc.TaskOptionsError), mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            pytest.raises(exc.TaskOptionsError),
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(

@@ -60,13 +60,16 @@ class TestBaseConfig:
     def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        with mock.patch(
-            "cumulusci.core.config.base_config.STRICT_GETATTR", False
-        ), pytest.warns(DeprecationWarning, match="foo"):
+        with (
+            mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", False),
+            pytest.warns(DeprecationWarning, match="foo"),
+        ):
             assert config.foo is None
-        with mock.patch(
-            "cumulusci.core.config.base_config.STRICT_GETATTR", True
-        ), pytest.deprecated_call(), pytest.raises(AssertionError):
+        with (
+            mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", True),
+            pytest.deprecated_call(),
+            pytest.raises(AssertionError),
+        ):
             assert config.foo is None
 
     def test_getattr_child_key(self):
@@ -77,9 +80,11 @@ class TestBaseConfig:
     def test_strict_getattr(self):
         config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
-        with mock.patch(
-            "cumulusci.core.config.base_config.STRICT_GETATTR", "True"
-        ), mock.patch("warnings.warn"), pytest.raises(AssertionError):
+        with (
+            mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", "True"),
+            mock.patch("warnings.warn"),
+            pytest.raises(AssertionError),
+        ):
             print(config.jfiesojfieoj)
 
     def test_getattr_child_parent_key_missing(self):
@@ -398,7 +403,7 @@ class TestBaseProjectConfig:
         git_path.return_value = git_config_file
         repo_url = "https://github.com/foo/bar.git"
         with open(git_config_file, "w") as f:
-            f.writelines(['[remote "origin"]\n' f"\turl = {repo_url}"])
+            f.writelines([f'[remote "origin"]\n\turl = {repo_url}'])
 
         config = BaseProjectConfig(UniversalConfig())
         assert repo_url == config.repo_url
@@ -1365,7 +1370,6 @@ class TestOrgConfig:
         )
         with TemporaryDirectory() as t:
             with mock.patch("cumulusci.tests.util.DummyKeychain.cache_dir", Path(t)):
-
                 with config.get_orginfo_cache_dir("bar") as directory:
                     assert str(t) in directory, (t, directory)
                     assert (
@@ -1390,9 +1394,9 @@ class TestOrgConfig:
             },
             "test",
         )
-        assert (
-            config._is_person_accounts_enabled is None
-        ), "_is_person_accounts_enabled should be initialized as None"
+        assert config._is_person_accounts_enabled is None, (
+            "_is_person_accounts_enabled should be initialized as None"
+        )
 
         responses.add(
             "GET",
@@ -1427,9 +1431,9 @@ class TestOrgConfig:
             },
             "test",
         )
-        assert (
-            config._is_person_accounts_enabled is None
-        ), "_is_person_accounts_enabled should be initialized as None"
+        assert config._is_person_accounts_enabled is None, (
+            "_is_person_accounts_enabled should be initialized as None"
+        )
 
         responses.add(
             "GET",
@@ -1464,9 +1468,9 @@ class TestOrgConfig:
             },
             "test",
         )
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "_multiple_currencies_is_enabled should be initialized as False"
+        assert config._multiple_currencies_is_enabled is False, (
+            "_multiple_currencies_is_enabled should be initialized as False"
+        )
 
         # Login call.
         responses.add(
@@ -1501,21 +1505,21 @@ class TestOrgConfig:
 
         # Check 1: is_multiple_currencies_enabled should be False since the CurrencyType describe gives a 404.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is False
-        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        assert actual is False, (
+            "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        )
+        assert config._multiple_currencies_is_enabled is False, (
+            "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        )
 
         # Check 2: We should still get the CurrencyType describe since we never cached that multiple currencies is enabled.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is False
-        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        assert actual is False, (
+            "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        )
+        assert config._multiple_currencies_is_enabled is False, (
+            "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        )
 
         # We should have made 3 calls: 1 token call + 2 describe calls
         assert len(responses.calls) == 1 + 2
@@ -1531,9 +1535,9 @@ class TestOrgConfig:
             "test",
         )
 
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "_multiple_currencies_is_enabled should be initialized as False"
+        assert config._multiple_currencies_is_enabled is False, (
+            "_multiple_currencies_is_enabled should be initialized as False"
+        )
 
         # Token call.
         responses.add(
@@ -1554,21 +1558,21 @@ class TestOrgConfig:
 
         # Check 1: is_multiple_currencies_enabled should be True since the CurrencyType describe gives a 200.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is True
-        ), "config.is_multiple_currencies_enabled should be True since the CurrencyType describe returns a 200."
-        assert (
-            config._multiple_currencies_is_enabled is True
-        ), "config._multiple_currencies_is_enabled should be True since the CurrencyType describe returns a 200."
+        assert actual is True, (
+            "config.is_multiple_currencies_enabled should be True since the CurrencyType describe returns a 200."
+        )
+        assert config._multiple_currencies_is_enabled is True, (
+            "config._multiple_currencies_is_enabled should be True since the CurrencyType describe returns a 200."
+        )
 
         # Check 2: We should have cached that Multiple Currencies is enabled, so we should not make a 2nd descrobe call. This is ok to cache since Multiple Currencies cannot be disabled.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is True
-        ), "config.is_multiple_currencies_enabled should be True since the our cached value in _multiple_currencies_is_enabled is True."
-        assert (
-            config._multiple_currencies_is_enabled is True
-        ), "config._multiple_currencies_is_enabled should still be True."
+        assert actual is True, (
+            "config.is_multiple_currencies_enabled should be True since the our cached value in _multiple_currencies_is_enabled is True."
+        )
+        assert config._multiple_currencies_is_enabled is True, (
+            "config._multiple_currencies_is_enabled should still be True."
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1609,9 +1613,9 @@ class TestOrgConfig:
         # is_advanced_currency_management_enabled should be False since:
         # - DatedConversionRate describe gives a 404 implying the Sobject is not exposed becuase Multiple Currencies is not enabled.
         actual = config.is_advanced_currency_management_enabled
-        assert (
-            actual is False
-        ), "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
+        assert actual is False, (
+            "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1649,9 +1653,9 @@ class TestOrgConfig:
         # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
         # - But DatedConversionRate is not creatable implying ACM is not enabled.
         actual = config.is_advanced_currency_management_enabled
-        assert (
-            actual is False
-        ), 'config.is_advanced_currency_management_enabled should be False since though the describe gives a 200, the describe is not "createable".'
+        assert actual is False, (
+            'config.is_advanced_currency_management_enabled should be False since though the describe gives a 200, the describe is not "createable".'
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1689,9 +1693,9 @@ class TestOrgConfig:
         # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
         # - But DatedConversionRate is not creatable implying ACM is not enabled.
         actual = config.is_advanced_currency_management_enabled
-        assert (
-            actual is True
-        ), 'config.is_advanced_currency_management_enabled should be False since both the describe gives a 200 and the describe is "createable".'
+        assert actual is True, (
+            'config.is_advanced_currency_management_enabled should be False since both the describe gives a 200 and the describe is "createable".'
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1

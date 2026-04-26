@@ -182,7 +182,6 @@ class TestPageObjects:
             CumulusCI, "get_namespace_prefix", return_value="foobar__"
         ):
             with reload_PageObjects(FOO_PATH) as po:
-
                 FooTestPage = importer.import_class_or_module_by_path(FOO_PATH)
                 MockGetLibraryInstance.libs["FooTestPage"] = _PageObjectLibrary(
                     FooTestPage()
@@ -197,7 +196,6 @@ class TestPageObjects:
         """Verify that the object name is not prefixed by a namespace when there is no namespace"""
         with mock.patch.object(CumulusCI, "get_namespace_prefix", return_value=""):
             with reload_PageObjects(FOO_PATH) as po:
-
                 FooTestPage = importer.import_class_or_module_by_path(FOO_PATH)
                 MockGetLibraryInstance.libs["FooTestPage"] = _PageObjectLibrary(
                     FooTestPage()

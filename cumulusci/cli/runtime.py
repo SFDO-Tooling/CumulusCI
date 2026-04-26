@@ -23,7 +23,7 @@ class CliRuntime(BaseCumulusCI):
             super(CliRuntime, self).__init__(*args, **kwargs)
         except ConfigError as e:
             raise click.UsageError(f"Config Error: {str(e)}")
-        except (KeychainKeyNotFound) as e:
+        except KeychainKeyNotFound as e:
             raise click.UsageError(f"Keychain Error: {str(e)}")
 
     def get_keychain_class(self):

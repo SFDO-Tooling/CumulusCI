@@ -14,7 +14,6 @@ vars:
 Note that the status can be elided because it defaults to Closed.
 """
 
-
 import re
 import typing as T
 from pathlib import Path

@@ -1,4 +1,4 @@
-""" Tests for the connectedapp tasks """
+"""Tests for the connectedapp tasks"""
 
 import os
 import re

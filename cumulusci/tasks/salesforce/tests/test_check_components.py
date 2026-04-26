@@ -259,18 +259,18 @@ class TestCheckComponents:
         mock_tree = MagicMock()
         mock_tree.findall.return_value = [
             MagicMock(
-                findall=lambda tag: [MagicMock(text="Delivery")]
-                if tag == "members"
-                else [],
+                findall=lambda tag: (
+                    [MagicMock(text="Delivery")] if tag == "members" else []
+                ),
                 find=lambda tag: MagicMock(text="ApexClass") if tag == "name" else None,
             ),
             MagicMock(
-                findall=lambda tag: [MagicMock(text="Delivery__c")]
-                if tag == "members"
-                else [],
-                find=lambda tag: MagicMock(text="CustomObject")
-                if tag == "name"
-                else None,
+                findall=lambda tag: (
+                    [MagicMock(text="Delivery__c")] if tag == "members" else []
+                ),
+                find=lambda tag: (
+                    MagicMock(text="CustomObject") if tag == "name" else None
+                ),
             ),
         ]
         mock_tree.find.return_value = MagicMock(text="58.0")

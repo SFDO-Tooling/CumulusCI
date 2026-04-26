@@ -74,9 +74,9 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config.setdefault("namespaced", False)
         scratch_config["config_name"] = config_name
 
-        scratch_config[
-            "sfdx_alias"
-        ] = f"{self.project_config.project__name}__{org_name}"
+        scratch_config["sfdx_alias"] = (
+            f"{self.project_config.project__name}__{org_name}"
+        )
         org_config = ScratchOrgConfig(
             scratch_config, org_name, keychain=self, global_org=False
         )
@@ -353,9 +353,9 @@ class BaseProjectKeychain(BaseConfig):
         """Load the default connected app as a first class service on the keychain."""
         if "connected_app" not in self.config["services"]:
             self.config["services"]["connected_app"] = {}
-        self.config["services"]["connected_app"][
-            DEFAULT_CONNECTED_APP_NAME
-        ] = DEFAULT_CONNECTED_APP
+        self.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME] = (
+            DEFAULT_CONNECTED_APP
+        )
 
     def _set_service(
         self, service_type, alias, service_config, save=True, config_encrypted=False

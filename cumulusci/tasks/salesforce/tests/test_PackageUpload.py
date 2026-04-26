@@ -109,7 +109,6 @@ class TestPackageUpload:
         asserted_minor_version: str,
         is_negative: bool = False,
     ):
-
         """This is function is used to generate test cases for test_validate_versions(positive as well as negative)
         Arguments:
             major_version:acutal major version which is to be passed none if not passed.

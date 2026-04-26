@@ -816,13 +816,15 @@ Extract the data for a dataset from an org and persist it to disk.
 
 `mapping` and either `sql_path` or `database_url` must be supplied.
 
-Example: 
+Example:
+
 ```console
 cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 ```
 
 (data-load-dataset)=
-###  `load_dataset`
+
+### `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,
 persist new Salesforce Ids to storage.
@@ -842,7 +844,7 @@ persist new Salesforce Ids to storage.
 
 `mapping` and either `sql_path` or `database_url` must be supplied.
 
-Example: 
+Example:
 
 ```console
 cci task run load_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
@@ -912,7 +914,7 @@ after their target records become available.
 -   `namespace_prefix`: The namespace prefix to treat as belonging to
     the project, if any
 
-Example: 
+Example:
 
 ```console
 cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns

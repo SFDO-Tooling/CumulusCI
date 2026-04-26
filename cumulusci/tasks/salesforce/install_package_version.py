@@ -123,16 +123,16 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                     dependency.package_dependency, PackageNamespaceVersionDependency
                 ):
                     self.options["version"] = dependency.package_dependency.version
-                    self.options[
-                        "version_id"
-                    ] = dependency.package_dependency.version_id
+                    self.options["version_id"] = (
+                        dependency.package_dependency.version_id
+                    )
                 elif isinstance(
                     dependency.package_dependency, PackageVersionIdDependency
                 ):
                     self.options["version"] = dependency.package_dependency.version_id
-                    self.options[
-                        "version_number"
-                    ] = dependency.package_dependency.version_number
+                    self.options["version_number"] = (
+                        dependency.package_dependency.version_number
+                    )
             else:
                 raise CumulusCIException(
                     f"The release for {version} does not identify a package version."

@@ -43,9 +43,9 @@ class DependencyMap:
         for dep in intertable_dependencies:
             table_deps = self.dependencies[dep.table_name_from]
             table_deps.add(dep)
-            self.reference_fields[
-                (dep.table_name_from, dep.field_name)
-            ] = dep.table_names_to
+            self.reference_fields[(dep.table_name_from, dep.field_name)] = (
+                dep.table_names_to
+            )
 
     def target_table_for(
         self, tablename: str, fieldname: str

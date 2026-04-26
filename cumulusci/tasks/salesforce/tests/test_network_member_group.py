@@ -170,7 +170,6 @@ class TestCreateNetworkMemberGroups:
             None,
             [],
         ]:
-
             task = create_task(
                 CreateNetworkMemberGroups, {"network_name": network_name}
             )

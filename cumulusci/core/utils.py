@@ -1,4 +1,4 @@
-""" Utilities for CumulusCI Core"""
+"""Utilities for CumulusCI Core"""
 
 import copy
 import glob

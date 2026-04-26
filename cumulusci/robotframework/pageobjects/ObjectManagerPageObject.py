@@ -203,7 +203,7 @@ class ObjectManagerPage(BasePage):
 
             except Exception as e:
                 self.builtin.log(
-                    f"on try #{tries+1} we caught this error: {e}", "DEBUG"
+                    f"on try #{tries + 1} we caught this error: {e}", "DEBUG"
                 )
                 self.builtin.sleep("1 second")
                 last_error = e

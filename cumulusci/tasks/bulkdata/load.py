@@ -750,9 +750,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             Column("id", Unicode(255), primary_key=True),
             Column("sf_id", Unicode(18)),
         )
-        if id_table.exists():
-            id_table.drop()
-        id_table.create()
+        if self.inspector.has_table(self.ID_TABLE_NAME):
+            id_table.drop(self.metadata.bind)
+        id_table.create(self.metadata.bind)
 
     def _sqlite_load(self):
         """Read a SQLite script and initialize the in-memory database."""

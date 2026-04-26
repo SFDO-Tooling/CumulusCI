@@ -296,6 +296,7 @@ child branches. This means that despite
 not receive automerges until the parent branch tests successfully.
 
 (release-to-future-release-merges)=
+
 ### Release to (Future) Release Merges
 
 Because release branches are so long-lived, and so much work goes into

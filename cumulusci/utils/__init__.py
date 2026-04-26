@@ -430,7 +430,7 @@ def get_option_usage_string(name, option):
     """
     usage_str = option.get("usage")
     if not usage_str:
-        usage_str = f"--{name} {name.replace('_','').upper()}"
+        usage_str = f"--{name} {name.replace('_', '').upper()}"
     return usage_str
 
 

@@ -271,7 +271,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             self.options.get("install_key"),
         )
         res = self.tooling.query(
-            "SELECT Dependencies FROM SubscriberPackageVersion " f"WHERE {where_clause}"
+            f"SELECT Dependencies FROM SubscriberPackageVersion WHERE {where_clause}"
         )
         self.return_values["dependencies"] = self._prepare_cci_dependencies(
             res["records"][0]["Dependencies"]
@@ -323,7 +323,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             if existing_package["ContainerOptions"] != package_config.package_type:
                 raise PackageUploadFailure(
                     f"Duplicate Package: {existing_package['ContainerOptions']} package with id "
-                    f"{ existing_package['Id']} has the same name ({package_config.package_name}) "
+                    f"{existing_package['Id']} has the same name ({package_config.package_name}) "
                     "for this namespace but has a different package type"
                 )
             package_id = existing_package["Id"]
@@ -391,9 +391,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             }
 
             if package_config.post_install_script:
-                package_descriptor[
-                    "postInstallScript"
-                ] = package_config.post_install_script
+                package_descriptor["postInstallScript"] = (
+                    package_config.post_install_script
+                )
             if package_config.uninstall_script:
                 package_descriptor["uninstallScript"] = package_config.uninstall_script
 

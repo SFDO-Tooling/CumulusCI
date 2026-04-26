@@ -18,7 +18,6 @@ nl = "\n"
 
 
 class ListNonSourceTrackable(BaseSalesforceApiTask):
-
     task_options = {
         "api_version": {
             "description": "Override the API version used to list metadatatypes",
@@ -28,9 +27,9 @@ class ListNonSourceTrackable(BaseSalesforceApiTask):
     def _init_task(self):
         super()._init_task()
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = (
+                self.project_config.project__package__api_version
+            )
 
     def get_types_details(self, api_version):
         # The Metadata coverage report: https://developer.salesforce.com/docs/metadata-coverage/{version} is created from
@@ -96,9 +95,9 @@ class ListComponents(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(ListComponents, self)._init_options(kwargs)
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = (
+                self.project_config.project__package__api_version
+            )
         if "metadata_types" not in self.options:
             self.options["metadata_types"] = ListNonSourceTrackable(
                 org_config=self.org_config,
@@ -154,9 +153,9 @@ retrieve_components_task_options["include"] = {
 retrieve_components_task_options["exclude"] = {
     "description": "Exclude components matching this name."
 }
-retrieve_components_task_options[
-    "namespace_tokenize"
-] = BaseRetrieveMetadata.task_options["namespace_tokenize"]
+retrieve_components_task_options["namespace_tokenize"] = (
+    BaseRetrieveMetadata.task_options["namespace_tokenize"]
+)
 
 
 class RetrieveComponents(ListComponents, BaseSalesforceApiTask):

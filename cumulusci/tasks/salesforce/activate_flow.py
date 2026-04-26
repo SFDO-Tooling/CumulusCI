@@ -50,7 +50,7 @@ class ActivateFlow(BaseSalesforceApiTask):
         results = []
         for listed_flow in result["records"]:
             results.append(listed_flow["DeveloperName"])
-            self.logger.info(f'Processing: {listed_flow["DeveloperName"]}')
+            self.logger.info(f"Processing: {listed_flow['DeveloperName']}")
             path = f"tooling/sobjects/FlowDefinition/{listed_flow['Id']}"
 
             urlpath = self.sf.base_url + path

@@ -139,9 +139,9 @@ class TestBulkDataJobTaskMixin:
             "    <numberRecordsFailed>200</numberRecordsFailed>"
             "    </batch>"
             "</root>"
-        ) == DataOperationJobResult(
-            DataOperationStatus.ROW_FAILURE, [], 0, 400
-        ), "Multiple batches in single job"
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 0, 400), (
+            "Multiple batches in single job"
+        )
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
@@ -150,9 +150,9 @@ class TestBulkDataJobTaskMixin:
             "    <numberRecordsFailed>200</numberRecordsFailed>"
             "    </batch>"
             "</root>"
-        ) == DataOperationJobResult(
-            DataOperationStatus.ROW_FAILURE, [], 0, 200
-        ), "Single batch"
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 0, 200), (
+            "Single batch"
+        )
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
@@ -167,9 +167,9 @@ class TestBulkDataJobTaskMixin:
             "    <numberRecordsProcessed>10</numberRecordsProcessed>"
             "    </batch>"
             "</root>"
-        ) == DataOperationJobResult(
-            DataOperationStatus.ROW_FAILURE, [], 20, 400
-        ), "Multiple batches in single job"
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 20, 400), (
+            "Multiple batches in single job"
+        )
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
@@ -177,9 +177,9 @@ class TestBulkDataJobTaskMixin:
             "  <numberRecordsFailed>200</numberRecordsFailed>"
             "  <numberRecordsProcessed>10</numberRecordsProcessed>"
             "</root>"
-        ) == DataOperationJobResult(
-            DataOperationStatus.ROW_FAILURE, [], 10, 200
-        ), "Single batch"
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 10, 200), (
+            "Single batch"
+        )
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):
@@ -527,8 +527,12 @@ class TestBulkApiDmlOperation:
         step.bulk.get_all_results_for_query_batch.return_value = results
 
         records = iter([["Test1"], ["Test2"], ["Test3"]])
-        with mock.patch("json.load", side_effect=lambda result: result), mock.patch(
-            "salesforce_bulk.util.IteratorBytesIO", side_effect=lambda result: result
+        with (
+            mock.patch("json.load", side_effect=lambda result: result),
+            mock.patch(
+                "salesforce_bulk.util.IteratorBytesIO",
+                side_effect=lambda result: result,
+            ),
         ):
             prev_record_values, relevant_fields = step.get_prev_record_values(records)
 

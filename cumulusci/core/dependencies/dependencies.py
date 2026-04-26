@@ -56,9 +56,9 @@ def _validate_github_parameters(values):
 
     # Populate the `github` property if not already populated.
     if not values.get("github") and values.get("repo_name"):
-        values[
-            "github"
-        ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        values["github"] = (
+            f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        )
         values.pop("repo_owner")
         values.pop("repo_name")
 
@@ -67,12 +67,10 @@ def _validate_github_parameters(values):
 
 class DependencyPin(HashableBaseModel, abc.ABC):
     @abc.abstractmethod
-    def can_pin(self, d: "DynamicDependency") -> bool:
-        ...
+    def can_pin(self, d: "DynamicDependency") -> bool: ...
 
     @abc.abstractmethod
-    def pin(self, d: "DynamicDependency", context: BaseProjectConfig):
-        ...
+    def pin(self, d: "DynamicDependency", context: BaseProjectConfig): ...
 
 
 DependencyPin.update_forward_refs()

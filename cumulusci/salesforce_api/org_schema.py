@@ -151,6 +151,7 @@ class Schema:
 
     def block_writing(self):
         """After this method is called, the database can't be updated again"""
+
         # changes don't get saved back to the gzip
         # so there is no point writing to the DB
         def closed():
@@ -232,8 +233,7 @@ class Schema:
         metadata.reflect()
 
         with BufferedSession(engine, metadata) as sess:
-
-            for (sobj_data, last_modified) in describe_objs:
+            for sobj_data, last_modified in describe_objs:
                 sobj_data = sobj_data.copy()
                 fields = sobj_data.pop("fields")
                 sobj_data["last_modified_date"] = last_modified

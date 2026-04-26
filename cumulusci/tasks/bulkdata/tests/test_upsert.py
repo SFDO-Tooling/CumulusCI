@@ -236,9 +236,9 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == format(
-                DataApi.REST
-            ), relevant_debug_statement
+            assert relevant_debug_statement == format(DataApi.REST), (
+                relevant_debug_statement
+            )
 
     def _mock_bulk(self, domain):
         responses.add(
@@ -395,40 +395,43 @@ class TestUpsert:
 
         with mock.patch.object(task.logger, "debug"):
             ret = task()
-            assert ret == {
-                "step_results": {
-                    "Insert Accounts": {
-                        "sobject": "Account",
-                        "record_type": None,
-                        "status": DataOperationStatus.SUCCESS,
-                        "job_errors": [],
-                        "records_processed": 0,
-                        "total_row_errors": 0,
-                    },
-                    "Upsert Contacts": {
-                        "sobject": "Contact",
-                        "record_type": None,
-                        "status": DataOperationStatus.SUCCESS,
-                        "job_errors": [],
-                        "records_processed": 0,  # change here and above to 4 to match data
-                        "total_row_errors": 0,
-                    },
-                    "Insert Opportunities": {
-                        "sobject": "Opportunity",
-                        "record_type": None,
-                        "status": DataOperationStatus.SUCCESS,
-                        "job_errors": [],
-                        "records_processed": 0,
-                        "total_row_errors": 0,
-                    },
+            assert (
+                ret
+                == {
+                    "step_results": {
+                        "Insert Accounts": {
+                            "sobject": "Account",
+                            "record_type": None,
+                            "status": DataOperationStatus.SUCCESS,
+                            "job_errors": [],
+                            "records_processed": 0,
+                            "total_row_errors": 0,
+                        },
+                        "Upsert Contacts": {
+                            "sobject": "Contact",
+                            "record_type": None,
+                            "status": DataOperationStatus.SUCCESS,
+                            "job_errors": [],
+                            "records_processed": 0,  # change here and above to 4 to match data
+                            "total_row_errors": 0,
+                        },
+                        "Insert Opportunities": {
+                            "sobject": "Opportunity",
+                            "record_type": None,
+                            "status": DataOperationStatus.SUCCESS,
+                            "job_errors": [],
+                            "records_processed": 0,
+                            "total_row_errors": 0,
+                        },
+                    }
                 }
-            }, ret
+            ), ret
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement in format(
-                DataApi.BULK
-            ), relevant_debug_statement
+            assert relevant_debug_statement in format(DataApi.BULK), (
+                relevant_debug_statement
+            )
 
     def _test_two_upserts_and_check_results__complex(
         self, api, create_task, cumulusci_test_repo_root, sf
