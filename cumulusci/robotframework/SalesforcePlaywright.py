@@ -107,7 +107,8 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
 
         browser_id = self.browser.new_browser(browser=browser_enum, headless=headless)
         context_id = self.browser.new_context(
-            viewport={"width": width, "height": height}, recordVideo=record_video
+            viewport={"width": int(width), "height": int(height)},
+            recordVideo=record_video,
         )
         self.browser.set_browser_timeout("15 seconds")
         page_details = self.browser.new_page(login_url)

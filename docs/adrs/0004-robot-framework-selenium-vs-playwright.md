@@ -74,9 +74,10 @@ The PoC produced concrete evidence for this recommendation:
 
 **Track B — Playwright keyword port:**
 
--   **~8 keywords** were ported using accessibility-first selectors (`role=`, `text=`).
+-   **10 keywords** were ported using accessibility-first selectors (CSS, `text=`, SLDS classes).
 -   **Zero version-specific locators** were required.
 -   Playwright's **auto-wait** eliminated the need for `@selenium_retry` decorators entirely.
+-   Pre-existing bug in `SalesforcePlaywright.wait_until_salesforce_is_ready` prevents end-to-end execution (URL regex mismatch). Keywords are structurally correct; test infrastructure needs a separate fix.
 
 **Shadow DOM evidence:** The actions ribbon and List View Controls button are confirmed to render inside shadow DOM. This class of failure grows with each API version as Salesforce migrates more components from Aura to LWC.
 
