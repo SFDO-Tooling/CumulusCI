@@ -42,7 +42,6 @@ jobs:
     unit_tests:
         name: "Unit tests: ${{ matrix.os }}-${{ matrix.python-version }}"
         runs-on: ${{ matrix.os }}
-        continue-on-error: ${{ matrix.python-version == '3.14' }}
         strategy:
             fail-fast: false
             matrix:
@@ -67,7 +66,6 @@ jobs:
     unit_tests_opt_deps:
         name: "Unit tests with optional dependencies: ${{ matrix.os }}-${{ matrix.python-version }}"
         runs-on: ${{ matrix.os }}
-        continue-on-error: ${{ matrix.python-version == '3.14' }}
         strategy:
             fail-fast: false
             matrix:
