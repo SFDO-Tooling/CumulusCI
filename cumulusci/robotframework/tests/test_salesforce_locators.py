@@ -19,10 +19,14 @@ class TestLocators:
         # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
         # we're not running in the context of a robot test. The library should
-        # return the latest version of the locators.
+        # fall back to the latest version since the mock doesn't reach the
+        # init path that resolves the API version from the org.
         sf = Salesforce()
 
-        expected = "cumulusci.robotframework.locators_57"
+        locator_folder = Path("./cumulusci/robotframework")
+        locator_modules = sorted(locator_folder.glob("locators_[0-9][0-9].py"))
+        expected = f"cumulusci.robotframework.{locator_modules[-1].stem}"
+
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         assert expected == actual, message
