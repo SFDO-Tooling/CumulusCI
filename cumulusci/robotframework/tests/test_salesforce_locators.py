@@ -71,3 +71,17 @@ class TestLocators:
         )
         assert len(keys_56) > 0
         assert keys_57.issubset(keys_56)
+
+    def test_locators_66(self):
+        """Verify that locators_66 is a superset of locators_57"""
+        import cumulusci.robotframework.locators_57 as locators_57
+        import cumulusci.robotframework.locators_66 as locators_66
+
+        keys_57 = set(locators_57.lex_locators)
+        keys_66 = set(locators_66.lex_locators)
+
+        assert id(locators_57.lex_locators) != id(locators_66.lex_locators), (
+            "locators_57.lex_locators and locators_66.lex_locators are the same object"
+        )
+        assert len(keys_57) > 0
+        assert keys_66.issubset(keys_57)
