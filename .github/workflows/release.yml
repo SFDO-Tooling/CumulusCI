@@ -5,6 +5,7 @@ on:
         branches:
             - main
             - dev
+    workflow_dispatch:
 
 concurrency: publishing
 
@@ -13,7 +14,8 @@ jobs:
         name: Publish new release to PyPI
         runs-on: SFDO-Tooling-Ubuntu
         if: >-
-            (github.ref_name == 'main' && contains(github.event.head_commit.modified, 'cumulusci/__about__.py'))
+            (github.event_name == 'workflow_dispatch')
+            || (github.ref_name == 'main' && contains(github.event.head_commit.modified, 'cumulusci/__about__.py'))
             || (github.ref_name == 'dev' && github.actor != 'github-actions[bot]')
         steps:
             - uses: actions/checkout@v4
