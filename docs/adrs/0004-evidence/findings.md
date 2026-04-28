@@ -9,7 +9,7 @@
 
 -   Isolated venv at `/tmp/selenium4-poc/` with `selenium==4.43.0` and headless Chrome.
 -   Authenticated via Salesforce frontdoor URL (`/secur/frontdoor.jsp?sid=<access_token>`).
--   Two scripts: `selenium4_verify_shadow_dom.py` (overall capability) and `selenium4_measure_nesting.py` (depth measurement).
+-   Two scripts: [`verify_shadow_dom.py`](verify_shadow_dom.py) (overall capability) and [`measure_nesting.py`](measure_nesting.py) (depth measurement).
 
 ## Measurements
 
@@ -46,8 +46,8 @@ For the Account list view alone, with 452 shadow roots, anything that depends on
 # In a clean tmpdir
 uv venv .venv --python 3.13
 uv pip install --python ./.venv 'selenium>=4'
-./.venv/bin/python selenium4_verify_shadow_dom.py
-./.venv/bin/python selenium4_measure_nesting.py
+./.venv/bin/python verify_shadow_dom.py
+./.venv/bin/python measure_nesting.py
 ```
 
 Requires `sf` CLI authenticated against an org alias and the script edited to point at it.
