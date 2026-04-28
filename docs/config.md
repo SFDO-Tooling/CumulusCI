@@ -680,7 +680,7 @@ The `--extra-yaml PATH` flag on `cci flow run`, `cci flow info`,
 `cci task run`, and `cci task info` merges an additional YAML file
 into the project config for a single command invocation. Multiple
 files are deep-merged in order (later files win); the
-`CUMULUSCI_EXTRA_YAML` environment variable (colon-separated paths)
+`CUMULUSCI_EXTRA_YAML` environment variable (comma-separated paths)
 is honored as a fallback. See [the CLI reference](cli.md#the-extra-yaml-flag)
 for usage and security implications.
 
