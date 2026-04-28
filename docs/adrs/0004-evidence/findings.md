@@ -20,7 +20,7 @@
 | Shadow boundary depth from button to `<body>`                  | **6 hops**                                                                                                                                                                  |
 | Host chain (button → outer)                                    | `lightning-button-menu` → `lst-list-view-manager-settings-menu` → `lst-list-view-manager-header` → `lst-common-list-internal` → `lst-list-view-manager` → `lst-object-home` |
 | Outermost host (`lst-object-home`) findable in light DOM?      | **Yes (1 match)**                                                                                                                                                           |
-| Selenium 4 chained `shadow_root` traversal feasible?           | Yes, but requires **7 `find_element` + 6 `shadow_root` accesses** (~14 lines of Python per element)                                                                         |
+| Selenium 4 chained `shadow_root` traversal feasible?           | Yes, but requires **7 `find_element` + 6 `shadow_root` accesses + 1 final action = ~14 statements** of Python per element                                                   |
 | Playwright equivalent                                          | `page.get_by_role("button", name="List View Controls").click()` — 1 line, auto-pierces all 6 boundaries                                                                     |
 
 ## Implications
@@ -32,13 +32,13 @@
 
 ## Cost ratio for shadow-DOM-bound elements
 
-| Path                                                | Lines per element | Stability of selectors                  | Per-version maintenance        |
-| --------------------------------------------------- | ----------------- | --------------------------------------- | ------------------------------ |
-| Selenium 3 (current)                                | N/A — unfixable   | N/A                                     | Growing failures every release |
-| Selenium 4 chained traversal                        | ~14               | LWC-internal names (brittle, like Aura) | Per-release rewrites likely    |
-| Playwright (`get_by_role`, `text=`, `data-testid=`) | 1                 | ARIA / SLDS public contract             | Near-zero                      |
+| Path                                                | Statements per element | Stability of selectors                  | Per-version maintenance        |
+| --------------------------------------------------- | ---------------------- | --------------------------------------- | ------------------------------ |
+| Selenium 3 (current)                                | N/A — unfixable        | N/A                                     | Growing failures every release |
+| Selenium 4 chained traversal                        | ~14                    | LWC-internal names (brittle, like Aura) | Per-release rewrites likely    |
+| Playwright (`get_by_role`, `text=`, `data-testid=`) | 1                      | ARIA / SLDS public contract             | Near-zero                      |
 
-For the Account list view alone, with 452 shadow roots, anything that depends on a shadow-DOM-bound element pays this 14× verbosity tax under Selenium 4.
+For this single measured element, the Selenium 4 path is ~14× more verbose than the Playwright path. The 452 shadow-host count above describes how heavily Lightning is LWC-componentized on this page; it is a count of shadow hosts, not of unreachable elements. Other shadow-DOM-bound elements in the test suite may be 1–2 hops shallow or 6+ hops deep — we did not measure the distribution.
 
 ## Reproducibility
 
