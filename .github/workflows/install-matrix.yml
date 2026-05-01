@@ -48,7 +48,7 @@ jobs:
 
             - name: uv tool install from wheel
               shell: bash
-              run: uv tool install --with keyrings.alt "$CCI_WHEEL"
+              run: uv tool install --with keyrings.alt --with pip "$CCI_WHEEL"
 
             - name: Smoke - cci version
               shell: bash
