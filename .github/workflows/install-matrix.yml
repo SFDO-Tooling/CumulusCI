@@ -1,0 +1,99 @@
+name: install-matrix
+
+on:
+    push:
+        branches: [dev]
+        paths:
+            - ".github/workflows/install-matrix.yml"
+            - "utility/install_matrix/**"
+            - "pyproject.toml"
+            - "cumulusci/**"
+    workflow_dispatch:
+    schedule:
+        # Monday 12:00 UTC
+        - cron: "0 12 * * 1"
+
+jobs:
+    install-smoke:
+        name: install-smoke (${{ matrix.os }})
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, macos-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install uv
+              uses: SFDO-Tooling/setup-uv@v3
+
+            - name: Build wheel
+              shell: bash
+              run: uv build --wheel
+
+            - name: Locate wheel (bash)
+              if: runner.os != 'Windows'
+              shell: bash
+              run: |
+                  wheel=$(ls dist/cumulusci-*.whl)
+                  echo "CCI_WHEEL=$wheel" >> "$GITHUB_ENV"
+
+            - name: Locate wheel (PowerShell)
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  $wheel = (Get-ChildItem dist/cumulusci-*.whl | Select-Object -First 1).FullName
+                  "CCI_WHEEL=$wheel" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+            - name: uv tool install from wheel
+              shell: bash
+              run: uv tool install --with keyrings.alt "$CCI_WHEEL"
+
+            - name: Smoke - cci version
+              shell: bash
+              run: cci version
+
+            - name: Smoke - keyring round-trip
+              shell: bash
+              env:
+                  # On headless Linux runners the native secret service is unavailable,
+                  # so we select a file-backed plaintext backend via keyrings.alt
+                  # (injected into the tool env by --with above). On macOS and Windows
+                  # the native Keychain / Credential Manager backends work out of box.
+                  PYTHON_KEYRING_BACKEND: ${{ runner.os == 'Linux' && 'keyrings.alt.file.PlaintextKeyring' || '' }}
+              run: |
+                  # Run the smoke script inside the cci tool venv so we exercise the
+                  # same interpreter and wheels that uv tool install provisioned.
+                  uv tool run --from cumulusci python utility/install_matrix/keyring_smoke.py
+
+            - name: Smoke - cci task list
+              shell: bash
+              run: cci task list | grep -q update_dependencies
+
+            - name: Smoke - cci robot install_playwright
+              shell: bash
+              run: cci robot install_playwright
+
+            - name: Verify Playwright driver dir
+              shell: bash
+              run: |
+                  python - <<'PY'
+                  import os, pathlib, sys
+                  candidates = [
+                      pathlib.Path.home() / "Library" / "Caches" / "ms-playwright",
+                      pathlib.Path.home() / ".cache" / "ms-playwright",
+                      pathlib.Path(os.environ.get("LOCALAPPDATA", "")) / "ms-playwright",
+                  ]
+                  for c in candidates:
+                      if c.exists() and any(c.iterdir()):
+                          print(f"OK: {c}")
+                          sys.exit(0)
+                  print("FAIL: no Playwright cache directory found", file=sys.stderr)
+                  sys.exit(1)
+                  PY
+
+            - name: uv tool uninstall
+              if: always()
+              shell: bash
+              run: uv tool uninstall cumulusci || true
