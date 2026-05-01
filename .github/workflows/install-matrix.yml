@@ -73,7 +73,23 @@ jobs:
 
             - name: Smoke - cci robot install_playwright
               shell: bash
-              run: cci robot install_playwright
+              run: |
+                  set -euo pipefail
+                  cci_path=$(command -v cci)
+                  uv_path=$(command -v uv)
+                  uv_dir=$(dirname "$uv_path")
+
+                  new_path=()
+                  IFS=':' read -r -a path_parts <<< "$PATH"
+                  for path_part in "${path_parts[@]}"; do
+                      if [[ "$path_part" != "$uv_dir" ]]; then
+                          new_path+=("$path_part")
+                      fi
+                  done
+                  new_path_value=$(IFS=:; echo "${new_path[*]}")
+                  export PATH="$new_path_value"
+
+                  "$cci_path" robot install_playwright
 
             - name: Verify Playwright driver dir
               shell: bash
