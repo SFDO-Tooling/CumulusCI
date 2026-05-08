@@ -115,7 +115,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
                 else sobject
             )
 
-            result = self.sf.query(
+            result = self.org_config.salesforce_client.query(
                 f"SELECT ExternalSharingModel, InternalSharingModel "
                 f"FROM EntityDefinition "
                 f"WHERE QualifiedApiName = '{real_api_name}'"
