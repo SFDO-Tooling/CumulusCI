@@ -4,6 +4,12 @@ import unittest
 import zipfile
 from unittest.mock import MagicMock, Mock, call, patch
 
+import pytest
+
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+)
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
 from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
@@ -265,6 +271,119 @@ class TestRestDeploy(unittest.TestCase):
                     [],
                 )
                 self.assertEqual(deployer.purge_on_delete, expected_result)
+
+
+class TestRestDeployRaisesOnFailure(unittest.TestCase):
+    """Regression tests for SFDO-Tooling/CumulusCI#3938.
+
+    The REST deploy path silently returned success when Salesforce reported a
+    deployment failure (either an initial-POST error or a polled "Failed"
+    status). It should raise MetadataApiError/MetadataComponentFailure to
+    mirror the SOAP path's behaviour so downstream callers see the failure.
+    """
+
+    def setUp(self):
+        self.mock_logger = Mock()
+        self.mock_task = MagicMock()
+        self.mock_task.logger = self.mock_logger
+        self.mock_task.org_config.instance_url = "https://example.com"
+        self.mock_task.org_config.access_token = "dummy_token"
+        self.mock_task.project_config.project__package__api_version = (
+            CURRENT_SF_API_VERSION
+        )
+        self.mock_zip = generate_sample_zip_data()
+
+    @patch("requests.post")
+    @patch("requests.get")
+    def test_rest_deploy_raises_on_failure(self, mock_get, mock_post):
+        response_post = Mock(status_code=201)
+        response_post.json.return_value = {"id": "dummy_id"}
+        mock_post.return_value = response_post
+
+        response_get = Mock(status_code=200)
+        response_get.json.side_effect = [
+            {"deployResult": {"status": "InProgress"}},
+            {
+                "deployResult": {
+                    "status": "Failed",
+                    "details": {
+                        "componentFailures": [
+                            {
+                                "problemType": "Error",
+                                "fileName": "metadata/classes/mockfile1.cls",
+                                "problem": "someproblem1",
+                                "lineNumber": 1,
+                                "columnNumber": 1,
+                            }
+                        ]
+                    },
+                }
+            },
+        ]
+        mock_get.return_value = response_get
+
+        deployer = RestDeploy(
+            self.mock_task, self.mock_zip, False, False, "NoTestRun", []
+        )
+
+        with pytest.raises(MetadataApiError) as exc_info:
+            deployer()
+
+        assert "someproblem1" in str(exc_info.value)
+        assert "mockfile1.cls" in str(exc_info.value)
+
+    @patch("requests.post")
+    @patch("requests.get")
+    def test_rest_deploy_raises_component_failure_subclass(self, mock_get, mock_post):
+        response_post = Mock(status_code=201)
+        response_post.json.return_value = {"id": "dummy_id"}
+        mock_post.return_value = response_post
+
+        response_get = Mock(status_code=200)
+        response_get.json.side_effect = [
+            {
+                "deployResult": {
+                    "status": "Failed",
+                    "details": {
+                        "componentFailures": [
+                            {
+                                "problemType": "Error",
+                                "fileName": "metadata/objects/mockfile2.obj",
+                                "problem": "someproblem2",
+                                "lineNumber": 2,
+                                "columnNumber": 2,
+                            }
+                        ]
+                    },
+                }
+            },
+        ]
+        mock_get.return_value = response_get
+
+        deployer = RestDeploy(
+            self.mock_task, self.mock_zip, False, False, "NoTestRun", []
+        )
+
+        with pytest.raises(MetadataComponentFailure):
+            deployer()
+
+    @patch("requests.post")
+    def test_rest_deploy_raises_on_initial_post_failure(self, mock_post):
+        response_post = Mock(status_code=500, text="Internal Server Error")
+        response_post.json.return_value = {
+            "message": "boom",
+            "errorCode": "INTERNAL_ERROR",
+        }
+        mock_post.return_value = response_post
+
+        deployer = RestDeploy(
+            self.mock_task, self.mock_zip, False, False, "NoTestRun", []
+        )
+
+        with pytest.raises(MetadataApiError) as exc_info:
+            deployer()
+
+        assert "500" in str(exc_info.value) or "boom" in str(exc_info.value)
 
 
 if __name__ == "__main__":
