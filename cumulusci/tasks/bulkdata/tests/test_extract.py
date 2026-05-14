@@ -811,6 +811,58 @@ class TestExtractData:
         )
         task.session.commit.assert_called_once_with()
 
+    def test_convert_lookups_to_id__unresolvable_lookups_warns_not_raises(self, caplog):
+        """Regression test for #3854.
+
+        When a lookup column has values that do not resolve to any record in the
+        related table (e.g. polymorphic lookups whose source rows reference
+        records filtered out of the extract, or references to standard org
+        records like the Standard Pricebook that are intentionally not
+        extracted), the validation introduced in PR #3741 / commit 2c5d0056e
+        used to raise ``ConfigError``. That broke ``capture_sample_data`` for
+        common real-world configurations (see issue #3854). The expectation
+        post-fix: no exception is raised; a warning is logged instead.
+        """
+        task = _make_task(
+            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+        )
+
+        task.session = mock.Mock()
+        task.models = {
+            "Account": mock.Mock(),
+            "Account_sf_ids": mock.Mock(),
+            "Opportunity": mock.Mock(),
+            "Opportunity_sf_ids": mock.Mock(),
+        }
+        task.mapping = {
+            "Account": MappingStep(sf_object="Account"),
+            "Opportunity": MappingStep(sf_object="Opportunity"),
+        }
+
+        # 0 rows updated (no source values matched any sf_id in related table)
+        task.session.query.return_value.filter.return_value.update.return_value.rowcount = 0
+        # But 3 source rows have non-empty values in the lookup column.
+        task.session.query.return_value.filter.return_value.count.return_value = 3
+
+        # Should NOT raise; should warn and continue.
+        task._convert_lookups_to_id(
+            MappingStep(
+                sf_object="Opportunity",
+                lookups={"AccountId": MappingLookup(table="Account", name="AccountId")},
+            ),
+            ["AccountId"],
+        )
+
+        task.session.commit.assert_called_once_with()
+        # Diagnostic info preserved as a warning.
+        assert any(
+            "AccountId" in record.message and record.levelname == "WARNING"
+            for record in caplog.records
+        ), (
+            "Expected a warning about the unresolvable AccountId lookup, "
+            f"got: {[(r.levelname, r.message) for r in caplog.records]}"
+        )
+
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
     def test_create_table(self, mapper_mock, create_mock):
