@@ -10,7 +10,6 @@ from sqlalchemy import create_engine
 
 from cumulusci.core.exceptions import (
     BulkDataException,
-    ConfigError,
     CumulusCIException,
     TaskOptionsError,
 )
@@ -481,8 +480,15 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
-    def test_run__poly__incomplete_mapping(self, query_op_mock):
-        """Test for polymorphic lookups with incomplete mapping file"""
+    def test_run__poly__incomplete_mapping(self, query_op_mock, caplog):
+        """Lookup whose source rows reference records not in the related table.
+
+        Prior to the fix for #3854 this raised ``ConfigError``. That broke
+        legitimate configurations (e.g. ``capture_sample_data`` against orgs
+        where rows reference standard records like the Standard Pricebook
+        which are intentionally not extracted). The current contract: log a
+        warning and continue, leaving unresolved lookup values untouched.
+        """
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_poly_incomplete)
         mock_describe_calls()
@@ -520,11 +526,20 @@ class TestExtractData:
             ]
 
             query_op_mock.side_effect = [mock_query_households, mock_query_events]
-            with pytest.raises(ConfigError) as e:
-                task()
+            task()
 
-            assert "Total mapping operations" in str(e.value)
-            assert "do not match total non-empty rows" in str(e.value)
+            warning_messages = [
+                record.message
+                for record in caplog.records
+                if record.levelname == "WARNING"
+                and "Total mapping operations" in record.message
+            ]
+            assert warning_messages, (
+                "Expected a warning about unresolvable lookup rows, got: "
+                f"{[(r.levelname, r.message) for r in caplog.records]}"
+            )
+            assert "do not match total non-empty rows" in warning_messages[0]
+            assert "WhoId" in warning_messages[0]
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
