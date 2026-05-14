@@ -48,7 +48,7 @@ def _stub_browser_library():
 
 
 @pytest.mark.xfail(
-    reason=("repro for #3955 — see docs/triage/v5/repro-results.md"),
+    reason=("repro for #3955 - see docs/triage/v5/repro-results.md"),
     strict=False,
 )
 def test_open_test_browser_passes_int_viewport_to_playwright():

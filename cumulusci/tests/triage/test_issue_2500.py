@@ -1,4 +1,4 @@
-"""Repro for SFDO-Tooling/CumulusCI#2500 — ``ignore_failure`` is not documented.
+"""Repro for SFDO-Tooling/CumulusCI#2500 - ``ignore_failure`` is not documented.
 
 The ``ignore_failure`` flow-step option has existed since flowrunner was
 introduced (see ``cumulusci/core/flowrunner.py`` and
@@ -11,7 +11,7 @@ Flow Step") or "Skip a Flow Step".
 
 This test pins down both halves of the gap:
 
-1. ``ignore_failure`` is a recognised step-level option (sanity check —
+1. ``ignore_failure`` is a recognised step-level option (sanity check -
    the feature really exists and we are not chasing a phantom doc).
 2. ``docs/config.md`` contains a narrative section that documents it.
 
@@ -37,7 +37,7 @@ CONFIG_DOC = REPO_ROOT / "docs" / "config.md"
 
 
 @pytest.mark.xfail(
-    reason="repro for #2500 — see docs/triage/v5/repro-results.md",
+    reason="repro for #2500 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_ignore_failure_has_narrative_docs_section():

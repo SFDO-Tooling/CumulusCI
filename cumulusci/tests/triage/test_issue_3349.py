@@ -31,7 +31,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 
 
 @pytest.mark.xfail(
-    reason="repro for #3349 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3349 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3349():
     step_business = MappingStep(

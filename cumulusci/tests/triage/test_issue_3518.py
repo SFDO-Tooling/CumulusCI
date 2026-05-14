@@ -8,7 +8,7 @@ Root cause: cumulusci/tasks/metadata_etl/picklists.py line 177 reads:
 
     default = str(process_bool_arg(entry.get("default", False))).lower
 
-The `.lower` is referenced as an attribute, not invoked — so
+The `.lower` is referenced as an attribute, not invoked - so
 `default` ends up bound to the `str.lower` method itself (a callable
 object, always truthy). The subsequent guard at line 214
 (`if default:`) therefore always runs the default-clobbering loop,
@@ -29,7 +29,7 @@ from cumulusci.core.utils import process_bool_arg
 
 
 @pytest.mark.xfail(
-    reason="repro for #3518 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3518 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3518():
     # Mirrors the exact expression at picklists.py:177

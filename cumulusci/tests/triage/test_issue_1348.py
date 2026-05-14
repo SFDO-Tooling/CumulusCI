@@ -12,7 +12,7 @@ Root cause: CumulusCI is GitHub-only. There are no `gitlab` or
 other providers can use CumulusCI.
 
 This test loads the universal cumulusci.yml and asserts that
-`ci_feature` does NOT step into any GitHub-specific task —
+`ci_feature` does NOT step into any GitHub-specific task -
 which it does today, so this fails -> XFAIL.
 """
 
@@ -25,7 +25,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #1348 — see docs/triage/v5/repro-results.md",
+    reason="repro for #1348 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_1348():

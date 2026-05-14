@@ -28,7 +28,7 @@ import cumulusci.tasks.create_package_version as _cpv_mod
 
 
 @pytest.mark.xfail(
-    reason="repro for #3721 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3721 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3721():
     src = pathlib.Path(_cpv_mod.__file__).read_text(encoding="utf-8")

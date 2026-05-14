@@ -12,7 +12,7 @@ returned `ReleaseState` is `Beta`, sets `minor_version` to that
 row's `MinorVersion`. When a customer has the typical pattern
 (Released 6.13 followed by Beta patch 6.13.1), the query
 returns the Beta patch and the next upload is built with
-`minor_version=13` — identical to the already-Released minor.
+`minor_version=13` - identical to the already-Released minor.
 The PackageUploadRequest is rejected with
 ``FIELD_INTEGRITY_EXCEPTION: The version number must be greater
 than the last Managed - Released version number: 6.13``.
@@ -31,7 +31,7 @@ from cumulusci.tasks.salesforce.package_upload import PackageUpload
 
 
 @pytest.mark.xfail(
-    reason="repro for #3734 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3734 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3734():

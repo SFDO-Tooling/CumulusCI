@@ -26,7 +26,7 @@ from cumulusci.tasks.metadata.package import PackageXmlGenerator
 
 
 @pytest.mark.xfail(
-    reason="repro for #2826 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2826 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2826():
     with tempfile.TemporaryDirectory() as tmp:

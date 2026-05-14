@@ -28,7 +28,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #1769 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #1769 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_1769():
     test_load_path = (

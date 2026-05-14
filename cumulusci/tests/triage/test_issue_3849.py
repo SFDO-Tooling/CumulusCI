@@ -55,7 +55,7 @@ def _has_selenium_pin(deps: list[str], pkg: str) -> bool:
 
 
 @pytest.mark.xfail(
-    reason=("repro for #3849 — see docs/triage/v5/repro-results.md"),
+    reason=("repro for #3849 - see docs/triage/v5/repro-results.md"),
     strict=False,
 )
 def test_urllib3_or_selenium_modernized():

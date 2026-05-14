@@ -31,7 +31,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #3024 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3024 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3024():
     cci_root = Path(cumulusci.__file__).parent
@@ -45,7 +45,7 @@ def test_issue_3024():
             seen.append(group)
 
     assert "Continuous Integration" in seen, (
-        "'Continuous Integration' group missing from cumulusci.yml — test needs updating"
+        "'Continuous Integration' group missing from cumulusci.yml - test needs updating"
     )
     ci_pos = seen.index("Continuous Integration")
     halfway = len(seen) // 2

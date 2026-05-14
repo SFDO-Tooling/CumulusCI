@@ -25,7 +25,7 @@ from cumulusci.cli.runtime import CliRuntime
 
 
 @pytest.mark.xfail(
-    reason="repro for #2140 — see docs/triage/v5/repro-results.md",
+    reason="repro for #2140 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_2140():

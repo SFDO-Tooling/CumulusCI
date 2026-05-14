@@ -33,7 +33,7 @@ import cumulusci.cli.utils as cli_utils
 
 
 @pytest.mark.xfail(
-    reason="repro for #3754 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3754 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3754():
     src = inspect.getsource(cli_utils)

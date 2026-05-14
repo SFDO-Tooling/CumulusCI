@@ -28,7 +28,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 
 
 @pytest.mark.xfail(
-    reason="repro for #3701 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3701 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3701():
     candidate_attrs = ("primary_key", "id_field", "external_id", "pk_field")

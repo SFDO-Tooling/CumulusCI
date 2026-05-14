@@ -25,7 +25,7 @@ from cumulusci.cli.project import project_init
 
 
 @pytest.mark.xfail(
-    reason="repro for #3307 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3307 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3307():
     param_names = {p.name for p in project_init.params}

@@ -1,4 +1,4 @@
-"""Repro for CumulusCI issue #3541 — scratch org alias becomes ``None__<org>``.
+"""Repro for CumulusCI issue #3541 - scratch org alias becomes ``None__<org>``.
 
 When :pyfunc:`BaseProjectKeychain.create_scratch_org` builds the SFDX alias it
 does::
@@ -8,14 +8,14 @@ does::
     )
 
 If ``project__name`` evaluates to ``None`` (no ``project.name`` in the loaded
-config, or the project hasn't fully resolved yet — e.g. during the eager
+config, or the project hasn't fully resolved yet - e.g. during the eager
 ``_load_scratch_orgs`` pass on keychain construction) the resulting alias is
 the literal string ``"None__<org>"``.  That string is then passed to
 ``sfdx force config set target-org=None__dev`` which is exactly what
 the reporter (and at least one other commenter) saw.
 
 Correct behaviour: either fall back to ``org_name`` alone or raise a clear
-CumulusCIException — *never* embed the literal Python repr of ``None`` in a
+CumulusCIException - *never* embed the literal Python repr of ``None`` in a
 shell argument.
 
 No scratch org / network required.
@@ -30,7 +30,7 @@ from cumulusci.core.keychain import BaseProjectKeychain
 
 
 @pytest.mark.xfail(
-    reason=("repro for #3541 — see docs/triage/v5/repro-results.md"),
+    reason=("repro for #3541 - see docs/triage/v5/repro-results.md"),
     strict=False,
 )
 def test_create_scratch_org_without_project_name_does_not_yield_None_alias():
@@ -49,21 +49,21 @@ def test_create_scratch_org_without_project_name_does_not_yield_None_alias():
     alias = keychain.get_org("dev").config["sfdx_alias"]
 
     assert "None" not in alias.split("__"), (
-        f"sfdx_alias is {alias!r} — literal 'None' should never appear in a "
+        f"sfdx_alias is {alias!r} - literal 'None' should never appear in a "
         "shell-bound SFDX alias. Expected fallback to 'dev' or a raised "
         "CumulusCIException."
     )
 
 
 @pytest.mark.xfail(
-    reason=("repro for #3541 — see docs/triage/v5/repro-results.md"),
+    reason=("repro for #3541 - see docs/triage/v5/repro-results.md"),
     strict=False,
 )
 def test_load_scratch_orgs_on_keychain_init_does_not_yield_None_alias():
     """During keychain construction ``_load_scratch_orgs`` eagerly invokes
     ``create_scratch_org`` for every scratch config in cumulusci.yml.  If
     project.name resolves to None at that moment, every eagerly-created org
-    inherits a ``None__<config>`` alias — and the user only notices when
+    inherits a ``None__<config>`` alias - and the user only notices when
     ``cci org info dev`` finally runs sfdx with target-org=None__dev."""
     universal_config = UniversalConfig()
     project_config = BaseProjectConfig(

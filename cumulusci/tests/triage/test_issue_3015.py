@@ -23,7 +23,7 @@ from cumulusci.cli.org import org_remove
 
 
 @pytest.mark.xfail(
-    reason="repro for #3015 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3015 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3015():

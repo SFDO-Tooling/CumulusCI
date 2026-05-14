@@ -38,7 +38,7 @@ class _DummyResponse:
 
 
 @pytest.mark.xfail(
-    reason="repro for #3603 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3603 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3603():
     project_config = mock.Mock()

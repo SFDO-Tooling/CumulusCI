@@ -13,12 +13,12 @@ master-detail child after creation), so
 ``_check_field_permission`` returns ``False`` for the MD lookup on an
 upsert mapping. ``_validate_field_dict`` then errors with
 ``Field xxx__c does not have the correct permissions ('updateable',
-'createable') for this operation`` — exactly the symptom #3700 reports.
+'createable') for this operation`` - exactly the symptom #3700 reports.
 
 The fix is a field-shape-aware permission check: for upsert lookup
 fields that look like master-detail (``cascadeDelete: True``,
 ``updateable: False``, ``createable: True``), accept ``createable``
-alone — the MD lookup never gets updated post-insert anyway.
+alone - the MD lookup never gets updated post-insert anyway.
 
 This test simulates ``_check_field_permission`` against an MD-shaped
 describe and asserts the call returns ``True`` for an UPSERT operation.
@@ -33,7 +33,7 @@ from cumulusci.tasks.bulkdata.step import DataOperationType
 
 
 @pytest.mark.xfail(
-    reason="repro for #3700 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3700 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3700():
     step = MappingStep(

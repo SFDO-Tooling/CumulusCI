@@ -6,7 +6,7 @@ This xfail marker will be removed by the corresponding fix-PR.
 
 Root cause: `cci flow run -o key value` in
 cumulusci/cli/flow.py parses each `-o` pair by doing
-`task_name, option_name = key.split("__")` — an exact 2-way
+`task_name, option_name = key.split("__")` - an exact 2-way
 unpack. Passing the user-desired form
 `-o project__custom__myattr value` triggers
 ``ValueError: too many values to unpack (expected 2)`` because
@@ -26,7 +26,7 @@ from cumulusci.cli import flow as flow_cli
 
 
 @pytest.mark.xfail(
-    reason="repro for #3492 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3492 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3492():

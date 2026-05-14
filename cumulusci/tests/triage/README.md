@@ -29,15 +29,15 @@ issue.
     -   Fix-PR removes the `@pytest.mark.xfail` marker.
     -   Fix-PR confirms the test now passes.
     -   Fix-PR moves the test out of this directory to its natural
-        home (e.g. `cumulusci/tasks/<module>/tests/`) — or leaves it
+        home (e.g. `cumulusci/tasks/<module>/tests/`) - or leaves it
         here with the marker removed, whichever is cleaner.
 
 ## See also
 
--   `docs/triage/v5/repro-results.md` — narrative evidence per issue.
--   `docs/triage/v5/fix-sketches/issue_<NNNN>.md` — proposed fix
+-   `docs/triage/v5/repro-results.md` - narrative evidence per issue.
+-   `docs/triage/v5/fix-sketches/issue_<NNNN>.md` - proposed fix
     approach per issue.
--   `docs/triage/v5/proposals.md` — pass-1 classification matrix.
+-   `docs/triage/v5/proposals.md` - pass-1 classification matrix.
 
 ## Running
 
@@ -46,5 +46,5 @@ uv run pytest cumulusci/tests/triage/ -v
 ```
 
 Expected outcome: every test reports `XFAIL`. If any reports `XPASS`,
-that is signal that a bug resolved independently — see the harvest
+that is signal that a bug resolved independently - see the harvest
 xpass list in `docs/triage/v5/` (if present).

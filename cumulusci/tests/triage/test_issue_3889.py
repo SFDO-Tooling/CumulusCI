@@ -7,12 +7,12 @@ This xfail marker will be removed by the corresponding fix-PR.
 Root cause: CumulusCI exposes uninstall tasks only for 1GP managed
 packages (via namespace + InstalledPackage destructiveChanges):
 
-  - cumulusci/cumulusci.yml:615-642 — uninstall_managed,
+  - cumulusci/cumulusci.yml:615-642 - uninstall_managed,
     uninstall_packaged, uninstall_packaged_incremental, uninstall_src,
     uninstall_pre, uninstall_post. None accept a 04t id.
-  - cumulusci/tasks/salesforce/UninstallPackage.py — `UninstallPackage`
+  - cumulusci/tasks/salesforce/UninstallPackage.py - `UninstallPackage`
     only accepts `namespace` and `purge_on_delete`.
-  - cumulusci/salesforce_api/package_zip.py — `UninstallPackageZipBuilder`
+  - cumulusci/salesforce_api/package_zip.py - `UninstallPackageZipBuilder`
     writes destructiveChanges referencing InstalledPackage by namespace;
     no 04t code path.
 
@@ -35,7 +35,7 @@ from cumulusci.tasks.salesforce.UninstallPackage import UninstallPackage
 
 
 @pytest.mark.xfail(
-    reason="repro for #3889 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3889 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3889():
     options = set(UninstallPackage.task_options.keys())

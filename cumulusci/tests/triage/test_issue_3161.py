@@ -7,8 +7,8 @@ This xfail marker will be removed by the corresponding fix-PR.
 Root cause: flowrunner.py:300-320 supports masking task options via
 `info.get("sensitive")`, but the Robot `vars` option in
 cumulusci/tasks/robotframework/robotframework.py:54-56 is NOT marked
-`sensitive: True`. The user's specific request — mask multi-line
-GitHub Actions secrets passed via `-o robot__vars …` — is therefore
+`sensitive: True`. The user's specific request - mask multi-line
+GitHub Actions secrets passed via `-o robot__vars …` - is therefore
 not protected by the existing infrastructure.
 
 The minimal fix is to mark Robot's `vars` option `sensitive: True`
@@ -25,7 +25,7 @@ from cumulusci.tasks.robotframework.robotframework import Robot
 
 
 @pytest.mark.xfail(
-    reason="repro for #3161 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3161 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3161():
     vars_option = Robot.task_options.get("vars", {})

@@ -22,7 +22,7 @@ from cumulusci.tasks.salesforce.Deploy import Deploy
 
 
 @pytest.mark.xfail(
-    reason="repro for #3549 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3549 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3549():

@@ -6,7 +6,7 @@ This xfail marker will be removed by the corresponding fix-PR.
 
 Root cause: `ExtractData._soql_for_mapping` in
 cumulusci/tasks/bulkdata/extract.py:132-146 builds the SOQL with
-`WHERE` only — there is no `ORDER BY` clause. The
+`WHERE` only - there is no `ORDER BY` clause. The
 `MappingStep` model in
 cumulusci/tasks/bulkdata/mapping_parser.py has no `order_by` /
 `sort` field. The user-facing workaround (`soql_filter: "...
@@ -24,7 +24,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 
 
 @pytest.mark.xfail(
-    reason="repro for #3699 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3699 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3699():

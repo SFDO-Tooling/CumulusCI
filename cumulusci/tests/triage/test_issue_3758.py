@@ -10,7 +10,7 @@ Semantically a push-upgrade targets a managed-package UAT sandbox,
 so the final step should be `flow: config_managed`, not
 `config_qa`. The two flows currently expand to the same task list
 (`deploy_post`, `update_admin_profile`, `load_sample_data`) so
-behavior is equivalent today — but semantics drift over time and
+behavior is equivalent today - but semantics drift over time and
 the docs link customers to the wrong flow page.
 
 A real fix is a one-line YAML change: `flow: config_qa` ->
@@ -30,7 +30,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #3758 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3758 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3758():
     cumulusci_yml = Path(cumulusci.__file__).parent / "cumulusci.yml"

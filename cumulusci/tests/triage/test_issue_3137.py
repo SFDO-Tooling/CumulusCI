@@ -29,7 +29,7 @@ from cumulusci.tasks.metadata.package import CustomObjectParser
 
 
 @pytest.mark.xfail(
-    reason="repro for #3137 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3137 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3137():
     parser = CustomObjectParser.__new__(CustomObjectParser)

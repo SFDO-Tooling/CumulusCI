@@ -22,7 +22,7 @@ from cumulusci.tasks.dx_convert_from import DxConvertFrom
 
 
 @pytest.mark.xfail(
-    reason="repro for #3543 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3543 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3543():
     options = DxConvertFrom.task_options

@@ -27,7 +27,7 @@ from cumulusci.tasks.bulkdata.update_data import UpdateData
 
 
 @pytest.mark.xfail(
-    reason="repro for #3649 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3649 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3649():
     options = set(UpdateData.task_options.keys())

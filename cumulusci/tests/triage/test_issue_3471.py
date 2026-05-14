@@ -2,7 +2,7 @@
 
 See docs/triage/v5/repro-results.md for full narrative.
 Verdict: REPRODUCED-on-dev (R1+R2 + Task 4 recovery; reverified on
-origin/dev@1925a3083 — only ruff refactor since v4.10.0).
+origin/dev@1925a3083 - only ruff refactor since v4.10.0).
 This xfail marker will be removed by the corresponding fix-PR.
 
 Root cause: cumulusci/tasks/github/merge.py `_merge` (L241-262) logs
@@ -32,7 +32,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #3471 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3471 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3471():
     merge_path = Path(cumulusci.__file__).parent / "tasks" / "github" / "merge.py"

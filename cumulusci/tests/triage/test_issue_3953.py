@@ -35,7 +35,7 @@ from cumulusci.tasks.metadata_etl.picklists import AddPicklistEntries
 
 
 @pytest.mark.xfail(
-    reason="repro for #3953 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3953 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3953():
     src = inspect.getsource(AddPicklistEntries._init_options)

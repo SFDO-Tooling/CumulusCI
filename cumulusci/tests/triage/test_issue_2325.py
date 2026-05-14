@@ -30,7 +30,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #2325 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2325 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2325():
     cci_root = Path(cumulusci.__file__).parent

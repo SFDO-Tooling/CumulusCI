@@ -30,7 +30,7 @@ from cumulusci.tasks.metadata_etl.duplicate_rules import (
 
 
 @pytest.mark.xfail(
-    reason="repro for #3951 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3951 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3951():

@@ -12,7 +12,7 @@ No ``FieldPermissions`` query is built. As a consequence,
 ``retrieve_profile`` cannot discover that a profile has only
 field-level (not object-level) permissions on something like
 ``AccountContactRelation``, and the parent SObject is never added to
-the package.xml — so its field permissions are silently dropped from
+the package.xml - so its field permissions are silently dropped from
 the retrieved profile XML.
 
 The fix is to add a ``FieldPermissions`` query against
@@ -31,7 +31,7 @@ from cumulusci.salesforce_api.retrieve_profile_api import RetrieveProfileApi
 
 
 @pytest.mark.xfail(
-    reason="repro for #3773 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3773 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3773():
     src = inspect.getsource(RetrieveProfileApi._queries_retrieve_permissions)

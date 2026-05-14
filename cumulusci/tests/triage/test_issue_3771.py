@@ -15,7 +15,7 @@ predicate matches nothing. PR #3772 (leboff's namespace fix) is
 not merged.
 
 We exercise transform_xpath by importing it via inline grab
-(it's a closure inside `process`) — instead we just inspect the
+(it's a closure inside `process`) - instead we just inspect the
 source and assert that predicate-internal tags are also wrapped
 with `local-name()` (or some equivalent namespace-stripping
 machinery). On dev they are not -> XFAIL.
@@ -29,7 +29,7 @@ from cumulusci.core.source_transforms.transforms import FindReplaceTransform
 
 
 @pytest.mark.xfail(
-    reason="repro for #3771 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3771 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3771():

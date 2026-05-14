@@ -12,7 +12,7 @@ also drop a comment on the source/child PR which tags the branch
 subscribers so they get notified about the conflict.
 
 A repo-wide search for `create_comment`/`issue_comment` returns
-only test-fixture hits — production GitHub task code never
+only test-fixture hits - production GitHub task code never
 opens a PR/issue comment as part of this conflict path.
 
 This test asserts that the merge task surface mentions a
@@ -28,7 +28,7 @@ from cumulusci.tasks.github.merge import MergeBranch
 
 
 @pytest.mark.xfail(
-    reason="repro for #2153 — see docs/triage/v5/repro-results.md",
+    reason="repro for #2153 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_2153():

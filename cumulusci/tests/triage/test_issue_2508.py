@@ -8,7 +8,7 @@ Root cause: There is no OOTB "retry the failed records from the
 previous load" feature in CumulusCI. ``load_dataset`` exposes an
 ``enable_rollback`` option (cumulusci/tasks/bulkdata/load.py:97-98,
 ``RollbackType`` enum at line 1051), but rollback **undoes** successful
-inserts when failures occur — the opposite of "retry the failures".
+inserts when failures occur - the opposite of "retry the failures".
 ``RowErrorChecker`` (cumulusci/tasks/bulkdata/utils.py:158) only logs
 and (optionally) raises; it never persists a failed-rows artifact that
 could be replayed.
@@ -30,7 +30,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #2508 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2508 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2508():
     cci_root = Path(cumulusci.__file__).parent

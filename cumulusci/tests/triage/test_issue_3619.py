@@ -12,7 +12,7 @@ Root cause: ``GitHubDependencyPin``
 ``parse_dependency_pin()``/``parse_pins()`` because Pydantic rejects
 the extra field.
 
-(Part B of #3619 — the silent password drop in ``pin.pin()`` — is
+(Part B of #3619 - the silent password drop in ``pin.pin()`` - is
 captured at the same location: even if Part A is fixed by adding the
 field, ``pin.pin()`` calls ``GitHubTagResolver().resolve(...)``
 directly and bypasses the password-propagation block in
@@ -32,7 +32,7 @@ from cumulusci.core.exceptions import DependencyParseError
 
 
 @pytest.mark.xfail(
-    reason="repro for #3619 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3619 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3619():
     pin_dict = {

@@ -29,7 +29,7 @@ from cumulusci.tasks.sfdx import SFDXOrgTask
 
 
 @pytest.mark.xfail(
-    reason="repro for #3593 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3593 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3593():
     src = inspect.getsource(SFDXOrgTask._get_command)

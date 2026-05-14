@@ -27,7 +27,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 
 
 @pytest.mark.xfail(
-    reason="repro for #3440 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3440 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3440():
     candidate_attrs = (

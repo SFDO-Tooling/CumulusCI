@@ -10,7 +10,7 @@ cumulusci/tasks/push/tasks.py:26-33 unconditionally calls
 with only `--metadata_package_id` (no `--version` /
 `--version_id`), `version` is `None` and the call raises
 ``AttributeError: 'NoneType' object has no attribute 'split'``
-— the exact gist linked in the bug report.
+- the exact gist linked in the bug report.
 
 This test calls `_parse_version(None)` and asserts it raises a
 user-friendly TaskOptionsError instead of a bare AttributeError.
@@ -24,7 +24,7 @@ from cumulusci.tasks.push.tasks import BaseSalesforcePushTask
 
 
 @pytest.mark.xfail(
-    reason="repro for #3446 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3446 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3446():

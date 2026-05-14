@@ -8,7 +8,7 @@ Root cause: ``FlowCoordinator._visit_step``
 (cumulusci/core/flowrunner.py) only wires ``when=step_config.get("when")``
 on the ``task:`` branch (around line 669). The ``flow:`` branch
 (around lines 674-697) recurses into nested steps without ever reading
-``step_config.get("when")`` — so a ``when:`` clause attached to a
+``step_config.get("when")`` - so a ``when:`` clause attached to a
 ``flow:`` step is silently dropped.
 
 The fix is to propagate the parent flow-step's ``when:`` down to the
@@ -27,7 +27,7 @@ from cumulusci.core.flowrunner import FlowCoordinator
 
 
 @pytest.mark.xfail(
-    reason="repro for #3506 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3506 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3506():
     src = inspect.getsource(FlowCoordinator._visit_step)

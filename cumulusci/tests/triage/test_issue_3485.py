@@ -30,7 +30,7 @@ from cumulusci.tasks.apex.testrunner import RunApexTests
 
 
 @pytest.mark.xfail(
-    reason="repro for #3485 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3485 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3485():
     with tempfile.TemporaryDirectory() as tmpdir:

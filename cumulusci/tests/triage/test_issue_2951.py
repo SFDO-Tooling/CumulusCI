@@ -12,7 +12,7 @@ Salesforce raises STANDARD_PRICE_NOT_DEFINED when a custom price is
 created before the matching standard price exists. The default
 extract path skips the Standard Price Book entirely (via
 hardcoded_default_declarations.py), so the typical extract→load
-roundtrip never hits this — but a hand-rolled mapping that includes
+roundtrip never hits this - but a hand-rolled mapping that includes
 both does.
 
 A real fix is either (a) split PricebookEntry steps into two
@@ -34,7 +34,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #2951 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2951 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2951():
     bulkdata_dir = Path(cumulusci.__file__).parent / "tasks" / "bulkdata"

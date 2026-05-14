@@ -23,7 +23,7 @@ from cumulusci.cli.runtime import CliRuntime
 
 
 @pytest.mark.xfail(
-    reason="repro for #733 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #733 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_733():
     src = inspect.getsource(CliRuntime.check_org_overwrite)

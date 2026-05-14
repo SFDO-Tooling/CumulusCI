@@ -9,7 +9,7 @@ This test asserts the *correct* behaviour: either the annotation accepts
 ``str`` (e.g. ``ServiceConfig | str``) or every call site constructs a
 ``ServiceConfig`` first.  It is expected to fail on dev (xfail).
 
-Pure introspection — no Salesforce / scratch org required.
+Pure introspection - no Salesforce / scratch org required.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def _src_has_string_payload_call(func) -> bool:
 
 
 @pytest.mark.xfail(
-    reason=("repro for #3407 — see docs/triage/v5/repro-results.md"),
+    reason=("repro for #3407 - see docs/triage/v5/repro-results.md"),
     strict=False,
 )
 def test_set_service_annotation_consistent_with_callers():
@@ -69,13 +69,13 @@ def test_set_service_annotation_consistent_with_callers():
 
 
 @pytest.mark.xfail(
-    reason=("repro for #3407 — see docs/triage/v5/repro-results.md"),
+    reason=("repro for #3407 - see docs/triage/v5/repro-results.md"),
     strict=False,
 )
 def test_set_service_runtime_accepts_only_serviceconfig_per_annotation():
     """Run-time evidence: a plain string is accepted with config_encrypted=True
     even though the annotation says ServiceConfig.  If the annotation were the
-    source of truth, this call would fail.  Today it succeeds — proving the
+    source of truth, this call would fail.  Today it succeeds - proving the
     annotation is wrong."""
 
     class _Stub(BaseProjectKeychain):

@@ -1,42 +1,12 @@
-# Fix sketch — #2826: deploy_unmanaged flow is supposed to silently do nothing if there's not actually a package directory
+# Fix sketch - #2826: deploy_unmanaged flow is supposed to silently do nothing if there's not actually a package directory **Verdict**: `REPRODUCED-on-dev` (verdict_source: `dev`)
 
-**Verdict**: `REPRODUCED-on-dev` (verdict_source: `dev`)
 **Theme**: `metadata-etl`
-**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/2826>
+**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/2826> ## Bug deploy*unmanaged flow is supposed to silently do nothing if there's not actually a package directory ## Target \_See narrative for target file:line.* ## Recommended approach (from triage narrative) - pass1: `keep-open` - small, contained fix.
 
-## Bug
-
-deploy_unmanaged flow is supposed to silently do nothing if there's not actually a package directory
-
-## Target
-
-_See narrative for target file:line._
-
-## Recommended approach (from triage narrative)
-
--   pass1: `keep-open` — small, contained fix.
--   pass2 labels: `bug`, `good-first-issue`
-
-**Notes**: Could be fixed at the task layer (skip with logger.info when path missing) or at the flow layer (`when:` guard on the deploy_unmanaged steps). Task-layer is more defensible because the same task may be referenced from custom flows.
-
----
-
-<!-- subagent 9 -->
-
-## Size & risk
-
-| Field                                | Value                  |
-| ------------------------------------ | ---------------------- |
-| Size estimate                        | _TBD by fix-PR author_ |
-| Risk                                 | _TBD by fix-PR author_ |
-| Touches `cumulusci/robotframework/*` | _TBD_                  |
-| Touches `cumulusci/tasks/bulkdata/*` | _TBD_                  |
-| Breaks public CLI surface            | _TBD_                  |
-
-## Regression test
-
-`cumulusci/tests/triage/test_issue_2826.py`. Remove the `@pytest.mark.xfail` marker and confirm green.
-
-## Full narrative
-
-See `docs/triage/v5/repro-results.md` (search for `### #2826:`).
+-   | pass2 labels: `bug`, `good-first-issue` **Notes**: Could be fixed at the task layer (skip with logger.info when path missing) or at the flow layer (`when:` guard on the deploy_unmanaged steps). Task-layer is more defensible because the same task may be referenced from custom flows. --- ## Size & risk | Field                  | Value                                                                                                                                                                                                        |
+    | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+    | Size estimate                                                                                                                                                                                                                                                                                                 | _TBD by fix-PR author_ |
+    | Risk                                                                                                                                                                                                                                                                                                          | _TBD by fix-PR author_ |
+    | Touches `cumulusci/robotframework/*`                                                                                                                                                                                                                                                                          | _TBD_                  |
+    | Touches `cumulusci/tasks/bulkdata/*`                                                                                                                                                                                                                                                                          | _TBD_                  |
+    | Breaks public CLI surface                                                                                                                                                                                                                                                                                     | _TBD_                  | ## Regression test `cumulusci/tests/triage/test_issue_2826.py`. Remove the `@pytest.mark.xfail` marker and confirm green. ## Full narrative See `docs/triage/v5/repro-results.md` (search for `### #2826:`). |

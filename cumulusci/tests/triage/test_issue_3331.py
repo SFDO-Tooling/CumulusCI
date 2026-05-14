@@ -7,7 +7,7 @@ This xfail marker will be removed by the corresponding fix-PR.
 Root cause: cumulusci/tasks/metadata/metadata_map.yml line 45-48
 maps the `assignmentRules` folder to MDAPI type
 `AssignmentRule` (singular). Salesforce Metadata API expects
-`AssignmentRules` (plural) — see the analogous `autoResponseRules`
+`AssignmentRules` (plural) - see the analogous `autoResponseRules`
 key (lines 60-63) which is already correctly `AutoResponseRules`.
 
 Running `update_package_xml` against a project with
@@ -31,7 +31,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #3331 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3331 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3331():
     metadata_map_path = (

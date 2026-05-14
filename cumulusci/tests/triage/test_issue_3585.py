@@ -46,7 +46,7 @@ XSI_NIL_OBJECT = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 @pytest.mark.xfail(
-    reason="repro for #3585 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3585 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3585():
     with tempfile.TemporaryDirectory() as tmp:

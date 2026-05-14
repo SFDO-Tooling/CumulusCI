@@ -9,7 +9,7 @@ around lines 510-516) builds the Jinja2 context for ``when:`` from
 only ``project_config`` and ``org_config``. ``self.results`` (prior-task
 return values) is never exposed, so a user cannot write
 ``when: tasks.previous_task.return_values.foo`` in a flow ``when:``
-clause — there is no codepath for that lookup at all.
+clause - there is no codepath for that lookup at all.
 
 The fix is to extend the Jinja2 context (e.g. include a ``tasks`` or
 ``steps`` mapping built from ``self.results`` keyed by task name) so
@@ -31,7 +31,7 @@ from cumulusci.core.flowrunner import FlowCoordinator
 
 
 @pytest.mark.xfail(
-    reason="repro for #3663 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3663 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3663():
     src = inspect.getsource(FlowCoordinator._run_step)

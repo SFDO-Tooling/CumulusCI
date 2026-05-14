@@ -27,7 +27,7 @@ from cumulusci.tasks.metadata_etl.layouts import AddFieldsToPageLayout
 
 
 @pytest.mark.xfail(
-    reason="repro for #3613 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3613 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3613(tmp_path):

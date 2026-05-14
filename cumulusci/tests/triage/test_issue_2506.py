@@ -24,7 +24,7 @@ import cumulusci.tasks.bulkdata as _bulkdata_pkg
 
 
 @pytest.mark.xfail(
-    reason="repro for #2506 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2506 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2506():
     pkg_path = pathlib.Path(_bulkdata_pkg.__file__).parent

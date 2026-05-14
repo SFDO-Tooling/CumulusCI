@@ -2,7 +2,7 @@
 
 See docs/triage/v5/repro-results.md for full narrative.
 Verdict: REPRODUCED-on-dev (R1+R2 + Task 4 recovery; reverified on
-origin/dev@1925a3083 — only ruff refactor since v4.10.0).
+origin/dev@1925a3083 - only ruff refactor since v4.10.0).
 This xfail marker will be removed by the corresponding fix-PR.
 
 Root cause: cumulusci/tasks/create_package_version.py
@@ -20,7 +20,7 @@ If the highest version was deleted (sf package version delete), the
 deprecated row is still returned, so the next version-bump bases off
 of a soft-deleted version. The same file at L297 DOES include
 `IsDeprecated = FALSE` for `Package2` lookups, so the project knows
-about the column — the omission at L535 is asymmetric and matches
+about the column - the omission at L535 is asymmetric and matches
 the report exactly.
 
 A real fix is a single-line SOQL change: add
@@ -39,7 +39,7 @@ import cumulusci
 
 
 @pytest.mark.xfail(
-    reason="repro for #3746 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3746 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3746():
     src_path = Path(cumulusci.__file__).parent / "tasks" / "create_package_version.py"

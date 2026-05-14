@@ -16,7 +16,7 @@ created during the initial `just_once: true` batch.
 Snowfakery's `random_reference: Account` resolves at generation time
 against rows in the recipe-local database. With just_once Accounts
 unavailable after batch 1, subsequent batches generate Contacts with
-no Accounts to reference — exactly the user's symptom.
+no Accounts to reference - exactly the user's symptom.
 
 The fix needs to preserve rows of just_once-referenced objects in
 the template DB carried to subsequent batches (not just `_sf_ids`
@@ -37,7 +37,7 @@ from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
 
 
 @pytest.mark.xfail(
-    reason="repro for #3768 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3768 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3768():
     engine = create_engine("sqlite:///:memory:")

@@ -30,7 +30,7 @@ import cumulusci as _cci_pkg
 
 
 @pytest.mark.xfail(
-    reason="repro for #2979 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2979 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2979():
     yml_path = pathlib.Path(_cci_pkg.__file__).parent / "cumulusci.yml"

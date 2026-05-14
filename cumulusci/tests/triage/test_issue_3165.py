@@ -8,8 +8,8 @@ Root cause: `ProfileGrantAllAccess._generate_package_xml` in
 cumulusci/tasks/salesforce/update_profile.py:137-138 calls
 `_expand_package_xml(package_xml)` only when
 `include_packaged_objects=True`. `_expand_package_xml_objects`
-— the helper that walks `record_types` and adds any referenced
-CustomObject to the retrieve package.xml — is invoked only from
+- the helper that walks `record_types` and adds any referenced
+CustomObject to the retrieve package.xml - is invoked only from
 inside `_expand_package_xml` (line 182). When a user specifies
 `record_types` referencing a standard object (e.g. Case) and
 keeps `include_packaged_objects=False`, the retrieve package.xml
@@ -38,7 +38,7 @@ from cumulusci.tasks.salesforce.update_profile import ProfileGrantAllAccess
 
 
 @pytest.mark.xfail(
-    reason="repro for #3165 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3165 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3165():

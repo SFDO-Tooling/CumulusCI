@@ -66,42 +66,41 @@ CumulusCI v5.
 This triage was conducted with AI assistance. Specifically:
 
 -   Initial classification, theme clustering, and reproducibility
-    verification were performed by Claude Opus 4.7 with isolated
-    subagents.
--   Each subagent ran in a dedicated `git` worktree with hard-coded
-    constraints: no source mutation outside scope, no live-org access,
-    no scratch-org creation outside DevHub-aliased orgs, no GitHub
-    state mutation, no `git push`.
--   The xfail tests are intentionally `strict=False`; an `XPASS`
-    surfaces a verdict that no longer holds (e.g. the bug was fixed
-    independently) rather than crashing CI.
+    verification were performed by AI coding agents working in
+    isolated `git` worktrees with hard-coded constraints: no source
+    mutation outside scope, no live-org access, no scratch-org
+    creation outside a designated DevHub, no GitHub state mutation,
+    no `git push`.
+-   The xfail tests in `cumulusci/tests/triage/` are intentionally
+    `strict=False`; an `XPASS` surfaces a verdict that no longer
+    holds (e.g. the bug was fixed independently) rather than crashing
+    CI.
 -   All proposed pass-1 mutations against GitHub issues (close /
-    label) are gated on explicit maintainer approval before execution
-    — they are NOT executed by this PR.
+    label) are gated on explicit maintainer approval before
+    execution. They are NOT executed by this PR.
 
-The full session evidence (subagent dispatch logs, anomaly notes,
-intermediate CSV consolidation steps) lives in a separate local
-branch and is intentionally not included here.
+Intermediate run logs (dispatch records, anomaly notes, consolidation
+scripts) are kept locally and intentionally not included here.
 
 ## Spec basis
 
 Pass-1 vocabulary used in `proposals.md`:
 
--   `closed:stale-24mo` — no activity >24 months, no maintainer label.
--   `closed:pre-v4.0.0` — body declares CumulusCI 3.x; no reporter
+-   `closed:stale-24mo` - no activity >24 months, no maintainer label.
+-   `closed:pre-v4.0.0` - body declares CumulusCI 3.x; no reporter
     reconfirmation against v4+.
--   `closed:missing-fields` — issue lacks repro / cci-version /
+-   `closed:missing-fields` - issue lacks repro / cci-version /
     expected behaviour.
--   `closed:pr-resolved-#NNNN` — fix already on dev via specified PR.
--   `closed:not-reproducible-on-v4.10.0` — bug not reproducible on
+-   `closed:pr-resolved-#NNNN` - fix already on dev via specified PR.
+-   `closed:not-reproducible-on-v4.10.0` - bug not reproducible on
     v4.10.0; close with explicit verdict.
--   `closed:not-reproducible-on-dev` — bug not reproducible on `dev`;
+-   `closed:not-reproducible-on-dev` - bug not reproducible on `dev`;
     close with explicit verdict.
--   `closed:feature-implemented` — feature ask already shipped.
--   `closed:duplicate-of-#NNNN` — pointer to canonical issue.
--   `closed:pr-pending-#NNNN` — fix exists in an open PR ready to
+-   `closed:feature-implemented` - feature ask already shipped.
+-   `closed:duplicate-of-#NNNN` - pointer to canonical issue.
+-   `closed:pr-pending-#NNNN` - fix exists in an open PR ready to
     land; close once that PR merges.
--   `kept-open` — confirmed REPRO; rescue from close.
+-   `kept-open` - confirmed REPRO; rescue from close.
 
 Pass-2 vocabulary (selected): `target:v4-patch`, `v5-candidate:yes|no`,
 `severity:{critical,major,minor,trivial}`, `area:{packaging,bulkdata,

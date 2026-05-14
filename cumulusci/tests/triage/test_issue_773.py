@@ -1,4 +1,4 @@
-"""Repro for SFDO-Tooling/CumulusCI#773 — Document task return values and results.
+"""Repro for SFDO-Tooling/CumulusCI#773 - Document task return values and results.
 
 cdcarter requested that tasks be able to *declare* their ``return_values``
 (and ``result``) and that ``cci task info`` / the web docs surface that
@@ -34,7 +34,7 @@ from cumulusci.utils import doc_task
 
 
 def _make_task_config():
-    """Build a minimal TaskConfig pointing at PackageUpload — a real shipping
+    """Build a minimal TaskConfig pointing at PackageUpload - a real shipping
     task that documents (in its docstring / source) that it populates
     ``return_values`` with ``version_number``, ``version_id``, and ``package_id``.
     """
@@ -52,7 +52,7 @@ def _make_task_config():
 
 
 @pytest.mark.xfail(
-    reason="repro for #773 — see docs/triage/v5/repro-results.md",
+    reason="repro for #773 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_doc_task_renders_return_values_section():

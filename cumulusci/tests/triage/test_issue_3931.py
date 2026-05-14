@@ -13,7 +13,7 @@ contains:
 
 `elem.find("recordType")` returns `None` whenever a
 `<layoutAssignments>` element has no `<recordType>` child (a valid
-metadata shape — layoutAssignments without recordType apply to
+metadata shape - layoutAssignments without recordType apply to
 records lacking a record-type binding). The subsequent `.text`
 access then raises `AttributeError: 'NoneType' object has no
 attribute 'text'`, which is exactly the user's reported error.
@@ -38,7 +38,7 @@ from cumulusci.utils.xml import metadata_tree
 
 
 @pytest.mark.xfail(
-    reason="repro for #3931 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3931 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3931():
     profile_xml = b"""<?xml version="1.0" encoding="UTF-8"?>

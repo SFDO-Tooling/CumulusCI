@@ -27,7 +27,7 @@ from cumulusci.tasks.bulkdata import snowfakery as snowfakery_mod
 
 
 @pytest.mark.xfail(
-    reason="repro for #3353 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3353 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_issue_3353():

@@ -21,7 +21,7 @@ from cumulusci.cli.flow import flow_run
 
 
 @pytest.mark.xfail(
-    reason="repro for #2402 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #2402 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_2402():
     param_names = {p.name for p in flow_run.params}

@@ -29,7 +29,7 @@ import cumulusci.tasks.metadata as _md_pkg
 
 
 @pytest.mark.xfail(
-    reason="repro for #3692 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3692 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3692():
     map_path = pathlib.Path(_md_pkg.__file__).parent / "metadata_map.yml"

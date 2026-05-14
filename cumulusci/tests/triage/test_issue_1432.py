@@ -7,7 +7,7 @@ This xfail marker will be removed by the corresponding fix-PR.
 Root cause: ``BaseTask._validate_options`` (cumulusci/core/tasks.py
 around lines 187-197) only checks for *missing* required options when
 the task uses the legacy ``task_options`` dict. Unknown keys are
-silently accepted — passing ``-o colour red`` to a task that declares
+silently accepted - passing ``-o colour red`` to a task that declares
 ``color`` results in no error.
 
 The new-style Pydantic ``Options`` class path *does* reject extras
@@ -29,7 +29,7 @@ from cumulusci.core.tasks import BaseTask
 
 
 @pytest.mark.xfail(
-    reason="repro for #1432 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #1432 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_1432():
     src = inspect.getsource(BaseTask._validate_options)

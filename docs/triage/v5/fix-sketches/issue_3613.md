@@ -1,47 +1,14 @@
-# Fix sketch — #3613: AddFieldsToPageLayout — "Cannot find metadata file"
+# Fix sketch - #3613: AddFieldsToPageLayout - "Cannot find metadata file" **Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
 
-**Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
 **Theme**: `metadata-etl`
-**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/3613>
+**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/3613> ## Bug AddFieldsToPageLayout - "Cannot find metadata file" ## Target _See narrative for target file:line._ ## Recommended approach (from triage narrative) - pass1: `improve-error-message` - keep open as a UX bug.
 
-## Bug
+-   pass2 labels: `bug`, `good-first-issue` **Notes**: Two complementary improvements would help: 1. In `_transform` (base.py:332), include the actual list of files retrieved into `source_metadata_dir` in the error message so the user can spot the naming mismatch.
 
-AddFieldsToPageLayout — "Cannot find metadata file"
-
-## Target
-
-_See narrative for target file:line._
-
-## Recommended approach (from triage narrative)
-
--   pass1: `improve-error-message` — keep open as a UX bug.
--   pass2 labels: `bug`, `good-first-issue`
-
-**Notes**: Two complementary improvements would help:
-
-1. In `_transform` (base.py:332), include the actual list of files retrieved into `source_metadata_dir` in the error message so the user can spot the naming mismatch.
-2. In `AddFieldsToPageLayout._init_options`, warn when an api_name does not contain `-` (Layout API names always do).
-
-The user was on Windows in 2023 — note that the user might also have been hitting a backslash path issue, but the underlying class of bug is the same: api_name format mismatch.
-
----
-
-<!-- subagent 11 -->
-
-## Size & risk
-
-| Field                                | Value                  |
-| ------------------------------------ | ---------------------- |
-| Size estimate                        | _TBD by fix-PR author_ |
-| Risk                                 | _TBD by fix-PR author_ |
-| Touches `cumulusci/robotframework/*` | _TBD_                  |
-| Touches `cumulusci/tasks/bulkdata/*` | _TBD_                  |
-| Breaks public CLI surface            | _TBD_                  |
-
-## Regression test
-
-`cumulusci/tests/triage/test_issue_3613.py`. Remove the `@pytest.mark.xfail` marker and confirm green.
-
-## Full narrative
-
-See `docs/triage/v5/repro-results.md` (search for `### #3613:`).
+2. | In `AddFieldsToPageLayout._init_options`, warn when an api_name does not contain `-` (Layout API names always do). The user was on Windows in 2023 - note that the user might also have been hitting a backslash path issue, but the underlying class of bug is the same: api_name format mismatch. --- ## Size & risk | Field                  | Value                                                                                                                                                                                                        |
+   | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | Size estimate                                                                                                                                                                                                                                                                                                          | _TBD by fix-PR author_ |
+   | Risk                                                                                                                                                                                                                                                                                                                   | _TBD by fix-PR author_ |
+   | Touches `cumulusci/robotframework/*`                                                                                                                                                                                                                                                                                   | _TBD_                  |
+   | Touches `cumulusci/tasks/bulkdata/*`                                                                                                                                                                                                                                                                                   | _TBD_                  |
+   | Breaks public CLI surface                                                                                                                                                                                                                                                                                              | _TBD_                  | ## Regression test `cumulusci/tests/triage/test_issue_3613.py`. Remove the `@pytest.mark.xfail` marker and confirm green. ## Full narrative See `docs/triage/v5/repro-results.md` (search for `### #3613:`). |

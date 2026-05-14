@@ -1,4 +1,4 @@
-"""Repro for SFDO-Tooling/CumulusCI#3464 — Provide concise documentation of
+"""Repro for SFDO-Tooling/CumulusCI#3464 - Provide concise documentation of
 ``cumulusci.yml`` ``project`` configuration options.
 
 The user asked: "I would like ALL configuration tags and options defined,
@@ -20,8 +20,8 @@ defines a ``Project`` Pydantic model with these top-level keys:
 
 ``docs/config.md`` shows ONE example YAML block (line ~281) using a subset
 of these keys but has no reference subsection that names every supported
-key. Several keys — notably ``dependency_resolutions``, ``dependency_pins``,
-and ``source_format`` — never appear in ``docs/config.md`` at all (they
+key. Several keys - notably ``dependency_resolutions``, ``dependency_pins``,
+and ``source_format`` - never appear in ``docs/config.md`` at all (they
 are buried in ``docs/dev.md``, which is exactly the "scattered" complaint
 in the issue).
 
@@ -46,7 +46,7 @@ CONFIG_DOC = REPO_ROOT / "docs" / "config.md"
 
 
 @pytest.mark.xfail(
-    reason="repro for #3464 — see docs/triage/v5/repro-results.md",
+    reason="repro for #3464 - see docs/triage/v5/repro-results.md",
     strict=False,
 )
 def test_every_project_key_is_mentioned_in_config_doc():

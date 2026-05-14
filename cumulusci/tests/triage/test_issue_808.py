@@ -26,7 +26,7 @@ from cumulusci.tasks.salesforce.UninstallPackaged import UninstallPackaged
 
 
 @pytest.mark.xfail(
-    reason="repro for #808 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #808 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_808():
     src = inspect.getsource(UninstallPackaged._init_options)

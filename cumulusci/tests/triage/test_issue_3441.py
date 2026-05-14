@@ -28,7 +28,7 @@ from cumulusci.tasks.create_package_version import CreatePackageVersion
 
 
 @pytest.mark.xfail(
-    reason="repro for #3441 — see docs/triage/v5/repro-results.md", strict=False
+    reason="repro for #3441 - see docs/triage/v5/repro-results.md", strict=False
 )
 def test_issue_3441():
     src = inspect.getsource(CreatePackageVersion._get_base_version_number)
