@@ -89,19 +89,25 @@ class TestRestDeploy(unittest.TestCase):
     @patch("requests.post")
     def test_deployment_failure(self, mock_post):
 
-        response_post = Mock(status_code=500)
+        response_post = Mock(status_code=500, text="Internal Server Error")
         response_post.json.return_value = {"id": "dummy_id"}
         mock_post.return_value = response_post
 
         deployer = RestDeploy(
             self.mock_task, self.mock_zip, False, False, "NoTestRun", []
         )
-        deployer()
+        with pytest.raises(MetadataApiError) as exc_info:
+            deployer()
 
-        # Assertions to verify log messages
-        assert (
-            call("Deployment request failed with status code 500")
-            in self.mock_logger.error.call_args_list
+        # The error message must include the status code and the response body
+        # so operators can see what Salesforce returned.
+        assert "500" in str(exc_info.value)
+        # The logger should still emit the error before the raise so log
+        # output stays informative.
+        assert any(
+            "500" in args[0]
+            for args, _ in self.mock_logger.error.call_args_list
+            if args
         )
 
         # Assertions to verify API Calls
@@ -148,7 +154,11 @@ class TestRestDeploy(unittest.TestCase):
         deployer = RestDeploy(
             self.mock_task, self.mock_zip, False, False, "NoTestRun", []
         )
-        deployer()
+        # Failed REST deploys must surface as MetadataComponentFailure (a
+        # subclass of MetadataApiError) to mirror the SOAP ApiDeploy path so
+        # downstream callers see a non-zero result. See #3938.
+        with pytest.raises(MetadataComponentFailure):
+            deployer()
 
         # Assertions to verify log messages
         assert (

@@ -9,6 +9,11 @@ from typing import List, Union
 
 import requests
 
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+)
+
 PARENT_DIR_NAME = "metadata"
 
 
@@ -73,16 +78,18 @@ class RestDeploy:
         body += f"\r\n--{self._boundary}--\r\n".encode("utf-8")
 
         response = requests.post(url, headers=headers, data=body)
-        response_json = response.json()
 
         if response.status_code == 201:
             self.task.logger.info("Deployment request successful")
-            deploy_request_id = response_json["id"]
+            deploy_request_id = response.json()["id"]
             self._monitor_deploy_status(deploy_request_id)
         else:
-            self.task.logger.error(
-                f"Deployment request failed with status code {response.status_code}"
+            message = (
+                f"Deployment request failed with status code {response.status_code}: "
+                f"{response.text}"
             )
+            self.task.logger.error(message)
+            raise MetadataApiError(message, response)
 
     # Set the purge_on_delete attribute based on org type
     def _set_purge_on_delete(self, purge_on_delete):
@@ -105,17 +112,30 @@ class RestDeploy:
         while True:
             response = requests.get(url, headers=headers)
             response_json = response.json()
-            self.task.logger.info(
-                f"Deployment {response_json['deployResult']['status']}"
-            )
+            status = response_json["deployResult"]["status"]
+            self.task.logger.info(f"Deployment {status}")
 
-            if response_json["deployResult"]["status"] not in ["InProgress", "Pending"]:
-                # Handle the case when status has Failed
-                if response_json["deployResult"]["status"] == "Failed":
-                    for failure in response_json["deployResult"]["details"][
-                        "componentFailures"
-                    ]:
-                        self.task.logger.error(self._construct_error_message(failure))
+            if status not in ["InProgress", "Pending"]:
+                if status == "Failed":
+                    component_failures = (
+                        response_json["deployResult"]
+                        .get("details", {})
+                        .get("componentFailures", [])
+                    )
+                    messages = []
+                    for failure in component_failures:
+                        message = self._construct_error_message(failure)
+                        self.task.logger.error(message)
+                        messages.append(message)
+                    # Mirror SOAP ApiDeploy._process_response: componentFailures
+                    # surface as MetadataComponentFailure; otherwise raise the
+                    # generic MetadataApiError. Either way, the deploy must
+                    # fail loudly so downstream callers (and `cci task run`)
+                    # see a non-zero exit instead of a silent success.
+                    log = "\n\n".join(messages) if messages else f"Deployment {status}"
+                    if component_failures:
+                        raise MetadataComponentFailure(log, response)
+                    raise MetadataApiError(log, response)
                 return
             time.sleep(5)
 
