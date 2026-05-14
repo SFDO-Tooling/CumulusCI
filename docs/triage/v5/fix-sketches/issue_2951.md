@@ -1,0 +1,40 @@
+# Fix sketch — #2951: Error in task load_dataset - Standard_price_not_defined
+
+**Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
+**Theme**: `bulkdata`
+**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/2951>
+
+## Bug
+
+No special handling exists in the loader to sequence Standard-Price-Book PricebookEntries before custom-pricebook PricebookEntries within a single mapping step. Within one Bulk job, records are processed in parallel within batches and Salesforce throws `STANDARD_PRICE_NOT_DEFINED` when a custom price is created before the matching standard price. Mitigation already in place for the `extract_datase...
+
+## Target
+
+`cumulusci/tasks/bulkdata/extract_dataset_utils/hardcoded_default_declarations.py` lines 14-18
+
+## Recommended approach (from triage narrative)
+
+-   pass1: `keep-open` — bug is latent. Fix options: (a) loader auto-splits PricebookEntry into two implicit batches (standard pricebook first); (b) document the requirement and validate at parse time that PricebookEntry steps are not "mixed."
+-   pass2 labels: `bug, bulkdata, load_dataset, pricebook, documentation`
+
+---
+
+<!-- subagent 1 -->
+
+## Size & risk
+
+| Field                                | Value                  |
+| ------------------------------------ | ---------------------- |
+| Size estimate                        | _TBD by fix-PR author_ |
+| Risk                                 | _TBD by fix-PR author_ |
+| Touches `cumulusci/robotframework/*` | _TBD_                  |
+| Touches `cumulusci/tasks/bulkdata/*` | _TBD_                  |
+| Breaks public CLI surface            | _TBD_                  |
+
+## Regression test
+
+`cumulusci/tests/triage/test_issue_2951.py`. Remove the `@pytest.mark.xfail` marker and confirm green.
+
+## Full narrative
+
+See `docs/triage/v5/repro-results.md` (search for `### #2951:`).
