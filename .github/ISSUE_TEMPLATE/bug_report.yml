@@ -64,6 +64,7 @@ body:
           label: CumulusCI installation method
           description: How did you install CumulusCI?
           options:
+              - uv
               - brew
               - pip
               - pipx
