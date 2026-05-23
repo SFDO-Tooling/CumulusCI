@@ -934,3 +934,69 @@ class Salesforce(FakerMixin, BaseLibrary):
             "'Select Window' is deprecated; use 'Switch Window' instead", "WARN"
         )
         self.selenium.switch_window(locator=locator, timeout=timeout)
+
+    @capture_screenshot_on_error
+    def get_all_picklist_values(self, picklist, timeout="10s"):
+        """Return all available values from a Salesforce Lightning picklist.
+
+        Opens the picklist identified by its visible field label, collects
+        all visible non-empty option values, removes duplicates, and returns
+        the values as a sorted list.
+
+        Required field labels are supported. For example, both ``Status``
+        and ``Status *`` can be matched.
+
+        Examples:
+            | ${values}= | Get All Picklist Values | Status |
+            | ${values}= | Get All Picklist Values | Lead Status | timeout=15s |
+        """
+        label_xpath = (
+            f"//label["
+            f"normalize-space(.)='{picklist}' "
+            f"or normalize-space(.)='{picklist} *' "
+            f"or normalize-space(.)='*{picklist}'"
+            f"]"
+        )
+
+        option_xpath = (
+            f"{label_xpath}"
+            "/ancestor::*[contains(@class,'slds-form-element')]"
+            "//lightning-base-combobox-item"
+            "//span[contains(@class,'slds-media__body') or @slot='label']"
+        )
+
+        try:
+            self.selenium.set_focus_to_element(label_xpath)
+            self.scroll_element_into_view(label_xpath)
+            self.selenium.click_element(label_xpath)
+            self.selenium.wait_until_element_is_visible(option_xpath, timeout=timeout)
+
+            values = []
+            for element in self.selenium.get_webelements(option_xpath):
+                try:
+                    text = element.text.strip()
+                    if text:
+                        values.append(text)
+                except (StaleElementReferenceException, WebDriverException):
+                    continue
+
+            values = sorted(set(values))
+            self.builtin.log(
+                f"Retrieved {len(values)} values from picklist '{picklist}'.",
+                "INFO",
+            )
+            return values
+
+        except ElementNotFound:
+            raise AssertionError(
+                f"Picklist '{picklist}' was not found on the page."
+            ) from None
+
+        finally:
+            try:
+                self.selenium.press_keys(None, "ESC")
+            except Exception as err:
+                self.builtin.log(
+                    f"Failed to close picklist dropdown: {err}",
+                    "DEBUG",
+                )
