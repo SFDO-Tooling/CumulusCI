@@ -939,12 +939,11 @@ class Salesforce(FakerMixin, BaseLibrary):
     def get_all_picklist_values(self, picklist, timeout="10s"):
         """Return all available values from a Salesforce Lightning picklist.
 
-        Opens the picklist identified by its visible field label, collects
-        all visible non-empty option values, removes duplicates, and returns
-        the values as a sorted list.
+        Opens the picklist identified by its visible field label and returns
+        the option values currently rendered in the Lightning picklist.
 
-        Required field labels are supported. For example, both ``Status``
-        and ``Status *`` can be matched.
+        Required field labels are supported. For example, ``Status``,
+        ``Status *``, and ``*Status`` can be matched.
 
         Examples:
             | ${values}= | Get All Picklist Values | Status |
@@ -974,13 +973,10 @@ class Salesforce(FakerMixin, BaseLibrary):
             values = []
             for element in self.selenium.get_webelements(option_xpath):
                 try:
-                    text = element.text.strip()
-                    if text:
-                        values.append(text)
+                    values.append(element.text.strip())
                 except (StaleElementReferenceException, WebDriverException):
                     continue
 
-            values = sorted(set(values))
             self.builtin.log(
                 f"Retrieved {len(values)} values from picklist '{picklist}'.",
                 "INFO",

@@ -86,7 +86,7 @@ class TestKeywordGetAllPicklistValues:
     def setup_class(cls):
         cls.sflib = Salesforce(locators={"body": "//whatever"})
 
-    def test_returns_sorted_unique_non_empty_values(self, mock_robot_context):
+    def test_returns_rendered_picklist_values(self, mock_robot_context):
         option_1 = mock.Mock(text="Warm")
         option_2 = mock.Mock(text="Cold")
         option_3 = mock.Mock(text="Warm")
@@ -102,7 +102,7 @@ class TestKeywordGetAllPicklistValues:
 
             values = self.sflib.get_all_picklist_values("Status")
 
-        assert values == ["Cold", "Warm"]
+        assert values == ["Warm", "Cold", "Warm", ""]
         self.sflib.selenium.wait_until_element_is_visible.assert_called_once()
         self.sflib.selenium.press_keys.assert_any_call(None, "ESC")
 
