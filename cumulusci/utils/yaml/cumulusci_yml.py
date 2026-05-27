@@ -147,7 +147,7 @@ class Project(CCIDictModel):
 class ScratchOrg(CCIDictModel):
     config_file: Path = None
     days: int = None
-    namespaced: str = None
+    namespaced: bool = None
     setup_flow: str = None
     noancestors: bool = None
     release: Literal["preview", "previous"] = None
