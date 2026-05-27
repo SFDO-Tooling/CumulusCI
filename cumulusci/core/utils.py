@@ -378,23 +378,24 @@ def determine_managed_mode(options, project_config, org_config):
     if "managed" in options:
         return process_bool_arg(options["managed"])
 
+    if "unmanaged" in options:
+        return not process_bool_arg(options.get("unmanaged", True))
+
     # Get package and namespace information
     package_name = getattr(project_config, 'project__package__name', None)
     namespace = (
         getattr(project_config, 'project__package__namespace', None)
         or options.get("namespace")
     )
-    installed_packages = getattr(org_config, 'installed_packages', {})
 
-    if "unmanaged" in options:
-        # Explicit unmanaged flag always takes precedence
-        return not process_bool_arg(options.get("unmanaged", True))
-    elif package_name and any(package_name in key for key in installed_packages.keys()):
-        # If this specific package is installed (or there is any installed package with a Name that contains package_name), we're in managed context
-        return True
-    elif bool(namespace) and namespace == getattr(org_config, 'namespace', None):
-        # We're in a namespaced org (packaging org) developing unmanaged code
+    if not package_name and not namespace:
         return False
-    else:
-        # Fall back to checking namespace in installed packages
-        return bool(namespace) and namespace in installed_packages
+
+    if bool(namespace) and namespace == getattr(org_config, 'namespace', None):
+        return False
+
+    installed_packages = getattr(org_config, 'installed_packages', {})
+    if package_name and any(package_name in key for key in installed_packages.keys()):
+        return True
+
+    return bool(namespace) and namespace in installed_packages
