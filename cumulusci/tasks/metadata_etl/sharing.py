@@ -73,6 +73,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
     def _post_deploy(self, result):
         if result == "Success":
             super()._post_deploy(result)
+            self.sf = self._init_api()
             self.logger.info("Waiting for sharing enablement to complete.")
             self.time_start = datetime.now()
             self._poll()
@@ -115,7 +116,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
                 else sobject
             )
 
-            result = self.org_config.salesforce_client.query(
+            result = self.sf.query(
                 f"SELECT ExternalSharingModel, InternalSharingModel "
                 f"FROM EntityDefinition "
                 f"WHERE QualifiedApiName = '{real_api_name}'"

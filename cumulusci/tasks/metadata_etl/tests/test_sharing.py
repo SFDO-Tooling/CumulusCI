@@ -131,8 +131,8 @@ class TestSetOrgWideDefaults:
                 ],
             },
         )
-        sf_mock = mock.Mock()
-        sf_mock.query.side_effect = [
+        task.sf = mock.Mock()
+        task.sf.query.side_effect = [
             {
                 "totalSize": 1,
                 "records": [
@@ -158,6 +158,7 @@ class TestSetOrgWideDefaults:
                 ],
             },
         ]
+        task._post_deploy("Success")
 
         query = (
             "SELECT ExternalSharingModel, InternalSharingModel "
@@ -165,20 +166,13 @@ class TestSetOrgWideDefaults:
             "WHERE QualifiedApiName = '{}'"
         )
 
-        with mock.patch.object(
-            type(task.org_config),
-            "salesforce_client",
-            new_callable=mock.PropertyMock,
-            return_value=sf_mock,
-        ):
-            task._post_deploy("Success")
-            sf_mock.query.assert_has_calls(
-                [
-                    mock.call(query.format("Account")),
-                    mock.call(query.format("Account")),
-                    mock.call(query.format("Test__c")),
-                ]
-            )
+        task.sf.query.assert_has_calls(
+            [
+                mock.call(query.format("Account")),
+                mock.call(query.format("Account")),
+                mock.call(query.format("Test__c")),
+            ]
+        )
 
         assert task.poll_complete
 
@@ -205,8 +199,8 @@ class TestSetOrgWideDefaults:
         )
         task.org_config.namespaced = True
         task.project_config.project__package__namespace = "test"
-        sf_mock = mock.Mock()
-        sf_mock.query.side_effect = [
+        task.sf = mock.Mock()
+        task.sf.query.side_effect = [
             {
                 "totalSize": 1,
                 "records": [
@@ -232,6 +226,7 @@ class TestSetOrgWideDefaults:
                 ],
             },
         ]
+        task._post_deploy("Success")
 
         query = (
             "SELECT ExternalSharingModel, InternalSharingModel "
@@ -239,20 +234,13 @@ class TestSetOrgWideDefaults:
             "WHERE QualifiedApiName = '{}'"
         )
 
-        with mock.patch.object(
-            type(task.org_config),
-            "salesforce_client",
-            new_callable=mock.PropertyMock,
-            return_value=sf_mock,
-        ):
-            task._post_deploy("Success")
-            sf_mock.query.assert_has_calls(
-                [
-                    mock.call(query.format("Account")),
-                    mock.call(query.format("Account")),
-                    mock.call(query.format("test__Test__c")),
-                ]
-            )
+        task.sf.query.assert_has_calls(
+            [
+                mock.call(query.format("Account")),
+                mock.call(query.format("Account")),
+                mock.call(query.format("test__Test__c")),
+            ]
+        )
 
         assert task.poll_complete
 
@@ -272,8 +260,10 @@ class TestSetOrgWideDefaults:
                 ],
             },
         )
-        sf_mock = mock.Mock()
-        sf_mock.query.return_value = {"totalSize": 0, "records": []}
+        task.sf = mock.Mock()
+        task.sf.query.return_value = {"totalSize": 0, "records": []}
+        with pytest.raises(CumulusCIException):
+            task._post_deploy("Success")
 
         query = (
             "SELECT ExternalSharingModel, InternalSharingModel "
@@ -281,15 +271,7 @@ class TestSetOrgWideDefaults:
             "WHERE QualifiedApiName = '{}'"
         )
 
-        with mock.patch.object(
-            type(task.org_config),
-            "salesforce_client",
-            new_callable=mock.PropertyMock,
-            return_value=sf_mock,
-        ):
-            with pytest.raises(CumulusCIException):
-                task._post_deploy("Success")
-            sf_mock.query.assert_has_calls([mock.call(query.format("Account"))])
+        task.sf.query.assert_has_calls([mock.call(query.format("Account"))])
 
     def test_raises_exception_timeout(self):
         task = create_task(
