@@ -9,6 +9,11 @@ from typing import List, Union
 
 import requests
 
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+)
+
 PARENT_DIR_NAME = "metadata"
 
 
@@ -83,6 +88,7 @@ class RestDeploy:
             self.task.logger.error(
                 f"Deployment request failed with status code {response.status_code}"
             )
+            raise MetadataApiError(f"Deployment request failed with status code {response.status_code}", response)
 
     # Set the purge_on_delete attribute based on org type
     def _set_purge_on_delete(self, purge_on_delete):
@@ -112,10 +118,14 @@ class RestDeploy:
             if response_json["deployResult"]["status"] not in ["InProgress", "Pending"]:
                 # Handle the case when status has Failed
                 if response_json["deployResult"]["status"] == "Failed":
+                    error_log = ''
                     for failure in response_json["deployResult"]["details"][
                         "componentFailures"
                     ]:
-                        self.task.logger.error(self._construct_error_message(failure))
+                        error_message = self._construct_error_message(failure)
+                        self.task.logger.error(error_message)
+                        error_log += error_message + "\n"
+                    raise MetadataComponentFailure(error_log, response)
                 return
             time.sleep(5)
 
@@ -138,7 +148,7 @@ class RestDeploy:
 
     # Construct an error message from deployment failure details
     def _construct_error_message(self, failure):
-        error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][len(PARENT_DIR_NAME)+len('/'):]}: {failure['problem']}"
+        error_message = f"{str.upper(failure['problemType'])} in file {failure['fileName'][len(PARENT_DIR_NAME) + len('/'):]}: {failure['problem']}"
 
         if failure["lineNumber"] and failure["columnNumber"]:
             error_message += (
