@@ -936,56 +936,52 @@ class Salesforce(FakerMixin, BaseLibrary):
         self.selenium.switch_window(locator=locator, timeout=timeout)
 
     @capture_screenshot_on_error
-    def get_all_picklist_values(self, picklist, timeout="10s"):
-        """Return all available values from a Salesforce Lightning picklist.
+    def get_all_picklist_values(self, name, timeout="10s"):
+        """Return available non-empty values from a Salesforce Lightning picklist.
 
         Opens the picklist identified by its visible field label and returns
-        the option values currently rendered in the Lightning picklist.
-
-        Required field labels are supported. For example, ``Status``,
-        ``Status *``, and ``*Status`` can be matched.
+        the non-empty option values currently rendered in the Lightning picklist.
 
         Examples:
-            | ${values}= | Get All Picklist Values | Status |
+            | ${values}= | Get All Picklist Values | Stage |
             | ${values}= | Get All Picklist Values | Lead Status | timeout=15s |
         """
-        label_xpath = (
-            f"//label["
-            f"normalize-space(.)='{picklist}' "
-            f"or normalize-space(.)='{picklist} *' "
-            f"or normalize-space(.)='*{picklist}'"
-            f"]"
-        )
-
+        picklist_locator = f"label:{name}"
         option_xpath = (
-            f"{label_xpath}"
-            "/ancestor::*[contains(@class,'slds-form-element')]"
-            "//lightning-base-combobox-item"
+            "xpath://lightning-base-combobox-item"
             "//span[contains(@class,'slds-media__body') or @slot='label']"
         )
 
         try:
-            self.selenium.set_focus_to_element(label_xpath)
-            self.scroll_element_into_view(label_xpath)
-            self.selenium.click_element(label_xpath)
-            self.selenium.wait_until_element_is_visible(option_xpath, timeout=timeout)
+            self.selenium.set_focus_to_element(picklist_locator)
+            self.scroll_element_into_view(picklist_locator)
+            self.selenium.click_element(picklist_locator)
+            self.selenium.wait_until_element_is_visible(
+                option_xpath,
+                timeout=timeout,
+            )
 
             values = []
             for element in self.selenium.get_webelements(option_xpath):
                 try:
-                    values.append(element.text.strip())
-                except (StaleElementReferenceException, WebDriverException):
+                    text = element.text.strip()
+                    if text:
+                        values.append(text)
+                except (
+                    StaleElementReferenceException,
+                    WebDriverException,
+                ):
                     continue
 
             self.builtin.log(
-                f"Retrieved {len(values)} values from picklist '{picklist}'.",
+                f"Retrieved {len(values)} values from picklist '{name}'.",
                 "INFO",
             )
             return values
 
         except ElementNotFound:
             raise AssertionError(
-                f"Picklist '{picklist}' was not found on the page."
+                f"Picklist '{name}' was not found on the page."
             ) from None
 
         finally:

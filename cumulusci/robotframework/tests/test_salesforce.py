@@ -86,7 +86,7 @@ class TestKeywordGetAllPicklistValues:
     def setup_class(cls):
         cls.sflib = Salesforce(locators={"body": "//whatever"})
 
-    def test_returns_rendered_picklist_values(self, mock_robot_context):
+    def test_returns_rendered_non_empty_picklist_values(self, mock_robot_context):
         option_1 = mock.Mock(text="Warm")
         option_2 = mock.Mock(text="Cold")
         option_3 = mock.Mock(text="Warm")
@@ -102,7 +102,10 @@ class TestKeywordGetAllPicklistValues:
 
             values = self.sflib.get_all_picklist_values("Status")
 
-        assert values == ["Warm", "Cold", "Warm", ""]
+        assert values == ["Warm", "Cold", "Warm"]
+
+        self.sflib.selenium.set_focus_to_element.assert_called_once_with("label:Status")
+        self.sflib.selenium.click_element.assert_called_once_with("label:Status")
         self.sflib.selenium.wait_until_element_is_visible.assert_called_once()
         self.sflib.selenium.press_keys.assert_any_call(None, "ESC")
 
@@ -125,13 +128,16 @@ class TestKeywordGetAllPicklistValues:
         assert values == ["Active"]
 
     def test_raises_assertion_when_picklist_not_found(self, mock_robot_context):
-        self.sflib.selenium.set_focus_to_element.side_effect = ElementNotFound()
-
-        with pytest.raises(
-            AssertionError,
-            match="Picklist 'Status' was not found on the page.",
+        with mock.patch.object(
+            self.sflib.selenium,
+            "set_focus_to_element",
+            side_effect=ElementNotFound(),
         ):
-            self.sflib.get_all_picklist_values("Status")
+            with pytest.raises(
+                AssertionError,
+                match="Picklist 'Status' was not found on the page.",
+            ):
+                self.sflib.get_all_picklist_values("Status")
 
     def test_uses_custom_timeout(self, mock_robot_context):
         option = mock.Mock(text="Active")
