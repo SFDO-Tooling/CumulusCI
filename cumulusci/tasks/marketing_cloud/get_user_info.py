@@ -14,7 +14,7 @@ class GetUserInfoTask(BaseMarketingCloudTask):
             payload = self.mc_config.get_user_info()
         except requests.exceptions.HTTPError as e:
             self.logger.error(
-                f"Exception occurred fetching user info: {e.response.text}"
+                f"Exception occurred fetching user info: {e.response.text if e.response else 'None'}"
             )
             raise
 

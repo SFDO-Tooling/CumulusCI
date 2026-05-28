@@ -1019,7 +1019,7 @@ class TestMergeBranch(MockUtilBase):
         ]
         invalid_release_branches = [
             f"{prefix}200_",
-            f"{prefix}_200" f"{prefix}230_",
+            f"{prefix}_200{prefix}230_",
             f"{prefix}230__child",
             f"{prefix}230__grand__child",
             f"{prefix}230a",

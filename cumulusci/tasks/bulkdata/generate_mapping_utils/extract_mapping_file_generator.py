@@ -18,7 +18,7 @@ def _mapping_decl_for_extract_decl(
     decl: SimplifiedExtractDeclarationWithLookups,
 ):
     """Make a CCI extract mapping step from a SimplifiedExtractDeclarationWithLookups"""
-    lookups = {lookup: {"table": table} for lookup, table in decl.lookups.items()}
+    lookups = {lookup: {"table": tables} for lookup, tables in decl.lookups.items()}
     mapping_dict: dict[str, T.Any] = {
         "sf_object": decl.sf_object,
     }

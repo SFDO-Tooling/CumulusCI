@@ -69,7 +69,7 @@ def service_list(runtime, plain, print_json):
     console.print(table)
 
 
-class ConnectServiceCommand(click.MultiCommand):
+class ConnectServiceCommand(click.Group):
     def _get_services_config(self, runtime):
         return (
             runtime.project_config.services
@@ -82,6 +82,25 @@ class ConnectServiceCommand(click.MultiCommand):
         runtime = ctx.obj
         services = self._get_services_config(runtime)
         return sorted(services.keys())
+
+    def invoke(self, ctx):
+        """Override to show available services instead of 'Missing command' error"""
+        try:
+            return super().invoke(ctx)
+        except click.UsageError as e:
+            if "Missing command" in str(e):
+                # No subcommand provided - list available services
+                services = self.list_commands(ctx)
+                if services:
+                    click.echo("Available services:")
+                    for service in services:
+                        click.echo(f"  {service}")
+                else:
+                    click.echo("No services available to configure.")
+                return
+            else:
+                # Re-raise other usage errors
+                raise
 
     def _build_param(self, attribute: str, details: dict) -> click.Option:
         required = details.get("required", False)
@@ -204,7 +223,7 @@ class ConnectServiceCommand(click.MultiCommand):
             set_global_default = kwargs.pop("default", False)
 
             serv_conf = dict(
-                (k, v) for k, v in list(kwargs.items()) if v is not None
+                (k, v.strip()) for k, v in list(kwargs.items()) if v is not None
             )  # remove None values
 
             # A service can define a callable to validate the service config
@@ -267,6 +286,7 @@ class ConnectServiceCommand(click.MultiCommand):
     cls=ConnectServiceCommand,
     name="connect",
     help="Connect an external service to CumulusCI",
+    no_args_is_help=False,
 )
 def service_connect():
     pass
@@ -305,7 +325,7 @@ def service_update(
         for attr in attributes:
             attr_name, attr_value = attr
             if attr_name in service_config.config:
-                service_config.config[attr_name] = attr_value
+                service_config.config[attr_name] = attr_value.strip()
                 attributes_were_updated = True
             else:
                 available_attributes = ", ".join(service_attributes)
@@ -324,7 +344,7 @@ def service_update(
             )
             if user_input != "":
                 attributes_were_updated = True
-                service_config.config[attr] = user_input
+                service_config.config[attr] = user_input.strip()
 
     if attributes_were_updated:
         runtime.keychain.set_service(service_type, service_name, service_config)
@@ -371,7 +391,7 @@ def get_service_data(service_config, sensitive_attributes) -> list:
                 click.style(k, bold=True),
                 (
                     (v[:5] + (len(v[5:]) * "*") if len(v) > 10 else "*" * len(v))
-                    if k in sensitive_attributes
+                    if k in sensitive_attributes and v is not None
                     else str(v)
                 ),
             ]

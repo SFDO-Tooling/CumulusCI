@@ -1,10 +1,9 @@
-# TODO: Replace this with shutils
-from distutils.dir_util import copy_tree, remove_tree
 from pathlib import Path
+from shutil import copytree, rmtree
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import find_replace
+from cumulusci.utils import find_replace, update_tree
 
 
 class CreateManagedSrc(BaseTask):
@@ -45,7 +44,7 @@ class CreateManagedSrc(BaseTask):
             )
 
         # Copy path to revert_path
-        copy_tree(str(path), str(revert_path))
+        copytree(str(path), str(revert_path))
 
         # Edit metadata in path
         self.logger.info(
@@ -93,9 +92,9 @@ class RevertManagedSrc(BaseTask):
             )
 
         self.logger.info(f"Reverting {path} from {revert_path}")
-        copy_tree(str(revert_path), str(path), update=1)
+        update_tree(str(revert_path), str(path))
         self.logger.info(f"{path} is now reverted")
 
         # Delete the revert_path
         self.logger.info(f"Deleting {str(revert_path)}")
-        remove_tree(revert_path)
+        rmtree(revert_path)

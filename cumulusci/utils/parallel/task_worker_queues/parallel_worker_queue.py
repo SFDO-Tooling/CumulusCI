@@ -1,6 +1,6 @@
 """Represents an inbox and configuration for a set of processes
-   that represent the same "step" in a pipeline.
-   """
+that represent the same "step" in a pipeline.
+"""
 
 import logging
 import shutil

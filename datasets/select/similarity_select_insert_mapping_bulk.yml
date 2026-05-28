@@ -1,0 +1,47 @@
+Account:
+    sf_object: Account
+    api: rest
+    fields:
+        - Name
+        - Description
+        - Phone
+        - AccountNumber
+    lookups:
+        ParentId:
+            table: Account
+
+Contact:
+    sf_object: Contact
+    api: rest
+    fields:
+        - LastName
+        - Email
+    lookups:
+        AccountId:
+            table: Account
+
+Lead:
+    sf_object: Lead
+    api: rest
+    fields:
+        - LastName
+        - Company
+
+Event:
+    sf_object: Event
+    api: bulk
+    action: select
+    select_options:
+        strategy: similarity
+        threshold: 0.1
+    fields:
+        - Subject
+        - DurationInMinutes
+        - ActivityDateTime
+    lookups:
+        WhoId:
+            table:
+                - Contact
+                - Lead
+        WhatId:
+            table: Account

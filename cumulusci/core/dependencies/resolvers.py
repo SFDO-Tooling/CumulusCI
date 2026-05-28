@@ -268,8 +268,7 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
         self,
         dep: BaseGitHubDependency,
         context: BaseProjectConfig,
-    ) -> List[Branch]:
-        ...
+    ) -> List[Branch]: ...
 
     def resolve(
         self, dep: BaseGitHubDependency, context: BaseProjectConfig
@@ -317,7 +316,8 @@ class AbstractGitHubReleaseBranchResolver(
         return bool(
             super().is_valid_repo_context(context)
             and is_release_branch_or_child(
-                context.repo_branch, context.project__git__prefix_feature  # type: ignore
+                context.repo_branch,
+                context.project__git__prefix_feature,  # type: ignore
             )
         )
 

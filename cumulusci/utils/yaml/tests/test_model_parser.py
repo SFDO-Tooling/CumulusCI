@@ -2,7 +2,7 @@ from io import StringIO
 from unittest.mock import Mock
 
 import pytest
-from pydantic import Field
+from pydantic.v1 import Field
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel, CCIModel, ValidationError
 
@@ -20,7 +20,7 @@ class TestCCIModel:
     def test_fields_property(self):
         # JSON is YAML. Strange but true.
         foo = Document.parse_from_yaml(StringIO("{bar: 'blah'}"))
-        assert type(foo) == Foo
+        assert isinstance(foo, Foo)
         assert foo.fields_ == []
         assert foo.fields == []
 
@@ -122,7 +122,7 @@ class TestCCIDictModel:
 
         # JSON is YAML. Strange but true.
         foo = Document.parse_from_yaml(StringIO("{bar: 'blah'}"))
-        assert type(foo) == Foo
+        assert isinstance(foo, Foo)
         assert foo["fields"] == []
 
         foo = Document.parse_from_yaml(StringIO("{bar: 'blah', fields: [1,2]}"))

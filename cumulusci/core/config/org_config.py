@@ -3,6 +3,7 @@ import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from datetime import date, datetime
+from typing import Optional
 from urllib.parse import urlparse
 
 import requests
@@ -47,14 +48,12 @@ class OrgConfig(BaseConfig):
     is_sandbox: bool
     namespace: str
     namespaced: bool
-    org_id: str
     org_type: str
     password: str
     scratch: bool
     scratch_org_type: str
     set_password: bool
     sfdx_alias: str
-    username: str
     userinfo: str
     id: str
     active: bool
@@ -63,8 +62,9 @@ class OrgConfig(BaseConfig):
     refresh_token: str
     client_secret: str
     connected_app: str
+    serialization_format: str
 
-    createable: bool = None
+    createable: Optional[bool] = None
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
@@ -204,7 +204,15 @@ class OrgConfig(BaseConfig):
 
     @property
     def org_id(self):
-        return self.id.split("/")[-2]
+        try:
+            if org_id := self.config.get("org_id"):
+                return org_id
+            elif hasattr(self, "id") and self.id:
+                return self.id.split("/")[-2]
+            else:
+                return None
+        except Exception as e:  # pragma: no cover
+            assert e is None, e
 
     @property
     def username(self):
@@ -254,7 +262,7 @@ class OrgConfig(BaseConfig):
     @property
     def organization_sobject(self):
         """Cached copy of Organization sObject. Does not perform API call."""
-        return self._org_sobject
+        return getattr(self, "_org_sobject", None)
 
     def _fetch_community_info(self):
         """Use the API to re-fetch information about communities"""
@@ -317,7 +325,8 @@ class OrgConfig(BaseConfig):
         To check if a required package is present, call `has_minimum_package_version()` with either the
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
 
-        Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
+        Beta version of a package are represented as "1.2.3b5", where 5 is the build number.
+        """
         if self._installed_packages is None:
             isp_result = self.salesforce_client.restful(
                 "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "

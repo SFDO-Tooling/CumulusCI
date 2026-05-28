@@ -4,6 +4,7 @@ Insert Households:
     table: households
     fields:
         Id: sf_id
+        Name: Name
     static:
         Name: TestHousehold
     record_type: HH_Account

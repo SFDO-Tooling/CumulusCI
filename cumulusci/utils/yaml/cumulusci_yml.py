@@ -9,8 +9,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic import Field, root_validator, validator
-from pydantic.types import DirectoryPath
+from pydantic.v1 import Field, root_validator, validator
+from pydantic.v1.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
 from cumulusci.core.enums import StrEnum
@@ -53,9 +53,9 @@ class Step(CCIDictModel):
     def _check(cls, values):
         has_task = values.get("task") and values["task"] != "None"
         has_flow = values.get("flow") and values["flow"] != "None"
-        assert not (
-            has_task and has_flow
-        ), "Steps must have either task or flow but not both"
+        assert not (has_task and has_flow), (
+            "Steps must have either task or flow but not both"
+        )
         return values
 
 
@@ -150,6 +150,7 @@ class ScratchOrg(CCIDictModel):
     namespaced: str = None
     setup_flow: str = None
     noancestors: bool = None
+    release: Literal["preview", "previous"] = None
 
 
 class Orgs(CCIDictModel):
@@ -272,34 +273,19 @@ def validate_data(
 
 class ErrorDict(TypedDict):
     "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
+
     loc: Sequence[Union[str, int]]
     msg: str
     type: str
 
 
-has_shown_yaml_error_message = False
-
-
 def _log_yaml_errors(logger, errors: List[ErrorDict]):
     "Format and log a Pydantic-style error dictionary"
-    global has_shown_yaml_error_message
     plural = "" if len(errors) <= 1 else "s"
     logger.warning(f"CumulusCI Configuration Warning{plural}:")
     for error in errors:
         loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
         logger.warning("  %s\n    %s", loc, error["msg"])
-    if not has_shown_yaml_error_message:
-        logger.error(
-            "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
-            "If you need to put non-standard data in your CumulusCI file "
-            "(for some form of project-specific setting), put it in "
-            "the `project: custom:` section of `cumulusci.yml` ."
-        )
-        logger.error(
-            "If you think your YAML has no error, please report the bug to the CumulusCI team."
-        )
-        logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/\n")
-        has_shown_yaml_error_message = True
 
 
 def cci_safe_load(
@@ -307,9 +293,9 @@ def cci_safe_load(
 ) -> dict:
     """Load a CumulusCI.yml file and issue warnings for unknown structures."""
     errors = []
-    assert not (
-        on_error and logger
-    ), "Please specify either on_error or logger but not both"
+    assert not (on_error and logger), (
+        "Please specify either on_error or logger but not both"
+    )
     on_error = on_error or errors.append
 
     logger = logger or default_logger

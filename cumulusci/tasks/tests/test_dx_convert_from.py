@@ -51,7 +51,7 @@ def test_dx_convert_from(sarge, sarge_process, dx_convert_task):
 
         assert not src_dir.exists()
         sarge.Command.assert_called_once_with(
-            "sfdx force:source:convert -d src",
+            "sf project convert source -d src",
             cwd=".",
             env=ANY,
             shell=True,

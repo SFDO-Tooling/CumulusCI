@@ -189,7 +189,7 @@ def validate_service(options: dict, keychain) -> dict:
     server_domain = options.get("server_domain", None)
 
     gh = _determine_github_client(server_domain, {"token": token})
-    if type(gh) == GitHubEnterprise:
+    if isinstance(gh, GitHubEnterprise):
         validate_gh_enterprise(server_domain, keychain)
     try:
         authed_user = gh.me()
@@ -445,7 +445,7 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
 
 
 def format_github3_exception(
-    exc: Union[ResponseError, TransportError, ConnectionError]
+    exc: Union[ResponseError, TransportError, ConnectionError],
 ) -> str:
     """Checks github3 exceptions for the most common GitHub authentication
     issues, returning a user-friendly message if found.
@@ -603,7 +603,7 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (ConnectionError) as exc:
+        except ConnectionError as exc:
             if error_msg := format_github3_exception(exc):
                 raise GithubApiError(error_msg) from exc
             else:

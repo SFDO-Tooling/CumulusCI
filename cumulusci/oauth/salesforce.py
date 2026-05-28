@@ -21,6 +21,19 @@ SANDBOX_LOGIN_URL = (
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 
 
+def update_login_urls():
+    """
+    Updating to setup the environment variables dynamically
+    """
+    global PROD_LOGIN_URL, SANDBOX_LOGIN_URL
+    PROD_LOGIN_URL = (
+        os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
+    )
+    SANDBOX_LOGIN_URL = (
+        os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
+    )
+
+
 def jwt_session(
     client_id, private_key, username, url=None, auth_url=None, is_sandbox=False
 ):
@@ -31,6 +44,7 @@ def jwt_session(
     :param username: Username to authenticate as
     :param url: Org's instance_url
     """
+    update_login_urls()
     if auth_url:
         aud = (
             SANDBOX_LOGIN_URL

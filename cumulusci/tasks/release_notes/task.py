@@ -14,7 +14,6 @@ from cumulusci.tasks.release_notes.generator import (
 
 
 class AllGithubReleaseNotes(BaseGithubTask):
-
     task_options = {
         "repos": {
             "description": (
@@ -36,10 +35,10 @@ class AllGithubReleaseNotes(BaseGithubTask):
                     .body
                 )
                 table_of_contents += (
-                    f"""<li><a href="#{project['repo']}">{project['repo']}</a></li>"""
+                    f"""<li><a href="#{project["repo"]}">{project["repo"]}</a></li>"""
                 )
                 release_project_header = (
-                    f"""<h1 id="{project['repo']}">{project['repo']}</h1>"""
+                    f"""<h1 id="{project["repo"]}">{project["repo"]}</h1>"""
                 )
                 release_html = self.github.markdown(
                     release,
@@ -56,7 +55,6 @@ class AllGithubReleaseNotes(BaseGithubTask):
 
 
 class GithubReleaseNotes(BaseGithubTask):
-
     task_options = {
         "tag": {
             "description": (

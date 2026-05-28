@@ -19,6 +19,7 @@ from cumulusci.salesforce_api.exceptions import (
 from cumulusci.salesforce_api.metadata import (
     ApiDeploy,
     ApiListMetadata,
+    ApiListMetadataTypes,
     ApiRetrieveInstalledPackages,
     ApiRetrievePackaged,
     ApiRetrieveUnpackaged,
@@ -36,6 +37,8 @@ from cumulusci.salesforce_api.tests.metadata_test_strings import (
     list_metadata_result,
     list_metadata_result_bad_val,
     list_metadata_start_envelope,
+    list_metadata_types_envelope,
+    list_metadata_types_result,
     result_envelope,
     retrieve_packaged_start_envelope,
     retrieve_result,
@@ -841,6 +844,42 @@ class TestApiListMetadata(TestBaseTestMetadataApi):
         self._mock_call_mdapi(api, list_metadata_result_bad_val)
         with pytest.raises(MetadataParseError):
             api()
+
+
+class TestApiListMetadataTypes(TestBaseTestMetadataApi):
+    api_class = ApiListMetadataTypes
+    envelope_start = list_metadata_types_envelope
+
+    def setup_method(self):
+        super().setup_method()
+        self.metadata_types = None
+        self.api_version = self.project_config.project__package__api_version
+
+    def _response_call_success_result(self, response_result):
+        return list_metadata_types_result
+
+    def _expected_call_success_result(self, response_result=None):
+        metadata_types = ["Workflow", "WorkflowFieldUpdate"]
+        return metadata_types
+
+    def _create_instance(self, task, api_version=None):
+        return super()._create_instance(task, api_version)
+
+    @responses.activate
+    def test_call_success(self):
+        org_config = {
+            "instance_url": "https://na12.salesforce.com",
+            "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
+            "access_token": "0123456789",
+        }
+        task = self._create_task(org_config=org_config)
+        api = self._create_instance(task)
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = "{api_version}"
+        self._mock_call_mdapi(api, list_metadata_types_result)
+
+        metadata_types = api()
+        assert metadata_types == self._expected_call_success_result()
 
 
 class TestApiRetrieveUnpackaged(TestBaseTestMetadataApi):

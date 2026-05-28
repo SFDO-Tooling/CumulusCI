@@ -1,0 +1,21 @@
+# Select Mapping File for load
+Select Accounts:
+    api: bulk
+    action: select
+    sf_object: Account
+    table: accounts
+    select_options:
+        strategy: similarity
+        filter: WHEN Name in ('Sample Account')
+        priority_fields:
+            Name: name
+            AccountNumber: account_number
+        threshold: invalid threshold
+    fields:
+        Name: name
+        AccountNumber: account_number
+        Description: description
+    lookups:
+        ParentId:
+            key_field: parent_id
+            table: accounts

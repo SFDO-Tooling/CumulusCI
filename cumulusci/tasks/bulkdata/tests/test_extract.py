@@ -8,7 +8,12 @@ import pytest
 import responses
 from sqlalchemy import create_engine
 
-from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
+from cumulusci.core.exceptions import (
+    BulkDataException,
+    ConfigError,
+    CumulusCIException,
+    TaskOptionsError,
+)
 from cumulusci.tasks.bulkdata import ExtractData
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
@@ -40,12 +45,15 @@ def mock_extract_jobs(task, extracted_records):
     def get_results(self):
         return extracted_records[self.sobject]
 
-    with mock.patch(
-        "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
-        get_results,
-    ), mock.patch(
-        "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
-        _job_state_from_batches,
+    with (
+        mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
+            get_results,
+        ),
+        mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+            _job_state_from_batches,
+        ),
     ):
         yield
 
@@ -76,9 +84,11 @@ class MockScalableBulkQueryOperation(MockBulkQueryOperation):
 
 
 class TestExtractData:
-
     mapping_file_v1 = "mapping_v1.yml"
     mapping_file_v2 = "mapping_v2.yml"
+    mapping_file_poly = "mapping_poly.yml"
+    mapping_file_poly_wrong = "mapping_poly_wrong.yml"
+    mapping_file_poly_incomplete = "mapping_poly_incomplete.yml"
     mapping_file_vanilla = "mapping_vanilla_sf.yml"
 
     @responses.activate
@@ -107,7 +117,7 @@ class TestExtractData:
                 sobject="Account",
                 api_options={},
                 context=task,
-                query="SELECT Id FROM Account",
+                query="SELECT Id, Name FROM Account",
             )
             mock_query_contacts = MockBulkQueryOperation(
                 sobject="Contact",
@@ -115,7 +125,7 @@ class TestExtractData:
                 context=task,
                 query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
             )
-            mock_query_households.results = [["1"]]
+            mock_query_households.results = [["1", "None"]]
             mock_query_contacts.results = [
                 ["2", "First", "Last", "test@example.com", "1"]
             ]
@@ -162,7 +172,7 @@ class TestExtractData:
                 sobject="Account",
                 api_options={},
                 context=task,
-                query="SELECT Id, IsPersonAccount FROM Account",
+                query="SELECT Id, Name IsPersonAccount FROM Account",
             )
             mock_query_contacts = MockBulkQueryOperation(
                 sobject="Contact",
@@ -170,7 +180,7 @@ class TestExtractData:
                 context=task,
                 query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
             )
-            mock_query_households.results = [["1", "false"]]
+            mock_query_households.results = [["1", "None", "false"]]
             mock_query_contacts.results = [
                 ["2", "First", "Last", "test@example.com", "true", "1"]
             ]
@@ -179,7 +189,6 @@ class TestExtractData:
 
             task()
             with create_engine(task.options["database_url"]).connect() as conn:
-
                 household = next(conn.execute("select * from households"))
                 assert household.sf_id == "1"
                 assert household.IsPersonAccount == "false"
@@ -230,12 +239,12 @@ class TestExtractData:
                 task()
 
             assert os.path.exists("testdata.sql")
-            assert ce_mock.mock_calls[0][1][0].endswith(
-                "temp_db.db"
-            ), ce_mock.mock_calls[0][1][0]
-            assert ce_mock.mock_calls[0][1][0].startswith(
-                "sqlite:///"
-            ), ce_mock.mock_calls[0][1][0]
+            assert ce_mock.mock_calls[0][1][0].endswith("temp_db.db"), (
+                ce_mock.mock_calls[0][1][0]
+            )
+            assert ce_mock.mock_calls[0][1][0].startswith("sqlite:///"), (
+                ce_mock.mock_calls[0][1][0]
+            )
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -285,7 +294,7 @@ class TestExtractData:
                 assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert contact.household_id == "1"
+                assert contact.household_id == "Account-1"
                 assert not hasattr(contact, "IsPersonAccount")
 
     @responses.activate
@@ -336,8 +345,186 @@ class TestExtractData:
                 assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert contact.household_id == "1"
+                assert contact.household_id == "Account-1"
                 assert contact.IsPersonAccount == "true"
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__poly__polymorphic_lookups(self, query_op_mock):
+        """Test for polymorphic lookups"""
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_poly)
+        mock_describe_calls()
+
+        with temporary_dir() as t:
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{t}/temp_poly.db",  # in memory
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
+
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, Name FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            )
+            mock_query_events = MockBulkQueryOperation(
+                sobject="Event",
+                api_options={},
+                context=task,
+                query="SELECT Id, LastName, WhoId FROM Event",
+            )
+            mock_query_households.results = [["abc123", "TestHousehold"]]
+            mock_query_contacts.results = [
+                ["def456", "First", "Last", "test@example.com", "abc123"]
+            ]
+            mock_query_events.results = [
+                ["ijk789", "Last1", "abc123"],
+                ["lmn010", "Last2", "def456"],
+            ]
+
+            query_op_mock.side_effect = [
+                mock_query_households,
+                mock_query_contacts,
+                mock_query_events,
+            ]
+            task()
+            with create_engine(task.options["database_url"]).connect() as conn:
+                household = next(conn.execute("select * from households"))
+                assert household.name == "TestHousehold"
+                assert not hasattr(household, "IsPersonAccount")
+                assert household.record_type == "HH_Account"
+
+                contact = next(conn.execute("select * from contacts"))
+                assert contact.household_id == "Account-1"
+                assert not hasattr(contact, "IsPersonAccount")
+
+                events = conn.execute("select * from events").fetchall()
+                assert events[0].who_id == "Account-1"
+                assert events[1].who_id == "Contact-1"
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__poly__wrong_mapping(self, query_op_mock):
+        """Test for polymorphic lookups with wrong mapping file
+        (missing table)"""
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_poly_wrong)
+        mock_describe_calls()
+
+        with temporary_dir() as t:
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{t}/temp_poly.db",  # in memory
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
+
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, Name FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            )
+            mock_query_events = MockBulkQueryOperation(
+                sobject="Event",
+                api_options={},
+                context=task,
+                query="SELECT Id, LastName, WhoId FROM Event",
+            )
+            mock_query_households.results = [["abc123", "TestHousehold"]]
+            mock_query_contacts.results = [
+                ["def456", "First", "Last", "test@example.com", "abc123"]
+            ]
+            mock_query_events.results = [
+                ["ijk789", "Last1", "abc123"],
+                ["lmn010", "Last2", "def456"],
+            ]
+
+            query_op_mock.side_effect = [
+                mock_query_households,
+                mock_query_contacts,
+                mock_query_events,
+            ]
+            with pytest.raises(CumulusCIException) as e:
+                task()
+
+            assert "The following tables are missing in the mapping file:" in str(
+                e.value
+            )
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__poly__incomplete_mapping(self, query_op_mock):
+        """Test for polymorphic lookups with incomplete mapping file"""
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_poly_incomplete)
+        mock_describe_calls()
+
+        with temporary_dir() as t:
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{t}/temp_poly.db",  # in memory
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
+
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, Name FROM Account",
+            )
+            mock_query_events = MockBulkQueryOperation(
+                sobject="Event",
+                api_options={},
+                context=task,
+                query="SELECT Id, LastName, WhoId FROM Event",
+            )
+            mock_query_households.results = [["abc123", "TestHousehold"]]
+            mock_query_events.results = [
+                ["ijk789", "Last1", "abc123"],
+                ["lmn010", "Last2", "def456"],
+            ]
+
+            query_op_mock.side_effect = [mock_query_households, mock_query_events]
+            with pytest.raises(ConfigError) as e:
+                task()
+
+            assert "Total mapping operations" in str(e.value)
+            assert "do not match total non-empty rows" in str(e.value)
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
@@ -397,7 +584,7 @@ class TestExtractData:
             output_Opportunties = list(
                 task.session.execute("select * from Opportunity")
             )
-            assert output_Opportunties == [(1,), (2,)]
+            assert output_Opportunties == [("Opportunity-1",), ("Opportunity-2",)]
 
     @responses.activate
     def test_import_results__relative_dates(self):
@@ -471,6 +658,7 @@ class TestExtractData:
             "Account",
             mapping.get_source_record_type_table(),
             task.session.connection.return_value,
+            task.org_config._is_person_accounts_enabled,
         )
 
     def test_import_results__person_account_name_stripped(self):
@@ -569,6 +757,8 @@ class TestExtractData:
             "Opportunity": MappingStep(sf_object="Opportunity"),
         }
 
+        task.session.query.return_value.filter.return_value.count.return_value = 0
+        task.session.query.return_value.filter.return_value.update.return_value.rowcount = 0
         task._convert_lookups_to_id(
             MappingStep(
                 sf_object="Opportunity",
@@ -606,6 +796,7 @@ class TestExtractData:
         item = mock.Mock()
 
         task.session.query.return_value.join.return_value = [(item, "1")]
+        task.session.query.return_value.filter.return_value.count.return_value = 1
 
         task._convert_lookups_to_id(
             MappingStep(
@@ -1007,19 +1198,20 @@ class TestExtractData:
                     ]
                 ],
             }
-            with mock_extract_jobs(task, extracted_records), mock_salesforce_client(
-                task
+            with (
+                mock_extract_jobs(task, extracted_records),
+                mock_salesforce_client(task),
             ):
                 task()
             with create_engine(task.options["database_url"]).connect() as conn:
                 output_accounts = list(conn.execute("select * from Account"))
-                assert output_accounts[0][0:2] == (1, "Account1")
-                assert output_accounts[1][0:2] == (2, "Account2")
+                assert output_accounts[0][0:2] == ("Account-1", "Account1")
+                assert output_accounts[1][0:2] == ("Account-2", "Account2")
                 assert len(output_accounts) == 2
                 output_opportunities = list(conn.execute("select * from Opportunity"))
 
-                assert output_opportunities[0].AccountId == "2"
-                assert output_opportunities[0].ContactId == "1"
+                assert output_opportunities[0].AccountId == "Account-2"
+                assert output_opportunities[0].ContactId == "Contact-1"
 
     def test_run_soql_filter(self):
         """This test case is to verify when soql_filter is specified with valid filter in the mapping yml"""
@@ -1111,9 +1303,9 @@ class TestExtractData:
             )
 
             soql = task._soql_for_mapping(mapping)
-            assert (
-                "WHERE Name = 'John Doe'" in soql
-            ), "filter should be applied just on name"
-            assert (
-                "DeveloperName" not in soql
-            ), "DeveloperName should not appear in the soql query as it is missing in mapping"
+            assert "WHERE Name = 'John Doe'" in soql, (
+                "filter should be applied just on name"
+            )
+            assert "DeveloperName" not in soql, (
+                "DeveloperName should not appear in the soql query as it is missing in mapping"
+            )

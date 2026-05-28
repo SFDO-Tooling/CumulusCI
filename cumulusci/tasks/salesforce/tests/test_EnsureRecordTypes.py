@@ -15,7 +15,7 @@ OPPORTUNITY_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <fullName>NPSP_Default</fullName>
         <isActive>true</isActive>
         <values>
-            <fullName>Test</fullName>
+            <fullName>Identify &amp; Qualify</fullName>
             <default>false</default>
         </values>
     </businessProcesses>
@@ -79,7 +79,7 @@ OPPORTUNITY_DESCRIBE_NO_RTS = {
             "name": "StageName",
             "picklistValues": [
                 {"value": "Bad", "active": False},
-                {"value": "Test", "active": True},
+                {"value": "Identify & Qualify", "active": True},
             ],
         },
     ],
@@ -134,7 +134,7 @@ class TestEnsureRecordTypes:
 
         assert task.options["generate_business_process"]
         assert task.options["generate_record_type"]
-        assert task.options["stage_name"] == "Test"
+        assert task.options["stage_name"] == "Identify & Qualify"
 
     def test_no_business_process_where_unneeded(self):
         task = create_task(
@@ -178,7 +178,6 @@ class TestEnsureRecordTypes:
             with open(os.path.join("objects", "Opportunity.object"), "r") as f:
                 opp_contents = f.read()
                 assert OPPORTUNITY_METADATA == opp_contents
-                assert OPPORTUNITY_METADATA == opp_contents
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
                 assert PACKAGE_XML == pkg_contents
@@ -203,8 +202,8 @@ class TestEnsureRecordTypes:
         with temporary_dir():
             task._build_package()
             with open(os.path.join("objects", "Case.object"), "r") as f:
-                opp_contents = f.read()
-                assert CASE_METADATA == opp_contents
+                case_contents = f.read()
+                assert CASE_METADATA == case_contents
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
                 assert PACKAGE_XML == pkg_contents

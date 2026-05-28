@@ -1,0 +1,34 @@
+# Polymorphic Mapping File for extract
+Insert Households:
+    api: Bulk
+    sf_object: Account
+    table: households
+    fields:
+        Name: name
+    record_type: HH_Account
+Insert Contacts:
+    api: BULK
+    sf_object: Contact
+    table: contacts
+    filters:
+        - "household_id is not null"
+    fields:
+        FirstName: first_name
+        LastName: last_name
+        Email: email
+    lookups:
+        AccountId:
+            key_field: household_id
+            table: households
+Insert Events:
+    api: BULK
+    sf_object: Event
+    table: events
+    fields:
+        Subject: subject
+    lookups:
+        WhoId:
+            key_field: who_id
+            table:
+                - households
+                - contacts

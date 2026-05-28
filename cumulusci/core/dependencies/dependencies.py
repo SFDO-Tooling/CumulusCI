@@ -6,10 +6,10 @@ import os
 from typing import List, Optional
 from zipfile import ZipFile
 
-import pydantic
+import pydantic.v1 as pydantic
 from github3.exceptions import NotFoundError
 from github3.repos.repo import Repository
-from pydantic.networks import AnyUrl
+from pydantic.v1.networks import AnyUrl
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
@@ -56,9 +56,9 @@ def _validate_github_parameters(values):
 
     # Populate the `github` property if not already populated.
     if not values.get("github") and values.get("repo_name"):
-        values[
-            "github"
-        ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        values["github"] = (
+            f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        )
         values.pop("repo_owner")
         values.pop("repo_name")
 
@@ -67,12 +67,10 @@ def _validate_github_parameters(values):
 
 class DependencyPin(HashableBaseModel, abc.ABC):
     @abc.abstractmethod
-    def can_pin(self, d: "DynamicDependency") -> bool:
-        ...
+    def can_pin(self, d: "DynamicDependency") -> bool: ...
 
     @abc.abstractmethod
-    def pin(self, d: "DynamicDependency", context: BaseProjectConfig):
-        ...
+    def pin(self, d: "DynamicDependency", context: BaseProjectConfig): ...
 
 
 DependencyPin.update_forward_refs()
@@ -544,6 +542,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
     subfolder: Optional[str] = None
     namespace_inject: Optional[str] = None
     namespace_strip: Optional[str] = None
+    collision_check: Optional[bool] = None
 
     def _get_unmanaged(self, org: OrgConfig):
         if self.unmanaged is None:

@@ -7,16 +7,16 @@ changelog:
         authors:
             - app/github-actions
     categories:
-        - title: Critical Changes 🛠
+        - title: Critical Changes
           labels:
               - critical-change
-        - title: Changes 🎉
+        - title: Changes
           labels:
               - enhancement
               - "*"
           exclude:
               labels:
                   - bug
-        - title: Issues Fixed 🩴
+        - title: Issues Fixed
           labels:
               - bug

@@ -1,5 +1,6 @@
 import os
 import re
+from xml.sax.saxutils import escape
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
@@ -152,7 +153,7 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                     record_type_developer_name=self.options[
                         "record_type_developer_name"
                     ],
-                    stage_name=self.options["stage_name"],
+                    stage_name=escape(self.options["stage_name"]),
                     default=default,
                 )
                 business_process_link = BUSINESS_PROCESS_LINK.format(

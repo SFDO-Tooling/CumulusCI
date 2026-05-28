@@ -95,7 +95,6 @@ class FakeLoadData(BaseSalesforceApiTask):
         in a normal mock_values structure."""
 
         with self.lock:  # the code below looks thread-safe but better safe than sorry
-
             # tasks usually aren't called twice after being instantiated
             # that would usually be a bug.
             assert self not in self.mock_calls
@@ -153,11 +152,14 @@ def mock_load_data(
 ):
 
     fake_load_data = FakeLoadData
-    with mock.patch(
-        "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", fake_load_data
-    ), mock.patch(
-        "cumulusci.tasks.bulkdata.snowfakery_utils.queue_manager.LoadData",
-        fake_load_data,
+    with (
+        mock.patch(
+            "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", fake_load_data
+        ),
+        mock.patch(
+            "cumulusci.tasks.bulkdata.snowfakery_utils.queue_manager.LoadData",
+            fake_load_data,
+        ),
     ):
         fake_load_data.reset()
 
@@ -187,12 +189,15 @@ def fake_processes_and_threads(request):
 
     process_manager = FakeProcessManager()
 
-    with mock.patch(
-        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Thread",
-        process_manager,
-    ), mock.patch(
-        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
-        process_manager,
+    with (
+        mock.patch(
+            "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Thread",
+            process_manager,
+        ),
+        mock.patch(
+            "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+            process_manager,
+        ),
     ):
         yield process_manager
 
@@ -237,6 +242,134 @@ def run_snowfakery_and_inspect_mapping(
     return _run_snowfakery_and_inspect_mapping
 
 
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_enable_rollback_passes_flag_to_subtask(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {
+        "load_results": [
+            {
+                "step_results": {
+                    "Insert Account": {
+                        "sobject": "Account",
+                        "record_type": None,
+                        "status": "Success",
+                        "records_processed": 1,
+                        "total_row_errors": 0,
+                    }
+                }
+            }
+        ]
+    }
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        enable_rollback=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["enable_rollback"] is True
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_enable_rollback_defaults_to_false(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {
+        "load_results": [
+            {
+                "step_results": {
+                    "Insert Account": {
+                        "sobject": "Account",
+                        "record_type": None,
+                        "status": "Success",
+                        "records_processed": 1,
+                        "total_row_errors": 0,
+                    }
+                }
+            }
+        ]
+    }
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["enable_rollback"] is False
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_snowfakery_validate_only_passes_flags(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {"validation_result": "ok"}
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        validate_only=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+            validate_only=True,
+        )
+
+    # task_config passed into subtask should carry validate_only=True and strict_mode flag
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["validate_only"] is True
+    assert task_config.options["strict_mode"] is False
+
+
+@mock.patch("cumulusci.tasks.bulkdata.snowfakery.GenerateAndLoadDataFromYaml")
+def test_snowfakery_strict_mode_passes_flags(mock_subtask_cls, snowfakery):
+    mock_subtask = mock.Mock()
+    mock_subtask.__call__ = mock.Mock(return_value=None)
+    mock_subtask.return_values = {"validation_result": "ok"}
+    mock_subtask_cls.return_value = mock_subtask
+
+    task = snowfakery(
+        recipe=str(simple_salesforce_yaml),
+        strict_mode=True,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        task._run_generate_and_load_subtask(
+            Path(tmpdir),
+            DummyOrgConfig({}, "test"),
+            options={},
+            validate_only=False,
+        )
+
+    call_kwargs = mock_subtask_cls.call_args.kwargs
+    task_config = call_kwargs["task_config"]
+    assert task_config.options["validate_only"] is False
+    assert task_config.options["strict_mode"] is True
+
+
 def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
     """Find the shared mapping file and return it."""
     template_dir = SnowfakeryWorkingDirectory(results.working_dir / "template_1/")
@@ -266,9 +399,9 @@ def get_record_counts_from_snowfakery_results(
     channeled_outboxes = tuple(results.working_dir.glob("*/data_load_outbox/*"))
     regular_outboxes = tuple(results.working_dir.glob("data_load_outbox/*"))
 
-    assert bool(regular_outboxes) ^ bool(
-        channeled_outboxes
-    ), f"One of regular_outboxes or channeled_outboxes should be available: {channeled_outboxes}, {regular_outboxes}"
+    assert bool(regular_outboxes) ^ bool(channeled_outboxes), (
+        f"One of regular_outboxes or channeled_outboxes should be available: {channeled_outboxes}, {regular_outboxes}"
+    )
     outboxes = tuple(channeled_outboxes) + tuple(regular_outboxes)
     for subdir in outboxes:
         record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()
@@ -352,6 +485,24 @@ class TestSnowfakery:
         for call in mock_load_data.mock_calls:
             assert call.task_config.config["options"]["drop_missing_schema"] is True
 
+    @pytest.mark.parametrize(
+        "run_until_option,run_until_value",
+        [
+            ("run_until_recipe_repeated", "7"),
+            ("run_until_records_loaded", "Account:10"),
+            ("run_until_records_in_org", "Account:10"),
+        ],
+    )
+    def test_enable_rollback_rejected_with_run_until(
+        self, run_until_option, run_until_value, snowfakery
+    ):
+        with pytest.raises(exc.TaskOptionsError, match="enable_rollback"):
+            snowfakery(
+                recipe=str(simple_salesforce_yaml),
+                enable_rollback=True,
+                **{run_until_option: run_until_value},
+            )
+
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part(
         self, threads_instead_of_processes, mock_load_data, create_task_fixture
@@ -413,9 +564,9 @@ class TestSnowfakery:
             )
             task()
         assert len(mock_load_data.mock_calls) == 0, mock_load_data.mock_calls
-        assert (
-            len(threads_instead_of_processes.mock_calls) == 0
-        ), threads_instead_of_processes.mock_calls
+        assert len(threads_instead_of_processes.mock_calls) == 0, (
+            threads_instead_of_processes.mock_calls
+        )
 
     @pytest.mark.vcr()
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 5)
@@ -454,9 +605,9 @@ class TestSnowfakery:
             task()
 
         assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
-        assert (
-            len(threads_instead_of_processes.mock_calls) == 1
-        ), threads_instead_of_processes.mock_calls
+        assert len(threads_instead_of_processes.mock_calls) == 1, (
+            threads_instead_of_processes.mock_calls
+        )
 
     def test_inaccessible_generator_yaml(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
@@ -476,9 +627,12 @@ class TestSnowfakery:
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_record_count(self, snowfakery, mock_load_data):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
-        with mock.patch.object(task, "logger") as logger, mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            mock.patch.object(task, "logger") as logger,
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(
@@ -758,9 +912,12 @@ class TestSnowfakery:
                 "recipe_options": {"xyzzy": "Nothing happens", "some_number": 37},
             },
         )
-        with pytest.raises(exc.TaskOptionsError) as e, mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            pytest.raises(exc.TaskOptionsError) as e,
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(
@@ -783,14 +940,16 @@ class TestSnowfakery:
                 "recipe": Path(__file__).parent
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
-                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "loading_rules": Path(__file__).parent
                 / "snowfakery/simple_snowfakery_channels.load.yml",
             },
         )
-        with mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            pytest.warns(UserWarning),
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(
@@ -825,6 +984,139 @@ class TestSnowfakery:
                 "Account",
             }
 
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_mode(self, mock_subtask, create_task):
+        """Test that validate_only mode validates without loading data"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        # Mock subtask return value
+        validation_result = ValidationResult()
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": True,
+            },
+        )
+
+        task()
+
+        # Verify subtask was called with validate_only=True
+        mock_subtask.assert_called_once()
+        call_args = mock_subtask.call_args
+        assert call_args.kwargs.get("validate_only")
+
+        # Verify return values contain validation_result
+        assert "validation_result" in task.return_values
+        assert task.return_values["validation_result"] == validation_result
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_with_errors(self, mock_subtask, create_task):
+        """Test that validate_only mode returns errors without raising exception"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        # Mock ValidationResult with errors
+        validation_result = ValidationResult()
+        validation_result.add_error("Test error: Field does not exist")
+        validation_result.add_warning("Test warning: Field has no permissions")
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": True,
+            },
+        )
+
+        # Should not raise exception even with errors
+        task()
+
+        # Verify subtask was called
+        mock_subtask.assert_called_once()
+
+        # Verify return values contain validation_result with errors
+        assert "validation_result" in task.return_values
+        assert task.return_values["validation_result"].has_errors()
+        assert len(task.return_values["validation_result"].errors) == 1
+        assert len(task.return_values["validation_result"].warnings) == 1
+
+    def test_validate_only_false_loads_data(self, mock_load_data, create_task):
+        """Test that validate_only=False performs normal data loading"""
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": False,
+            },
+        )
+
+        task()
+
+        # Verify load WAS called
+        assert len(mock_load_data.mock_calls) > 0
+
+        # Verify return values do not contain validation_result
+        assert "validation_result" not in task.return_values
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_with_working_directory(self, mock_subtask, snowfakery):
+        """Test that validate_only respects working_directory option"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        validation_result = ValidationResult()
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        with TemporaryDirectory() as t:
+            working_dir = Path(t) / "snowfakery_validation"
+            task = snowfakery(
+                recipe=sample_yaml,
+                validate_only=True,
+                working_directory=str(working_dir),
+            )
+
+            task()
+
+            # Verify subtask was called
+            mock_subtask.assert_called_once()
+
+            # Verify working directory was created
+            assert working_dir.exists()
+
+            # Verify return values contain validation_result
+            assert "validation_result" in task.return_values
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_generate_and_load_subtask"
+    )
+    def test_validate_only_skips_channels_and_queues(self, mock_subtask, create_task):
+        """Test that validate_only does not set up channels and queues"""
+        from cumulusci.tasks.bulkdata.mapping_parser import ValidationResult
+
+        validation_result = ValidationResult()
+        mock_subtask.return_value = {"validation_result": validation_result}
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": sample_yaml,
+                "validate_only": True,
+            },
+        )
+
+        task()
+
+        # Verify queue_manager was never created
+        assert not hasattr(task, "queue_manager")
+
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_serial_mode(self, mock_load_data, create_task):
         task = create_task(
@@ -833,7 +1125,6 @@ class TestSnowfakery:
                 "recipe": Path(__file__).parent
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
-                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "bulk_mode": "Serial",
             },
         )
@@ -882,9 +1173,12 @@ class TestSnowfakery:
                 / "snowfakery/simple_snowfakery_channels_2.load.yml",
             },
         )
-        with pytest.raises(exc.TaskOptionsError), mock.patch.object(
-            task.project_config, "keychain", DummyKeychain()
-        ) as keychain:
+        with (
+            pytest.raises(exc.TaskOptionsError),
+            mock.patch.object(
+                task.project_config, "keychain", DummyKeychain()
+            ) as keychain,
+        ):
 
             def get_org(username):
                 return DummyOrgConfig(

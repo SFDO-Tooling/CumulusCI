@@ -1,12 +1,38 @@
+import re
 import typing as T
 from functools import cached_property
 
-from sqlalchemy import func, text
+from sqlalchemy import String, and_, case, func, text
 from sqlalchemy.orm import Query, aliased
+from sqlalchemy.sql import literal_column
 
 from cumulusci.core.exceptions import BulkDataException
 
 Criterion = T.Any
+ID_TABLE_NAME = "cumulusci_id_table"
+
+# Salesforce ID pattern: 15 or 18 alphanumeric characters
+# This matches the OID_REGEX pattern used in robotframework/Salesforce.py
+SF_ID_PATTERN = re.compile(r"^[a-zA-Z0-9]{15}$|^[a-zA-Z0-9]{18}$")
+
+
+def is_salesforce_id(value: T.Optional[str]) -> bool:
+    """Check if a value looks like a valid Salesforce ID."""
+    if value is None:
+        return False
+    return bool(SF_ID_PATTERN.match(str(value)))
+
+
+def _is_salesforce_id_sqlite(value: T.Optional[str]) -> int:
+    """SQLite UDF wrapper for is_salesforce_id."""
+    return 1 if is_salesforce_id(value) else 0
+
+
+def register_sqlite_functions(connection) -> None:
+    """Register custom SQLite functions on a database connection."""
+    # Get the underlying DBAPI connection
+    dbapi_connection = connection.connection.dbapi_connection
+    dbapi_connection.create_function("is_salesforce_id", 1, _is_salesforce_id_sqlite)
 
 
 class LoadQueryExtender:
@@ -50,19 +76,35 @@ class LoadQueryExtender:
 class AddLookupsToQuery(LoadQueryExtender):
     """Adds columns and joins relatinng to lookups"""
 
-    def __init__(self, mapping, metadata, model) -> None:
+    def __init__(self, mapping, metadata, model, _old_format) -> None:
         super().__init__(mapping, metadata, model)
+        self._old_format = _old_format
         self.lookups = [
             lookup for lookup in self.mapping.lookups.values() if not lookup.after
         ]
 
     @cached_property
     def columns_to_add(self):
+        """Build column expressions for lookup fields with smart ID resolution."""
+        columns = []
         for lookup in self.lookups:
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
+            lookup.aliased_table = aliased(self.metadata.tables[ID_TABLE_NAME])
+            key_field = lookup.get_lookup_key_field(self.model)
+            value_column = getattr(self.model, key_field)
+
+            # The resolved SF ID from the ID table join (may be NULL)
+            sf_id_from_table = lookup.aliased_table.columns.sf_id
+
+            smart_lookup = case(
+                # If we found a match in the ID table, use that
+                (sf_id_from_table.isnot(None), sf_id_from_table),
+                # If the original value is already a SF ID, use it directly
+                (func.is_salesforce_id(value_column) == 1, value_column),
+                # Otherwise return NULL (lookup not found)
+                else_=None,
             )
-        return [lookup.aliased_table.columns.sf_id for lookup in self.lookups]
+            columns.append(smart_lookup)
+        return columns
 
     @cached_property
     def outerjoins_to_add(self):
@@ -71,12 +113,94 @@ class AddLookupsToQuery(LoadQueryExtender):
         def join_for_lookup(lookup):
             key_field = lookup.get_lookup_key_field(self.model)
             value_column = getattr(self.model, key_field)
-            return (
-                lookup.aliased_table,
-                lookup.aliased_table.columns.id == value_column,
-            )
+            if self._old_format:
+                return (
+                    lookup.aliased_table,
+                    lookup.aliased_table.columns.id
+                    == str(lookup.table) + "-" + func.cast(value_column, String),
+                )
+            else:
+                return (
+                    lookup.aliased_table,
+                    lookup.aliased_table.columns.id == value_column,
+                )
 
         return [join_for_lookup(lookup) for lookup in self.lookups]
+
+
+class DynamicLookupQueryExtender(LoadQueryExtender):
+    """Dynamically adds columns and joins for all fields in lookup tables, handling polymorphic lookups"""
+
+    def __init__(
+        self, mapping, all_mappings, metadata, model, _old_format: bool
+    ) -> None:
+        super().__init__(mapping, metadata, model)
+        self._old_format = _old_format
+        self.all_mappings = all_mappings
+        self.lookups = [
+            lookup for lookup in self.mapping.lookups.values() if not lookup.after
+        ]
+
+    @cached_property
+    def columns_to_add(self):
+        """Add all relevant fields from lookup tables directly without CASE, with support for polymorphic lookups."""
+        columns = []
+        for lookup in self.lookups:
+            tables = lookup.table if isinstance(lookup.table, list) else [lookup.table]
+            lookup.parent_tables = [
+                aliased(
+                    self.metadata.tables[table], name=f"{lookup.name}_{table}_alias"
+                )
+                for table in tables
+            ]
+
+            for parent_table, table_name in zip(lookup.parent_tables, tables):
+                # Find the mapping step for this polymorphic type
+                lookup_mapping_step = next(
+                    (
+                        step
+                        for step in self.all_mappings.values()
+                        if step.table == table_name
+                    ),
+                    None,
+                )
+                if lookup_mapping_step:
+                    load_fields = lookup_mapping_step.fields.keys()
+                    for field in load_fields:
+                        if field in lookup_mapping_step.fields:
+                            matching_column = next(
+                                (
+                                    col
+                                    for col in parent_table.columns
+                                    if col.name == lookup_mapping_step.fields[field]
+                                )
+                            )
+                            columns.append(
+                                matching_column.label(f"{parent_table.name}_{field}")
+                            )
+                        else:
+                            # Append an empty string if the field is not present
+                            columns.append(
+                                literal_column("''").label(
+                                    f"{parent_table.name}_{field}"
+                                )
+                            )
+        return columns
+
+    @cached_property
+    def outerjoins_to_add(self):
+        """Add outer joins for each lookup table directly, including handling for polymorphic lookups."""
+
+        def join_for_lookup(lookup, parent_table):
+            key_field = lookup.get_lookup_key_field(self.model)
+            value_column = getattr(self.model, key_field)
+            return (parent_table, parent_table.columns.id == value_column)
+
+        joins = []
+        for lookup in self.lookups:
+            for parent_table in lookup.parent_tables:
+                joins.append(join_for_lookup(lookup, parent_table))
+        return joins
 
 
 class AddRecordTypesToQuery(LoadQueryExtender):
@@ -103,29 +227,56 @@ class AddRecordTypesToQuery(LoadQueryExtender):
 
     @cached_property
     def outerjoins_to_add(self):
+
         if "RecordTypeId" in self.mapping.fields:
             try:
                 rt_source_table = self.metadata.tables[
                     self.mapping.get_source_record_type_table()
                 ]
+
             except KeyError as e:
-                raise BulkDataException(
-                    "A record type mapping table was not found in your dataset. "
-                    f"Was it generated by extract_data? {e}",
-                ) from e
+                # For generate_and_load_from_yaml, In case of namespace_inject true, mapping table name doesn't have namespace added
+                # We are checking for table_rt_mapping table
+                try:
+                    rt_source_table = self.metadata.tables[
+                        f"{self.mapping.table}_rt_mapping"
+                    ]
+
+                except KeyError as f:
+                    raise BulkDataException(
+                        "A record type mapping table was not found in your dataset. "
+                        f"Was it generated by extract_data? {e}",
+                    ) from f
+
             rt_dest_table = self.metadata.tables[
                 self.mapping.get_destination_record_type_table()
             ]
+
+            # Check if 'is_person_type' column exists in rt_source_table.columns
+            is_person_type_column = getattr(
+                rt_source_table.columns, "is_person_type", None
+            )
+            # If it does not exist, set condition to True
+            is_person_type_condition = (
+                rt_dest_table.columns.is_person_type == is_person_type_column
+                if is_person_type_column is not None
+                else True
+            )
+
             return [
                 (
                     rt_source_table,
                     rt_source_table.columns.record_type_id
                     == getattr(self.model, self.mapping.fields["RecordTypeId"]),
                 ),
+                # Combination of IsPersonType and DeveloperName is unique
                 (
                     rt_dest_table,
-                    rt_dest_table.columns.developer_name
-                    == rt_source_table.columns.developer_name,
+                    and_(
+                        rt_dest_table.columns.developer_name
+                        == rt_source_table.columns.developer_name,
+                        is_person_type_condition,
+                    ),
                 ),
             ]
 

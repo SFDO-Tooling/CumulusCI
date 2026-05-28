@@ -189,12 +189,12 @@ class TestUploadProfilePhoto:
             # Copy photo to temporary direcory.
             shutil.copy(str(self.photo_path), d)
             temp_photo_path = pathlib.Path(os.path.join(d, self.photo)).resolve()
-            assert (
-                temp_photo_path.exists()
-            ), "photo mock was not copied to the temporary directory"
-            assert (
-                temp_photo_path.is_file()
-            ), "Path the the photo mock in the temporary directory should point to a file"
+            assert temp_photo_path.exists(), (
+                "photo mock was not copied to the temporary directory"
+            )
+            assert temp_photo_path.is_file(), (
+                "Path the the photo mock in the temporary directory should point to a file"
+            )
 
             self.task.sf.ContentVersion.create._expected_calls = [
                 mock.call(
@@ -247,12 +247,12 @@ class TestUploadProfilePhoto:
             # Copy photo to temporary direcory.
             shutil.copy(str(self.photo_path), d)
             temp_photo_path = pathlib.Path(os.path.join(d, self.photo)).resolve()
-            assert (
-                temp_photo_path.exists()
-            ), "photo mock was not copied to the temporary directory"
-            assert (
-                temp_photo_path.is_file()
-            ), "Path the the photo mock in the temporary directory should point to a file"
+            assert temp_photo_path.exists(), (
+                "photo mock was not copied to the temporary directory"
+            )
+            assert temp_photo_path.is_file(), (
+                "Path the the photo mock in the temporary directory should point to a file"
+            )
 
             self.task.sf.ContentVersion.create._expected_calls = [
                 mock.call(

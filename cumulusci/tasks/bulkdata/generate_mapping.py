@@ -227,36 +227,28 @@ class GenerateMapping(BaseSalesforceApiTask):
                         "referenceTo"
                     ]
 
-                    if len(referenceTo) > 1:  # Polymorphic lookup
-                        self.logger.warning(
-                            f"Field {orig_obj}.{orig_field} is a polymorphic lookup, which is not supported"
-                        )
-                    else:
-                        orig_reference = referenceTo[0]
+                    # Can we safely namespace-strip this reference?
+                    stripped_references = [
+                        strip_namespace(orig_reference)
+                        if strip_namespace(orig_reference) not in stack
+                        else orig_reference
+                        for orig_reference in referenceTo
+                    ]
 
-                        # Can we safely namespace-strip this reference?
-                        stripped_reference = (
-                            strip_namespace(orig_reference)
-                            if strip_namespace(orig_reference) not in stack
-                            else orig_reference
-                        )
-
-                        if orig_reference == orig_obj:  # Self-lookup
-                            self.mapping[key]["lookups"][stripped_field] = {
-                                "table": stripped_reference,
-                                "after": key,
-                            }
-                        elif stack.index(orig_reference) > stack.index(
-                            orig_obj
-                        ):  # Dependent lookup
-                            self.mapping[key]["lookups"][stripped_field] = {
-                                "table": stripped_reference,
-                                "after": f"Insert {stripped_reference}",
-                            }
-                        else:  # Regular lookup
-                            self.mapping[key]["lookups"][stripped_field] = {
-                                "table": stripped_reference
-                            }
+                    # The maximum reference index to set the after to the last
+                    # sobject mentioned in the reference (polymorphic support)
+                    max_reference_index = max(
+                        stack.index(orig_reference) for orig_reference in referenceTo
+                    )
+                    if max_reference_index >= stack.index(orig_obj):  # Dependent lookup
+                        self.mapping[key]["lookups"][stripped_field] = {
+                            "table": stripped_references,
+                            "after": f"Insert {stripped_references[referenceTo.index(stack[max_reference_index])]}",
+                        }
+                    else:  # Regular lookup
+                        self.mapping[key]["lookups"][stripped_field] = {
+                            "table": stripped_references
+                        }
 
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""

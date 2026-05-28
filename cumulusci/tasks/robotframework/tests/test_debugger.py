@@ -64,9 +64,9 @@ class TestDebugListener:
         self.listener.start_test("Test 1", {"longname": "Root.example.Test 1"})
         self.listener.start_keyword("cumulusci.Salesforce.breakpoint", {})
 
-        assert (
-            len(self.listener.breakpoints) == 1
-        ), "Weird. There should have only been a single breakpoint"
+        assert len(self.listener.breakpoints) == 1, (
+            "Weird. There should have only been a single breakpoint"
+        )
         # call `do_step` of the *listener*, not the debugger UI.
         # the debugger ui "do_step" method will both add a new breakpoint
         # and then continue to that breakpoint, and then that breakpoint
@@ -76,9 +76,9 @@ class TestDebugListener:
 
         # The 'step' command should cause a new temporary breakpoint to be added
         # in the same context as the current keyword.
-        assert (
-            len(self.listener.breakpoints) == 2
-        ), "Expected a breakpoint to be added on the 'step' command"
+        assert len(self.listener.breakpoints) == 2, (
+            "Expected a breakpoint to be added on the 'step' command"
+        )
         assert self.listener.breakpoints[-1].pattern == "Root.example.Test 1::*"
         assert self.listener.breakpoints[-1].temporary
 
@@ -100,9 +100,9 @@ class TestDebugListener:
         listener.start_test("Test Case", attrs={})
         listener.start_keyword("temporary breakpoint", attrs={"args": ["one", "two"]})
         assert len(listener.breakpoints) == 1
-        assert (
-            listener.breakpoints[0].pattern == "*::breakpoint"
-        ), "the wrong breakpoint was removed"
+        assert listener.breakpoints[0].pattern == "*::breakpoint", (
+            "the wrong breakpoint was removed"
+        )
         listener.rdb.cmdloop.assert_called_once()
 
 
@@ -235,7 +235,6 @@ class TestRobotDebugger:
         with mock.patch.object(
             self.mock_builtin, "run_keyword_and_ignore_error", return_value=("PASS", 42)
         ):
-
             return_value = self.cli.do_shell(
                 "${value}  get variable value  ${whatever}"
             )
@@ -352,9 +351,9 @@ class TestInternalModels:
 
     def test_breakpoint_match(self):
         bp = debugger.Breakpoint(debugger.Keyword, "*::breakpoint")
-        assert bp.match(
-            context="Suite.Test Case::breakpoint"
-        ), "expected breakpoint to match, but it didn't"
-        assert not bp.match(
-            context="Suite.Test Case::some other keyword"
-        ), "didn't expect breakpoint to match, but it did"
+        assert bp.match(context="Suite.Test Case::breakpoint"), (
+            "expected breakpoint to match, but it didn't"
+        )
+        assert not bp.match(context="Suite.Test Case::some other keyword"), (
+            "didn't expect breakpoint to match, but it did"
+        )

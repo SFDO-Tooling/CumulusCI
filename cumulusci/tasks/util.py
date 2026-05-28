@@ -59,13 +59,13 @@ class ListMetadataTypes(BaseTask):
 
     def _init_options(self, kwargs):
         super(ListMetadataTypes, self)._init_options(kwargs)
-        if not self.options.get("package_xml"):
-            self.options["package_xml"] = os.path.join(
+        if not self.parsed_options.get("package_xml"):
+            self.parsed_options["package_xml"] = os.path.join(
                 self.project_config.repo_root, "src", "package.xml"
             )
 
     def _run_task(self):
-        dom = parse(self.options["package_xml"])
+        dom = parse(self.parsed_options["package_xml"])
         package = dom.getElementsByTagName("Package")[0]
         types = package.getElementsByTagName("types")
         type_list = []
@@ -75,7 +75,7 @@ class ListMetadataTypes(BaseTask):
             type_list.append(metadata_type)
         self.logger.info(
             "Metadata types found in %s:\r\n%s",
-            self.options["package_xml"],
+            self.parsed_options["package_xml"],
             "\r\n".join(type_list),
         )
 

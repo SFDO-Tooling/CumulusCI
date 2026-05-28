@@ -40,7 +40,9 @@ class TestDeployBundles:
                 task_class=None,
                 project_config=task.project_config,
             )
+
             steps = task.freeze(step)
+            print(steps)
             assert [
                 {
                     "is_required": True,
@@ -57,6 +59,7 @@ class TestDeployBundles:
                                     "ref": task.project_config.repo_commit,
                                     "github": "https://github.com/TestOwner/TestRepo",
                                     "subfolder": "unpackaged/test",
+                                    "collision_check": False,
                                     "namespace_inject": None,
                                 }
                             ]

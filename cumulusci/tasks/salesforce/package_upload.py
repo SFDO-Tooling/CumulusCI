@@ -89,7 +89,8 @@ class PackageUpload(BaseSalesforceApiTask):
                 ORDER BY
                 MajorVersion DESC,
                 MinorVersion DESC,
-                PatchVersion DESC
+                PatchVersion DESC,
+                ReleaseState DESC
                 LIMIT 1
                 """
             ),
@@ -111,7 +112,23 @@ class PackageUpload(BaseSalesforceApiTask):
         # Updates minor version when not passed in remaining cases.
         if self.options["major_version"] == str(version["MajorVersion"]):
             if "minor_version" in self.options:
-                if int(self.options["minor_version"]) <= version["MinorVersion"]:
+                try:
+                    if int(self.options["minor_version"]) < version["MinorVersion"]:
+                        raise TaskOptionsError("Minor Version not valid.")
+                    elif (
+                        int(self.options["minor_version"]) == version["MinorVersion"]
+                        and version["ReleaseState"] == "Released"
+                    ):
+                        raise TaskOptionsError("Minor Version not valid.")
+                    else:
+                        if (
+                            int(self.options["minor_version"]) > version["MinorVersion"]
+                            and version["ReleaseState"] == "Beta"
+                        ):
+                            raise TaskOptionsError(
+                                "Latest Minor Version is Beta so minor version cannot be greater than that."
+                            )
+                except ValueError:
                     raise TaskOptionsError("Minor Version not valid.")
             else:
                 if version["ReleaseState"] == "Beta":

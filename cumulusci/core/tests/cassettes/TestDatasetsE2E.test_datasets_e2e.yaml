@@ -181,8 +181,11 @@ interactions:
       include_file: GET_sobjects_Global_describe.yaml
     - &id007
       include_file: GET_sobjects_Account_describe.yaml
+    - &id010
+      include_file: GET_sobjects_Account_describe.yaml
     - *id006
     - *id007
+    - *id010
     - request:
           method: POST
           uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects

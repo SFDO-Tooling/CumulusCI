@@ -254,7 +254,6 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
             # update existing sections
             for line in release.body.splitlines():
-
                 if current_parser:
                     if current_parser._is_end_line(current_parser._process_line(line)):
                         parser_content = current_parser.render(

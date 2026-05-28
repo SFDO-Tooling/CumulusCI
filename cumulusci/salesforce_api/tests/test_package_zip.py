@@ -37,7 +37,6 @@ class TestBasePackageZipBuilder:
 class TestMetadataPackageZipBuilder:
     def test_builder(self, task_context):
         with temporary_dir() as path:
-
             # add package.xml
             with open(os.path.join(path, "package.xml"), "w") as f:
                 f.write(

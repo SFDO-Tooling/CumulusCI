@@ -40,20 +40,20 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '__pycache__' -exec rm -fr {} +
 
 clean-test: ## remove test and coverage artifacts
-	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -f output.xml
 	rm -f report.html
 
-lint: ## check style with flake8
-	flake8 cumulusci tests
+lint: ## check style with ruff and pyright
+	ruff check cumulusci tests
+	ruff format --check cumulusci tests
 
 test: ## run tests quickly with the default Python
 	pytest
 
-test-all: ## run tests on every Python version with tox
-	tox
+test-all: ## run tests on every Python version via CI matrix
+	@echo "Multi-version testing runs in CI. Use 'pytest' for local testing."
 
 # Use CLASS_PATH to run coverage for a subset of tests.
 # $ make coverage CLASS_PATH="cumulusci/core/tests"
@@ -64,13 +64,13 @@ coverage: ## check code coverage quickly with the default Python
 	$(BROWSER) htmlcov/index.html
 
 vcr: # remake VCR cassettes and run other integration tests
-	cci org scratch qa pytest
-	cci org scratch_delete pytest
+	uv run cci org scratch qa pytest
+	uv run cci org scratch_delete pytest
 	find . -name \Test*.yaml | xargs rm
-	pytest --org qa --run-slow-tests -rs --replace-vcrs
+	uv run pytest --org qa --run-slow-tests -rs --replace-vcrs
 
 slow_tests: vcr # remake VCR cassettes and run other integration tests
-	cci org scratch_delete pytest
+	uv run cci org scratch_delete pytest
 	pytest integration_tests/ --org pytest -rs
 
 docs: ## generate Sphinx HTML documentation
@@ -82,7 +82,6 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean ## package and upload a release
-	python utility/pin_dependencies.py
 	hatch build
 	hatch publish
 
@@ -97,15 +96,11 @@ tag: clean
 	git tag -a -m 'version $$(hatch version)' v$$(hatch version)
 	git push --follow-tags
 
-update-deps:
-	echo Use the _Update Python Dependencies_ Github action for real releases
-	pip-compile --upgrade --resolver=backtracking --output-file=requirements/prod.txt pyproject.toml
-	pip-compile --upgrade --resolver=backtracking --output-file=requirements/dev.txt --all-extras pyproject.toml
+update-deps: ## update all dependencies via uv
+	uv lock --upgrade
 
-dev-install:
-	python -m pip install --upgrade pip pip-tools setuptools
-	pip-sync requirements/*.txt
-	python -m pip install -e .
+dev-install: ## install development dependencies via uv
+	uv sync --group dev
 
 schema:
 	python -c 'from cumulusci.utils.yaml import cumulusci_yml; open("cumulusci/schema/cumulusci.jsonschema.json", "w").write(cumulusci_yml.CumulusCIRoot.schema_json(indent=4))'

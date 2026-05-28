@@ -1,3 +1,5 @@
+from zipfile import ZipFile
+
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.utils import zip_subfolder
@@ -34,6 +36,6 @@ class RetrievePackaged(BaseRetrieveMetadata):
             self, self.options["package"], self.options.get("api_version")
         )
 
-    def _extract_zip(self, src_zip):
+    def _extract_zip(self, src_zip: ZipFile):
         src_zip = zip_subfolder(src_zip, self.options.get("package"))
         super(RetrievePackaged, self)._extract_zip(src_zip)

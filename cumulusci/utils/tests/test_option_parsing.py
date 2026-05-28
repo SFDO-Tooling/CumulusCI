@@ -12,10 +12,12 @@ from cumulusci.core.config import (
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils.options import (
+    READONLYDICT_ERROR_MSG,
     CCIOptions,
     Field,
     ListOfStringsOption,
     MappingOption,
+    ReadOnlyOptions,
 )
 
 ORG_ID = "00D000000000001"
@@ -43,6 +45,10 @@ class TaskToTestTypes(BaseTask):
         for key, value in vars(self.parsed_options).items():
             if value:
                 print(key, repr(getattr(self.parsed_options, key)))
+
+
+class TaskWithoutOptions(BaseTask):
+    pass
 
 
 class TestTaskOptionsParsing:
@@ -154,3 +160,29 @@ class TestTaskOptionsParsing:
         assert "the_bool" in str(e.value)
         assert "req" in str(e.value)
         assert "Errors" in str(e.value)
+
+    def test_options_read_only(self):
+        # Has an Options class
+        task1 = TaskToTestTypes(self.project_config, self.task_config, self.org_config)
+        assert isinstance(task1.options, ReadOnlyOptions)
+        # Does not have an Options class
+        task2 = TaskWithoutOptions(
+            self.project_config, self.task_config, self.org_config
+        )
+        assert isinstance(task2.options, dict)
+
+    def test_init_options__options_read_only_error(self):
+        expected_error_msg = READONLYDICT_ERROR_MSG
+        task = TaskToTestTypes(self.project_config, self.task_config, self.org_config)
+        # Add new option
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
+            task.options["new_option"] = "something"
+        # Modify existing option
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
+            task.options["test_option"] = 456
+        # Delete existing option
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
+            del task.options["test_option"]
+        # Pop existing option
+        with pytest.raises(TaskOptionsError, match=expected_error_msg):
+            task.options.pop("test_option")

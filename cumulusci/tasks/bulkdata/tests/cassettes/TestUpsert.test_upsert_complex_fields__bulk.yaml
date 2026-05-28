@@ -332,6 +332,10 @@ interactions:
     - *id001
     - *id010
     - *id011
+    - *id009
+    - *id010
+    - *id009
+    - *id010
     - request: *id012
       response:
           status: *id003

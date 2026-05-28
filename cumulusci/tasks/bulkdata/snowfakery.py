@@ -61,7 +61,6 @@ WAIT_TIME = 3
 
 
 class Snowfakery(BaseSalesforceApiTask):
-
     task_docs = """
     Do a data load with Snowfakery.
 
@@ -140,6 +139,16 @@ class Snowfakery(BaseSalesforceApiTask):
             "description": "Boolean: should we continue loading even after running into row errors? "
             "Defaults to False."
         },
+        "validate_only": {
+            "description": "Boolean: if True, validates snowfakery recipe and generated mapping against the org schema without loading data. "
+            "Defaults to False."
+        },
+        "strict_mode": {
+            "description": "Boolean: If True, validates the Snowfakery recipe and generated mapping against the org schema (strict mode) and then proceeds with the run",
+        },
+        "enable_rollback": {
+            "description": "Boolean: When True, performs a rollback of all loaded records in case of an error. Defaults to False."
+        },
     }
 
     def _validate_options(self):
@@ -160,6 +169,23 @@ class Snowfakery(BaseSalesforceApiTask):
         self.drop_missing_schema = process_bool_arg(
             self.options.get("drop_missing_schema", False)
         )
+        self.validate_only = process_bool_arg(self.options.get("validate_only", False))
+        self.strict_mode = process_bool_arg(self.options.get("strict_mode", False))
+        self.enable_rollback = process_bool_arg(
+            self.options.get("enable_rollback", False)
+        )
+        if self.enable_rollback and any(
+            self.options.get(k)
+            for k in (
+                "run_until_records_in_org",
+                "run_until_records_loaded",
+                "run_until_recipe_repeated",
+            )
+        ):
+            raise TaskOptionsError(
+                "enable_rollback=True cannot be combined with run_until_* options "
+                "because each batch commits independently; only the failing batch would be rolled back."
+            )
 
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
@@ -230,14 +256,19 @@ class Snowfakery(BaseSalesforceApiTask):
     def _run_task(self):
         self.setup()
 
-        portions = PortionGenerator(
-            self.run_until.gap,
-            MIN_PORTION_SIZE,
-            MAX_PORTION_SIZE,
-        )
-
         working_directory = self.options.get("working_directory")
         with self.workingdir_or_tempdir(working_directory) as working_directory:
+            # Route to validation flow if validate_only is True
+            if self.validate_only:
+                return self._run_validation(working_directory)
+
+            # Normal data generation and loading flow
+            portions = PortionGenerator(
+                self.run_until.gap,
+                MIN_PORTION_SIZE,
+                MAX_PORTION_SIZE,
+            )
+
             self._setup_channels_and_queues(working_directory)
             self.logger.info(f"Working directory is {working_directory}")
 
@@ -276,6 +307,7 @@ class Snowfakery(BaseSalesforceApiTask):
         additional_load_options = {
             "ignore_row_errors": self.ignore_row_errors,
             "drop_missing_schema": self.drop_missing_schema,
+            "enable_rollback": self.enable_rollback,
         }
         subtask_configurator = SubtaskConfigurator(
             self.recipe, self.run_until, self.bulk_mode, additional_load_options
@@ -544,32 +576,20 @@ class Snowfakery(BaseSalesforceApiTask):
 
         template_dir = Path(working_directory) / "template_1"
         template_dir.mkdir()
-        # changes here should often be reflected in
-        # data_generator_opts and data_loader_opts
 
         channel_decl = self.channel_configs[0]
 
-        plugin_options = {
-            "pid": "0",
-            "big_ids": "True",
-        }
         # if it's efficient to do the whole load in one go, let's just do that.
         if self.run_until.gap < MIN_PORTION_SIZE:
             num_records = self.run_until.gap
         else:
             num_records = 1  # smallest possible batch to get to parallelizing fast
+
+        batch_options = self._prepare_initial_batch_options(num_records)
         results = self._generate_and_load_batch(
             template_dir,
             channel_decl.org_config,
-            {
-                "generator_yaml": self.options.get("recipe"),
-                "num_records": num_records,
-                "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
-                "loading_rules": self.loading_rules,
-                "vars": channel_decl.merge_recipe_options(self.recipe_options),
-                "plugin_options": plugin_options,
-                "bulk_mode": self.bulk_mode,
-            },
+            batch_options,
         )
         self.update_running_totals_from_load_step_results(results)
 
@@ -583,8 +603,10 @@ class Snowfakery(BaseSalesforceApiTask):
             self.sets_finished_while_generating_template = num_records
 
         new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
-        shutil.move(template_dir, new_template_dir)
-        template_dir = new_template_dir
+        # rename only if new_template_dir does not match template_dir
+        if template_dir.resolve() != new_template_dir.resolve():
+            shutil.move(template_dir, new_template_dir)
+            template_dir = new_template_dir
 
         # don't send data tables to child processes. All they
         # care about are ID->OID mappings
@@ -593,9 +615,19 @@ class Snowfakery(BaseSalesforceApiTask):
 
         return template_dir, wd.relevant_sobjects()
 
-    def _generate_and_load_batch(self, tempdir, org_config, options) -> dict:
-        """Before the "full" dataload starts we do a single batch to
-        load singletons.
+    def _run_generate_and_load_subtask(
+        self, tempdir, org_config, options, validate_only=False
+    ):
+        """Run GenerateAndLoadDataFromYaml subtask with given options.
+
+        Args:
+            tempdir: Working directory for generated files
+            org_config: Org configuration
+            options: Options dict for the subtask
+            validate_only: If True, only validate mapping without loading
+
+        Returns:
+            dict: Subtask return values
         """
         options = {
             **options,
@@ -603,6 +635,9 @@ class Snowfakery(BaseSalesforceApiTask):
             "set_recently_viewed": False,
             "ignore_row_errors": self.ignore_row_errors,
             "drop_missing_schema": self.drop_missing_schema,
+            "validate_only": validate_only,
+            "strict_mode": self.strict_mode,
+            "enable_rollback": self.enable_rollback,
         }
         subtask_config = TaskConfig({"options": options})
         subtask = GenerateAndLoadDataFromYaml(
@@ -614,7 +649,73 @@ class Snowfakery(BaseSalesforceApiTask):
             stepnum=self.stepnum,
         )
         subtask()
-        return subtask.return_values["load_results"][0]
+        return subtask.return_values
+
+    def _prepare_initial_batch_options(self, num_records: int) -> dict:
+        """Prepare options for initial data generation batch.
+
+        Args:
+            num_records: Number of records to generate
+
+        Returns:
+            dict: Options for GenerateAndLoadDataFromYaml subtask
+        """
+        channel_decl = self.channel_configs[0]
+
+        plugin_options = {
+            "pid": "0",
+            "big_ids": "True",
+        }
+
+        return {
+            "generator_yaml": self.options.get("recipe"),
+            "num_records": num_records,
+            "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
+            "loading_rules": self.loading_rules,
+            "vars": channel_decl.merge_recipe_options(self.recipe_options),
+            "plugin_options": plugin_options,
+            "bulk_mode": self.bulk_mode,
+        }
+
+    def _run_validation(self, working_directory: Path):
+        """Run validation flow: generate minimal data and validate mapping.
+
+        Args:
+            working_directory: Working directory for generated files
+
+        Returns:
+            dict: return_values with validation_result
+        """
+        template_dir = Path(working_directory) / "template_validation"
+        template_dir.mkdir()
+
+        channel_decl = self.channel_configs[0]
+
+        # Prepare options for validation
+        batch_options = self._prepare_initial_batch_options(num_records=1)
+
+        # Run generation and validation
+        subtask_return_values = self._run_generate_and_load_subtask(
+            template_dir,
+            channel_decl.org_config,
+            batch_options,
+            validate_only=True,
+        )
+
+        # Set return values with validation result
+        self.return_values = {
+            "validation_result": subtask_return_values["validation_result"]
+        }
+        return self.return_values
+
+    def _generate_and_load_batch(self, tempdir, org_config, options) -> dict:
+        """Before the "full" dataload starts we do a single batch to
+        load singletons.
+        """
+        subtask_return_values = self._run_generate_and_load_subtask(
+            tempdir, org_config, options, validate_only=False
+        )
+        return subtask_return_values["load_results"][0]
 
     def _cleanup_object_tables(self, engine, metadata):
         """Delete all tables that do not relate to id->OID mapping"""

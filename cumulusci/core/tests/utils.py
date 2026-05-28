@@ -1,4 +1,4 @@
-""" Utilities for testing CumulusCI
+"""Utilities for testing CumulusCI
 
 MockLoggingHandler: a logging handler that we can assert"""
 
@@ -47,7 +47,6 @@ class MockLoggingHandler(logging.Handler):
 
 
 class EnvironmentVarGuard(collections.abc.MutableMapping):
-
     """Class to help protect the environment variable properly.  Can be used as
     a context manager."""
 
@@ -90,7 +89,7 @@ class EnvironmentVarGuard(collections.abc.MutableMapping):
         return self
 
     def __exit__(self, *ignore_exc):
-        for (k, v) in self._changed.items():
+        for k, v in self._changed.items():
             if v is None:
                 if k in self._environ:
                     del self._environ[k]

@@ -86,7 +86,11 @@ then the attributes: `callback_url`, `client_id`, and `client_secret`
 would need to be provided in the following format:
 
 ```json
-"{"callback_url": "<callback_url>", "client_id": "<client_id>", "client_secret": "<client_secret>"}"
+{
+    "callback_url": "<callback_url>",
+    "client_id": "<client_id>",
+    "client_secret": "<client_secret>"
+}
 ```
 
 > The values `<callback_url>`, `<client_id>`, and `<client_secret>`
@@ -121,7 +125,7 @@ and then use it directly from CumulusCI.
 To do so, follow these steps.
 
 1. Retrieve your auth URL.
-1. Authorize the org using `sfdx auth:sfdxurl:store`.
+1. Authorize the org using `sf org login sfdx-url`.
 1. Run `cci org import <org name> <org name>`.
 
 ### JWT Flow Authorization

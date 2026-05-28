@@ -41,6 +41,7 @@ class TestGenerateLoadMappingFromDeclarations:
                     "sf_object": "Account",
                     "table": "Account",
                     "fields": ["Name", "Description"],
+                    "select_options": {},
                 }
             }
 
@@ -74,11 +75,13 @@ class TestGenerateLoadMappingFromDeclarations:
                         "sf_object": "Contact",
                         "table": "Contact",
                         "fields": ["FirstName", "LastName"],
+                        "select_options": {},
                     },
                     "Insert Account": {
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name", "Description"],
+                        "select_options": {},
                     },
                 }.items()
             )
@@ -111,14 +114,79 @@ class TestGenerateLoadMappingFromDeclarations:
                     "sf_object": "Account",
                     "table": "Account",
                     "fields": ["Name", "Description"],
+                    "select_options": {},
                 },
                 "Insert Contact": {
                     "sf_object": "Contact",
                     "table": "Contact",
                     "fields": ["FirstName", "LastName"],
                     "lookups": {
-                        "AccountId": {"table": "Account", "key_field": "AccountId"}
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
+                    "select_options": {},
+                },
+            }
+
+    def test_generate_load_mapping_from_declarations__polymorphic_lookups(
+        self, org_config
+    ):
+        """Generate correct mapping file for sobjects with polymorphic lookup fields"""
+        declarations = [
+            ExtractDeclaration(sf_object="Account", fields=["Name", "Description"]),
+            ExtractDeclaration(
+                sf_object="Contact", fields=["FirstName", "LastName", "AccountId"]
+            ),
+            ExtractDeclaration(sf_object="Lead", fields=["LastName", "Company"]),
+            ExtractDeclaration(sf_object="Event", fields=["Subject", "WhoId"]),
+        ]
+        object_counts = {"Account": 10, "Contact": 5, "Case": 5, "Event": 2, "Lead": 1}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Case"),
+            describe_for("Event"),
+            describe_for("Lead"),
+        )
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            filters=[],
+            include_counts=True,
+        ) as schema:
+            mf = create_load_mapping_file_from_extract_declarations(
+                declarations, schema
+            )
+            assert mf == {
+                "Insert Account": {
+                    "sf_object": "Account",
+                    "table": "Account",
+                    "fields": ["Name", "Description"],
+                    "select_options": {},
+                },
+                "Insert Contact": {
+                    "sf_object": "Contact",
+                    "table": "Contact",
+                    "fields": ["FirstName", "LastName"],
+                    "lookups": {
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
+                    },
+                    "select_options": {},
+                },
+                "Insert Lead": {
+                    "sf_object": "Lead",
+                    "table": "Lead",
+                    "fields": ["LastName", "Company"],
+                    "select_options": {},
+                },
+                "Insert Event": {
+                    "sf_object": "Event",
+                    "table": "Event",
+                    "fields": ["Subject"],
+                    "lookups": {
+                        "WhoId": {"table": ["Contact", "Lead"], "key_field": "WhoId"}
+                    },
+                    "select_options": {},
                 },
             }
 
@@ -157,19 +225,21 @@ class TestGenerateLoadMappingFromDeclarations:
                         "Primary_Contact__c": {
                             "after": "Insert Contact",
                             "key_field": "Primary_Contact__c",
-                            "table": "Contact",
+                            "table": ["Contact"],
                         }
                     },
                     "sf_object": "Account",
                     "table": "Account",
+                    "select_options": {},
                 },
                 "Insert Contact": {
                     "sf_object": "Contact",
                     "table": "Contact",
                     "fields": ["FirstName", "LastName"],
                     "lookups": {
-                        "AccountId": {"table": "Account", "key_field": "AccountId"}
+                        "AccountId": {"table": ["Account"], "key_field": "AccountId"}
                     },
+                    "select_options": {},
                 },
             }, mf
 
@@ -193,11 +263,13 @@ class TestGenerateLoadMappingFromDeclarations:
                 "sf_object": "Account",
                 "api": DataApi.REST,
                 "table": "Account",
+                "select_options": {},
             },
             "Insert Contact": {
                 "sf_object": "Contact",
                 "api": DataApi.BULK,
                 "table": "Contact",
+                "select_options": {},
             },
         }, mf
 
@@ -229,6 +301,7 @@ class TestGenerateLoadMappingFromDeclarations:
             "Insert Account": {
                 "sf_object": "Account",
                 "table": "Account",
+                "select_options": {},
             },
             "Upsert Account Name": {
                 "sf_object": "Account",
@@ -236,6 +309,7 @@ class TestGenerateLoadMappingFromDeclarations:
                 "action": DataOperationType.UPSERT,
                 "update_key": ("Name",),
                 "fields": ["Name"],
+                "select_options": {},
             },
             "Etl_Upsert Account AccountNumber_Name": {
                 "sf_object": "Account",
@@ -243,10 +317,12 @@ class TestGenerateLoadMappingFromDeclarations:
                 "action": DataOperationType.ETL_UPSERT,
                 "update_key": ("AccountNumber", "Name"),
                 "fields": ["AccountNumber", "Name"],
+                "select_options": {},
             },
             "Insert Contact": {
                 "sf_object": "Contact",
                 "table": "Contact",
+                "select_options": {},
             },
         }, mf
 

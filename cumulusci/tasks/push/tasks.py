@@ -202,7 +202,6 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
 
 class SchedulePushOrgList(BaseSalesforcePushTask):
-
     task_options = {
         "csv": {"description": "The path to a CSV file to read.", "required": False},
         "csv_field_name": {
@@ -261,9 +260,9 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
         if "metadata_package_id" not in self.options:
-            self.options[
-                "metadata_package_id"
-            ] = self.project_config.project__package__metadata_package_id
+            self.options["metadata_package_id"] = (
+                self.project_config.project__package__metadata_package_id
+            )
         if "batch_size" not in self.options:
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
@@ -448,10 +447,10 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             for included_version in included_versions:
                 # Clear the get_subscribers method cache before each call
                 push_api.get_subscribers.cache_clear()
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] = "{} AND MetadataPackageVersionId = '{}'".format(
-                    default_where["PackageSubscriber"], included_version
+                push_api.default_where["PackageSubscriber"] = (
+                    "{} AND MetadataPackageVersionId = '{}'".format(
+                        default_where["PackageSubscriber"], included_version
+                    )
                 )
                 for subscriber in push_api.get_subscribers():
                     orgs.append(subscriber["OrgKey"])
@@ -464,10 +463,10 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
-            push_api.default_where[
-                "PackageSubscriber"
-            ] += " AND MetadataPackageVersionId NOT IN {}".format(
-                "('" + "','".join(excluded_versions) + "')"
+            push_api.default_where["PackageSubscriber"] += (
+                " AND MetadataPackageVersionId NOT IN {}".format(
+                    "('" + "','".join(excluded_versions) + "')"
+                )
             )
 
             for subscriber in push_api.get_subscribers():

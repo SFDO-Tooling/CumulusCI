@@ -180,6 +180,12 @@ interactions:
                   \ [ ],\n  \"created\" : false\n}, {\n  \"id\" : \"0035500001H9kaAAAR\",\n\
                   \  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
     - *id007
+    - *id002
+    - *id003
+    - *id007
+    - *id002
+    - *id003
+    - *id007
     - request:
           method: POST
           uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects

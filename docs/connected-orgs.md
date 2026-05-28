@@ -65,26 +65,22 @@ CumulusCI with the name `devhub`.
 
 ```console
 $ cci org list
+                         Scratch Orgs
 
-┌Scratch Orgs──────────────┬─────────┬──────┬─────────┬──────────────┬────────┐
-│ Name                     │ Default │ Days │ Expired │ Config       │ Domain │
-├──────────────────────────┼─────────┼──────┼─────────┼──────────────┼────────┤
-│ dev                      │         │ 7    │ X       | dev          │        │
-├──────────────────────────┼─────────┼──────┼─────────┼──────────────┼────────┤
-│ feature                  │         │ 1    │ X       | feature      │        │
-├──────────────────────────┼─────────┼──────┼─────────┼──────────────┼────────┤
-│ prerelease               │         │ 1    │ X       | prerelease   │        │
-├──────────────────────────┼─────────┼──────┼─────────┼──────────────┼────────┤
-│ qa                       │         │ 7    │ X       | qa           │        │
-├──────────────────────────┼─────────┼──────┼─────────┼──────────────┼────────┤
-│ release                  │         │ 1    │ X       | release      │        │
-└──────────────────────────┴─────────┴──────┴─────────┴──────────────┴────────┘
+  Default   Name         Days   Expired   Config       Domain
+ ─────────────────────────────────────────────────────────────
+            beta         1                beta
+            dev          7      ✔         dev
+            feature      1                feature
+            qa           7      ✔         qa
+            release      1                release
 
-┌Connected Orgs────┬──────────────────────────────┬────────────┐
-│ Name   │ Default │ Username                     │ Expires    │
-├────────┼─────────┼──────────────────────────────┼────────────┤
-│ devhub │         │ j.holt@mydomain.devhub       │ Persistent │
-└────────┴─────────┴──────────────────────────────┴────────────┘
+                                     Connected Orgs
+
+  Default   Name                 Username                                    Expires
+ ───────────────────────────────────────────────────────────────────────────────────────
+            devhub       j.holt@mydomain.devhub                    Persistent
+
 ```
 
 Verify a successful connection to the org by logging in.

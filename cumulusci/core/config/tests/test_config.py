@@ -41,7 +41,7 @@ from cumulusci.core.keychain.base_project_keychain import (
     BaseProjectKeychain,
 )
 from cumulusci.core.source import LocalFolderSource
-from cumulusci.tests.util import DummyKeychain
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, DummyKeychain
 from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.version_strings import StrictVersion
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
@@ -60,13 +60,16 @@ class TestBaseConfig:
     def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        with mock.patch(
-            "cumulusci.core.config.base_config.STRICT_GETATTR", False
-        ), pytest.warns(DeprecationWarning, match="foo"):
+        with (
+            mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", False),
+            pytest.warns(DeprecationWarning, match="foo"),
+        ):
             assert config.foo is None
-        with mock.patch(
-            "cumulusci.core.config.base_config.STRICT_GETATTR", True
-        ), pytest.raises(AssertionError):
+        with (
+            mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", True),
+            pytest.deprecated_call(),
+            pytest.raises(AssertionError),
+        ):
             assert config.foo is None
 
     def test_getattr_child_key(self):
@@ -77,9 +80,11 @@ class TestBaseConfig:
     def test_strict_getattr(self):
         config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
-        with mock.patch(
-            "cumulusci.core.config.base_config.STRICT_GETATTR", "True"
-        ), mock.patch("warnings.warn"), pytest.raises(AssertionError):
+        with (
+            mock.patch("cumulusci.core.config.base_config.STRICT_GETATTR", "True"),
+            mock.patch("warnings.warn"),
+            pytest.raises(AssertionError),
+        ):
             print(config.jfiesojfieoj)
 
     def test_getattr_child_parent_key_missing(self):
@@ -398,7 +403,7 @@ class TestBaseProjectConfig:
         git_path.return_value = git_config_file
         repo_url = "https://github.com/foo/bar.git"
         with open(git_config_file, "w") as f:
-            f.writelines(['[remote "origin"]\n' f"\turl = {repo_url}"])
+            f.writelines([f'[remote "origin"]\n\turl = {repo_url}'])
 
         config = BaseProjectConfig(UniversalConfig())
         assert repo_url == config.repo_url
@@ -1038,11 +1043,13 @@ class TestOrgConfig:
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET", "https://na01.salesforce.com/services/data", json=[{"version": 42.0}]
+            "GET",
+            "https://na01.salesforce.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
-        assert config.latest_api_version == "42.0"
+        assert config.latest_api_version == CURRENT_SF_API_VERSION
 
     @responses.activate
     def test_get_salesforce_version_bad_json(self):
@@ -1093,12 +1100,14 @@ class TestOrgConfig:
             "test",
         )
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "OrganizationType": "Enterprise Edition",
                 "IsSandbox": False,
@@ -1129,11 +1138,15 @@ class TestOrgConfig:
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
-        responses.add("GET", "https://test/services/data", json=[{"version": 48.0}])
+        responses.add(
+            "GET",
+            "https://test/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
 
         responses.add(
             "GET",
-            "https://test/services/data/v48.0/connect/communities",
+            f"https://test/services/data/v{CURRENT_SF_API_VERSION}/connect/communities",
             json={"communities": [{"name": "Kōkua"}]},
         )
 
@@ -1357,7 +1370,6 @@ class TestOrgConfig:
         )
         with TemporaryDirectory() as t:
             with mock.patch("cumulusci.tests.util.DummyKeychain.cache_dir", Path(t)):
-
                 with config.get_orginfo_cache_dir("bar") as directory:
                     assert str(t) in directory, (t, directory)
                     assert (
@@ -1382,17 +1394,19 @@ class TestOrgConfig:
             },
             "test",
         )
-        assert (
-            config._is_person_accounts_enabled is None
-        ), "_is_person_accounts_enabled should be initialized as None"
-
-        responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        assert config._is_person_accounts_enabled is None, (
+            "_is_person_accounts_enabled should be initialized as None"
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
+
+        responses.add(
+            "GET",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/describe",
             json={"fields": [{"name": "Id"}]},
         )
 
@@ -1417,17 +1431,19 @@ class TestOrgConfig:
             },
             "test",
         )
-        assert (
-            config._is_person_accounts_enabled is None
-        ), "_is_person_accounts_enabled should be initialized as None"
-
-        responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        assert config._is_person_accounts_enabled is None, (
+            "_is_person_accounts_enabled should be initialized as None"
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+        )
+
+        responses.add(
+            "GET",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/describe",
             json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
         )
 
@@ -1452,13 +1468,15 @@ class TestOrgConfig:
             },
             "test",
         )
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "_multiple_currencies_is_enabled should be initialized as False"
+        assert config._multiple_currencies_is_enabled is False, (
+            "_multiple_currencies_is_enabled should be initialized as False"
+        )
 
         # Login call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # CurrencyType describe() call.
@@ -1466,7 +1484,7 @@ class TestOrgConfig:
         # Therefore, the describe call will result in a 404.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/CurrencyType/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1477,7 +1495,7 @@ class TestOrgConfig:
         # Add a second 404 to demonstrate we always check the describe until we detect Multiple Currencies is enabled.  From then on, we cache the fact that Multiple Currencies is enabled knowing Multiple Currencies cannot be disabled.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/CurrencyType/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1487,21 +1505,21 @@ class TestOrgConfig:
 
         # Check 1: is_multiple_currencies_enabled should be False since the CurrencyType describe gives a 404.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is False
-        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        assert actual is False, (
+            "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        )
+        assert config._multiple_currencies_is_enabled is False, (
+            "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        )
 
         # Check 2: We should still get the CurrencyType describe since we never cached that multiple currencies is enabled.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is False
-        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        assert actual is False, (
+            "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        )
+        assert config._multiple_currencies_is_enabled is False, (
+            "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+        )
 
         # We should have made 3 calls: 1 token call + 2 describe calls
         assert len(responses.calls) == 1 + 2
@@ -1517,20 +1535,22 @@ class TestOrgConfig:
             "test",
         )
 
-        assert (
-            config._multiple_currencies_is_enabled is False
-        ), "_multiple_currencies_is_enabled should be initialized as False"
+        assert config._multiple_currencies_is_enabled is False, (
+            "_multiple_currencies_is_enabled should be initialized as False"
+        )
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # CurrencyType describe() call.
         # Since Multiple Currencies is enabled, so the describe call returns a 200.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/CurrencyType/describe",
             json={
                 # The actual payload doesn't matter; only matters is we get a 200.
             },
@@ -1538,21 +1558,21 @@ class TestOrgConfig:
 
         # Check 1: is_multiple_currencies_enabled should be True since the CurrencyType describe gives a 200.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is True
-        ), "config.is_multiple_currencies_enabled should be True since the CurrencyType describe returns a 200."
-        assert (
-            config._multiple_currencies_is_enabled is True
-        ), "config._multiple_currencies_is_enabled should be True since the CurrencyType describe returns a 200."
+        assert actual is True, (
+            "config.is_multiple_currencies_enabled should be True since the CurrencyType describe returns a 200."
+        )
+        assert config._multiple_currencies_is_enabled is True, (
+            "config._multiple_currencies_is_enabled should be True since the CurrencyType describe returns a 200."
+        )
 
         # Check 2: We should have cached that Multiple Currencies is enabled, so we should not make a 2nd descrobe call. This is ok to cache since Multiple Currencies cannot be disabled.
         actual = config.is_multiple_currencies_enabled
-        assert (
-            actual is True
-        ), "config.is_multiple_currencies_enabled should be True since the our cached value in _multiple_currencies_is_enabled is True."
-        assert (
-            config._multiple_currencies_is_enabled is True
-        ), "config._multiple_currencies_is_enabled should still be True."
+        assert actual is True, (
+            "config.is_multiple_currencies_enabled should be True since the our cached value in _multiple_currencies_is_enabled is True."
+        )
+        assert config._multiple_currencies_is_enabled is True, (
+            "config._multiple_currencies_is_enabled should still be True."
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1572,7 +1592,9 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # DatedConversionRate describe() call.
@@ -1580,7 +1602,7 @@ class TestOrgConfig:
         # Therefore, the describe call will result in a 404.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/DatedConversionRate/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1591,9 +1613,9 @@ class TestOrgConfig:
         # is_advanced_currency_management_enabled should be False since:
         # - DatedConversionRate describe gives a 404 implying the Sobject is not exposed becuase Multiple Currencies is not enabled.
         actual = config.is_advanced_currency_management_enabled
-        assert (
-            actual is False
-        ), "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
+        assert actual is False, (
+            "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1613,7 +1635,9 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # DatedConversionRate describe() call.
@@ -1621,7 +1645,7 @@ class TestOrgConfig:
         # However, ACM is not enabled so DatedConversionRate is not createable.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/DatedConversionRate/describe",
             json={"createable": False},
         )
 
@@ -1629,9 +1653,9 @@ class TestOrgConfig:
         # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
         # - But DatedConversionRate is not creatable implying ACM is not enabled.
         actual = config.is_advanced_currency_management_enabled
-        assert (
-            actual is False
-        ), 'config.is_advanced_currency_management_enabled should be False since though the describe gives a 200, the describe is not "createable".'
+        assert actual is False, (
+            'config.is_advanced_currency_management_enabled should be False since though the describe gives a 200, the describe is not "createable".'
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1651,7 +1675,9 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # DatedConversionRate describe() call.
@@ -1659,7 +1685,7 @@ class TestOrgConfig:
         # However, ACM is not enabled so DatedConversionRate is not createable.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/DatedConversionRate/describe",
             json={"createable": True},
         )
 
@@ -1667,9 +1693,9 @@ class TestOrgConfig:
         # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
         # - But DatedConversionRate is not creatable implying ACM is not enabled.
         actual = config.is_advanced_currency_management_enabled
-        assert (
-            actual is True
-        ), 'config.is_advanced_currency_management_enabled should be False since both the describe gives a 200 and the describe is "createable".'
+        assert actual is True, (
+            'config.is_advanced_currency_management_enabled should be False since both the describe gives a 200 and the describe is "createable".'
+        )
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
@@ -1687,13 +1713,15 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # describe()
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/PermissionSet/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/PermissionSet/describe",
             json={"fields": [{"name": "PermissionsAllowSurveyAdvancedFeatures"}]},
         )
 
@@ -1712,13 +1740,15 @@ class TestOrgConfig:
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET",
+            "https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
         )
 
         # describe()
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/PermissionSet/describe",
+            f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/PermissionSet/describe",
             json={"fields": [{"name": "foo"}]},
         )
 

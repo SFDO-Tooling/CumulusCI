@@ -6,7 +6,7 @@ from unittest.mock import Mock
 from zipfile import ZipFile
 
 from github3.repos.repo import Repository
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.dependencies.dependencies import (
     Dependency,
@@ -133,14 +133,14 @@ class GenerateDataDictionary(BaseGithubTask):
         super()._init_options(kwargs)
 
         if self.options.get("object_path") is None:
-            self.options[
-                "object_path"
-            ] = f"{self.project_config.project__name} Objects.csv"
+            self.options["object_path"] = (
+                f"{self.project_config.project__name} Objects.csv"
+            )
 
         if self.options.get("field_path") is None:
-            self.options[
-                "field_path"
-            ] = f"{self.project_config.project__name} Fields.csv"
+            self.options["field_path"] = (
+                f"{self.project_config.project__name} Fields.csv"
+            )
 
         include_dependencies = self.options.get("include_dependencies")
         self.options["include_dependencies"] = process_bool_arg(
@@ -679,13 +679,13 @@ class GenerateDataDictionary(BaseGithubTask):
 
             # Locate the last versions where the valid values and the help text changed.
             valid_values_version = None
-            for (index, version) in enumerate(versions[1:]):
+            for index, version in enumerate(versions[1:]):
                 if version.valid_values != last_version.valid_values:
                     valid_values_version = versions[index]
                     break
 
             help_text_version = None
-            for (index, version) in enumerate(versions[1:]):
+            for index, version in enumerate(versions[1:]):
                 if version.help_text != last_version.help_text:
                     help_text_version = versions[index]
                     break

@@ -5,7 +5,7 @@ import pathlib
 import zipfile
 from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic.v1 import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
@@ -40,6 +40,10 @@ from cumulusci.utils.git import split_repo_url
 from cumulusci.utils.salesforce.soql import (
     format_subscriber_package_version_where_clause,
 )
+
+PERSISTENT_ORG_ERROR = """
+Target org scratch org definition file missing. Persistent orgs like a Dev Hub can't be used for 2GP package uploads.
+"""
 
 
 class PackageTypeEnum(StrEnum):
@@ -84,7 +88,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
 
-    api_version = "52.0"
+    task_docs = """
+    Facilitates the upload of 2GP (second-generation packaging)
+    package versions using CumulusCI.
+
+    The target org is used both for looking up dependency package IDs and
+    configuring the build org during the package upload. Ensure the specified
+    org is a scratch org with the correct configuration for these purposes.
+    """
 
     task_options = {
         "package_name": {"description": "Name of package"},
@@ -144,6 +155,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
+        if not self.org_config.config_file:
+            raise TaskOptionsError(PERSISTENT_ORG_ERROR)
+
         # Allow these fields to be explicitly set to blanks
         # so that unlocked builds can override an otherwise-configured
         # postinstall script
@@ -185,7 +199,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.tooling = get_simple_salesforce_connection(
             self.project_config,
             get_devhub_config(self.project_config),
-            api_version=self.api_version,
+            api_version=self.project_config.project__package__api_version,
             base_url="tooling",
         )
         self.context = TaskContext(self.org_config, self.project_config, self.logger)
@@ -214,9 +228,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = None
         with convert_sfdx_source(
             self.project_config.default_package_path,
-            None
-            if self.package_config.package_type == PackageTypeEnum.unlocked
-            else self.package_config.package_name,
+            None,
             self.logger,
         ) as path:
             package_zip_builder = MetadataPackageZipBuilder(
@@ -259,7 +271,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             self.options.get("install_key"),
         )
         res = self.tooling.query(
-            "SELECT Dependencies FROM SubscriberPackageVersion " f"WHERE {where_clause}"
+            f"SELECT Dependencies FROM SubscriberPackageVersion WHERE {where_clause}"
         )
         self.return_values["dependencies"] = self._prepare_cci_dependencies(
             res["records"][0]["Dependencies"]
@@ -311,7 +323,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             if existing_package["ContainerOptions"] != package_config.package_type:
                 raise PackageUploadFailure(
                     f"Duplicate Package: {existing_package['ContainerOptions']} package with id "
-                    f"{ existing_package['Id']} has the same name ({package_config.package_name}) "
+                    f"{existing_package['Id']} has the same name ({package_config.package_name}) "
                     "for this namespace but has a different package type"
                 )
             package_id = existing_package["Id"]
@@ -379,16 +391,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             }
 
             if package_config.post_install_script:
-                package_descriptor[
-                    "postInstallScript"
-                ] = package_config.post_install_script
+                package_descriptor["postInstallScript"] = (
+                    package_config.post_install_script
+                )
             if package_config.uninstall_script:
                 package_descriptor["uninstallScript"] = package_config.uninstall_script
 
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
-
             # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
             # Note that we handle orgPreferences below by converting to settings,
             # in build_settings_package()
@@ -409,7 +420,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 with build_settings_package(
                     scratch_org_def.get("settings"),
                     scratch_org_def.get("objectSettings"),
-                    self.api_version,
+                    self.project_config.project__package__api_version,
                 ) as path:
                     settings_zip_builder = MetadataPackageZipBuilder(
                         path=path, context=self.context

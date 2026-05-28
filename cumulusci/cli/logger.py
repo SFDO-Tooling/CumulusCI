@@ -1,4 +1,5 @@
-""" CLI logger """
+"""CLI logger"""
+
 import logging
 import os
 import sys

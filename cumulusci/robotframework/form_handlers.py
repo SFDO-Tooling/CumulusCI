@@ -160,7 +160,12 @@ class LightningComboboxHandler(BaseFormHandler):
 class LightningInputHandler(BaseFormHandler):
     """An input handler for components that can be treated as an input or textarea"""
 
-    tags = ["lightning-input", "lightning-textarea", "lightning-datepicker"]
+    tags = [
+        "lightning-primitive-input-checkbox",
+        "lightning-primitive-input-simple",
+        "lightning-textarea",
+        "lightning-datepicker",
+    ]
 
     def set(self, value):
         self.focus()

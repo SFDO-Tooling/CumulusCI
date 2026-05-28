@@ -24,12 +24,12 @@ class SfdxOrgConfig(OrgConfig):
 
         username = self.config.get("username")
         assert username is not None, "SfdxOrgConfig must have a username"
+        if not self.print_json:
+            self.logger.info(f"Getting org info from Salesforce CLI for {username}")
 
-        self.logger.info(f"Getting org info from Salesforce CLI for {username}")
-
-        # Call force:org:display and parse output to get instance_url and
+        # Call org display and parse output to get instance_url and
         # access_token
-        p = sfdx("force:org:display --json", self.username)
+        p = sfdx("org display --json", self.username)
 
         org_info = None
         stderr_list = [line.strip() for line in p.stderr_text]
@@ -166,7 +166,7 @@ class SfdxOrgConfig(OrgConfig):
             else:
                 username = result[0]["Username"]
 
-        p = sfdx(f"force:org:display --targetusername={username} --json")
+        p = sfdx(f"org display --target-org={username} --json")
         if p.returncode:
             output = p.stdout_text.read()
             try:
@@ -183,9 +183,9 @@ class SfdxOrgConfig(OrgConfig):
             return info["result"]["accessToken"]
 
     def force_refresh_oauth_token(self):
-        # Call force:org:display and parse output to get instance_url and
+        # Call org display and parse output to get instance_url and
         # access_token
-        p = sfdx("force:org:open -r", self.username, log_note="Refreshing OAuth token")
+        p = sfdx("org open -r", self.username, log_note="Refreshing OAuth token")
 
         stdout_list = [line.strip() for line in p.stdout_text]
 
@@ -196,8 +196,9 @@ class SfdxOrgConfig(OrgConfig):
             message = f"Message: {nl.join(stdout_list)}"
             raise SfdxOrgException(message)
 
-    def refresh_oauth_token(self, keychain):
-        """Use sfdx force:org:describe to refresh token instead of built in OAuth handling"""
+    # Added a print json argument to check whether it is there or not
+    def refresh_oauth_token(self, keychain, print_json=False):
+        """Use sfdx org display to refresh token instead of built in OAuth handling"""
         if hasattr(self, "_sfdx_info"):
             # Cache the sfdx_info for 1 hour to avoid unnecessary calls out to sfdx CLI
             delta = datetime.datetime.utcnow() - self._sfdx_info_date
@@ -206,8 +207,8 @@ class SfdxOrgConfig(OrgConfig):
 
                 # Force a token refresh
                 self.force_refresh_oauth_token()
-
-        # Get org info via sfdx force:org:display
+        self.print_json = print_json
+        # Get org info via sf org display
         self.sfdx_info
         # Get additional org info by querying API
         self._load_orginfo()

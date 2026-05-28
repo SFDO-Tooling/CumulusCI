@@ -16,7 +16,14 @@ def add_after_statements(mappings: dict):
                     "This code is not yet tested for use with Snowfakery and Person Accounts"
                 )
                 # continue
-            target_mapping_index = indexed_by_sobject[target_table]
+            if isinstance(target_table, list):
+                target_mapping_index = max(
+                    [indexed_by_sobject[table] for table in target_table],
+                    key=lambda index: index.first_instance,
+                )
+            else:
+                target_mapping_index = indexed_by_sobject[target_table]
+
             if target_mapping_index.first_instance >= idx:
                 if not lookup.get("after"):
                     lookup["after"] = target_mapping_index.last_step_name

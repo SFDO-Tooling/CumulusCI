@@ -7,7 +7,7 @@ from multiprocessing import Queue
 from pathlib import Path
 from traceback import format_exc
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.config import (
     BaseConfig,
@@ -23,6 +23,7 @@ from cumulusci.core.utils import import_global
 
 class SharedConfig(BaseModel):
     "Properties available both in the Queue and also each worker"
+
     task_class: type
     project_config: BaseProjectConfig
     org_config: OrgConfig

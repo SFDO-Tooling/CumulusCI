@@ -1532,9 +1532,11 @@ project:
             strategies=None,
             filter_function=None,
         ):
-            filter_function(
-                GitHubDynamicDependency(github="https://github.com/test/test")
-            ),
+            (
+                filter_function(
+                    GitHubDynamicDependency(github="https://github.com/test/test")
+                ),
+            )
             filter_function(
                 GitHubDynamicDependency(github="https://github.com/test1/test1")
             )

@@ -1,5 +1,6 @@
 import pytest
 import responses
+from responses.matchers import json_params_matcher
 
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.exceptions import CumulusCIException
@@ -89,12 +90,12 @@ def test_run_task(mock_oauth, task):
     mock_oauth.add(
         method="PATCH",
         url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
-        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+        match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
     mock_oauth.add(
         method="PATCH",
         url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
-        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+        match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
     task()
@@ -164,12 +165,12 @@ def test_run_task__namespaced_org(mock_oauth, task):
     mock_oauth.add(
         method="PATCH",
         url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
-        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+        match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
     mock_oauth.add(
         method="PATCH",
         url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
-        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+        match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
     mock_oauth.add(
@@ -222,12 +223,12 @@ def test_run_task__managed_org(mock_oauth, task):
     mock_oauth.add(
         method="PATCH",
         url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
-        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+        match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
     mock_oauth.add(
         method="PATCH",
         url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
-        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+        match=[json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
     task()

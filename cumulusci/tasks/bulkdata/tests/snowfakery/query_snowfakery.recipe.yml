@@ -3,7 +3,6 @@
 
 # contact based on a user
 - object: Contact
-  include: SFStandardContact
   fields:
       __user:
           SalesforceQuery.find_record:

@@ -19,7 +19,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.oauth.exceptions import OAuth2Error
@@ -197,14 +197,15 @@ class OAuth2Client(object):
                 raise
 
         if use_https:
-            if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
+            certfile = "localhost.pem"
+            keyfile = "key.pem"
+            if not Path(certfile).is_file() or not Path(keyfile).is_file():
                 create_key_and_self_signed_cert()
-            httpd.socket = ssl.wrap_socket(
+            ssl_context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(certfile, keyfile)
+            httpd.socket = ssl_context.wrap_socket(
                 httpd.socket,
                 server_side=True,
-                certfile="localhost.pem",
-                keyfile="key.pem",
-                ssl_version=ssl.PROTOCOL_TLS,
             )
 
         httpd.timeout = self.httpd_timeout

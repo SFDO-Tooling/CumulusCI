@@ -11,7 +11,7 @@ from .synthesize_extract_declarations import (
 
 class SObjDependency(T.NamedTuple):
     table_name_from: str
-    table_name_to: str
+    table_names_to: T.Union[str, T.Tuple[str, ...]]
     field_name: str
     priority: bool = False
 
@@ -51,16 +51,25 @@ def _collect_dependencies_for_sobject(
         if not field_info.createable:  # pragma: no cover
             continue
         references = field_info.referenceTo
-        if len(references) == 1 and not references[0] == "RecordType":
-            target = references[0]
+        if references:
+            # Remove RecordType from references
+            if "RecordType" in references:
+                references.remove("RecordType")
+                if not references:
+                    continue
 
-            target_disallowed = target in NOT_EXTRACTABLE
-            field_disallowed = target_disallowed or not field_info.createable
+            targets = tuple(
+                target for target in references if target not in NOT_EXTRACTABLE
+            )
+            field_disallowed = not targets or not field_info.createable
             field_allowed = not (only_required_fields or field_disallowed)
             if field_info.requiredOnCreate or field_allowed:
                 dependencies.setdefault(source_sfobject, []).append(
                     SObjDependency(
-                        source_sfobject, target, field_name, field_info.requiredOnCreate
+                        source_sfobject,
+                        targets,
+                        field_name,
+                        field_info.requiredOnCreate,
                     )
                 )
 
@@ -80,28 +89,29 @@ def extend_declarations_to_include_referenced_tables(
         assert isinstance(sf_object, str)
         my_dependencies = dependencies.get(sf_object, ())
         for dep in my_dependencies:
-            target_table = dep.table_name_to
-            sobj = schema.get(target_table)
-            target_extractable = (
-                target_table not in NOT_EXTRACTABLE and sobj and sobj.extractable
-            )
-            if target_table not in decls and target_extractable:
-                required_fields = [
-                    field.name
-                    for field in schema[target_table].fields.values()
-                    if field.requiredOnCreate
-                ]
-                decls[target_table] = synthesize_declaration_for_sobject(
-                    target_table, required_fields, schema[target_table].fields
+            target_tables = dep.table_names_to
+            for target_table in target_tables:
+                sobj = schema.get(target_table)
+                target_extractable = (
+                    target_table not in NOT_EXTRACTABLE and sobj and sobj.extractable
                 )
+                if target_table not in decls and target_extractable:
+                    required_fields = [
+                        field.name
+                        for field in schema[target_table].fields.values()
+                        if field.requiredOnCreate
+                    ]
+                    decls[target_table] = synthesize_declaration_for_sobject(
+                        target_table, required_fields, schema[target_table].fields
+                    )
 
-                new_dependencies = _collect_dependencies_for_sobject(
-                    target_table,
-                    decls[target_table].fields,
-                    schema,
-                    only_required_fields=True,
-                )
-                dependencies.update(new_dependencies)
-                to_process.append(target_table)
+                    new_dependencies = _collect_dependencies_for_sobject(
+                        target_table,
+                        decls[target_table].fields,
+                        schema,
+                        only_required_fields=True,
+                    )
+                    dependencies.update(new_dependencies)
+                    to_process.append(target_table)
 
     return list(decls.values())

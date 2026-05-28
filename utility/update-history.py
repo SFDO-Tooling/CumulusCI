@@ -1,6 +1,7 @@
 """
 Update the history file.
 """
+
 from pathlib import Path
 
 START_MARKER = "<!-- latest-start -->"

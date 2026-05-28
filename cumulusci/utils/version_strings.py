@@ -144,7 +144,6 @@ class Version:
 
 
 class StrictVersion(Version):
-
     """Version numbering for anal retentives and software idealists.
     Implements the standard interface for version number classes as
     described above.  A version number consists of two or three
@@ -319,7 +318,6 @@ class StrictVersion(Version):
 
 
 class LooseVersion(Version):
-
     """Version numbering for anarchists and software realists.
     Implements the standard interface for version number classes as
     described above.  A version number consists of a series of numbers,

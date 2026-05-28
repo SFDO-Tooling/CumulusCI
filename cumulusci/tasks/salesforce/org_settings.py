@@ -156,8 +156,8 @@ def _get_object_file(object_name: str, settings: dict) -> str:
         </values>
     </businessProcesses>"""
         record_type = f"""    <recordTypes>
-        <fullName>{capitalize(settings['defaultRecordType'])}</fullName>
-        <label>{capitalize(settings['defaultRecordType'])}</label>
+        <fullName>{capitalize(settings["defaultRecordType"])}</fullName>
+        <label>{capitalize(settings["defaultRecordType"])}</label>
         <active>true</active>
         {business_process_reference}
     </recordTypes>

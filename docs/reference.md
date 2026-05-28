@@ -6,7 +6,8 @@ maxdepth: 1
 ---
 
 cheat-sheet
-tasks
+cumulusci_tasks
 flows
-env_var_reference
+env-var-reference
+org_config-reference
 ```

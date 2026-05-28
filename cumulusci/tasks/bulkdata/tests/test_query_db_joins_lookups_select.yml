@@ -1,0 +1,48 @@
+Insert Account:
+    sf_object: Account
+    table: accounts
+    api: rest
+    fields:
+        - Name
+        - AccountNumber
+
+Insert Lead:
+    sf_object: Lead
+    table: leads
+    api: bulk
+    fields:
+        - LastName
+
+Select Contact:
+    sf_object: Contact
+    table: contacts
+    api: bulk
+    action: select
+    select_options:
+        strategy: similarity
+        priority_fields:
+            - FirstName
+            - AccountId
+    fields:
+        - FirstName
+        - LastName
+    lookups:
+        AccountId:
+            table: accounts
+
+Select Event:
+    sf_object: Event
+    table: events
+    api: rest
+    action: select
+    select_options:
+        strategy: similarity
+        priority_fields:
+            - WhoId
+    fields:
+        - Subject
+    lookups:
+        WhoId:
+            table:
+                - contacts
+                - leads

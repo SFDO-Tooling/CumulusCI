@@ -4,6 +4,7 @@
 Classes:
     CliTable: Pretty prints tabular data to stdout, via Rich's Console API
 """
+
 import os
 from typing import Any, List, Union
 

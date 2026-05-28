@@ -26,6 +26,8 @@ OS keychain is not available.
 Used for specifying a GitHub Repository for CumulusCI to use when
 running in a CI environment.
 
+(cumulusci-system-certs)=
+
 ## `CUMULUSCI_SYSTEM_CERTS`
 
 If set to `True`, CumulusCI will configure the Python `requests` library
@@ -41,6 +43,8 @@ Your GitHub App's identifier.
 
 Contents of a JSON Web Token (JWT) used to [authenticate a GitHub
 app](https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/##authenticating-as-a-github-app).
+
+(github-token)=
 
 ## `GITHUB_TOKEN`
 
@@ -69,5 +73,8 @@ org, e.g. a Dev Hub. Set with SFDX_CLIENT_ID.
 
 ## `SFDX_ORG_CREATE_ARGS`
 
-Extra arguments passed to `sfdx force:org:create`. Can be used to pass
-key-value pairs.
+Extra arguments passed to `sf org create scratch`.
+
+To provide additional arguments, use the following format. For instance, to set the release to "preview", the environment variable would be: "--release=preview"
+
+To specify multiple options, you can include them together, like: "--edition=developer --release=preview"

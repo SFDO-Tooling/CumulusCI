@@ -247,7 +247,7 @@ def test_deploy_omni_studio_site_settings(
 # The frequent error is:
 #
 #     "name": "NoOrgFound",
-#     "action": "Run the \"sfdx force:auth\" commands with --setdefaultusername to connect to an org and set it as your default org.\nRun \"force:org:create\" with --setdefaultusername to create a scratch org and set it as your default org.\nRun \"sfdx force:config:set defaultusername=<username>\" to set your default username."
+#     "action": "Run the \"sf auth\" commands with --target-org to connect to an org and set it as your default org.\nRun \"org create scratch\" with --target-org to create a scratch org and set it as your default org.\nRun \"sf config set target-org=<username>\" to set your default username."
 # }
 
 

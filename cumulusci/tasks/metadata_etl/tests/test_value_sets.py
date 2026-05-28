@@ -38,8 +38,8 @@ class TestAddValueSetEntries:
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [
-                    {"fullName": "Test", "label": "Label"},
-                    {"fullName": "Test_2", "label": "Label 2"},
+                    {"fullName": "Test", "label": "Label", "group": "Schedule"},
+                    {"fullName": "Test_2", "label": "Label 2", "default": "true"},
                 ],
             },
         )
@@ -57,6 +57,9 @@ class TestAddValueSetEntries:
         assert len(entry) == 1
         label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
+        group = entry[0].findall(f".//{MD}group")
+        assert group[0].text == "Schedule"
+        assert len(group) == 1
         assert label[0].text == "Label"
         default = entry[0].findall(f".//{MD}default")
         assert len(default) == 1

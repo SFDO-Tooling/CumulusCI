@@ -365,3 +365,11 @@ config_regression:
 
 For more details on customizing tasks and flows, see the
 [](config) section.
+
+```{toctree}
+---
+maxdepth: 1
+---
+
+metadata-etl
+```

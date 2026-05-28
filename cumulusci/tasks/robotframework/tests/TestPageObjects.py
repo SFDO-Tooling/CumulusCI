@@ -1,6 +1,7 @@
 """
 this is the docstring
 """
+
 from cumulusci.robotframework.pageobjects import DetailPage, ListingPage, pageobject
 
 TITLE = "This is the title"

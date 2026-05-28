@@ -33,14 +33,17 @@ def setup_test(org_config):
         describe_for("Contact"),
         describe_for("Opportunity"),
     )
-    with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
-        "cumulusci.core.datasets.get_org_schema",
-        lambda _sf, org_config, **kwargs: _fake_get_org_schema(
-            org_config,
-            obj_describes,
-            object_counts,
-            included_objects=["Account", "Contact", "Opportunity"],
-            **kwargs,
+    with (
+        patch.object(type(org_config), "is_person_accounts_enabled", False),
+        patch(
+            "cumulusci.core.datasets.get_org_schema",
+            lambda _sf, org_config, **kwargs: _fake_get_org_schema(
+                org_config,
+                obj_describes,
+                object_counts,
+                included_objects=["Account", "Contact", "Opportunity"],
+                **kwargs,
+            ),
         ),
     ):
         yield
@@ -76,20 +79,19 @@ class TestDatasetsE2E:
             describe_for("Opportunity"),
         )
 
-        with patch.object(
-            type(org_config), "is_person_accounts_enabled", False
-        ), _fake_get_org_schema(
-            org_config,
-            obj_describes,
-            object_counts,
-            include_counts=True,
-            filters=[Filters.extractable, Filters.createable],
-            included_objects=["Account", "Contact", "Opportunity"],
-        ) as schema, ensure_accounts(
-            6
-        ), Dataset(
-            "foo", project_config, sf, org_config, schema=schema
-        ) as dataset:
+        with (
+            patch.object(type(org_config), "is_person_accounts_enabled", False),
+            _fake_get_org_schema(
+                org_config,
+                obj_describes,
+                object_counts,
+                include_counts=True,
+                filters=[Filters.extractable, Filters.createable],
+                included_objects=["Account", "Contact", "Opportunity"],
+            ) as schema,
+            ensure_accounts(6),
+            Dataset("foo", project_config, sf, org_config, schema=schema) as dataset,
+        ):
             timer.checkpoint("In Dataset")
             if dataset.path.exists():
                 rmtree(dataset.path)
@@ -129,6 +131,7 @@ class TestDatasetsE2E:
         objs["Account"].remove("Description")
         objs["Account"].remove("History__c")
         objs["Account"].remove("ns__Description__c")
+        objs["Account"].remove("ns__LinkedAccount__c")
         objs["Account"].remove("Primary_Contact__c")
         dataset.update_schema_subset(objs)
         timer.checkpoint("Updated Subset")
@@ -182,18 +185,21 @@ class TestDatasetsE2E:
         # Need record types for the RecordTypeId field to be in the org
         create_record_type_for_account(sf, run_code_without_recording)
 
-        with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
-            "cumulusci.core.datasets.get_org_schema",
-            lambda _sf, org_config, **kwargs: _fake_get_org_schema(
-                org_config,
-                obj_describes,
-                object_counts,
-                included_objects=["Account", "Contact", "Opportunity"],
-                **kwargs,
+        with (
+            patch.object(type(org_config), "is_person_accounts_enabled", False),
+            patch(
+                "cumulusci.core.datasets.get_org_schema",
+                lambda _sf, org_config, **kwargs: _fake_get_org_schema(
+                    org_config,
+                    obj_describes,
+                    object_counts,
+                    included_objects=["Account", "Contact", "Opportunity"],
+                    **kwargs,
+                ),
             ),
-        ), ensure_accounts(6), Dataset(
-            "bar", project_config, sf, org_config
-        ) as dataset:
+            ensure_accounts(6),
+            Dataset("bar", project_config, sf, org_config) as dataset,
+        ):
             timer.checkpoint("In Dataset")
             if dataset.path.exists():
                 rmtree(dataset.path)
@@ -225,24 +231,35 @@ class TestDatasetsE2E:
     def test_datasets_read_explicit_extract_declaration(
         self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
     ):
-        object_counts = {"Account": 6, "Contact": 1, "Opportunity": 5}
+        object_counts = {
+            "Account": 6,
+            "Contact": 1,
+            "Opportunity": 5,
+            "Lead": 1,
+            "Event": 2,
+        }
         obj_describes = (
             describe_for("Account"),
             describe_for("Contact"),
             describe_for("Opportunity"),
+            describe_for("Lead"),
+            describe_for("Event"),
         )
-        with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
-            "cumulusci.core.datasets.get_org_schema",
-            lambda _sf, org_config, **kwargs: _fake_get_org_schema(
-                org_config,
-                obj_describes,
-                object_counts,
-                included_objects=["Account", "Contact", "Opportunity"],
-                **kwargs,
+        with (
+            patch.object(type(org_config), "is_person_accounts_enabled", False),
+            patch(
+                "cumulusci.core.datasets.get_org_schema",
+                lambda _sf, org_config, **kwargs: _fake_get_org_schema(
+                    org_config,
+                    obj_describes,
+                    object_counts,
+                    included_objects=["Account", "Contact", "Opportunity"],
+                    **kwargs,
+                ),
             ),
-        ), ensure_accounts(6), Dataset(
-            "bar", project_config, sf, org_config
-        ) as dataset:
+            ensure_accounts(6),
+            Dataset("bar", project_config, sf, org_config) as dataset,
+        ):
             if dataset.path.exists():
                 rmtree(dataset.path)
 
@@ -263,12 +280,16 @@ class TestDatasetsE2E:
                             "Contact": {
                                 "fields": ["FirstName", "LastName", "AccountId"]
                             },
+                            "Event": {"fields": ["Subject", "WhoId"]},
                         }
                     },
                 )
                 loading_rules = write_yaml(
                     "loading_rules.load.yml",
-                    [{"sf_object": "Account", "load_after": "Contact"}],
+                    [
+                        {"sf_object": "Account", "load_after": "Contact"},
+                        {"sf_object": "Lead", "load_after": "Event"},
+                    ],
                 )
 
                 # Don't actually extract data.
@@ -286,16 +307,37 @@ class TestDatasetsE2E:
                         "fields": ["FirstName", "LastName"],
                         "lookups": {
                             "AccountId": {
-                                "table": "Account",
+                                "table": ["Account"],
                                 "key_field": "AccountId",
                                 "after": "Insert Account",
                             }
                         },
+                        "select_options": {},
+                    },
+                    "Insert Event": {
+                        "sf_object": "Event",
+                        "table": "Event",
+                        "fields": ["Subject"],
+                        "lookups": {
+                            "WhoId": {
+                                "table": ["Contact", "Lead"],
+                                "key_field": "WhoId",
+                                "after": "Insert Lead",
+                            }
+                        },
+                        "select_options": {},
                     },
                     "Insert Account": {
                         "sf_object": "Account",
                         "table": "Account",
                         "fields": ["Name"],
+                        "select_options": {},
+                    },
+                    "Insert Lead": {
+                        "sf_object": "Lead",
+                        "table": "Lead",
+                        "fields": ["Company", "LastName"],
+                        "select_options": {},
                     },
                 }
                 assert tuple(actual.items()) == tuple(expected.items()), actual.items()
@@ -316,21 +358,24 @@ class TestLoadDatasets:
             assert "foo.recipe.yml" in self.options["recipe"]
             called = True
 
-        with setup_test(org_config), Dataset(
-            "foo", project_config, sf, org_config, schema=None
-        ) as dataset, patch(
-            "cumulusci.core.datasets.Path.exists", fake_path_exists
-        ), patch(
-            "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_task",
-            fake_run_snowfakery,
+        with (
+            setup_test(org_config),
+            Dataset("foo", project_config, sf, org_config, schema=None) as dataset,
+            patch("cumulusci.core.datasets.Path.exists", fake_path_exists),
+            patch(
+                "cumulusci.tasks.bulkdata.snowfakery.Snowfakery._run_task",
+                fake_run_snowfakery,
+            ),
         ):
             dataset.load()
         assert called
 
     def test_dataset_with_no_data_or_recipe(self, sf, project_config, org_config):
-        with setup_test(org_config), Dataset(
-            "fxoyoxz", project_config, sf, org_config, schema=None
-        ) as dataset, pytest.raises(BulkDataException, match="fxoyoxz"):
+        with (
+            setup_test(org_config),
+            Dataset("fxoyoxz", project_config, sf, org_config, schema=None) as dataset,
+            pytest.raises(BulkDataException, match="fxoyoxz"),
+        ):
             dataset.load()
 
 

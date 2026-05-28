@@ -1,0 +1,313 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - &id002
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id001
+    - *id002
+    - *id002
+
+    - &id003
+      include_file: GET_sobjects_Contact_describe.yaml
+    - *id001
+    - *id003
+    - *id003
+    - &id007
+      include_file: GET_sobjects_Opportunity_describe.yaml
+    - *id002
+    - &id008
+      include_file: GET_sobjects_Lead_describe.yaml  # Added interaction for Lead
+    - *id008
+    - *id001
+    - &id009
+      include_file: GET_sobjects_Event_describe.yaml  # Added interaction for Event
+    - *id001
+    - *id008
+    - *id001
+    - *id009
+    - *id009
+    - *id009
+    - *id009
+    - *id001
+
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/limits/recordCount?sObjects=Account
+          body: null
+          headers: &id004
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: &id006
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+            string: "{\n  \"sObjects\" : [ {\n    \"count\" : 3,\n    \"name\" : \"Account\"\n
+              \ } ]\n}"
+             
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id,%20Name,%20Description,%20Phone,%20AccountNumber%20FROM%20Account%20WHERE%20Name%20!=%20'Sample%20Account%20for%20Entitlements'
+          body: null
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "{\n  \"totalSize\" : 10,\n  \"done\" : true,\n  \"records\" : [ {\n
+              \   \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMDQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMDQA3\",\n    \"Name\" : \"Tom Cruise\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMEQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMEQA3\",\n    \"Name\" : \"Bob The Builder\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMFQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMFQA3\",\n    \"Name\" : \"Shah Rukh Khan\",\n
+              \   \"Description\" : \"Bollywood actor\",\n    \"Phone\" : \"12345612\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMGQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMGQA3\",\n    \"Name\" : \"Aamir Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1RMHQA3\"\n
+              \   },\n    \"Id\" : \"0019H00000H1RMHQA3\",\n    \"Name\" : \"Salman Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1UzyQAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1UzyQAF\",\n    \"Name\" : \"Tom Cruise\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1UzzQAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1UzzQAF\",\n    \"Name\" : \"Bob The Builder\",\n
+              \   \"Description\" : \"Some Description\",\n    \"Phone\" : \"12345632\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1V00QAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1V00QAF\",\n    \"Name\" : \"Shah Rukh Khan\",\n
+              \   \"Description\" : \"Bollywood actor\",\n    \"Phone\" : \"12345612\",\n
+              \   \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\" : {\n      \"type\"
+              : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1V01QAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1V01QAF\",\n    \"Name\" : \"Aamir Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H1V02QAF\"\n
+              \   },\n    \"Id\" : \"0019H00000H1V02QAF\",\n    \"Name\" : \"Salman Khan\",\n
+              \   \"Description\" : \"Mr perfectionist, bollywood actor\",\n    \"Phone\"
+              : \"12345623\",\n    \"AccountNumber\" : \"123\"\n  } ]\n}"
+
+
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"LastName": "Contact of Tom Cruise",
+      "AccountId": "0019H00000H1RMDQA3", "attributes": {"type": "Contact"}}, {"LastName":
+      "Contact of Bob the Builder", "AccountId": "0019H00000H1RMEQA3", "attributes":
+      {"type": "Contact"}}, {"LastName": "Contact of SRK", "AccountId": "0019H00000H1RMFQA3",
+      "attributes": {"type": "Contact"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"0039H00000BbbFBQAZ\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0039H00000BbbFCQAZ\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0039H00000BbbFDQAZ\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"Name": "Tom Cruise", "Description":
+      "Some Description", "Phone": "123456", "AccountNumber": "123", "attributes":
+      {"type": "Account"}}, {"Name": "Bob The Builder", "Description": "Some Description",
+      "Phone": "123456", "AccountNumber": "123", "attributes": {"type": "Account"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"0019H00000H28uAQAR\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0019H00000H28uBQAR\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+    
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"Id": "0019H00000H28uBQAR", "ParentId":
+            "0019H00000H28uAQAR", "attributes": {"type": "Account"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"0019H00000H28uBQAR\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+    
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"LastName": "Contact", "AccountId": "0019H00000H28uAQAR",
+            "attributes": {"type": "Contact"}}, {"LastName": "Contact", "AccountId": "0019H00000H28uBQAR",
+            "attributes": {"type": "Contact"}}, {"LastName": "Contact", "attributes": {"type":
+            "Contact"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"0039H00000BcB5lQAF\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0039H00000BcB5mQAF\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"0039H00000BcB5nQAF\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"LastName": "First Lead", "Company":
+            "Salesforce", "attributes": {"type": "Lead"}}, {"LastName": "Second Lead", "Company":
+            "Salesforce", "attributes": {"type": "Lead"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"00Q9H00000C6pycUAB\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n}, {\n  \"id\" : \"00Q9H00000C6pydUAB\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+      
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"Subject": "third record!!!!!!!!", "DurationInMinutes":
+            "31", "ActivityDateTime": "2024-11-07T07:00:00.000+0000", "WhoId": "0039H00000BcB5mQAF",
+            "WhatId": "0019H00000H28uAQAR", "attributes": {"type": "Event"}}]}'
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "[ {\n  \"id\" : \"00U9H000000S01tUAC\",\n  \"success\" : true,\n  \"errors\"
+              : [ ]\n} ]"
+    
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/limits/recordCount?sObjects=Event
+          body: null
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "{\n  \"sObjects\" : [ {\n    \"count\" : 0,\n    \"name\" : \"Event\"\n
+              \ } ]\n}"
+    
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/v62.0/query/?q=SELECT%20Id%2C%20TYPEOF%20Who%20WHEN%20Contact%20THEN%20LastName%2C%20Email%20WHEN%20Lead%20THEN%20LastName%2C%20Company%20ELSE%20Id%20END%2C%20TYPEOF%20What%20WHEN%20Account%20THEN%20Name%2C%20Description%2C%20Phone%2C%20AccountNumber%20ELSE%20Id%20END%2C%20Subject%2C%20DurationInMinutes%2C%20ActivityDateTime%20FROM%20Event
+          body: null
+          headers: *id004
+      response:
+          status:
+            code: 200
+            message: OK
+          headers: *id006
+          body:
+            string: "{\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"records\" : [ {\n
+              \   \"attributes\" : {\n      \"type\" : \"Event\",\n      \"url\" : \"/services/data/v62.0/sobjects/Event/00U9H000000RzvRUAS\"\n
+              \   },\n    \"Id\" : \"00U9H000000RzvRUAS\",\n    \"Who\" : {\n      \"attributes\"
+              : {\n        \"type\" : \"Contact\",\n        \"url\" : \"/services/data/v62.0/sobjects/Contact/0039H00000Bc8vtQAB\"\n
+              \     },\n      \"LastName\" : \"Contact\",\n      \"Email\" : null\n    },\n
+              \   \"What\" : null,\n    \"Subject\" : \"Test Event 2\",\n    \"DurationInMinutes\"
+              : 60,\n    \"ActivityDateTime\" : \"2024-11-07T07:00:00.000+0000\"\n  }, {\n
+              \   \"attributes\" : {\n      \"type\" : \"Event\",\n      \"url\" : \"/services/data/v62.0/sobjects/Event/00U9H000000RzvSUAS\"\n
+              \   },\n    \"Id\" : \"00U9H000000RzvSUAS\",\n    \"Who\" : {\n      \"attributes\"
+              : {\n        \"type\" : \"Contact\",\n        \"url\" : \"/services/data/v62.0/sobjects/Contact/0039H00000Bc8vtQAB\"\n
+              \     },\n      \"LastName\" : \"Contact\",\n      \"Email\" : null\n    },\n
+              \   \"What\" : {\n      \"attributes\" : {\n        \"type\" : \"Account\",\n
+              \       \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H25ppQAB\"\n
+              \     },\n      \"Name\" : \"Tom Cruise\",\n      \"Description\" : \"Some
+              Description\",\n      \"Phone\" : \"123456\",\n      \"AccountNumber\" : \"123\"\n
+              \   },\n    \"Subject\" : \"Test Event 1\",\n    \"DurationInMinutes\" : 60,\n
+              \   \"ActivityDateTime\" : \"2024-11-07T07:00:00.000+0000\"\n  }, {\n    \"attributes\"
+              : {\n      \"type\" : \"Event\",\n      \"url\" : \"/services/data/v62.0/sobjects/Event/00U9H000000RzvTUAS\"\n
+              \   },\n    \"Id\" : \"00U9H000000RzvTUAS\",\n    \"Who\" : {\n      \"attributes\"
+              : {\n        \"type\" : \"Contact\",\n        \"url\" : \"/services/data/v62.0/sobjects/Contact/0039H00000Bc8vuQAB\"\n
+              \     },\n      \"LastName\" : \"Contact\",\n      \"Email\" : null\n    },\n
+              \   \"What\" : {\n      \"attributes\" : {\n        \"type\" : \"Account\",\n
+              \       \"url\" : \"/services/data/v62.0/sobjects/Account/0019H00000H25ppQAB\"\n
+              \     },\n      \"Name\" : \"Tom Cruise\",\n      \"Description\" : \"Some
+              Description\",\n      \"Phone\" : \"123456\",\n      \"AccountNumber\" : \"123\"\n
+              \   },\n    \"Subject\" : \"Test Event 3\",\n    \"DurationInMinutes\" : 60,\n
+              \   \"ActivityDateTime\" : \"3156-11-12T13:00:00.000+0000\"\n  } ]\n}"
+      
+    - request:
+        body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><operation>insert</operation><object>Event</object><concurrencyMode>Parallel</concurrencyMode><contentType>CSV</contentType></jobInfo>
+        headers:
+          Content-Type:
+          - application/xml; charset=UTF-8
+        method: POST
+        uri: https://orgname.my.salesforce.com/services/async/62.0/job
+      response:
+        body:
+          string: "<?xml version=\"1.0\" encoding=\"UTF-8\"?><jobInfo\n   xmlns=\"http://www.force.com/2009/06/asyncapi/dataload\">\n
+            <id>7509H0000016HP0QAM</id>\n <operation>insert</operation>\n <object>Event</object>\n
+            <createdById>0059H0000059qXZQAY</createdById>\n <createdDate>2024-11-21T09:28:59.000Z</createdDate>\n
+            <systemModstamp>2024-11-21T09:28:59.000Z</systemModstamp>\n <state>Open</state>\n
+            <concurrencyMode>Parallel</concurrencyMode>\n <contentType>CSV</contentType>\n
+            <numberBatchesQueued>0</numberBatchesQueued>\n <numberBatchesInProgress>0</numberBatchesInProgress>\n
+            <numberBatchesCompleted>0</numberBatchesCompleted>\n <numberBatchesFailed>0</numberBatchesFailed>\n
+            <numberBatchesTotal>0</numberBatchesTotal>\n <numberRecordsProcessed>0</numberRecordsProcessed>\n
+            <numberRetries>0</numberRetries>\n <apiVersion>62.0</apiVersion>\n <numberRecordsFailed>0</numberRecordsFailed>\n
+            <totalProcessingTime>0</totalProcessingTime>\n <apiActiveProcessingTime>0</apiActiveProcessingTime>\n
+            <apexProcessingTime>0</apexProcessingTime>\n</jobInfo>"
+        headers: *id006
+        status:
+          code: 201
+          message: Created
+      
+    - request:
+        body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><operation>query</operation><object>Event</object><concurrencyMode>Parallel</concurrencyMode><contentType>JSON</contentType></jobInfo>
+        headers:
+          Content-Type:
+          - application/xml; charset=UTF-8
+        method: POST
+        uri: https://orgname.my.salesforce.com/services/async/62.0/job
+      response:
+        body:
+          string: "<?xml version=\"1.0\" encoding=\"UTF-8\"?><jobInfo\n   xmlns=\"http://www.force.com/2009/06/asyncapi/dataload\">\n
+            <id>7509H0000016HQbQAM</id>\n <operation>query</operation>\n <object>Event</object>\n
+            <createdById>0059H0000059qXZQAY</createdById>\n <createdDate>2024-11-21T09:28:48.000Z</createdDate>\n
+            <systemModstamp>2024-11-21T09:28:48.000Z</systemModstamp>\n <state>Open</state>\n
+            <concurrencyMode>Parallel</concurrencyMode>\n <contentType>JSON</contentType>\n
+            <numberBatchesQueued>0</numberBatchesQueued>\n <numberBatchesInProgress>0</numberBatchesInProgress>\n
+            <numberBatchesCompleted>0</numberBatchesCompleted>\n <numberBatchesFailed>0</numberBatchesFailed>\n
+            <numberBatchesTotal>0</numberBatchesTotal>\n <numberRecordsProcessed>0</numberRecordsProcessed>\n
+            <numberRetries>0</numberRetries>\n <apiVersion>62.0</apiVersion>\n <numberRecordsFailed>0</numberRecordsFailed>\n
+            <totalProcessingTime>0</totalProcessingTime>\n <apiActiveProcessingTime>0</apiActiveProcessingTime>\n
+            <apexProcessingTime>0</apexProcessingTime>\n</jobInfo>"
+        headers: *id006
+        status:
+          code: 201
+          message: Created

@@ -4,7 +4,6 @@ from cumulusci.tasks.salesforce import UninstallLocalBundles
 
 
 class UninstallLocalNamespacedBundles(UninstallLocalBundles):
-
     task_options = {
         "path": {
             "description": "The path to a directory containing the metadata bundles (subdirectories) to uninstall",
