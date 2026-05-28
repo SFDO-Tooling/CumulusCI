@@ -150,6 +150,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If True, create unlocked packages for unpackaged metadata in this project and dependencies. "
             "Defaults to False."
         },
+        "unpackaged_metadata_path": {
+            "description": "Path to a directory of metadata to include as unpackaged metadata "
+            "in the package version. This metadata is deployed to the build org during package "
+            "version creation but is not included in the package itself."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -428,6 +433,25 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     version_info.writestr(
                         "settings.zip", settings_zip_builder.as_bytes()
                     )
+
+            # Add unpackaged metadata if provided
+            if "unpackaged_metadata_path" in self.options:
+                with convert_sfdx_source(
+                    pathlib.Path(self.options["unpackaged_metadata_path"]),
+                    None,
+                    self.logger,
+                ) as unpackaged_path:
+                    unpackaged_metadata_zip_builder = MetadataPackageZipBuilder(
+                        path=unpackaged_path,
+                        context=self.context,
+                    )
+                version_info.writestr(
+                    "unpackaged-metadata.zip",
+                    unpackaged_metadata_zip_builder.as_bytes(),
+                )
+                package_descriptor["unpackagedMetadata"] = {
+                    "path": "unpackaged-metadata.zip"
+                }
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
