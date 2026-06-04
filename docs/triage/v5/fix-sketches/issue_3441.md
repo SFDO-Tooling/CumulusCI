@@ -1,12 +1,39 @@
-# Fix sketch - #3441: `cci task run create_package_version` should allow `version_base: default` **Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
+# Fix sketch - #3441: `cci task run create_package_version` should allow `version_base: default`
+
+**Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
 
 **Theme**: `packaging`
-**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/3441> ## Bug - `cumulusci/tasks/create_package_version.py:63-112` - `version_base: Optional[str]`; documented values are `None`, a literal version number, or `latest_github_release`. - `cumulusci/tasks/create_package_version.py:529-563` - `_get_base_version_number` only branches on `None` (default) and `"latest_github_release"`; any other string is parsed as a literal version. There is no `"default"`/`"hig... ## Target _See narrative for target file:line._ ## Recommended approach (from triage narrative) - pass1: `keep-open`- could be solved minimally with a`default`/`highest`sentinel in`\_get_base_version_number`, or generalized as a CCI null-override feature.
 
--   | pass2 labels: `severity:low,area:packaging,area:flow-overrides,area:cli` --- ## Size & risk | Field                  | Value                                                                                                                                                                                                        |
-    | ------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-    | Size estimate                                                                               | _TBD by fix-PR author_ |
-    | Risk                                                                                        | _TBD by fix-PR author_ |
-    | Touches `cumulusci/robotframework/*`                                                        | _TBD_                  |
-    | Touches `cumulusci/tasks/bulkdata/*`                                                        | _TBD_                  |
-    | Breaks public CLI surface                                                                   | _TBD_                  | ## Regression test `cumulusci/tests/triage/test_issue_3441.py`. Remove the `@pytest.mark.xfail` marker and confirm green. ## Full narrative See `docs/triage/v5/repro-results.md` (search for `### #3441:`). |
+**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/3441>
+
+## Bug
+
+-   `cumulusci/tasks/create_package_version.py:63-112` - `version_base: Optional[str]`; documented values are `None`, a literal version number, or `latest_github_release`. - `cumulusci/tasks/create_package_version.py:529-563` - `_get_base_version_number` only branches on `None` (default) and `"latest_github_release"`; any other string is parsed as a literal version. There is no `"default"`/`"hig...
+
+## Target
+
+_See narrative for target file:line._
+
+## Recommended approach (from triage narrative)
+
+-   pass1: `keep-open`- could be solved minimally with a`default`/`highest`sentinel in`\_get_base_version_number`, or generalized as a CCI null-override feature.
+
+-   pass2 labels: `severity:low,area:packaging,area:flow-overrides,area:cli`
+
+## Size & risk
+
+| Field                                | Value                  |
+| ------------------------------------ | ---------------------- |
+| Size estimate                        | _TBD by fix-PR author_ |
+| Risk                                 | _TBD by fix-PR author_ |
+| Touches `cumulusci/robotframework/*` | _TBD_                  |
+| Touches `cumulusci/tasks/bulkdata/*` | _TBD_                  |
+| Breaks public CLI surface            | _TBD_                  |
+
+## Regression test
+
+`cumulusci/tests/triage/test_issue_3441.py`. Remove the `@pytest.mark.xfail` marker and confirm green.
+
+## Full narrative
+
+See `docs/triage/v5/repro-results.md` (search for `### #3441:`).

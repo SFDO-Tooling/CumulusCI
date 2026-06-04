@@ -1,12 +1,39 @@
-# Fix sketch - #2506: Bulk Operations should have a --debug mode which maintains logs and tempfiles **Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
+# Fix sketch - #2506: Bulk Operations should have a --debug mode which maintains logs and tempfiles
+
+**Verdict**: `REPRODUCED-on-v4.10.0` (verdict_source: `v4.10.0`)
 
 **Theme**: `bulkdata`
-**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/2506> ## Bug - Snowfakery task (`snowfakery.py:241,355,385,565`) calls `get_debug_mode()` and at `:386` logs `f"Working Directory: {tempdir}"` per loop iteration. - `extract.py`, `step.py` - **zero** references to `debug_mode` or `get_debug_mode`. - `load.py:283` uses `tempfile.TemporaryFile` with no debug-mode override; the file is auto-deleted on context exit regardless of debug. ## Target _See narrative for target file:line._ ## Recommended approach (from triage narrative) - pass1: `keep-open` - partial implementation; remaining work is straightforward (wire `get_debug_mode()` into load/extract, conditionally use `TemporaryDirectory(delete=False)` and emit path).
 
--   | pass2 labels: `enhancement, bulkdata, extract_dataset, load_dataset, debugging` --- ## Size & risk | Field                  | Value                                                                                                                                                                                                        |
-    | -------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-    | Size estimate                                                                                      | _TBD by fix-PR author_ |
-    | Risk                                                                                               | _TBD by fix-PR author_ |
-    | Touches `cumulusci/robotframework/*`                                                               | _TBD_                  |
-    | Touches `cumulusci/tasks/bulkdata/*`                                                               | _TBD_                  |
-    | Breaks public CLI surface                                                                          | _TBD_                  | ## Regression test `cumulusci/tests/triage/test_issue_2506.py`. Remove the `@pytest.mark.xfail` marker and confirm green. ## Full narrative See `docs/triage/v5/repro-results.md` (search for `### #2506:`). |
+**Issue**: <https://github.com/SFDO-Tooling/CumulusCI/issues/2506>
+
+## Bug
+
+-   Snowfakery task (`snowfakery.py:241,355,385,565`) calls `get_debug_mode()` and at `:386` logs `f"Working Directory: {tempdir}"` per loop iteration. - `extract.py`, `step.py` - **zero** references to `debug_mode` or `get_debug_mode`. - `load.py:283` uses `tempfile.TemporaryFile` with no debug-mode override; the file is auto-deleted on context exit regardless of debug.
+
+## Target
+
+_See narrative for target file:line._
+
+## Recommended approach (from triage narrative)
+
+-   pass1: `keep-open` - partial implementation; remaining work is straightforward (wire `get_debug_mode()` into load/extract, conditionally use `TemporaryDirectory(delete=False)` and emit path).
+
+-   pass2 labels: `enhancement, bulkdata, extract_dataset, load_dataset, debugging`
+
+## Size & risk
+
+| Field                                | Value                  |
+| ------------------------------------ | ---------------------- |
+| Size estimate                        | _TBD by fix-PR author_ |
+| Risk                                 | _TBD by fix-PR author_ |
+| Touches `cumulusci/robotframework/*` | _TBD_                  |
+| Touches `cumulusci/tasks/bulkdata/*` | _TBD_                  |
+| Breaks public CLI surface            | _TBD_                  |
+
+## Regression test
+
+`cumulusci/tests/triage/test_issue_2506.py`. Remove the `@pytest.mark.xfail` marker and confirm green.
+
+## Full narrative
+
+See `docs/triage/v5/repro-results.md` (search for `### #2506:`).
