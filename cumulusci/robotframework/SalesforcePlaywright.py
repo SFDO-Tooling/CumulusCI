@@ -103,7 +103,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             # seems to be the only way to get the videos to go directly in
             # the video folder. Also, using "." doesn't work :-/
             record_video = {"dir": "../video"}
-        width, height = size.split("x", 1)
+        width, height = (int(v) for v in size.split("x", 1))
 
         browser_id = self.browser.new_browser(browser=browser_enum, headless=headless)
         context_id = self.browser.new_context(

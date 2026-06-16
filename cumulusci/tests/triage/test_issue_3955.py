@@ -47,10 +47,7 @@ def _stub_browser_library():
             sys.modules.pop(name, None)
 
 
-@pytest.mark.xfail(
-    reason=("repro for #3955 - see docs/triage/v5/repro-results.md"),
-    strict=False,
-)
+
 def test_open_test_browser_passes_int_viewport_to_playwright():
     from cumulusci.robotframework.SalesforcePlaywright import SalesforcePlaywright
 
