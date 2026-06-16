@@ -288,9 +288,11 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 # Look for page layout definitions in the record type
                 found_layout = False
                 for elem in tree.findall("layoutAssignments"):
-                    if elem.find("recordType").text == rt["record_type"]:
-                        elem.layout.text = layout_option
-                        found_layout = True
+                    record_type_elem = elem.find("recordType")
+                    if record_type_elem:
+                        if record_type_elem.text == rt["record_type"]:
+                            elem.layout.text = layout_option
+                            found_layout = True
 
                 if not found_layout:
                     assignment = tree.append(tag="layoutAssignments")

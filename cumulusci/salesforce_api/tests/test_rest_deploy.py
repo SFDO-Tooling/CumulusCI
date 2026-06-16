@@ -4,6 +4,12 @@ import unittest
 import zipfile
 from unittest.mock import MagicMock, Mock, call, patch
 
+import pytest
+
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+)
 from cumulusci.salesforce_api.rest_deploy import RestDeploy
 from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
@@ -90,15 +96,14 @@ class TestRestDeploy(unittest.TestCase):
         deployer = RestDeploy(
             self.mock_task, self.mock_zip, False, False, "NoTestRun", []
         )
-        deployer()
+        with pytest.raises(MetadataApiError) as excinfo:
+            deployer()
 
-        # Assertions to verify log messages
+        assert "500" in str(excinfo.value)
         assert (
             call("Deployment request failed with status code 500")
             in self.mock_logger.error.call_args_list
         )
-
-        # Assertions to verify API Calls
         mock_post.assert_called_once()
 
     # Test for deployment success but deploy status failure
@@ -142,9 +147,11 @@ class TestRestDeploy(unittest.TestCase):
         deployer = RestDeploy(
             self.mock_task, self.mock_zip, False, False, "NoTestRun", []
         )
-        deployer()
+        with pytest.raises(MetadataComponentFailure) as excinfo:
+            deployer()
 
-        # Assertions to verify log messages
+        assert "someproblem1" in str(excinfo.value)
+        assert "someproblem2" in str(excinfo.value)
         assert (
             call("Deployment request successful")
             in self.mock_logger.info.call_args_list
@@ -160,20 +167,17 @@ class TestRestDeploy(unittest.TestCase):
             in self.mock_logger.error.call_args_list
         )
 
-        # Assertions to verify API Calls
-        expected_get_calls = [
-            call(
-                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
-                headers={"Authorization": "Bearer dummy_token"},
-            ),
-            call(
-                f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
-                headers={"Authorization": "Bearer dummy_token"},
-            ),
-        ]
-
         mock_post.assert_called_once()
-        mock_get.assert_has_calls(expected_get_calls, any_order=True)
+        mock_get.assert_has_calls(
+            [
+                call(
+                    f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/metadata/deployRequest/dummy_id?includeDetails=true",
+                    headers={"Authorization": "Bearer dummy_token"},
+                ),
+            ]
+            * 2,
+            any_order=True,
+        )
 
     # Test case for a deployment with a pending status
     @patch("requests.post")
