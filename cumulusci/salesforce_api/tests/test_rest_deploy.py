@@ -271,5 +271,108 @@ class TestRestDeploy(unittest.TestCase):
                 self.assertEqual(deployer.purge_on_delete, expected_result)
 
 
+class TestRestDeployRaisesOnFailure(unittest.TestCase):
+    """Regression coverage for SFDO-Tooling/CumulusCI#3938.
+
+    The REST deploy path must raise (mirroring the SOAP path) when Salesforce
+    reports a deployment failure, so downstream callers observe the failure
+    instead of a silent success. These cases complement ``TestRestDeploy`` with
+    the parent-class catch contract and the fail-on-first-poll edge case.
+    """
+
+    def setUp(self):
+        self.mock_logger = Mock()
+        self.mock_task = MagicMock()
+        self.mock_task.logger = self.mock_logger
+        self.mock_task.org_config.instance_url = "https://example.com"
+        self.mock_task.org_config.access_token = "dummy_token"
+        self.mock_task.project_config.project__package__api_version = (
+            CURRENT_SF_API_VERSION
+        )
+        self.mock_zip = generate_sample_zip_data()
+
+    # Callers catching the SOAP-style MetadataApiError parent must also catch a
+    # failed REST deploy, and the surfaced error must name the failing file.
+    @patch("requests.post")
+    @patch("requests.get")
+    def test_rest_deploy_raises_metadata_api_error_on_failed_status(
+        self, mock_get, mock_post
+    ):
+        response_post = Mock(status_code=201)
+        response_post.json.return_value = {"id": "dummy_id"}
+        mock_post.return_value = response_post
+
+        response_get = Mock(status_code=200)
+        response_get.json.side_effect = [
+            {"deployResult": {"status": "InProgress"}},
+            {
+                "deployResult": {
+                    "status": "Failed",
+                    "details": {
+                        "componentFailures": [
+                            {
+                                "problemType": "Error",
+                                "fileName": "metadata/classes/mockfile1.cls",
+                                "problem": "someproblem1",
+                                "lineNumber": 1,
+                                "columnNumber": 1,
+                            }
+                        ]
+                    },
+                }
+            },
+        ]
+        mock_get.return_value = response_get
+
+        deployer = RestDeploy(
+            self.mock_task, self.mock_zip, False, False, "NoTestRun", []
+        )
+
+        with pytest.raises(MetadataApiError) as exc_info:
+            deployer()
+
+        assert "someproblem1" in str(exc_info.value)
+        assert "mockfile1.cls" in str(exc_info.value)
+
+    # Salesforce can report "Failed" on the very first poll without ever
+    # returning "InProgress"; that path must still raise.
+    @patch("requests.post")
+    @patch("requests.get")
+    def test_rest_deploy_raises_component_failure_on_first_poll(
+        self, mock_get, mock_post
+    ):
+        response_post = Mock(status_code=201)
+        response_post.json.return_value = {"id": "dummy_id"}
+        mock_post.return_value = response_post
+
+        response_get = Mock(status_code=200)
+        response_get.json.side_effect = [
+            {
+                "deployResult": {
+                    "status": "Failed",
+                    "details": {
+                        "componentFailures": [
+                            {
+                                "problemType": "Error",
+                                "fileName": "metadata/objects/mockfile2.obj",
+                                "problem": "someproblem2",
+                                "lineNumber": 2,
+                                "columnNumber": 2,
+                            }
+                        ]
+                    },
+                }
+            },
+        ]
+        mock_get.return_value = response_get
+
+        deployer = RestDeploy(
+            self.mock_task, self.mock_zip, False, False, "NoTestRun", []
+        )
+
+        with pytest.raises(MetadataComponentFailure):
+            deployer()
+
+
 if __name__ == "__main__":
     unittest.main()
