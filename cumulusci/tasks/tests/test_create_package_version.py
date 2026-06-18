@@ -182,6 +182,22 @@ class TestPackageConfig:
                 package_type=PackageTypeEnum.unlocked, uninstall_script="Uninstall"
             )  # type: ignore
 
+    def test_unpackaged_metadata_path__missing(self, project_config, org_config):
+        with pytest.raises(TaskOptionsError, match="unpackaged_metadata_path"):
+            CreatePackageVersion(
+                project_config,
+                TaskConfig(
+                    {
+                        "options": {
+                            "package_type": "Managed",
+                            "package_name": "Test Package",
+                            "unpackaged_metadata_path": "/nonexistent/path",
+                        }
+                    }
+                ),
+                org_config,
+            )
+
 
 class TestCreatePackageVersion:
     devhub_base_url = (
@@ -867,8 +883,6 @@ class TestCreatePackageVersion:
             json={"id": "08c000000000001AAA"},
         )
 
-        from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-
         with mock.patch.object(task, "_get_dependencies", return_value=[]):
             result = task._create_version_request(
                 "0Ho6g000000fy4ZCAQ",
@@ -903,8 +917,6 @@ class TestCreatePackageVersion:
             f"{self.devhub_base_url}/tooling/sobjects/Package2VersionCreateRequest/",
             json={"id": "08c000000000001AAA"},
         )
-
-        from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 
         with mock.patch.object(task, "_get_dependencies", return_value=[]):
             result = task._create_version_request(
