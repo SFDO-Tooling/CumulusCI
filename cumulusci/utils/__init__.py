@@ -16,6 +16,14 @@ from typing import Union
 import requests
 import sarge
 
+if not hasattr(sarge.Capture, "flush"):
+    # sarge==0.1.7.post1 ships Capture without flush(); on Python 3.13+ the
+    # interpreter-shutdown logging path calls flush() on captured streams and
+    # surfaces a cosmetic AttributeError after refresh_oauth_token. Upstream
+    # has the fix on master but no release. Defensive, idempotent shim.
+    # See SFDO-Tooling/CumulusCI#3852.
+    sarge.Capture.flush = lambda self: None
+
 from cumulusci.core.exceptions import CumulusCIException
 from .xml import (  # noqa
     elementtree_parse_file,
