@@ -3,6 +3,7 @@ import os
 import sys
 from logging import getLogger
 from subprocess import call
+from typing import Optional
 
 import click
 import keyring
@@ -25,6 +26,26 @@ class CliRuntime(BaseCumulusCI):
             raise click.UsageError(f"Config Error: {str(e)}")
         except (KeychainKeyNotFound) as e:
             raise click.UsageError(f"Keychain Error: {str(e)}")
+
+    def reload_project_config(self, additional_yaml: Optional[str] = None) -> None:
+        """Rebuild project_config with an ``additional_yaml`` override.
+
+        ``CliRuntime`` loads ``project_config`` at construction time (via
+        ``BaseCumulusCI.__init__``), but Click options are only known after
+        construction. This method rebuilds ``project_config`` with the given
+        ``additional_yaml`` string and re-binds the keychain if one is
+        attached. No-ops when ``additional_yaml`` is ``None``.
+        """
+        if additional_yaml is None:
+            return
+        try:
+            self._load_project_config(additional_yaml=additional_yaml)
+        except ConfigError as e:
+            raise click.UsageError(f"Config Error: {str(e)}")
+        if self.keychain is not None:
+            self.keychain.project_config = self.project_config
+            if self.project_config is not None:
+                self.project_config.keychain = self.keychain
 
     def get_keychain_class(self):
         default_keychain_class = (
