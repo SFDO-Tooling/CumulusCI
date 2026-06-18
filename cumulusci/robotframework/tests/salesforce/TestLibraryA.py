@@ -10,7 +10,8 @@ from cumulusci.robotframework.locator_manager import (
 
 locators = {
     # eg: A:breadcrumb:Home
-    "breadcrumb": "//span[contains(@class, 'breadcrumbDetail') and text()='{}']",
+    # API v66: breadcrumbDetail class removed; use text match on any link
+    "breadcrumb": "//a[normalize-space(.)='{}']",
     "something": "//whatever",
 }
 
