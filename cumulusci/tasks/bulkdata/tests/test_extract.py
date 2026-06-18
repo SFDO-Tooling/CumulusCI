@@ -10,7 +10,6 @@ from sqlalchemy import create_engine
 
 from cumulusci.core.exceptions import (
     BulkDataException,
-    ConfigError,
     CumulusCIException,
     TaskOptionsError,
 )
@@ -481,8 +480,15 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
-    def test_run__poly__incomplete_mapping(self, query_op_mock):
-        """Test for polymorphic lookups with incomplete mapping file"""
+    def test_run__poly__incomplete_mapping(self, query_op_mock, caplog):
+        """Lookup whose source rows reference records not in the related table.
+
+        Prior to the fix for #3854 this raised ``ConfigError``. That broke
+        legitimate configurations (e.g. ``capture_sample_data`` against orgs
+        where rows reference standard records like the Standard Pricebook
+        which are intentionally not extracted). The current contract: log a
+        warning and continue, leaving unresolved lookup values untouched.
+        """
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_poly_incomplete)
         mock_describe_calls()
@@ -520,11 +526,20 @@ class TestExtractData:
             ]
 
             query_op_mock.side_effect = [mock_query_households, mock_query_events]
-            with pytest.raises(ConfigError) as e:
-                task()
+            task()
 
-            assert "Total mapping operations" in str(e.value)
-            assert "do not match total non-empty rows" in str(e.value)
+            warning_messages = [
+                record.message
+                for record in caplog.records
+                if record.levelname == "WARNING"
+                and "Total mapping operations" in record.message
+            ]
+            assert warning_messages, (
+                "Expected a warning about unresolvable lookup rows, got: "
+                f"{[(r.levelname, r.message) for r in caplog.records]}"
+            )
+            assert "do not match total non-empty rows" in warning_messages[0]
+            assert "WhoId" in warning_messages[0]
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
@@ -810,6 +825,58 @@ class TestExtractData:
             task.models["Opportunity"], [{"id": item.id, "AccountId": "1"}]
         )
         task.session.commit.assert_called_once_with()
+
+    def test_convert_lookups_to_id__unresolvable_lookups_warns_not_raises(self, caplog):
+        """Regression test for #3854.
+
+        When a lookup column has values that do not resolve to any record in the
+        related table (e.g. polymorphic lookups whose source rows reference
+        records filtered out of the extract, or references to standard org
+        records like the Standard Pricebook that are intentionally not
+        extracted), the validation introduced in PR #3741 / commit 2c5d0056e
+        used to raise ``ConfigError``. That broke ``capture_sample_data`` for
+        common real-world configurations (see issue #3854). The expectation
+        post-fix: no exception is raised; a warning is logged instead.
+        """
+        task = _make_task(
+            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+        )
+
+        task.session = mock.Mock()
+        task.models = {
+            "Account": mock.Mock(),
+            "Account_sf_ids": mock.Mock(),
+            "Opportunity": mock.Mock(),
+            "Opportunity_sf_ids": mock.Mock(),
+        }
+        task.mapping = {
+            "Account": MappingStep(sf_object="Account"),
+            "Opportunity": MappingStep(sf_object="Opportunity"),
+        }
+
+        # 0 rows updated (no source values matched any sf_id in related table)
+        task.session.query.return_value.filter.return_value.update.return_value.rowcount = 0
+        # But 3 source rows have non-empty values in the lookup column.
+        task.session.query.return_value.filter.return_value.count.return_value = 3
+
+        # Should NOT raise; should warn and continue.
+        task._convert_lookups_to_id(
+            MappingStep(
+                sf_object="Opportunity",
+                lookups={"AccountId": MappingLookup(table="Account", name="AccountId")},
+            ),
+            ["AccountId"],
+        )
+
+        task.session.commit.assert_called_once_with()
+        # Diagnostic info preserved as a warning.
+        assert any(
+            "AccountId" in record.message and record.levelname == "WARNING"
+            for record in caplog.records
+        ), (
+            "Expected a warning about the unresolvable AccountId lookup, "
+            f"got: {[(r.levelname, r.message) for r in caplog.records]}"
+        )
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
