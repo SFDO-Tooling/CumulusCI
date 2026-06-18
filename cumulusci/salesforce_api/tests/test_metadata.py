@@ -1013,3 +1013,84 @@ class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
         )
         with pytest.raises(CumulusCIException):
             api._process_response(response)
+
+
+class TestCallExceptionPropagation:
+    """Regression tests for SFDO-Tooling/CumulusCI#3939.
+
+    `BaseMetadataApiCall.__call__` historically wrapped every exception
+    from `_process_response` as `MetadataParseError`, masking native
+    CumulusCI exception types (`MetadataApiError`,
+    `MetadataComponentFailure`, `ApexTestException`) that
+    `_process_response` raises on legitimate failure cases.
+
+    Only genuinely unexpected exceptions (XML/parse errors, etc.) should
+    be wrapped; native exception types must propagate untouched so
+    callers can see the real error.
+    """
+
+    def _make_api(self):
+        project_config = create_project_config("TestRepo", "TestOwner")
+        task = BaseTask(
+            project_config=project_config,
+            task_config=TaskConfig({}),
+            org_config=DummyOrgConfig({}),
+        )
+        api = BaseMetadataApiCall(task)
+        api._get_response = lambda: Response()
+        return api
+
+    def test_apex_test_exception_propagates_untouched(self):
+        api = self._make_api()
+        original = ApexTestException(
+            "Apex Test Failure: Class.MyTestClass.testIt: line 12, column 1"
+        )
+
+        def boom(response):
+            raise original
+
+        api._process_response = boom
+
+        with pytest.raises(ApexTestException) as excinfo:
+            api()
+        assert excinfo.value is original
+
+    def test_metadata_api_error_propagates_untouched(self):
+        api = self._make_api()
+        original = MetadataApiError("problem", Response())
+
+        def boom(response):
+            raise original
+
+        api._process_response = boom
+
+        with pytest.raises(MetadataApiError) as excinfo:
+            api()
+        assert excinfo.value is original
+        assert not isinstance(excinfo.value, MetadataParseError)
+
+    def test_metadata_component_failure_propagates_untouched(self):
+        api = self._make_api()
+        original = MetadataComponentFailure("component failed", Response())
+
+        def boom(response):
+            raise original
+
+        api._process_response = boom
+
+        with pytest.raises(MetadataComponentFailure) as excinfo:
+            api()
+        assert excinfo.value is original
+        assert not isinstance(excinfo.value, MetadataParseError)
+
+    def test_unexpected_exception_is_still_wrapped(self):
+        api = self._make_api()
+
+        def boom(response):
+            raise KeyError("unexpected_field")
+
+        api._process_response = boom
+
+        with pytest.raises(MetadataParseError) as excinfo:
+            api()
+        assert "unexpected_field" in str(excinfo.value)

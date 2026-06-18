@@ -70,10 +70,12 @@ class BaseMetadataApiCall(object):
         if self.status != "Failed":
             try:
                 return self._process_response(response)
+            except (MetadataApiError, ApexTestException):
+                raise
             except Exception as e:
                 raise MetadataParseError(
                     f"Could not process MDAPI response: {str(e)}", response=response
-                )
+                ) from e
         else:
             raise MetadataApiError(response.text, response)
 
