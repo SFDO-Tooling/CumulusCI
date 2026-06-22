@@ -543,6 +543,38 @@ class TestScratchOrgConfig:
                 with pytest.raises(SfdxOrgException, match=exception):
                     config.get_access_token(alias="dadvisor")
 
+    def test_get_access_token__new_cli(self, Command):
+        """Verify that get_access_token falls back to show-access-token when redacted"""
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        # First sfdx call: sf org display returns no accessToken (redacted)
+        # Second sfdx call: sf org auth show-access-token returns the token
+        first_response = mock.Mock(returncode=0)
+        first_response.stdout_text.read.return_value = (
+            '{"result": {"id": "00DDP000006GRcP2AW", "instanceUrl": "url"}}'
+        )
+        second_response = mock.Mock(returncode=0)
+        second_response.stdout_text.read.return_value = (
+            '{"result": {"accessToken": "fetched-token"}}'
+        )
+        sfdx_mock = mock.Mock(side_effect=[first_response, second_response])
+
+        config = ScratchOrgConfig({}, "test")
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx_mock):
+                access_token = config.get_access_token(alias="dadvisor")
+                assert sfdx_mock.call_count == 2
+                first_call_args = sfdx_mock.call_args_list[0][0][0]
+                second_call_args = sfdx_mock.call_args_list[1][0][0]
+                assert "org display" in first_call_args
+                assert "whatever@example.com" in first_call_args
+                assert "show-access-token" in second_call_args
+                assert "whatever@example.com" in second_call_args
+                assert access_token == "fetched-token"
+
     def test_fetch_access_token(self, Command):
         Command.return_value = mock.Mock(
             stderr=io.BytesIO(b""),

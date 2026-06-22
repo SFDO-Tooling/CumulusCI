@@ -193,9 +193,12 @@ class SfdxOrgConfig(OrgConfig):
             raise SfdxOrgException(
                 f"Unable to find access token for {username}\n{explanation}"
             )
-        else:
-            info = json.loads(p.stdout_text.read())
-            return info["result"]["accessToken"]
+
+        info = json.loads(p.stdout_text.read())
+        token = info.get("result", {}).get("accessToken")
+        if token:
+            return token
+        return self._fetch_access_token(username)
 
     def _fetch_access_token(self, username):
         """Retrieve an access token using `sf org auth show-access-token`.
