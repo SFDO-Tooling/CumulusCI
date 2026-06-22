@@ -327,9 +327,15 @@ class TestScratchOrgConfig:
         password_fetch = b'{"result": {"password": null}}'
 
         Command.side_effect = [
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0),
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0),
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0
+            ),
         ]
 
         config = SfdxOrgConfig({"username": "test", "created": True}, "test")
@@ -354,9 +360,15 @@ class TestScratchOrgConfig:
         password_fetch = b'{"result": {"password": "fetched-pw"}}'
 
         Command.side_effect = [
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0),
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0),
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0
+            ),
         ]
 
         config = SfdxOrgConfig({"username": "test", "created": True}, "test")
@@ -377,7 +389,9 @@ class TestScratchOrgConfig:
 }"""
 
         Command.side_effect = [
-            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
             mock.Mock(
                 stderr=io.BytesIO(b"auth expired"),
                 stdout=io.BytesIO(b'{"message": "auth expired"}'),
