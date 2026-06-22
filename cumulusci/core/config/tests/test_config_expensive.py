@@ -274,8 +274,9 @@ class TestScratchOrgConfig:
     def test_scratch_info(self, Command):
         result = b"""{
     "result": {
+        "id": "00DDP000006GRcP2AW",
         "instanceUrl": "url",
-        "accessToken": "access!token",
+        "accessToken": "00DDP000006GRcP!real-token",
         "username": "username",
         "password": "password",
         "createdDate": "1970-01-01T00:00:00Z",
@@ -290,9 +291,9 @@ class TestScratchOrgConfig:
         info = config.scratch_info
 
         assert info == {
-            "access_token": "access!token",
+            "access_token": "00DDP000006GRcP!real-token",
             "instance_url": "url",
-            "org_id": "access",
+            "org_id": "00DDP000006GRcP2AW",
             "password": "password",
             "username": "username",
             "created_date": "1970-01-01T00:00:00Z",
@@ -308,6 +309,106 @@ class TestScratchOrgConfig:
         ):
             assert key in config.config
         assert config._sfdx_info_date
+
+    def test_sfdx_info_new_cli_fetches_token(self, Command):
+        # First subprocess: sf org display redacts accessToken
+        org_display = b"""{
+    "result": {
+        "id": "00DDP000006GRcP2AW",
+        "instanceUrl": "url",
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
+    }
+}"""
+        # Second subprocess: sf org auth show-access-token returns the token
+        token_fetch = b'{"result": {"accessToken": "fetched-token"}}'
+        # Third subprocess: sf org auth show-user-password returns null (no password)
+        password_fetch = b'{"result": {"password": null}}'
+
+        Command.side_effect = [
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0),
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0),
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "fetched-token"
+        assert info["org_id"] == "00DDP000006GRcP2AW"
+        assert "password" not in info
+        assert Command.call_count == 3
+
+    def test_sfdx_info_new_cli_fetches_password(self, Command):
+        org_display = b"""{
+    "result": {
+        "id": "00DDP000006GRcP2AW",
+        "instanceUrl": "url",
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
+    }
+}"""
+        token_fetch = b'{"result": {"accessToken": "fetched-token"}}'
+        password_fetch = b'{"result": {"password": "fetched-pw"}}'
+
+        Command.side_effect = [
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0),
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0),
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "fetched-token"
+        assert info["password"] == "fetched-pw"
+
+    def test_sfdx_info_token_fetch_fails(self, Command):
+        org_display = b"""{
+    "result": {
+        "id": "00DDP000006GRcP2AW",
+        "instanceUrl": "url",
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
+    }
+}"""
+
+        Command.side_effect = [
+            mock.Mock(stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0),
+            mock.Mock(
+                stderr=io.BytesIO(b"auth expired"),
+                stdout=io.BytesIO(b'{"message": "auth expired"}'),
+                returncode=1,
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config.sfdx_info
+        msg = str(exc_info.value)
+        assert "sf org display" in msg
+        assert "sf org auth show-access-token" in msg
+
+    def test_sfdx_info_missing_id(self, Command):
+        # sf org display returns no id and no accessToken (worst case)
+        org_display = b"""{
+    "result": {
+        "instanceUrl": "url",
+        "username": "username"
+    }
+}"""
+
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+        )
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config.sfdx_info
+        assert "org id" in str(exc_info.value).lower()
 
     def test_scratch_info_memoized(self, Command):
         config = ScratchOrgConfig({"username": "test", "created": True}, "test")
@@ -810,6 +911,7 @@ class TestScratchOrgConfig:
     def test_refresh_oauth_token(self, Command):
         result = b"""{
     "result": {
+        "id": "00DDP000006GRcP2AW",
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",

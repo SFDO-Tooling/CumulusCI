@@ -53,24 +53,39 @@ class SfdxOrgConfig(OrgConfig):
                     "Failed to parse json from output.\n  "
                     f"Exception: {e.__class__.__name__}\n  Output: {''.join(stdout_list)}"
                 )
-            org_id = org_info["result"]["accessToken"].split("!")[0]
+            result = org_info["result"]
+
+        org_id = result.get("id")
+        if not org_id:
+            raise SfdxOrgException(
+                "Salesforce CLI did not return an org id from `sf org display`. "
+                "Please re-authenticate with `sf org login`."
+            )
+
+        access_token = result.get("accessToken")
+        if not access_token:
+            access_token = self._fetch_access_token(username)
+
+        password = result.get("password")
+        if not password:
+            password = self._fetch_user_password(username)
 
         sfdx_info = {
-            "instance_url": org_info["result"]["instanceUrl"],
-            "access_token": org_info["result"]["accessToken"],
+            "instance_url": result["instanceUrl"],
+            "access_token": access_token,
             "org_id": org_id,
-            "username": org_info["result"]["username"],
+            "username": result["username"],
         }
-        if org_info["result"].get("password"):
-            sfdx_info["password"] = org_info["result"]["password"]
+        if password:
+            sfdx_info["password"] = password
         self._sfdx_info = sfdx_info
         self._sfdx_info_date = datetime.datetime.utcnow()
         self.config.update(sfdx_info)
 
         sfdx_info.update(
             {
-                "created_date": org_info["result"].get("createdDate"),
-                "expiration_date": org_info["result"].get("expirationDate"),
+                "created_date": result.get("createdDate"),
+                "expiration_date": result.get("expirationDate"),
             }
         )
         return sfdx_info
