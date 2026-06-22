@@ -480,6 +480,39 @@ class TestScratchOrgConfig:
             config._fetch_access_token("test@example.com")
         assert "sf org auth show-access-token" in str(exc_info.value)
 
+    def test_fetch_user_password(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"password": "secret-pw"}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password == "secret-pw"
+
+    def test_fetch_user_password_returns_none_on_error(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b"no password set"),
+            stdout=io.BytesIO(b'{"message": "no password"}'),
+            returncode=1,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password is None
+
+    def test_fetch_user_password_returns_none_on_empty(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"password": null}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password is None
+
     def test_instance_url(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()

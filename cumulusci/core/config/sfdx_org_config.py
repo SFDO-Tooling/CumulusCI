@@ -217,6 +217,24 @@ class SfdxOrgConfig(OrgConfig):
             )
         return token
 
+    def _fetch_user_password(self, username):
+        """Retrieve the org password using `sf org auth show-user-password`.
+
+        Used as a fallback when `sf org display` redacts the password (SF CLI 2.136+).
+        Returns None if the org has no password or the command fails; never raises.
+        """
+        p = sfdx(
+            f"org auth show-user-password --target-org={username} --json --no-prompt"
+        )
+        if p.returncode:
+            return None
+        try:
+            info = json.loads(p.stdout_text.read())
+        except JSONDecodeError:
+            return None
+        password = info.get("result", {}).get("password")
+        return password if password else None
+
     def force_refresh_oauth_token(self):
         # Call org display and parse output to get instance_url and
         # access_token
