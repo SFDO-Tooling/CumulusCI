@@ -182,6 +182,41 @@ class SfdxOrgConfig(OrgConfig):
             info = json.loads(p.stdout_text.read())
             return info["result"]["accessToken"]
 
+    def _fetch_access_token(self, username):
+        """Retrieve an access token using `sf org auth show-access-token`.
+
+        Used as a fallback when `sf org display` redacts the token (SF CLI 2.136+).
+        """
+        p = sfdx(
+            f"org auth show-access-token --target-org={username} --json --no-prompt"
+        )
+        output = p.stdout_text.read()
+        if p.returncode:
+            try:
+                explanation = json.loads(output).get("message", output)
+            except JSONDecodeError:
+                explanation = output
+            raise SfdxOrgException(
+                f"Unable to retrieve access token for {username}. "
+                f"Tried `sf org display` and `sf org auth show-access-token`. "
+                f"Try running `sf org login` or upgrading the Salesforce CLI.\n"
+                f"{explanation}"
+            )
+        try:
+            info = json.loads(output)
+        except JSONDecodeError as e:
+            raise SfdxOrgException(
+                f"Failed to parse JSON from `sf org auth show-access-token`: {e}"
+            )
+        token = info.get("result", {}).get("accessToken")
+        if not token:
+            raise SfdxOrgException(
+                f"Unable to retrieve access token for {username}. "
+                f"Tried `sf org display` and `sf org auth show-access-token`. "
+                f"Try running `sf org login` or upgrading the Salesforce CLI."
+            )
+        return token
+
     def force_refresh_oauth_token(self):
         # Call org display and parse output to get instance_url and
         # access_token

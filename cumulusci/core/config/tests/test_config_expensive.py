@@ -442,6 +442,44 @@ class TestScratchOrgConfig:
                 with pytest.raises(SfdxOrgException, match=exception):
                     config.get_access_token(alias="dadvisor")
 
+    def test_fetch_access_token(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"accessToken": "fetched-token"}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        token = config._fetch_access_token("test@example.com")
+        assert token == "fetched-token"
+
+    def test_fetch_access_token_subprocess_fails(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"message": "auth expired"}'),
+            returncode=1,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config._fetch_access_token("test@example.com")
+        msg = str(exc_info.value)
+        assert "sf org display" in msg
+        assert "sf org auth show-access-token" in msg
+        assert "test@example.com" in msg
+
+    def test_fetch_access_token_missing_field(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config._fetch_access_token("test@example.com")
+        assert "sf org auth show-access-token" in str(exc_info.value)
+
     def test_instance_url(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
