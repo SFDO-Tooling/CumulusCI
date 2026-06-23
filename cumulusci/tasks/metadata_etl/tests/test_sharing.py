@@ -158,10 +158,7 @@ class TestSetOrgWideDefaults:
                 ],
             },
         ]
-        with mock.patch.object(task, "_init_api", return_value=task.sf), mock.patch.object(
-            task, "_init_bulk", return_value=mock.Mock()
-        ):
-            task._post_deploy("Success")
+        task._post_deploy("Success")
 
         query = (
             "SELECT ExternalSharingModel, InternalSharingModel "
@@ -229,10 +226,7 @@ class TestSetOrgWideDefaults:
                 ],
             },
         ]
-        with mock.patch.object(task, "_init_api", return_value=task.sf), mock.patch.object(
-            task, "_init_bulk", return_value=mock.Mock()
-        ):
-            task._post_deploy("Success")
+        task._post_deploy("Success")
 
         query = (
             "SELECT ExternalSharingModel, InternalSharingModel "
@@ -268,9 +262,7 @@ class TestSetOrgWideDefaults:
         )
         task.sf = mock.Mock()
         task.sf.query.return_value = {"totalSize": 0, "records": []}
-        with mock.patch.object(task, "_init_api", return_value=task.sf), mock.patch.object(
-            task, "_init_bulk", return_value=mock.Mock()
-        ), pytest.raises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._post_deploy("Success")
 
         query = (
