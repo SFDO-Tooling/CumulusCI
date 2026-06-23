@@ -73,7 +73,10 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
     def _post_deploy(self, result):
         if result == "Success":
             super()._post_deploy(result)
+            # Deploy.__call__() rotates org credentials; rebuild all API clients before polling
             self.sf = self._init_api()
+            self.bulk = self._init_bulk()
+            self.tooling = self._init_api("tooling")
             self.logger.info("Waiting for sharing enablement to complete.")
             self.time_start = datetime.now()
             self._poll()
