@@ -379,6 +379,7 @@ class TestOrgCommands:
         runtime = mock.Mock()
         result = b"""{
             "result": {
+                "id": "OODxxxxxxxxxxxx",
                 "createdDate": "1970-01-01T00:00:00.000Z",
                 "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
