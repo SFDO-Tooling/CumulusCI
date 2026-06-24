@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 import os
@@ -180,6 +181,22 @@ class TestPackageConfig:
             PackageConfig(
                 package_type=PackageTypeEnum.unlocked, uninstall_script="Uninstall"
             )  # type: ignore
+
+    def test_unpackaged_metadata_path__missing(self, project_config, org_config):
+        with pytest.raises(TaskOptionsError, match="unpackaged_metadata_path"):
+            CreatePackageVersion(
+                project_config,
+                TaskConfig(
+                    {
+                        "options": {
+                            "package_type": "Managed",
+                            "package_name": "Test Package",
+                            "unpackaged_metadata_path": "/nonexistent/path",
+                        }
+                    }
+                ),
+                org_config,
+            )
 
 
 class TestCreatePackageVersion:
@@ -831,3 +848,88 @@ class TestCreatePackageVersion:
         assert task._prepare_cci_dependencies(
             {"ids": [{"subscriberPackageVersionId": "04t000000000000"}]}
         ) == [{"version_id": "04t000000000000"}]
+
+    @responses.activate
+    def test_create_version_request__with_unpackaged_metadata(self, get_task, tmp_path):
+        """unpackaged-metadata.zip and unpackagedMetadata descriptor key are included."""
+        unpackaged_path = tmp_path / "unpackaged_metadata"
+        unpackaged_path.mkdir()
+        (unpackaged_path / "package.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?>'
+            '<Package xmlns="http://soap.sforce.com/2006/04/metadata"></Package>'
+        )
+
+        task = get_task(
+            {
+                "package_type": "Managed",
+                "package_name": "Test Package",
+                "unpackaged_metadata_path": str(unpackaged_path),
+            }
+        )
+
+        responses.add(  # query for existing Package2VersionCreateRequest
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
+        )
+        responses.add(  # query for base version number
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
+        )
+        responses.add(  # create Package2VersionCreateRequest
+            "POST",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2VersionCreateRequest/",
+            json={"id": "08c000000000001AAA"},
+        )
+
+        with mock.patch.object(task, "_get_dependencies", return_value=[]):
+            result = task._create_version_request(
+                "0Ho6g000000fy4ZCAQ",
+                task.package_config,
+                BasePackageZipBuilder(),
+            )
+        assert result == "08c000000000001AAA"
+
+        post_body = json.loads(responses.calls[-1].request.body)
+        version_info_zip = zipfile.ZipFile(
+            io.BytesIO(base64.b64decode(post_body["VersionInfo"]))
+        )
+        assert "unpackaged-metadata.zip" in version_info_zip.namelist()
+        descriptor = json.loads(version_info_zip.read("package2-descriptor.json"))
+        assert descriptor["unpackagedMetadata"] == {"path": "unpackaged-metadata.zip"}
+
+    @responses.activate
+    def test_create_version_request__without_unpackaged_metadata(self, task):
+        """unpackaged-metadata.zip is absent when the option is not set."""
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
+        )
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
+        )
+        responses.add(
+            "POST",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2VersionCreateRequest/",
+            json={"id": "08c000000000001AAA"},
+        )
+
+        with mock.patch.object(task, "_get_dependencies", return_value=[]):
+            result = task._create_version_request(
+                "0Ho6g000000fy4ZCAQ",
+                task.package_config,
+                BasePackageZipBuilder(),
+            )
+        assert result == "08c000000000001AAA"
+
+        post_body = json.loads(responses.calls[-1].request.body)
+        version_info_zip = zipfile.ZipFile(
+            io.BytesIO(base64.b64decode(post_body["VersionInfo"]))
+        )
+        assert "unpackaged-metadata.zip" not in version_info_zip.namelist()
+        descriptor = json.loads(version_info_zip.read("package2-descriptor.json"))
+        assert "unpackagedMetadata" not in descriptor
