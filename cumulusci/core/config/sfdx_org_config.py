@@ -16,11 +16,22 @@ nl = "\n"  # fstrings can't contain backslashes
 _REDACTED_PREFIX = "[REDACTED] "
 
 
+def _is_sentinel(value):
+    """True only for the SF CLI 2.136+ redaction sentinel string."""
+    return isinstance(value, str) and value.startswith(_REDACTED_PREFIX)
+
+
 def _is_redacted(value):
-    """True when the CLI returned an absent/empty value or a redaction sentinel."""
+    """True when the CLI returned an absent/empty value or the redaction sentinel.
+
+    Used for the access-token path: an absent token is as actionable as a redacted
+    one (both mean "ask `sf org auth show-access-token`"). For the password path,
+    prefer _is_sentinel so a legitimately-absent password (passwordless org on a
+    new CLI) does not trigger a pointless `sf org auth show-user-password` call.
+    """
     if not value:
         return True
-    return isinstance(value, str) and value.startswith(_REDACTED_PREFIX)
+    return _is_sentinel(value)
 
 
 class SfdxOrgConfig(OrgConfig):
@@ -76,18 +87,17 @@ class SfdxOrgConfig(OrgConfig):
             )
 
         access_token = result.get("accessToken")
-        fallback_fired = _is_redacted(access_token)
-        if fallback_fired:
+        if _is_redacted(access_token):
             access_token = self._fetch_access_token(username)
 
         password = result.get("password")
-        # Only call show-user-password when the CLI redacted the password
-        # field AND we already know we're on a new CLI (access-token fallback
-        # fired). Legacy-passwordless orgs leave `password` absent; calling
-        # show-user-password in that case is a pointless extra subprocess.
-        if fallback_fired and _is_redacted(password):
+        # Gate the password fallback on the sentinel ONLY. An absent password
+        # means the org has no password (web-auth sandbox, scratch org without
+        # `force:user:password:generate`); calling `sf org auth show-user-password`
+        # in that case is a pointless extra subprocess on every refresh.
+        if _is_sentinel(password):
             password = self._fetch_user_password(username)
-        elif _is_redacted(password):
+        elif not password:
             password = None
 
         sfdx_info = {
