@@ -669,9 +669,7 @@ class TestScratchOrgConfig:
 
     def test_sfdx_info_sentinel_token_triggers_fallback(self, Command):
         """Spec round 3: redacted token is a truthy sentinel, not absent."""
-        redacted_token = (
-            "[REDACTED] Use 'sf org auth show-access-token' to view"
-        )
+        redacted_token = "[REDACTED] Use 'sf org auth show-access-token' to view"
         org_display = (
             b'{"result": {"id": "00DDP000006GRcP2AW", "instanceUrl": "url",'
             b' "username": "username", "accessToken":'
@@ -679,6 +677,8 @@ class TestScratchOrgConfig:
             b' "1970-01-01T00:00:00Z", "expirationDate": "1970-01-08"}}'
         )
         token_fetch = b'{"result": {"accessToken": "real-token"}}'
+        # Password absent in org_display -> _is_redacted True -> show-user-password runs.
+        password_fetch = b'{"result": {"password": null}}'
 
         Command.side_effect = [
             mock.Mock(
@@ -687,6 +687,9 @@ class TestScratchOrgConfig:
             mock.Mock(
                 stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
             ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0
+            ),
         ]
 
         config = SfdxOrgConfig({"username": "test", "created": True}, "test")
@@ -694,7 +697,7 @@ class TestScratchOrgConfig:
 
         assert info["access_token"] == "real-token"
         assert not info["access_token"].startswith("[REDACTED]")
-        assert Command.call_count == 2
+        assert Command.call_count == 3
 
     def test_fetch_user_password_returns_none_on_sentinel(self, Command):
         """Spec round 3: show-user-password returning a sentinel = no password."""
@@ -714,9 +717,7 @@ class TestScratchOrgConfig:
 
     def test_get_access_token_sentinel_triggers_fallback(self, Command):
         """Spec round 3: get_access_token must detect the sentinel, not just absence."""
-        redacted_token = (
-            "[REDACTED] Use 'sf org auth show-access-token' to view"
-        )
+        redacted_token = "[REDACTED] Use 'sf org auth show-access-token' to view"
         sf = mock.Mock()
         sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
 
@@ -750,10 +751,12 @@ class TestScratchOrgConfig:
         )
 
         config = SfdxOrgConfig({"username": "test"}, "test")
-        sfdx_mock = mock.Mock(return_value=mock.Mock(
-            returncode=0,
-            stdout_text=io.BytesIO(b'{"result": {"accessToken": "fetched-token"}}'),
-        ))
+        sfdx_mock = mock.Mock(
+            return_value=mock.Mock(
+                returncode=0,
+                stdout_text=io.BytesIO(b'{"result": {"accessToken": "fetched-token"}}'),
+            )
+        )
         # Build a payload that includes a stdout_text read() side-effect.
         sfdx_mock.return_value.stdout_text.read = mock.Mock(
             return_value=b'{"result": {"accessToken": "fetched-token"}}'
@@ -764,13 +767,11 @@ class TestScratchOrgConfig:
         cmd = sfdx_mock.call_args_list[0][0][0]
         # Raw, unquoted username would let the semicolon break out of the arg.
         assert "weird;user@example.com" not in cmd or (
-            "'weird;user@example.com'" in cmd
-            or '"weird;user@example.com"' in cmd
+            "'weird;user@example.com'" in cmd or '"weird;user@example.com"' in cmd
         )
         # Stronger form: the quoted token must appear.
         assert (
-            "'weird;user@example.com'" in cmd
-            or '"weird;user@example.com"' in cmd
+            "'weird;user@example.com'" in cmd or '"weird;user@example.com"' in cmd
         ), f"username not shell-quoted in command: {cmd!r}"
 
     def test_instance_url(self, Command):

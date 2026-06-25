@@ -4,10 +4,23 @@ from json.decoder import JSONDecodeError
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import SfdxOrgException
-from cumulusci.core.sfdx import sfdx
+from cumulusci.core.sfdx import sfdx, shell_quote
 from cumulusci.utils import get_git_config
 
 nl = "\n"  # fstrings can't contain backslashes
+
+# Prefix of the sentinel string that SF CLI 2.136+ writes in place of
+# credential fields when SF_TEMP_SHOW_SECRETS is unset. See
+# @salesforce/plugin-org messages/secrets-redacted.md for the canonical
+# strings. Prefix-only matching avoids coupling to the English suffix.
+_REDACTED_PREFIX = "[REDACTED] "
+
+
+def _is_redacted(value):
+    """True when the CLI returned an absent/empty value or a redaction sentinel."""
+    if not value:
+        return True
+    return isinstance(value, str) and value.startswith(_REDACTED_PREFIX)
 
 
 class SfdxOrgConfig(OrgConfig):
@@ -63,12 +76,19 @@ class SfdxOrgConfig(OrgConfig):
             )
 
         access_token = result.get("accessToken")
-        if not access_token:
+        fallback_fired = _is_redacted(access_token)
+        if fallback_fired:
             access_token = self._fetch_access_token(username)
 
         password = result.get("password")
-        if not password:
+        # Only call show-user-password when the CLI redacted the password
+        # field AND we already know we're on a new CLI (access-token fallback
+        # fired). Legacy-passwordless orgs leave `password` absent; calling
+        # show-user-password in that case is a pointless extra subprocess.
+        if fallback_fired and _is_redacted(password):
             password = self._fetch_user_password(username)
+        elif _is_redacted(password):
+            password = None
 
         sfdx_info = {
             "instance_url": result["instanceUrl"],
@@ -181,7 +201,7 @@ class SfdxOrgConfig(OrgConfig):
             else:
                 username = result[0]["Username"]
 
-        p = sfdx(f"org display --target-org={username} --json")
+        p = sfdx(f"org display --target-org={shell_quote(username)} --json")
         if p.returncode:
             output = p.stdout_text.read()
             try:
@@ -196,9 +216,9 @@ class SfdxOrgConfig(OrgConfig):
 
         info = json.loads(p.stdout_text.read())
         token = info.get("result", {}).get("accessToken")
-        if token:
-            return token
-        return self._fetch_access_token(username)
+        if _is_redacted(token):
+            return self._fetch_access_token(username)
+        return token
 
     def _fetch_access_token(self, username):
         """Retrieve an access token using `sf org auth show-access-token`.
@@ -206,7 +226,8 @@ class SfdxOrgConfig(OrgConfig):
         Used as a fallback when `sf org display` redacts the token (SF CLI 2.136+).
         """
         p = sfdx(
-            f"org auth show-access-token --target-org={username} --json --no-prompt"
+            f"org auth show-access-token --target-org={shell_quote(username)}"
+            f" --json --no-prompt"
         )
         output = p.stdout_text.read()
         if p.returncode:
@@ -227,7 +248,9 @@ class SfdxOrgConfig(OrgConfig):
                 f"Failed to parse JSON from `sf org auth show-access-token`: {e}"
             )
         token = info.get("result", {}).get("accessToken")
-        if not token:
+        if _is_redacted(token):
+            # Defensive: if show-access-token itself ever returns a sentinel,
+            # treat it as failure rather than handing back a placeholder.
             raise SfdxOrgException(
                 f"Unable to retrieve access token for {username}. "
                 f"Tried `sf org display` and `sf org auth show-access-token`. "
@@ -242,7 +265,8 @@ class SfdxOrgConfig(OrgConfig):
         Returns None if the org has no password or the command fails; never raises.
         """
         p = sfdx(
-            f"org auth show-user-password --target-org={username} --json --no-prompt"
+            f"org auth show-user-password --target-org={shell_quote(username)}"
+            f" --json --no-prompt"
         )
         if p.returncode:
             return None
@@ -251,7 +275,9 @@ class SfdxOrgConfig(OrgConfig):
         except JSONDecodeError:
             return None
         password = info.get("result", {}).get("password")
-        return password if password else None
+        if _is_redacted(password):
+            return None
+        return password
 
     def force_refresh_oauth_token(self):
         # Call org display and parse output to get instance_url and

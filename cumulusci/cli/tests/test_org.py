@@ -96,7 +96,7 @@ class TestOrgCommands:
         auth_code_flow.return_value = {
             "instance_url": "https://instance",
             "access_token": "BOGUS",
-            "id": "OODxxxxxxxxxxxx/user",
+            "id": "00Dxxxxxxxxxxxx/user",
         }
         runtime = mock.Mock()
         runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
@@ -109,7 +109,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/00Dxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -129,7 +129,7 @@ class TestOrgCommands:
 
         name, org_config = runtime.keychain.get_default_org()
         assert name == "test"
-        assert org_config.id == "OODxxxxxxxxxxxx/user"
+        assert org_config.id == "00Dxxxxxxxxxxxx/user"
         assert org_config.connected_app == "built-in"
         assert org_config.expires == "Persistent"
         assert "Connecting org using the built-in connected app..." in result.output
@@ -141,7 +141,7 @@ class TestOrgCommands:
         auth_code_flow.return_value = {
             "instance_url": "https://instance",
             "access_token": "BOGUS",
-            "id": "OODxxxxxxxxxxxx/user",
+            "id": "00Dxxxxxxxxxxxx/user",
         }
         runtime = mock.Mock()
         runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
@@ -166,7 +166,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/00Dxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -280,7 +280,7 @@ class TestOrgCommands:
         client_instance.auth_code_flow.return_value = {
             "instance_url": "https://instance",
             "access_token": "BOGUS",
-            "id": "OODxxxxxxxxxxxx/user",
+            "id": "00Dxxxxxxxxxxxx/user",
         }
         oauth2client.return_value = client_instance
         runtime = mock.Mock()
@@ -297,7 +297,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/00Dxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
@@ -379,11 +379,11 @@ class TestOrgCommands:
         runtime = mock.Mock()
         result = b"""{
             "result": {
-                "id": "OODxxxxxxxxxxxx",
+                "id": "00Dxxxxxxxxxxxx",
                 "createdDate": "1970-01-01T00:00:00.000Z",
                 "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
-                "accessToken": "OODxxxxxxxxxxxx!token",
+                "accessToken": "00Dxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -402,7 +402,7 @@ class TestOrgCommands:
             )
             runtime.keychain.set_org.assert_called_once()
         assert (
-            "Imported scratch org: OODxxxxxxxxxxxx, username: test@test.org"
+            "Imported scratch org: 00Dxxxxxxxxxxxx, username: test@test.org"
             in "".join(out)
         )
 
@@ -412,10 +412,10 @@ class TestOrgCommands:
         runtime = mock.Mock()
         result = b"""{
             "result": {
-                "id": "OODxxxxxxxxxxxx",
+                "id": "00Dxxxxxxxxxxxx",
                 "createdDate": null,
                 "instanceUrl": "https://instance",
-                "accessToken": "OODxxxxxxxxxxxx!token",
+                "accessToken": "00Dxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -433,7 +433,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/00Dxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -458,7 +458,7 @@ class TestOrgCommands:
             assert created_org.config["sfdx"]
         assert created_org.config["expires"] == "Persistent"
 
-        assert "Imported org: OODxxxxxxxxxxxx, username: test@test.org" in "".join(out)
+        assert "Imported org: 00Dxxxxxxxxxxxx, username: test@test.org" in "".join(out)
 
     @mock.patch("sarge.Command")
     @responses.activate
@@ -466,10 +466,10 @@ class TestOrgCommands:
         runtime = mock.Mock()
         result = b"""{
             "result": {
-                "id": "OODxxxxxxxxxxxx",
+                "id": "00Dxxxxxxxxxxxx",
                 "createdDate": null,
                 "instanceUrl": "https://instance",
-                "accessToken": "OODxxxxxxxxxxxx!token",
+                "accessToken": "00Dxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -488,7 +488,7 @@ class TestOrgCommands:
         )
         responses.add(
             method="GET",
-            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
+            url=f"https://instance/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/00Dxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": api_datetime,
                 "OrganizationType": "Developer Edition",
@@ -515,7 +515,7 @@ class TestOrgCommands:
                 created_org.config["expires"] == parse_api_datetime(api_datetime).date()
             )
 
-        assert "Imported org: OODxxxxxxxxxxxx, username: test@test.org" in "".join(out)
+        assert "Imported org: 00Dxxxxxxxxxxxx, username: test@test.org" in "".join(out)
 
     def test_calculate_org_days(self):
         info_1 = {
