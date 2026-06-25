@@ -52,6 +52,13 @@ class _TaskRaisesException(BaseTask):
         raise self.options["exception"](self.options["message"])
 
 
+class _TaskReturnsBoolStr(BaseTask):
+    task_options = {"flag": {"description": "String value to store in return_values"}}
+
+    def _run_task(self):
+        self.return_values = {"flag": self.options.get("flag", "True")}
+
+
 class _SfdcTask(BaseTask):
     salesforce_task = True
 
@@ -120,6 +127,10 @@ class TestSimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
             "sfdc_task": {
                 "description": "An sfdc task",
                 "class_path": "cumulusci.core.tests.test_flowrunner._SfdcTask",
+            },
+            "return_bool": {
+                "description": "Returns a configurable string flag in return_values",
+                "class_path": "cumulusci.core.tests.test_flowrunner._TaskReturnsBoolStr",
             },
         }
         self.project_config.config["flows"] = {
@@ -541,6 +552,65 @@ class TestSimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         assert len(flow.results) == 0
+
+    def test_run__when_substitutes_prior_return_value__step_runs(self):
+        """A when clause with ^^path.key runs the step when the substituted value is truthy."""
+        flow_config = FlowConfig(
+            {
+                "steps": {
+                    1: {"task": "return_bool", "options": {"flag": "True"}},
+                    2: {"task": "pass_name", "when": "^^return_bool.flag"},
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        assert len(flow.results) == 2
+
+    def test_run__when_substitutes_prior_return_value__step_skipped(self):
+        """A when clause with ^^path.key skips the step when the substituted value is falsy."""
+        flow_config = FlowConfig(
+            {
+                "steps": {
+                    1: {"task": "return_bool", "options": {"flag": "False"}},
+                    2: {"task": "pass_name", "when": "^^return_bool.flag"},
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        assert len(flow.results) == 1
+
+    def test_run__when_substitutes_multiple_prior_return_values(self):
+        """Multiple ^^path.key references in a single when clause are each substituted."""
+        flow_config = FlowConfig(
+            {
+                "steps": {
+                    1: {"task": "return_bool", "options": {"flag": "True"}},
+                    2: {
+                        "task": "pass_name",
+                        "when": "^^return_bool.flag and ^^return_bool.flag",
+                    },
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        assert len(flow.results) == 2
+
+    def test_run__when_substitutes_prior_return_value__path_not_found(self):
+        """A NameError is raised when the ^^path in a when clause has no matching prior result."""
+        flow_config = FlowConfig(
+            {
+                "steps": {
+                    1: {"task": "return_bool"},
+                    2: {"task": "pass_name", "when": "^^no_such_task.flag"},
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        with pytest.raises(NameError):
+            flow.run(self.org_config)
 
     def test_run__task_raises_exception_fail(self):
         """A flow aborts when a task raises an exception"""
