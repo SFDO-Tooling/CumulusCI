@@ -44,12 +44,32 @@ class MockHttpResponse(mock.Mock):
         self.reason = None
         self.msg = HTTPMessage(io.BytesIO())
         self.closed = True
+        self.headers = {}  # real mapping: urllib3 retry-after + requests CaseInsensitiveDict(resp.headers)
+        self._original_response = (
+            None  # falsy -> requests.extract_cookies_to_jar returns early
+        )
 
-    def read(self):  # pragma: no cover
+    def _get_child_mock(self, **kwargs):
+        # MockHttpResponse.__init__ requires `status`, so the default
+        # Mock._get_child_mock (which instantiates type(self)) would raise.
+        # Return a plain Mock for any auto-created child attribute instead.
+        return mock.Mock(**kwargs)
+
+    def read(self, *args, **kwargs):  # pragma: no cover
         return b""
 
     def isclosed(self):
         return self.closed
+
+    def stream(self, *args, **kwargs):
+        # requests' Response.iter_content calls raw.stream(chunk_size, decode_content=...).
+        # Empty body is intentional: test_sf_api_retries expects a JSONDecodeError on describe().
+        return iter(())
+
+    def get_redirect_location(self):
+        # urllib3.urlopen(redirect=True) calls this; a bare Mock would be truthy and
+        # send urllib3 down the redirect path. Return False = "no redirect".
+        return False
 
 
 @fixture
