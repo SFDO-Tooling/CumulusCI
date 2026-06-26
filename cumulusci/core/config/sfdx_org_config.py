@@ -25,6 +25,9 @@ nl = "\n"  # fstrings can't contain backslashes
 # detection. A locale-independent signal (matching the three sentinel
 # message keys, or "value is not a well-formed access token") would be
 # more robust if/when that lands.
+#
+# Tripwire: if a `sf org display --json` access token round-trips into
+# an API 401 with a human-readable token value, suspect this path first.
 _REDACTED_PREFIX = "[REDACTED] "
 
 
