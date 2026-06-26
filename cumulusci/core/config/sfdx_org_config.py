@@ -15,6 +15,16 @@ nl = "\n"  # fstrings can't contain backslashes
 # strings. Prefix-only matching avoids coupling to the English suffix.
 # The trailing space is load-bearing: the CLI sentinel is the literal
 # "[REDACTED] Use ..." form, never "[REDACTED]Use ...".
+#
+# Locale fragility: today `@salesforce/core`'s Messages.getLocale() is
+# hardcoded to en_US (per-locale message bundles are an unimplemented
+# TODO upstream), so this prefix is stable on every shipping CLI. The
+# "[REDACTED] " literal lives inside the translatable message string,
+# however; if Salesforce later wires up localization, a non-English
+# `redacted.accessToken` could drop this prefix and silently break
+# detection. A locale-independent signal (matching the three sentinel
+# message keys, or "value is not a well-formed access token") would be
+# more robust if/when that lands.
 _REDACTED_PREFIX = "[REDACTED] "
 
 
