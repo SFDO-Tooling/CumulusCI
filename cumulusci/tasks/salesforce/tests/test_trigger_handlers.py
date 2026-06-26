@@ -83,7 +83,6 @@ class TestTriggerHandlers:
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000000",
             status=204,
-            json={"Active__c": False},
         )
         task()
 
@@ -128,14 +127,12 @@ class TestTriggerHandlers:
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000000",
             status=204,
-            json={"Active__c": False},
         )
         responses.add(
             method="PATCH",
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000001",
             status=204,
-            json={"Active__c": False},
         )
         task()
 
@@ -181,7 +178,6 @@ class TestTriggerHandlers:
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/npsp__Trigger_Handler__c/000000000000000",
             status=204,
-            json={"npsp__Active__c": False},
         )
         task()
 
@@ -227,7 +223,6 @@ class TestTriggerHandlers:
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/npsp__Trigger_Handler__c/000000000000000",
             status=204,
-            json={"npsp__Active__c": True},
         )
 
         op = mock.mock_open(read_data="'Test__c:TestTDTM': True")
@@ -285,14 +280,12 @@ class TestTriggerHandlers:
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000000",
             status=204,
-            json={"Active__c": False},
         )
         responses.add(
             method="PATCH",
             url=task.org_config.instance_url
             + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000001",
             status=204,
-            json={"Active__c": False},
         )
         op = mock.mock_open()
         with mock.patch("cumulusci.utils.fileutils.FSResource.open", op):
