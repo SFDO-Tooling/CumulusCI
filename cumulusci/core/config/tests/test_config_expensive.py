@@ -309,6 +309,9 @@ class TestScratchOrgConfig:
         ):
             assert key in config.config
         assert config._sfdx_info_date
+        # Legacy CLI: a single org_display call must satisfy sfdx_info; no
+        # show-access-token / show-user-password fallback subprocesses.
+        assert Command.call_count == 1
 
     def test_sfdx_info_new_cli_fetches_token(self, Command):
         # First subprocess: sf org display redacts accessToken; org has no password
@@ -466,6 +469,8 @@ class TestScratchOrgConfig:
 
         assert info["access_token"] == "fetched-token"
         assert info["password"] == "fetched-pw"
+        # Both sentinels present: org_display + show-access-token + show-user-password.
+        assert Command.call_count == 3
 
     def test_sfdx_info_token_fetch_fails(self, Command):
         org_display = b"""{
@@ -851,11 +856,8 @@ class TestScratchOrgConfig:
             config._fetch_access_token("weird;user@example.com")
 
         cmd = sfdx_mock.call_args_list[0][0][0]
-        # Raw, unquoted username would let the semicolon break out of the arg.
-        assert "weird;user@example.com" not in cmd or (
-            "'weird;user@example.com'" in cmd or '"weird;user@example.com"' in cmd
-        )
-        # Stronger form: the quoted token must appear.
+        # The username must appear shell-quoted; raw interpolation under
+        # shell=True would let the semicolon break out of the arg.
         assert "'weird;user@example.com'" in cmd or '"weird;user@example.com"' in cmd, (
             f"username not shell-quoted in command: {cmd!r}"
         )

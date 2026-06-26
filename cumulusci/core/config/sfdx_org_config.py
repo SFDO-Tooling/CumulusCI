@@ -13,6 +13,8 @@ nl = "\n"  # fstrings can't contain backslashes
 # credential fields when SF_TEMP_SHOW_SECRETS is unset. See
 # @salesforce/plugin-org messages/secrets-redacted.md for the canonical
 # strings. Prefix-only matching avoids coupling to the English suffix.
+# The trailing space is load-bearing: the CLI sentinel is the literal
+# "[REDACTED] Use ..." form, never "[REDACTED]Use ...".
 _REDACTED_PREFIX = "[REDACTED] "
 
 
@@ -97,8 +99,6 @@ class SfdxOrgConfig(OrgConfig):
         # in that case is a pointless extra subprocess on every refresh.
         if _is_sentinel(password):
             password = self._fetch_user_password(username)
-        elif not password:
-            password = None
 
         sfdx_info = {
             "instance_url": result["instanceUrl"],
@@ -271,18 +271,29 @@ class SfdxOrgConfig(OrgConfig):
     def _fetch_user_password(self, username):
         """Retrieve the org password using `sf org auth show-user-password`.
 
-        Used as a fallback when `sf org display` redacts the password (SF CLI 2.136+).
-        Returns None if the org has no password or the command fails; never raises.
+        Used as a fallback when `sf org display` redacts the password (SF CLI
+        2.136+). Returns None on any failure path (non-zero exit, malformed
+        JSON, sentinel result) since the password is optional. Failures are
+        logged at debug level so transient issues can be diagnosed without
+        promoting the call to raise.
         """
         p = sfdx(
             f"org auth show-user-password --target-org={shell_quote(username)}"
             f" --json --no-prompt"
         )
         if p.returncode:
+            self.logger.debug(
+                f"sf org auth show-user-password exited {p.returncode} for "
+                f"{username}; treating as no password."
+            )
             return None
         try:
             info = json.loads(p.stdout_text.read())
-        except JSONDecodeError:
+        except JSONDecodeError as e:
+            self.logger.debug(
+                f"Failed to parse JSON from sf org auth show-user-password "
+                f"for {username}: {e}. Treating as no password."
+            )
             return None
         password = info.get("result", {}).get("password")
         if _is_redacted(password):
