@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 from vcr import cassette
+from vcr.util import read_body
 
 from cumulusci.core.enums import StrEnum
 
@@ -201,9 +202,36 @@ def explain_mismatch(r1, r2):
     return False
 
 
+def _normalize_request_body(request):
+    """Coerce a VCR request body to bytes once, caching it on the request.
+
+    urllib3 2.x can present a request body as a one-shot iterator; the matcher
+    runs repeatedly, so materialize and cache to keep matching stable.
+
+    Two vcr.Request subtleties make this trickier than a plain ``_body_to_bytes``:
+
+    * A body passed as ``iter(b"...")`` becomes a *bytes iterator* whose elements
+      are ``int`` byte values, so vcr stores ``_body`` as a list of ints. vcr's
+      ``read_body`` rebuilds that with ``bytes(list_of_ints)``; a naive per-chunk
+      coercion would instead emit ``bytes(int)`` (zero-filled garbage).
+    * vcr re-wraps file/iterator bodies with a fresh ``BytesIO``/``iter()`` on
+      every ``.body`` access (see ``_was_file`` / ``_was_iter``). If those flags
+      stay set, the cached bytes get re-wrapped on the next read. Clear them so
+      subsequent reads return the cached bytes verbatim.
+    """
+    body = request.body
+    if body is None or isinstance(body, (bytes, bytearray, str)):
+        return body
+    body = read_body(request)
+    request._was_file = False
+    request._was_iter = False
+    request.body = body
+    return body
+
+
 def salesforce_matcher(r1, r2, should_explain=False):
-    summary1 = (r1.method, _cleanup(r1.uri), _cleanup(r1.body))
-    summary2 = (r2.method, _cleanup(r2.uri), _cleanup(r2.body))
+    summary1 = (r1.method, _cleanup(r1.uri), _cleanup(_normalize_request_body(r1)))
+    summary2 = (r2.method, _cleanup(r2.uri), _cleanup(_normalize_request_body(r2)))
     # uncomment explain_mismatch if you need to debug.
     # otherwise it will generate a lot of noise, even when things
     # are working properly
