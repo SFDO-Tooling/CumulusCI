@@ -18,8 +18,28 @@ from cumulusci.core.enums import StrEnum
 from .pytest_sf_vcr_serializer import CompressionVCRSerializer
 
 
+def _body_to_bytes(body):
+    """Normalize a VCR request/response body to bytes.
+
+    urllib3 2.x can hand vcrpy a streaming iterator of chunks rather than a
+    single bytes object, so coerce every supported shape to bytes.
+    """
+    if isinstance(body, bytes):
+        return body
+    if isinstance(body, bytearray):
+        return bytes(body)
+    if isinstance(body, str):
+        return body.encode("utf-8")
+    if hasattr(body, "read"):  # file-like
+        return _body_to_bytes(body.read())
+    chunks = []
+    for chunk in body:  # iterator of byte/str chunks (urllib3 2.x streaming)
+        chunks.append(chunk.encode("utf-8") if isinstance(chunk, str) else bytes(chunk))
+    return b"".join(chunks)
+
+
 def simplify_body(request_or_response_body):
-    decoded = request_or_response_body.decode("utf-8")
+    decoded = _body_to_bytes(request_or_response_body).decode("utf-8")
     decoded = _cleanup(decoded)
 
     return decoded.encode()
