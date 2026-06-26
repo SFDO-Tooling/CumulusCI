@@ -3,6 +3,9 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
+import pytest
+from selenium.common.exceptions import StaleElementReferenceException
+
 import cumulusci.robotframework.utils as robot_utils
 from cumulusci.utils import touch
 
@@ -104,3 +107,44 @@ class TestGetLocatorModule:
         """Verify that we get the latest version if version specified isn't supported"""
         module_name = robot_utils.get_locator_module_name(41)
         assert module_name == "cumulusci.robotframework.locators_40"
+
+
+class TestSeleniumRetry:
+    def _make_obj(self):
+        obj = robot_utils.RetryingSeleniumLibraryMixin()
+        obj.builtin = mock.Mock()
+        return obj
+
+    def test_retries_once_then_succeeds(self):
+        obj = self._make_obj()
+        calls = []
+
+        def execute(command, params):
+            calls.append((command, params))
+            if len(calls) == 1:
+                raise StaleElementReferenceException("stale")
+            return "ok"
+
+        with mock.patch.object(robot_utils.time, "sleep"):
+            result = obj.selenium_execute_with_retry(execute, "clickElement", {"a": 1})
+
+        assert result == "ok"
+        assert len(calls) == 2  # retried exactly once
+
+    def test_reraises_non_retryable(self):
+        obj = self._make_obj()
+
+        def execute(command, params):
+            raise ValueError("not retryable")
+
+        with mock.patch.object(robot_utils.time, "sleep"):
+            with pytest.raises(ValueError):
+                obj.selenium_execute_with_retry(execute, "clickElement", None)
+
+    def test_selenium_retry_class_decorator_mixes_in(self):
+        @robot_utils.selenium_retry
+        class FakeLib:
+            pass
+
+        assert issubclass(FakeLib, robot_utils.RetryingSeleniumLibraryMixin)
+        assert FakeLib.retry_selenium is True
