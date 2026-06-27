@@ -9,6 +9,7 @@ Records transactions if there is an org specified and does not if there is not.
 import re
 from functools import partial
 from pathlib import Path
+from string import hexdigits
 
 import pytest
 from vcr import cassette
@@ -17,6 +18,10 @@ from vcr.util import read_body
 from cumulusci.core.enums import StrEnum
 
 from .pytest_sf_vcr_serializer import CompressionVCRSerializer
+
+# Byte values that are valid hexadecimal digits, used by the chunked-transfer
+# de-framer below (mirrors vcr.matchers._HEXDIG_CODE_POINTS).
+_HEXDIG_CODE_POINTS = {ord(c) for c in hexdigits}
 
 
 def _body_to_bytes(body):
@@ -34,8 +39,15 @@ def _body_to_bytes(body):
     if hasattr(body, "read"):  # file-like
         return _body_to_bytes(body.read())
     chunks = []
-    for chunk in body:  # iterator of byte/str chunks (urllib3 2.x streaming)
-        chunks.append(chunk.encode("utf-8") if isinstance(chunk, str) else bytes(chunk))
+    for chunk in body:  # iterator of byte/str/int chunks (urllib3 2.x streaming)
+        if isinstance(chunk, int):
+            # A bytes iterator (iter(b"...")) yields individual byte *values*;
+            # bytes(int) would emit N zero-bytes, so wrap the value instead.
+            chunks.append(bytes((chunk,)))
+        elif isinstance(chunk, str):
+            chunks.append(chunk.encode("utf-8"))
+        else:
+            chunks.append(bytes(chunk))
     return b"".join(chunks)
 
 
@@ -134,6 +146,11 @@ def sf_before_record_request(vcr_state, http_request):
     if vcr_state.recording == RecordingMode.DISABLE:
         return None
     if http_request.body:
+        # urllib3 2.x can present the body as a one-shot/bytes iterator that
+        # vcr.Request re-wraps on every ``.body`` access. Materialize it to bytes
+        # once (clearing _was_iter/_was_file) so simplify_body operates on bytes
+        # and repeated filter passes stay idempotent instead of re-corrupting it.
+        _normalize_request_body(http_request)
         http_request.body = simplify_body(http_request.body)
     http_request.uri = _cleanup(http_request.uri)
 
@@ -229,9 +246,68 @@ def _normalize_request_body(request):
     return body
 
 
+def _dechunk_body(body):
+    """Strip HTTP chunked-transfer framing from a request body, if present.
+
+    urllib3 1.x baked chunk framing (``<hexlen>\\r\\n<data>\\r\\n ... 0\\r\\n\\r\\n``)
+    into recorded bulk-API request bodies; urllib3 2.x sends the same logical
+    bytes *unframed*. Canonicalizing both sides lets the original, proven
+    cassettes replay unchanged instead of re-recording (vcrpy #734, fixed
+    upstream in PR #739's built-in ``body`` matcher).
+
+    We can't lean on vcrpy's built-in fix: it is header-gated on
+    ``Transfer-Encoding: chunked`` and only runs when both requests resolve to
+    the same transformer set, but ``salesforce_matcher`` elides headers and the
+    framing is now asymmetric (taped=framed, live=unframed). So we de-frame
+    unconditionally on both sides. This is a faithful port of
+    ``vcr.matchers._dechunk`` (vendored rather than imported because it is a
+    private symbol and we have an in-flight vcrpy major bump).
+
+    Guard: anything that does not begin with hex digits followed by CRLF is
+    assumed to be non-chunked and returned untouched, so a legitimate XML/JSON
+    body is never corrupted.
+    """
+    if body is None:
+        return body
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    elif isinstance(body, bytearray):
+        body = bytes(body)
+    elif not isinstance(body, bytes):
+        return body
+
+    CHUNK_GAP = b"\r\n"
+    body_len = len(body)
+    chunks = []
+    pos = 0
+    while True:
+        i = pos
+        for i in range(pos, body_len):
+            if body[i] not in _HEXDIG_CODE_POINTS:
+                break
+        if i == pos or body[i : i + len(CHUNK_GAP)] != CHUNK_GAP:
+            if pos == 0:
+                return body  # assume non-chunk data
+            raise ValueError("Malformed chunked data")
+        size_bytes = int(body[pos:i], 16)
+        if size_bytes == 0:  # well-formed terminating chunk
+            return b"".join(chunks)
+        chunk_first = i + len(CHUNK_GAP)
+        chunk_after_last = chunk_first + size_bytes
+        if body[chunk_after_last : chunk_after_last + len(CHUNK_GAP)] != CHUNK_GAP:
+            raise ValueError("Malformed chunked data")
+        chunks.append(body[chunk_first:chunk_after_last])
+        pos = chunk_after_last + len(CHUNK_GAP)
+
+
+def _canonical_request_body(request):
+    """Materialize (urllib3 2.x iterators) then de-frame a request body."""
+    return _dechunk_body(_normalize_request_body(request))
+
+
 def salesforce_matcher(r1, r2, should_explain=False):
-    summary1 = (r1.method, _cleanup(r1.uri), _cleanup(_normalize_request_body(r1)))
-    summary2 = (r2.method, _cleanup(r2.uri), _cleanup(_normalize_request_body(r2)))
+    summary1 = (r1.method, _cleanup(r1.uri), _cleanup(_canonical_request_body(r1)))
+    summary2 = (r2.method, _cleanup(r2.uri), _cleanup(_canonical_request_body(r2)))
     # uncomment explain_mismatch if you need to debug.
     # otherwise it will generate a lot of noise, even when things
     # are working properly
