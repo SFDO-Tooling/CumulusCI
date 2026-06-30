@@ -519,6 +519,20 @@ class PackageVersionIdDependency(StaticDependency):
             )
             return
 
+        package = org.get_package_from_version(self.version_id, options.password)
+
+        if package:
+            package_id = package["SubscriberPackageId"]
+            package_version_number = f"{package['MajorVersion']}.{package['MinorVersion']}.{package['PatchVersion']}"
+
+            if org.has_minimum_package_version(
+                package_id,
+                package_version_number,
+            ):
+                context.logger.info(
+                    f"{self} or a newer version is already installed; skipping."
+                )
+                return
         context.logger.info(f"Installing {self.description}")
         install_package_by_version_id(
             context,
