@@ -274,8 +274,9 @@ class TestScratchOrgConfig:
     def test_scratch_info(self, Command):
         result = b"""{
     "result": {
+        "id": "00DDP000006GRcP2AW",
         "instanceUrl": "url",
-        "accessToken": "access!token",
+        "accessToken": "00DDP000006GRcP!real-token",
         "username": "username",
         "password": "password",
         "createdDate": "1970-01-01T00:00:00Z",
@@ -290,9 +291,9 @@ class TestScratchOrgConfig:
         info = config.scratch_info
 
         assert info == {
-            "access_token": "access!token",
+            "access_token": "00DDP000006GRcP!real-token",
             "instance_url": "url",
-            "org_id": "access",
+            "org_id": "00DDP000006GRcP2AW",
             "password": "password",
             "username": "username",
             "created_date": "1970-01-01T00:00:00Z",
@@ -308,6 +309,215 @@ class TestScratchOrgConfig:
         ):
             assert key in config.config
         assert config._sfdx_info_date
+        # Legacy CLI: a single org_display call must satisfy sfdx_info; no
+        # show-access-token / show-user-password fallback subprocesses.
+        assert Command.call_count == 1
+
+    def test_sfdx_info_new_cli_fetches_token(self, Command):
+        # First subprocess: sf org display redacts accessToken; org has no password
+        org_display = b"""{
+    "result": {
+        "id": "00DDP000006GRcP2AW",
+        "instanceUrl": "url",
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
+    }
+}"""
+        # Second subprocess: sf org auth show-access-token returns the token
+        token_fetch = b'{"result": {"accessToken": "fetched-token"}}'
+
+        Command.side_effect = [
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "fetched-token"
+        assert info["org_id"] == "00DDP000006GRcP2AW"
+        assert "password" not in info
+        # Critical: no show-user-password call for a passwordless org. The
+        # password gate keys on the sentinel, not on absence.
+        assert Command.call_count == 2
+
+    def test_sfdx_info_new_cli_no_password_org(self, Command):
+        """New CLI + passwordless org: token sentinel, password absent.
+
+        Must NOT call `sf org auth show-user-password` (the absent password is
+        not a sentinel; the org genuinely has no password).
+        """
+        sentinel = (
+            "[REDACTED] Use 'sf org auth show-access-token' "
+            "--target-org <username> to view"
+        )
+        org_display = (
+            '{"result": {'
+            '"id": "00DDP000006GRcP2AW",'
+            '"instanceUrl": "url",'
+            f'"accessToken": "{sentinel}",'
+            '"username": "username"'
+            "}}"
+        ).encode()
+        token_fetch = b'{"result": {"accessToken": "fetched-token"}}'
+
+        Command.side_effect = [
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "fetched-token"
+        assert "password" not in info
+        assert Command.call_count == 2
+
+    def test_sfdx_info_sentinel_password_uses_fetched(self, Command):
+        """New CLI + scratch org with generated password: BOTH fields are sentinels.
+
+        Must call `sf org auth show-user-password` and surface the fetched value.
+        """
+        token_sentinel = (
+            "[REDACTED] Use 'sf org auth show-access-token' "
+            "--target-org <username> to view"
+        )
+        pw_sentinel = (
+            "[REDACTED] Use 'sf org auth show-user-password' "
+            "--target-org <username> to view"
+        )
+        org_display = (
+            '{"result": {'
+            '"id": "00DDP000006GRcP2AW",'
+            '"instanceUrl": "url",'
+            f'"accessToken": "{token_sentinel}",'
+            f'"password": "{pw_sentinel}",'
+            '"username": "username"'
+            "}}"
+        ).encode()
+        token_fetch = b'{"result": {"accessToken": "fetched-token"}}'
+        password_fetch = b'{"result": {"password": "fetched-pw"}}'
+
+        Command.side_effect = [
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "fetched-token"
+        assert info["password"] == "fetched-pw"
+        assert Command.call_count == 3
+
+    def test_sfdx_info_new_cli_fetches_password(self, Command):
+        # New CLI redacts BOTH fields when the org has a generated password
+        # (e.g. a scratch org). Password fallback fires only on the sentinel,
+        # not on absence.
+        token_sentinel = (
+            "[REDACTED] Use 'sf org auth show-access-token' "
+            "--target-org <username> to view"
+        )
+        pw_sentinel = (
+            "[REDACTED] Use 'sf org auth show-user-password' "
+            "--target-org <username> to view"
+        )
+        org_display = (
+            '{"result": {'
+            '"id": "00DDP000006GRcP2AW",'
+            '"instanceUrl": "url",'
+            '"username": "username",'
+            f'"accessToken": "{token_sentinel}",'
+            f'"password": "{pw_sentinel}",'
+            '"createdDate": "1970-01-01T00:00:00Z",'
+            '"expirationDate": "1970-01-08"'
+            "}}"
+        ).encode()
+        token_fetch = b'{"result": {"accessToken": "fetched-token"}}'
+        password_fetch = b'{"result": {"password": "fetched-pw"}}'
+
+        Command.side_effect = [
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(password_fetch), returncode=0
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "fetched-token"
+        assert info["password"] == "fetched-pw"
+        # Both sentinels present: org_display + show-access-token + show-user-password.
+        assert Command.call_count == 3
+
+    def test_sfdx_info_token_fetch_fails(self, Command):
+        org_display = b"""{
+    "result": {
+        "id": "00DDP000006GRcP2AW",
+        "instanceUrl": "url",
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
+    }
+}"""
+
+        Command.side_effect = [
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b"auth expired"),
+                stdout=io.BytesIO(b'{"message": "auth expired"}'),
+                returncode=1,
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config.sfdx_info
+        msg = str(exc_info.value)
+        assert "sf org display" in msg
+        assert "sf org auth show-access-token" in msg
+
+    def test_sfdx_info_missing_id(self, Command):
+        # sf org display returns no id and no accessToken (worst case)
+        org_display = b"""{
+    "result": {
+        "instanceUrl": "url",
+        "username": "username"
+    }
+}"""
+
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+        )
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config.sfdx_info
+        assert "org id" in str(exc_info.value).lower()
 
     def test_scratch_info_memoized(self, Command):
         config = ScratchOrgConfig({"username": "test", "created": True}, "test")
@@ -441,6 +651,216 @@ class TestScratchOrgConfig:
                 )
                 with pytest.raises(SfdxOrgException, match=exception):
                     config.get_access_token(alias="dadvisor")
+
+    def test_get_access_token__new_cli(self, Command):
+        """Verify that get_access_token falls back to show-access-token when redacted"""
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        # First sfdx call: sf org display returns no accessToken (redacted)
+        # Second sfdx call: sf org auth show-access-token returns the token
+        first_response = mock.Mock(returncode=0)
+        first_response.stdout_text.read.return_value = (
+            '{"result": {"id": "00DDP000006GRcP2AW", "instanceUrl": "url"}}'
+        )
+        second_response = mock.Mock(returncode=0)
+        second_response.stdout_text.read.return_value = (
+            '{"result": {"accessToken": "fetched-token"}}'
+        )
+        sfdx_mock = mock.Mock(side_effect=[first_response, second_response])
+
+        config = ScratchOrgConfig({}, "test")
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx_mock):
+                access_token = config.get_access_token(alias="dadvisor")
+                assert sfdx_mock.call_count == 2
+                first_call_args = sfdx_mock.call_args_list[0][0][0]
+                second_call_args = sfdx_mock.call_args_list[1][0][0]
+                assert "org display" in first_call_args
+                assert "whatever@example.com" in first_call_args
+                assert "show-access-token" in second_call_args
+                assert "whatever@example.com" in second_call_args
+                assert access_token == "fetched-token"
+
+    def test_fetch_access_token(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"accessToken": "fetched-token"}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        token = config._fetch_access_token("test@example.com")
+        assert token == "fetched-token"
+
+    def test_fetch_access_token_subprocess_fails(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"message": "auth expired"}'),
+            returncode=1,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config._fetch_access_token("test@example.com")
+        msg = str(exc_info.value)
+        assert "sf org display" in msg
+        assert "sf org auth show-access-token" in msg
+        assert "test@example.com" in msg
+
+    def test_fetch_access_token_missing_field(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        with pytest.raises(SfdxOrgException) as exc_info:
+            config._fetch_access_token("test@example.com")
+        assert "sf org auth show-access-token" in str(exc_info.value)
+
+    def test_fetch_user_password(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"password": "secret-pw"}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password == "secret-pw"
+
+    def test_fetch_user_password_returns_none_on_error(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b"no password set"),
+            stdout=io.BytesIO(b'{"message": "no password"}'),
+            returncode=1,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password is None
+
+    def test_fetch_user_password_returns_none_on_empty(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"password": null}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password is None
+
+    # ---- SF CLI 2.136+ sentinel-redaction model (spec round 3) ----
+    #
+    # The CLI does NOT remove redacted fields; it replaces them with a
+    # truthy sentinel string. Falsy detection misses this. Detection MUST
+    # key on the "[REDACTED] " prefix. Three failing tests below pin the
+    # contract.
+
+    def test_sfdx_info_sentinel_token_triggers_fallback(self, Command):
+        """Spec round 3: redacted token is a truthy sentinel, not absent."""
+        redacted_token = "[REDACTED] Use 'sf org auth show-access-token' to view"
+        org_display = (
+            b'{"result": {"id": "00DDP000006GRcP2AW", "instanceUrl": "url",'
+            b' "username": "username", "accessToken":'
+            b' "' + redacted_token.encode() + b'", "createdDate":'
+            b' "1970-01-01T00:00:00Z", "expirationDate": "1970-01-08"}}'
+        )
+        token_fetch = b'{"result": {"accessToken": "real-token"}}'
+
+        Command.side_effect = [
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(org_display), returncode=0
+            ),
+            mock.Mock(
+                stderr=io.BytesIO(b""), stdout=io.BytesIO(token_fetch), returncode=0
+            ),
+        ]
+
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        info = config.sfdx_info
+
+        assert info["access_token"] == "real-token"
+        assert not info["access_token"].startswith("[REDACTED]")
+        # Password absent in org_display -> NOT a sentinel -> no fallback subprocess.
+        assert Command.call_count == 2
+
+    def test_fetch_user_password_returns_none_on_sentinel(self, Command):
+        """Spec round 3: show-user-password returning a sentinel = no password."""
+        sentinel = (
+            b'{"result": {"password": "[REDACTED] Use'
+            b" 'sf org auth show-user-password' to view\"}}"
+        )
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(sentinel),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        password = config._fetch_user_password("test@example.com")
+        assert password is None
+
+    def test_get_access_token_sentinel_triggers_fallback(self, Command):
+        """Spec round 3: get_access_token must detect the sentinel, not just absence."""
+        redacted_token = "[REDACTED] Use 'sf org auth show-access-token' to view"
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        first_response = mock.Mock(returncode=0)
+        first_response.stdout_text.read.return_value = (
+            '{"result": {"id": "00DDP000006GRcP2AW", "instanceUrl": "url",'
+            f' "accessToken": "{redacted_token}"}}}}'
+        )
+        second_response = mock.Mock(returncode=0)
+        second_response.stdout_text.read.return_value = (
+            '{"result": {"accessToken": "real-token"}}'
+        )
+        sfdx_mock = mock.Mock(side_effect=[first_response, second_response])
+
+        config = ScratchOrgConfig({}, "test")
+        with mock.patch(
+            "cumulusci.core.config.org_config.OrgConfig.salesforce_client", sf
+        ):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx_mock):
+                access_token = config.get_access_token(alias="dadvisor")
+                assert sfdx_mock.call_count == 2
+                assert access_token == "real-token"
+                assert not access_token.startswith("[REDACTED]")
+
+    def test_fetch_access_token_shell_quotes_username(self, Command):
+        """Spec round 3: usernames must be shell_quote'd; sfdx() uses shell=True."""
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b""),
+            stdout=io.BytesIO(b'{"result": {"accessToken": "fetched-token"}}'),
+            returncode=0,
+        )
+
+        config = SfdxOrgConfig({"username": "test"}, "test")
+        sfdx_mock = mock.Mock(
+            return_value=mock.Mock(
+                returncode=0,
+                stdout_text=io.BytesIO(b'{"result": {"accessToken": "fetched-token"}}'),
+            )
+        )
+        # Build a payload that includes a stdout_text read() side-effect.
+        sfdx_mock.return_value.stdout_text.read = mock.Mock(
+            return_value=b'{"result": {"accessToken": "fetched-token"}}'
+        )
+        with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx_mock):
+            config._fetch_access_token("weird;user@example.com")
+
+        cmd = sfdx_mock.call_args_list[0][0][0]
+        # The username must appear shell-quoted; raw interpolation under
+        # shell=True would let the semicolon break out of the arg.
+        assert "'weird;user@example.com'" in cmd or '"weird;user@example.com"' in cmd, (
+            f"username not shell-quoted in command: {cmd!r}"
+        )
 
     def test_instance_url(self, Command):
         config = ScratchOrgConfig({}, "test")
@@ -739,6 +1159,7 @@ class TestScratchOrgConfig:
     def test_refresh_oauth_token(self, Command):
         result = b"""{
     "result": {
+        "id": "00DDP000006GRcP2AW",
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
