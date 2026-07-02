@@ -338,6 +338,9 @@ class BaseSalesforceTask(BaseTask):
     def _run_task(self):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
+    def _refresh_api_clients(self):
+        pass
+
     def _update_credentials(self):
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
