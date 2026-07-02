@@ -96,7 +96,7 @@ would need to be provided in the following format:
 
 The use of [GitHub environment variables](env-var-reference) is supported when connecting to a repository a GitHub Enterprise Server.
 
-The `GitHubEnterprise` client is selected automatically based on the repository configuration in the `cumulusci.yml` file. When the `repo_url` is NOT GitHub.com an attempt will be made to connect to the base domain in `repo_url`. The [GitHub environemnt variables](env-var-reference) are then used to authorize.
+The `GitHubEnterprise` client is selected automatically based on the repository configuration in the `cumulusci.yml` file. When the `repo_url` is NOT GitHub.com an attempt will be made to connect to the base domain in `repo_url`. The [GitHub environment variables](env-var-reference) are then used to authorize.
 
 If your use case requires dependencies on a different server, for example, upstream dependencies reside on GitHub.com but your project repository is stored on a GitHub Enterprise Server do not use [](github-token), instead configure services for GitHub.com and your GitHub Enterprise Server similarly to this example:
 
