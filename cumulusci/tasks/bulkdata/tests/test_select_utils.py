@@ -1,3 +1,6 @@
+import logging
+import sys
+
 import pytest
 
 from cumulusci.tasks.bulkdata.select_utils import (
@@ -1042,3 +1045,73 @@ def test_split_and_filter_fields_multiple_unique_lookups():
     assert (
         select_fields == fields
     )  # No filtering applied since all components are unique
+
+
+def test_select_utils_import_does_not_emit_warning_when_optional_deps_missing(
+    caplog,
+):
+    """Regression test for GH #3886.
+
+    Importing ``cumulusci.tasks.bulkdata.select_utils`` must not emit a
+    WARNING-level log record at module-load time, even when the optional
+    ``[select]`` deps (numpy/pandas/annoy/scikit-learn) are unavailable.
+    Two transitive imports pull ``select_utils`` into ``extract.py``, so a
+    module-import warning fires on every ``extract_dataset`` invocation
+    regardless of whether the user opted into a similarity strategy.
+    """
+    blocked_top = {"numpy", "pandas", "annoy", "sklearn"}
+
+    saved_modules = {}
+    for name in list(sys.modules):
+        top = name.split(".", 1)[0]
+        if top in blocked_top:
+            saved_modules[name] = sys.modules[name]
+
+    saved_select_utils = sys.modules.pop("cumulusci.tasks.bulkdata.select_utils", None)
+
+    from pydantic.v1 import class_validators as _v1_class_validators
+
+    saved_func_refs = {
+        ref
+        for ref in _v1_class_validators._FUNCS
+        if ref.startswith("cumulusci.tasks.bulkdata.select_utils.")
+    }
+
+    try:
+        for name in list(sys.modules):
+            top = name.split(".", 1)[0]
+            if top in blocked_top:
+                sys.modules[name] = None
+        for name in blocked_top:
+            sys.modules[name] = None
+
+        _v1_class_validators._FUNCS -= saved_func_refs
+
+        caplog.clear()
+        with caplog.at_level(
+            logging.DEBUG, logger="cumulusci.tasks.bulkdata.select_utils"
+        ):
+            import cumulusci.tasks.bulkdata.select_utils  # noqa: F401
+
+        warning_records = [
+            r
+            for r in caplog.records
+            if r.levelno >= logging.WARNING
+            and r.name == "cumulusci.tasks.bulkdata.select_utils"
+        ]
+        assert warning_records == [], (
+            "Module import emitted WARNING-level log record(s) when optional "
+            "[select] deps are missing (#3886): "
+            f"{[r.getMessage() for r in warning_records]}"
+        )
+    finally:
+        sys.modules.pop("cumulusci.tasks.bulkdata.select_utils", None)
+        for name in blocked_top:
+            sys.modules.pop(name, None)
+        for name, mod in saved_modules.items():
+            sys.modules[name] = mod
+        _v1_class_validators._FUNCS |= saved_func_refs
+        if saved_select_utils is not None:
+            sys.modules["cumulusci.tasks.bulkdata.select_utils"] = saved_select_utils
+        else:
+            import cumulusci.tasks.bulkdata.select_utils  # noqa: F401

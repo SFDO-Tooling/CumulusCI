@@ -21,13 +21,31 @@ try:
 
     OPTIONAL_DEPENDENCIES_AVAILABLE = True
 except ImportError:
-    logger.warning(
-        f"Optional dependencies are missing. "
-        "Handling high volumes of records for the 'select' functionality will be significantly slower, "
-        "as optimizations for this feature are currently disabled. "
-        f"To enable optimized performance, install all required dependencies using: {get_cci_upgrade_command()}[select]\n"
-    )
     OPTIONAL_DEPENDENCIES_AVAILABLE = False
+
+_MISSING_OPTIONAL_DEPS_WARNING_EMITTED = False
+
+
+def _warn_missing_optional_deps_once() -> None:
+    """Emit the optional-[select]-deps warning at most once per process.
+
+    The warning previously fired at module import time, so every
+    ``extract_dataset`` invocation surfaced it via transitive imports even
+    when no similarity strategy was in use (#3886). Defer the emission to
+    the code path that actually pays the perf penalty.
+    """
+    global _MISSING_OPTIONAL_DEPS_WARNING_EMITTED
+    if _MISSING_OPTIONAL_DEPS_WARNING_EMITTED:
+        return
+    _MISSING_OPTIONAL_DEPS_WARNING_EMITTED = True
+    logger.warning(
+        "Optional dependencies are missing. "
+        "Handling high volumes of records for the 'select' functionality "
+        "will be significantly slower, "
+        "as optimizations for this feature are currently disabled. "
+        "To enable optimized performance, install all required dependencies "
+        f"using: {get_cci_upgrade_command()}[select]"
+    )
 
 
 class SelectStrategy(StrEnum):
@@ -313,6 +331,8 @@ def similarity_post_process(
     insert_records = []
 
     if complexity_constant < 1000 or not OPTIONAL_DEPENDENCIES_AVAILABLE:
+        if complexity_constant >= 1000 and not OPTIONAL_DEPENDENCIES_AVAILABLE:
+            _warn_missing_optional_deps_once()
         select_records, insert_records = levenshtein_post_process(
             load_records, query_records, fields, weights, threshold
         )
