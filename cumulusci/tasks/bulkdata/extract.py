@@ -7,7 +7,6 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.core.exceptions import (
     BulkDataException,
-    ConfigError,
     CumulusCIException,
     TaskOptionsError,
 )
@@ -368,8 +367,24 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
 
             if total_mapping_operations != total_rows:
-                raise ConfigError(
-                    f"Total mapping operations ({total_mapping_operations}) do not match total non-empty rows ({total_rows}) for lookup_key: {lookup_key}. Mention all related tables for lookup: {lookup_key}"
+                # Soft-warn rather than raise: a mismatch here means some
+                # source rows reference records that are not present in the
+                # related table. This is legitimate in many configurations:
+                # polymorphic lookups whose source rows reference records
+                # filtered out of the extract, references to standard org
+                # records (e.g. Standard Pricebook2, PricebookEntry,
+                # FirstPublishLocationId) that are intentionally not
+                # extracted, etc. The strict ``ConfigError`` introduced in
+                # PR #3741 broke ``capture_sample_data`` for these cases; see
+                # issue #3854.
+                self.logger.warning(
+                    f"Total mapping operations ({total_mapping_operations}) "
+                    f"do not match total non-empty rows ({total_rows}) for "
+                    f"lookup_key: {lookup_key}. {total_rows - total_mapping_operations} "
+                    f"row(s) reference records that were not extracted into the "
+                    f"related table(s). The unresolved lookup value(s) will be left "
+                    f"unchanged. If this is unexpected, ensure every related table "
+                    f"is included in the mapping for lookup_key: {lookup_key}."
                 )
         self.session.commit()
 
