@@ -591,7 +591,51 @@ def test_init_options__namespace_injection():
     )
     assert task.options["namespace_inject"] == "ns"
     assert task.options["namespaced_org"]
-    assert task.options["managed"]
+    assert not task.options["managed"]  # Fixed: namespaced org should be unmanaged
+
+
+def test_init_options__managed_explicit_unmanaged_flag():
+    """Test that explicit unmanaged=True forces managed=False even with installed packages."""
+    pc = create_project_config(namespace="ns")
+    org_config = DummyOrgConfig({"namespace": "other"})
+    org_config._installed_packages = {"ns": None}  # Package is installed
+    task = create_task(
+        ProfileGrantAllAccess, {"unmanaged": True}, project_config=pc, org_config=org_config
+    )
+    assert not task.options["managed"]  # Should be False due to explicit unmanaged=True
+
+
+def test_init_options__managed_explicit_unmanaged_false():
+    """Test that explicit unmanaged=False forces managed=True."""
+    pc = create_project_config(namespace="ns")
+    org_config = DummyOrgConfig({"namespace": "other"})
+    org_config._installed_packages = {}  # No packages installed
+    task = create_task(
+        ProfileGrantAllAccess, {"unmanaged": False}, project_config=pc, org_config=org_config
+    )
+    assert task.options["managed"]  # Should be True due to explicit unmanaged=False
+
+
+def test_init_options__managed_fallback_to_installed_packages():
+    """Test that we fall back to installed packages check when not in namespaced org."""
+    pc = create_project_config(namespace="ns")
+    org_config = DummyOrgConfig({"namespace": "different"})  # Different namespace
+    org_config._installed_packages = {"ns": None}  # But package is installed
+    task = create_task(
+        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+    )
+    assert task.options["managed"]  # Should be True due to installed package
+
+
+def test_init_options__managed_no_installed_package():
+    """Test that managed=False when package is not installed and not in namespaced org."""
+    pc = create_project_config(namespace="ns")
+    org_config = DummyOrgConfig({"namespace": "different"})
+    org_config._installed_packages = {}  # No packages installed
+    task = create_task(
+        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+    )
+    assert not task.options["managed"]  # Should be False - no package installed
 
 
 def test_generate_package_xml__retrieve():

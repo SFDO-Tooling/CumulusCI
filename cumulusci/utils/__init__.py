@@ -264,6 +264,14 @@ def inject_namespace(
                 f'  {name}: Replaced {filename_token} with "{namespace_prefix}"'
             )
 
+        # Also replace ___NAMESPACED_ORG___ tokens in package.xml
+        prev_content = content
+        content = content.replace(namespaced_org_file_token, namespaced_org)
+        if logger and content != prev_content:
+            logger.info(
+                f'  {name}: Replaced {namespaced_org_file_token} with "{namespaced_org}"'
+            )
+
     prev_content = content
     content = content.replace(namespaced_org_token, namespaced_org)
     if logger and content != prev_content:
@@ -430,7 +438,7 @@ def get_option_usage_string(name, option):
     """
     usage_str = option.get("usage")
     if not usage_str:
-        usage_str = f"--{name} {name.replace('_','').upper()}"
+        usage_str = f"--{name} {name.replace('_', '').upper()}"
     return usage_str
 
 

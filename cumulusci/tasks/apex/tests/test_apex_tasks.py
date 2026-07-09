@@ -68,6 +68,7 @@ class TestRunApexTests(MockLoggerMixin):
             },
             "test",
         )
+        self.org_config._installed_packages = {}
         self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
