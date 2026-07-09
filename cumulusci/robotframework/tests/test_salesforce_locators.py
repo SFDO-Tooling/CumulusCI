@@ -19,10 +19,14 @@ class TestLocators:
         # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
         # we're not running in the context of a robot test. The library should
-        # return the latest version of the locators.
+        # fall back to the latest version since the mock doesn't reach the
+        # init path that resolves the API version from the org.
         sf = Salesforce()
 
-        expected = "cumulusci.robotframework.locators_57"
+        locator_folder = Path("./cumulusci/robotframework")
+        locator_modules = sorted(locator_folder.glob("locators_[0-9][0-9].py"))
+        expected = f"cumulusci.robotframework.{locator_modules[-1].stem}"
+
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         assert expected == actual, message
@@ -71,3 +75,17 @@ class TestLocators:
         )
         assert len(keys_56) > 0
         assert keys_57.issubset(keys_56)
+
+    def test_locators_66(self):
+        """Verify that locators_66 is a superset of locators_57"""
+        import cumulusci.robotframework.locators_57 as locators_57
+        import cumulusci.robotframework.locators_66 as locators_66
+
+        keys_57 = set(locators_57.lex_locators)
+        keys_66 = set(locators_66.lex_locators)
+
+        assert id(locators_57.lex_locators) != id(locators_66.lex_locators), (
+            "locators_57.lex_locators and locators_66.lex_locators are the same object"
+        )
+        assert len(keys_57) > 0
+        assert keys_66.issubset(keys_57)

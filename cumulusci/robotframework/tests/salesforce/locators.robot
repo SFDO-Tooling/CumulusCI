@@ -17,7 +17,7 @@ Locator strategy 'text'
 
     # Try to use the locator strategy on an element
     # we know should be on the page.
-    Wait until page contains element     text:Mobile Publisher
+    Wait until page contains element     text:Object Manager
 
 Locator strategy 'title'
     [Documentation]
