@@ -35,6 +35,7 @@ issue.
 ## See also
 
 -   `docs/triage/v5/repro-results.md` - narrative evidence per issue.
+-   `docs/triage/v5/repro-results.csv` - machine-readable matrix backing the narrative.
 -   `docs/triage/v5/fix-sketches/issue_<NNNN>.md` - proposed fix
     approach per issue.
 -   `docs/triage/v5/proposals.md` - pass-1 classification matrix.
