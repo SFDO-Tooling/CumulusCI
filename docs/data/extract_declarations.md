@@ -69,7 +69,7 @@ As a side effect, this will pull down many other objects referenced
 by fields that were referred to. For example ... XXX
 
 If you wanted to pull out many objects from an org, it might be easier
-to pull them out with with wildcards. There are wildcards for
+to pull them out with wildcards. There are wildcards for
 "all objects" (`OBJECTS(ALL)`), "all standard objects" (`OBJECTS(STANDARD)`),
 and "all custom objects" (`OBJECTS(CUSTOM)`). For example, to pull out
 all Account fields, all Standard Fields on Custom objects and all Custom
