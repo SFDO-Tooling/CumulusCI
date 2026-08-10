@@ -319,7 +319,7 @@ referenced repository.
     `cumulusci.yml` file. If found, recursively resolve those
     dependencies and any dependencies belonging to them.
 
--   Determine whether to install the project as as a managed package or unmanaged metadata:
+-   Determine whether to install the project as a managed package or unmanaged metadata:
 
     : - If the project has a namespace configured in the
     `cumulusci.yml` file, treat the project as a managed package

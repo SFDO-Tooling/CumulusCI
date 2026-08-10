@@ -7,7 +7,7 @@ CumulusCI's `deploy` task uses the Metadata API to deploy metadata from the repo
 
 Use the `path` option to specify the path to the metadata you wish to deploy. The metadata may be in either Metadata API or Salesforce DX source format. SFDX-format source will automatically be converted to Metadata API for deployment. This conversion takes place prior to application of transforms (below) and requires that the path be listed as a package directory in `sfdx-project.json`.
 
-Set the test run level with the `test_level` option. Available values are `NoTestRun`, `RunLocalTests`, `RunAllTestsInOrg`, and `RunSpecifiedTests`. If you use `RunSpecifiedTests`, you must also supply a list of tests with the `specified_tests` option. This option accept a comma-separated value at the command line or a list in your `cumulusci.yml` markup.
+Set the test run level with the `test_level` option. Available values are `NoTestRun`, `RunLocalTests`, `RunAllTestsInOrg`, and `RunSpecifiedTests`. If you use `RunSpecifiedTests`, you must also supply a list of tests with the `specified_tests` option. This option accepts a comma-separated value at the command line or a list in your `cumulusci.yml` markup.
 
 ## Source Transforms
 
