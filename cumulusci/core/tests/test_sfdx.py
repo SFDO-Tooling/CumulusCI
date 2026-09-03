@@ -11,6 +11,7 @@ from cumulusci.core.sfdx import (
     get_default_devhub_username,
     get_source_format_for_path,
     get_source_format_for_zipfile,
+    sf_supports_auth_commands,
     sfdx,
     shell_quote,
 )
@@ -55,6 +56,37 @@ def test_get_default_devhub_username(Command):
     )
     result = get_default_devhub_username()
     assert result == "devhub@example.com"
+
+
+class TestSfSupportsAuthCommands:
+    # The per-process cache is cleared around every test by the autouse
+    # `reset_sf_cli_capability_cache` fixture in cumulusci/conftest.py.
+
+    @mock.patch("sarge.Command")
+    def test_supported(self, Command):
+        Command.return_value = mock.Mock(
+            stdout=io.BytesIO(b"USAGE ..."), stderr=io.BytesIO(b""), returncode=0
+        )
+        assert sf_supports_auth_commands() is True
+        assert Command.call_args[0][0] == "sf org auth show-access-token --help"
+
+    @mock.patch("sarge.Command")
+    def test_not_supported(self, Command):
+        Command.return_value = mock.Mock(
+            stdout=io.BytesIO(b""),
+            stderr=io.BytesIO(b"Error: Command org:auth:show-access-token not found."),
+            returncode=1,
+        )
+        assert sf_supports_auth_commands() is False
+
+    @mock.patch("sarge.Command")
+    def test_cached_per_process(self, Command):
+        Command.return_value = mock.Mock(
+            stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=0
+        )
+        assert sf_supports_auth_commands() is True
+        assert sf_supports_auth_commands() is True
+        assert Command.call_count == 1
 
 
 @mock.patch("sarge.Command")

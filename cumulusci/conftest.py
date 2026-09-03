@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.github import get_github_api
+from cumulusci.core.sfdx import sf_supports_auth_commands
 from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
     ensure_accounts,
@@ -33,6 +34,15 @@ def mock_sleep():
     """Patch time.sleep to avoid delays in unit tests"""
     with mock.patch("time.sleep"):
         yield
+
+
+@fixture(autouse=True)
+def reset_sf_cli_capability_cache():
+    """The Salesforce CLI capability probe is cached per process; do not let
+    one test's (mocked) answer leak into the next."""
+    sf_supports_auth_commands.cache_clear()
+    yield
+    sf_supports_auth_commands.cache_clear()
 
 
 class MockHttpResponse(mock.Mock):

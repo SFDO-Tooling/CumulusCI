@@ -374,6 +374,12 @@ class TestOrgCommands:
 
         runtime.keychain.unset_default_org.assert_called_once()
 
+    # The org import tests feed the pre-2.136 `sf org display` payload (token
+    # and password inline), so pin the CLI capability probe to that generation.
+    @mock.patch(
+        "cumulusci.core.config.sfdx_org_config.sf_supports_auth_commands",
+        mock.Mock(return_value=False),
+    )
     @mock.patch("sarge.Command")
     def test_org_import(self, cmd):
         runtime = mock.Mock()
@@ -406,6 +412,10 @@ class TestOrgCommands:
             in "".join(out)
         )
 
+    @mock.patch(
+        "cumulusci.core.config.sfdx_org_config.sf_supports_auth_commands",
+        mock.Mock(return_value=False),
+    )
     @mock.patch("sarge.Command")
     @responses.activate
     def test_org_import__persistent_org(self, cmd):
@@ -460,6 +470,10 @@ class TestOrgCommands:
 
         assert "Imported org: 00Dxxxxxxxxxxxx, username: test@test.org" in "".join(out)
 
+    @mock.patch(
+        "cumulusci.core.config.sfdx_org_config.sf_supports_auth_commands",
+        mock.Mock(return_value=False),
+    )
     @mock.patch("sarge.Command")
     @responses.activate
     def test_org_import__trial_org(self, cmd):
@@ -888,9 +902,9 @@ class TestOrgCommands:
 
         run_click_command(org.org_list, runtime=runtime, json_flag=False, plain=False)
 
-        assert "Cannot load org config for `test1`" in str(echo.mock_calls), (
+        assert "Cannot load org config for `test1`" in str(
             echo.mock_calls
-        )
+        ), echo.mock_calls
         assert "NOPE!" in str(echo.mock_calls), echo.mock_calls
         assert "Cannot cleanup org cache dirs" in str(echo.mock_calls), echo.mock_calls
 

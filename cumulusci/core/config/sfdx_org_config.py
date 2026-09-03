@@ -4,49 +4,10 @@ from json.decoder import JSONDecodeError
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import SfdxOrgException
-from cumulusci.core.sfdx import sfdx, shell_quote
+from cumulusci.core.sfdx import sf_supports_auth_commands, sfdx, shell_quote
 from cumulusci.utils import get_git_config
 
 nl = "\n"  # fstrings can't contain backslashes
-
-# Prefix of the sentinel string that SF CLI 2.136+ writes in place of
-# credential fields when SF_TEMP_SHOW_SECRETS is unset. See
-# @salesforce/plugin-org messages/secrets-redacted.md for the canonical
-# strings. Prefix-only matching avoids coupling to the English suffix.
-# The trailing space is load-bearing: the CLI sentinel is the literal
-# "[REDACTED] Use ..." form, never "[REDACTED]Use ...".
-#
-# Locale fragility: today `@salesforce/core`'s Messages.getLocale() is
-# hardcoded to en_US (per-locale message bundles are an unimplemented
-# TODO upstream), so this prefix is stable on every shipping CLI. The
-# "[REDACTED] " literal lives inside the translatable message string,
-# however; if Salesforce later wires up localization, a non-English
-# `redacted.accessToken` could drop this prefix and silently break
-# detection. A locale-independent signal (matching the three sentinel
-# message keys, or "value is not a well-formed access token") would be
-# more robust if/when that lands.
-#
-# Tripwire: if a `sf org display --json` access token round-trips into
-# an API 401 with a human-readable token value, suspect this path first.
-_REDACTED_PREFIX = "[REDACTED] "
-
-
-def _is_sentinel(value):
-    """True only for the SF CLI 2.136+ redaction sentinel string."""
-    return isinstance(value, str) and value.startswith(_REDACTED_PREFIX)
-
-
-def _is_redacted(value):
-    """True when the CLI returned an absent/empty value or the redaction sentinel.
-
-    Used for the access-token path: an absent token is as actionable as a redacted
-    one (both mean "ask `sf org auth show-access-token`"). For the password path,
-    prefer _is_sentinel so a legitimately-absent password (passwordless org on a
-    new CLI) does not trigger a pointless `sf org auth show-user-password` call.
-    """
-    if not value:
-        return True
-    return _is_sentinel(value)
 
 
 class SfdxOrgConfig(OrgConfig):
@@ -101,17 +62,28 @@ class SfdxOrgConfig(OrgConfig):
                 "Please re-authenticate with `sf org login`."
             )
 
-        access_token = result.get("accessToken")
-        if _is_redacted(access_token):
+        if sf_supports_auth_commands():
+            # Salesforce CLI 2.136+ redacts credentials from `sf org display`
+            # and provides dedicated commands to read them. Always use those
+            # commands on such a CLI rather than inspecting the (possibly
+            # redacted) fields.
             access_token = self._fetch_access_token(username)
-
-        password = result.get("password")
-        # Gate the password fallback on the sentinel ONLY. An absent password
-        # means the org has no password (web-auth sandbox, scratch org without
-        # `force:user:password:generate`); calling `sf org auth show-user-password`
-        # in that case is a pointless extra subprocess on every refresh.
-        if _is_sentinel(password):
-            password = self._fetch_user_password(username)
+            # `sf org display` emits the `password` key only when the org has
+            # a locally generated password (scratch org with a generated
+            # password); it omits the key entirely otherwise. Checking for the
+            # key avoids a pointless `show-user-password` subprocess for the
+            # common passwordless case without depending on the field's value.
+            password = (
+                self._fetch_user_password(username) if result.get("password") else None
+            )
+        else:
+            access_token = result.get("accessToken")
+            if not access_token:
+                raise SfdxOrgException(
+                    "Salesforce CLI did not return an access token from "
+                    "`sf org display`. Please re-authenticate with `sf org login`."
+                )
+            password = result.get("password")
 
         sfdx_info = {
             "instance_url": result["instanceUrl"],
@@ -224,6 +196,10 @@ class SfdxOrgConfig(OrgConfig):
             else:
                 username = result[0]["Username"]
 
+        if sf_supports_auth_commands():
+            # CLI 2.136+: `sf org display` no longer carries the token.
+            return self._fetch_access_token(username)
+
         p = sfdx(f"org display --target-org={shell_quote(username)} --json")
         if p.returncode:
             output = p.stdout_text.read()
@@ -238,15 +214,12 @@ class SfdxOrgConfig(OrgConfig):
             )
 
         info = json.loads(p.stdout_text.read())
-        token = info.get("result", {}).get("accessToken")
-        if _is_redacted(token):
-            return self._fetch_access_token(username)
-        return token
+        return info["result"]["accessToken"]
 
     def _fetch_access_token(self, username):
-        """Retrieve an access token using `sf org auth show-access-token`.
+        """Retrieve an access token with `sf org auth show-access-token`.
 
-        Used as a fallback when `sf org display` redacts the token (SF CLI 2.136+).
+        Only called when the installed CLI provides the command (SF CLI 2.136+).
         """
         p = sfdx(
             f"org auth show-access-token --target-org={shell_quote(username)}"
@@ -259,9 +232,8 @@ class SfdxOrgConfig(OrgConfig):
             except JSONDecodeError:
                 explanation = output
             raise SfdxOrgException(
-                f"Unable to retrieve access token for {username}. "
-                f"Tried `sf org display` and `sf org auth show-access-token`. "
-                f"Try running `sf org login` or upgrading the Salesforce CLI.\n"
+                f"Unable to retrieve access token for {username} using "
+                f"`sf org auth show-access-token`. Try running `sf org login`.\n"
                 f"{explanation}"
             )
         try:
@@ -271,23 +243,21 @@ class SfdxOrgConfig(OrgConfig):
                 f"Failed to parse JSON from `sf org auth show-access-token`: {e}"
             )
         token = info.get("result", {}).get("accessToken")
-        if _is_redacted(token):
-            # Defensive: if show-access-token itself ever returns a sentinel,
-            # treat it as failure rather than handing back a placeholder.
+        if not token:
             raise SfdxOrgException(
-                f"Unable to retrieve access token for {username}. "
-                f"Tried `sf org display` and `sf org auth show-access-token`. "
-                f"Try running `sf org login` or upgrading the Salesforce CLI."
+                f"`sf org auth show-access-token` did not return an access token "
+                f"for {username}. Try running `sf org login`."
             )
         return token
 
     def _fetch_user_password(self, username):
-        """Retrieve the org password using `sf org auth show-user-password`.
+        """Retrieve the org's locally generated password with
+        `sf org auth show-user-password`.
 
-        Used as a fallback when `sf org display` redacts the password (SF CLI
-        2.136+). Returns None on any failure path (non-zero exit, malformed
-        JSON, sentinel result) since the password is optional. Failures are
-        logged at debug level so transient issues can be diagnosed without
+        Only called when the installed CLI provides the command (SF CLI 2.136+).
+        Returns None on any failure path (non-zero exit such as NoPasswordError,
+        malformed JSON, empty result) since the password is optional. Failures
+        are logged at debug level so transient issues can be diagnosed without
         promoting the call to raise.
         """
         p = sfdx(
@@ -308,10 +278,7 @@ class SfdxOrgConfig(OrgConfig):
                 f"for {username}: {e}. Treating as no password."
             )
             return None
-        password = info.get("result", {}).get("password")
-        if _is_redacted(password):
-            return None
-        return password
+        return info.get("result", {}).get("password") or None
 
     def force_refresh_oauth_token(self):
         # Call org display and parse output to get instance_url and

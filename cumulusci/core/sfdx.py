@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import io
 import json
 import logging
@@ -82,6 +83,33 @@ def shell_quote(s: str):
         return result
     else:
         return sarge.shell_quote(s)
+
+
+@functools.lru_cache(maxsize=None)
+def sf_supports_auth_commands() -> bool:
+    """Whether the installed Salesforce CLI has the `sf org auth show-*` commands.
+
+    Salesforce CLI 2.136+ (@salesforce/plugin-org 5.11+) redacts accessToken,
+    password, and sfdxAuthUrl from `sf org display` and `sf org list` output and
+    added `sf org auth show-access-token`, `show-user-password`, and
+    `show-sfdx-auth-url` as the supported way to read them.
+
+    We probe for the command itself rather than parsing `sf --version` because
+    plugin-org can be installed or linked independently of the CLI release, and
+    because this avoids depending on the wording of the redaction placeholder.
+    `--help` exits 0 when the command exists and non-zero otherwise, without
+    touching any org.
+
+    The result is cached for the life of the process; the CLI does not change
+    underneath a running cci command.
+    """
+    p = sfdx("org auth show-access-token --help")
+    supported = p.returncode == 0
+    logger.debug(
+        "Salesforce CLI %s the `sf org auth show-*` commands",
+        "supports" if supported else "lacks",
+    )
+    return supported
 
 
 def get_default_devhub_username():
