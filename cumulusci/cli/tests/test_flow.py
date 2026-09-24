@@ -64,7 +64,7 @@ def test_flow_info(echo):
         load_keychain=False,
     )
 
-    run_click_command(flow.flow_info, runtime=runtime, flow_name="test")
+    run_click_command(flow.flow_info, runtime=runtime, flow_name="test", extra_yaml=())
 
     echo.assert_called_with(
         "\nFlow Steps\n1) task: test_task [from current folder]\n   options:\n       option_name: option_value"
@@ -75,7 +75,36 @@ def test_flow_info__not_found():
     runtime = mock.Mock()
     runtime.get_flow.side_effect = FlowNotFoundError
     with pytest.raises(click.UsageError):
-        run_click_command(flow.flow_info, runtime=runtime, flow_name="test")
+        run_click_command(
+            flow.flow_info, runtime=runtime, flow_name="test", extra_yaml=()
+        )
+
+
+def test_flow_info__extra_yaml_applied(tmp_path):
+    extra = tmp_path / "extra.yml"
+    extra.write_text(
+        "flows:\n"
+        "  injected_flow:\n"
+        "    description: injected flow\n"
+        "    steps:\n"
+        "      1:\n"
+        "        task: util_sleep\n"
+    )
+    runtime = mock.Mock()
+    runtime.get_flow.return_value.get_summary.return_value = "summary text"
+
+    run_click_command(
+        flow.flow_info,
+        runtime=runtime,
+        flow_name="injected_flow",
+        extra_yaml=(str(extra),),
+    )
+
+    runtime.reload_project_config.assert_called_once()
+    assert (
+        "injected flow"
+        in runtime.reload_project_config.call_args.kwargs["additional_yaml"]
+    )
 
 
 @mock.patch("cumulusci.cli.flow.group_items")
@@ -157,12 +186,62 @@ def test_flow_run():
         debug=False,
         o=[("test_task__color", "blue")],
         no_prompt=True,
+        extra_yaml=(),
     )
 
     runtime.get_flow.assert_called_once_with(
         "test", options={"test_task": {"color": "blue"}}
     )
     org_config.delete_org.assert_called_once()
+
+
+def test_flow_run__extra_yaml_applied(tmp_path):
+    extra = tmp_path / "extra.yml"
+    extra.write_text(
+        "tasks:\n"
+        "  injected_task:\n"
+        "    description: injected via --extra-yaml\n"
+        "    class_path: cumulusci.tasks.util.Sleep\n"
+    )
+    runtime = mock.Mock()
+    runtime.get_org.return_value = ("dev", mock.Mock(scratch=False))
+    runtime.get_flow.return_value.run.return_value = None
+
+    run_click_command(
+        flow.flow_run,
+        runtime=runtime,
+        flow_name="test_flow",
+        org="dev",
+        delete_org=False,
+        debug=False,
+        o=(),
+        no_prompt=True,
+        extra_yaml=(str(extra),),
+    )
+
+    runtime.reload_project_config.assert_called_once()
+    call_kwargs = runtime.reload_project_config.call_args.kwargs
+    assert "injected via --extra-yaml" in call_kwargs["additional_yaml"]
+
+
+def test_flow_run__no_extra_yaml_does_not_reload():
+    runtime = mock.Mock()
+    runtime.get_org.return_value = ("dev", mock.Mock(scratch=False))
+    runtime.get_flow.return_value.run.return_value = None
+
+    run_click_command(
+        flow.flow_run,
+        runtime=runtime,
+        flow_name="test_flow",
+        org="dev",
+        delete_org=False,
+        debug=False,
+        o=(),
+        no_prompt=True,
+        extra_yaml=(),
+    )
+
+    runtime.reload_project_config.assert_called_once_with(additional_yaml=None)
 
 
 def test_flow_run__delete_org_when_error_occurs_in_flow():
@@ -194,6 +273,7 @@ def test_flow_run__delete_org_when_error_occurs_in_flow():
             debug=False,
             o=[("test_task__color", "blue")],
             no_prompt=True,
+            extra_yaml=(),
         )
 
     runtime.get_flow.assert_called_once_with(
@@ -217,6 +297,7 @@ def test_flow_run__option_error():
             debug=False,
             o=[("test_task", "blue")],
             no_prompt=True,
+            extra_yaml=(),
         )
 
 
@@ -235,6 +316,7 @@ def test_flow_run__delete_non_scratch():
             debug=False,
             o=None,
             no_prompt=True,
+            extra_yaml=(),
         )
 
 
@@ -267,6 +349,7 @@ def test_flow_run__org_delete_error(echo):
         "debug": False,
         "no_prompt": True,
         "o": (("test_task__color", "blue"),),
+        "extra_yaml": (),
     }
 
     run_click_command(flow.flow_run, **kwargs)

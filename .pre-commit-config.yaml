@@ -35,4 +35,4 @@ repos:
             types: [python]
             pass_filenames: false
             additional_dependencies:
-                - pyright
+                - pyright@1.1.408
