@@ -171,6 +171,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
             self._transform()
             if self.deploy:
                 result = self._deploy()
+                self._refresh_api_clients()
                 self._post_deploy(result)
 
 

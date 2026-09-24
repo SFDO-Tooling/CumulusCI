@@ -39,6 +39,11 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
     def _init_class(self):
         pass
 
+    def _refresh_api_clients(self):
+        self.sf = self._init_api()
+        self.bulk = self._init_bulk()
+        self.tooling = self._init_api("tooling")
+
     def _get_tooling_object(self, obj_name):
         obj = getattr(self.tooling, obj_name)
         obj.base_url = obj.base_url.replace("/sobjects/", "/tooling/sobjects/")
