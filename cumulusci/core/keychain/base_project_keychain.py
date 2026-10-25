@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import sarge
 
 from cumulusci.core.config import ConnectedAppOAuthConfig, ServiceConfig
@@ -131,6 +133,17 @@ class BaseProjectKeychain(BaseConfig):
         else:
             org.keychain = self
         return org
+
+    def org_lock(self, name: str, global_org: bool = False):
+        """Context manager held while an org's OAuth token is refreshed.
+        Keychains that store orgs in files lock them across processes;
+        an in-memory keychain has nothing to lock."""
+        return nullcontext()
+
+    def reload_org(self, name: str):
+        """Returns the org as currently stored. Keychains that store orgs in files
+        re-read them, in case another process changed them."""
+        return self.get_org(name)
 
     def list_orgs(self):
         """list the orgs configured in the keychain"""

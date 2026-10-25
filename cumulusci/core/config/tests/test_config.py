@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
+import requests
 import responses
 import yaml
 from github3.exceptions import NotFoundError
@@ -41,6 +42,7 @@ from cumulusci.core.keychain.base_project_keychain import (
     BaseProjectKeychain,
 )
 from cumulusci.core.source import LocalFolderSource
+from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.tests.util import CURRENT_SF_API_VERSION, DummyKeychain
 from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.version_strings import StrictVersion
@@ -913,6 +915,229 @@ class TestOrgConfig:
         client_config = OAuth2Client.call_args[0][0]
         assert client_config.client_id == "OTHER_ID"
         refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+
+    def _org_config_in_keychain(self, refresh_token="OLD_TOKEN"):
+        project_config = BaseProjectConfig(UniversalConfig())
+        keychain = BaseProjectKeychain(project_config, None)
+        config = OrgConfig(
+            {
+                "refresh_token": refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+            keychain=keychain,
+        )
+        keychain.set_org(config)
+        config._load_userinfo = mock.Mock()
+        config._load_orginfo = mock.Mock()
+        return config, keychain
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotated_token_is_saved(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        OAuth2Client.return_value.refresh_token.return_value = {
+            "access_token": "asdf",
+            "refresh_token": "NEW_TOKEN",
+        }
+
+        with mock.patch.object(keychain, "set_org") as save:
+            config.refresh_oauth_token(keychain)
+
+        assert config.refresh_token == "NEW_TOKEN"
+        assert config.refresh_token_rotation
+        save.assert_called_once()
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotated_token_without_keychain(self, OAuth2Client):
+        config = OrgConfig(
+            {
+                "refresh_token": "OLD_TOKEN",
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
+        config._load_userinfo = mock.Mock()
+        config._load_orginfo = mock.Mock()
+        keychain = BaseProjectKeychain(BaseProjectConfig(UniversalConfig()), None)
+        OAuth2Client.return_value.refresh_token.return_value = {
+            "access_token": "asdf",
+            "refresh_token": "NEW_TOKEN",
+        }
+
+        with mock.patch.object(keychain, "set_org") as save:
+            config.refresh_oauth_token(keychain)
+
+        assert config.refresh_token == "NEW_TOKEN"
+        assert config.refresh_token_rotation
+        save.assert_not_called()
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__unrotated_token_is_not_saved(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        OAuth2Client.return_value.refresh_token.return_value = {
+            "access_token": "asdf",
+        }
+
+        with mock.patch.object(keychain, "set_org") as save:
+            config.refresh_oauth_token(keychain)
+
+        assert config.refresh_token == "OLD_TOKEN"
+        save.assert_not_called()
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__uses_latest_stored_tokens(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        stored_org = OrgConfig(
+            {"refresh_token": "STORED_TOKEN", "access_token": "STORED_ACCESS"}, "test"
+        )
+        refresh_token = OAuth2Client.return_value.refresh_token
+        refresh_token.return_value = {"access_token": "asdf"}
+
+        with mock.patch.object(keychain, "reload_org", return_value=stored_org):
+            with mock.patch.object(config, "_access_token_works") as works:
+                config.refresh_oauth_token(keychain)
+
+        refresh_token.assert_called_once_with("STORED_TOKEN")
+        works.assert_not_called()
+
+    @responses.activate
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotation_reuses_working_access_token(
+        self, OAuth2Client
+    ):
+        config, keychain = self._org_config_in_keychain()
+        config.config.update(
+            {"access_token": "WORKING", "refresh_token_rotation": True}
+        )
+        responses.add(
+            responses.GET, "http://instance_url_111.com/services/oauth2/userinfo"
+        )
+
+        with mock.patch.object(keychain, "set_org") as save:
+            config.refresh_oauth_token(keychain)
+
+        OAuth2Client.return_value.refresh_token.assert_not_called()
+        save.assert_not_called()
+        assert config.access_token == "WORKING"
+        assert config.refresh_token == "OLD_TOKEN"
+        assert responses.calls[0].request.headers["Authorization"] == "Bearer WORKING"
+
+    @pytest.mark.parametrize("userinfo_status", [401, 403])
+    @responses.activate
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotation_refreshes_expired_access_token(
+        self, OAuth2Client, userinfo_status
+    ):
+        config, keychain = self._org_config_in_keychain()
+        config.config.update(
+            {"access_token": "EXPIRED", "refresh_token_rotation": True}
+        )
+        responses.add(
+            responses.GET,
+            "http://instance_url_111.com/services/oauth2/userinfo",
+            status=userinfo_status,
+        )
+        refresh_token = OAuth2Client.return_value.refresh_token
+        refresh_token.return_value = {
+            "access_token": "NEW_ACCESS",
+            "refresh_token": "NEW_TOKEN",
+        }
+
+        with mock.patch.object(keychain, "set_org") as save:
+            config.refresh_oauth_token(keychain)
+
+        refresh_token.assert_called_once_with("OLD_TOKEN")
+        save.assert_called_once()
+        assert config.access_token == "NEW_ACCESS"
+        assert config.refresh_token == "NEW_TOKEN"
+
+    @responses.activate
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotation_userinfo_error(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        config.config.update(
+            {"access_token": "WORKING", "refresh_token_rotation": True}
+        )
+        responses.add(
+            responses.GET,
+            "http://instance_url_111.com/services/oauth2/userinfo",
+            status=503,
+        )
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            config.refresh_oauth_token(keychain)
+
+        OAuth2Client.return_value.refresh_token.assert_not_called()
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotation_without_access_token(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        config.config["refresh_token_rotation"] = True
+        refresh_token = OAuth2Client.return_value.refresh_token
+        refresh_token.return_value = {"access_token": "asdf"}
+
+        config.refresh_oauth_token(keychain)
+
+        refresh_token.assert_called_once_with("OLD_TOKEN")
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__org_not_in_keychain(self, OAuth2Client):
+        project_config = BaseProjectConfig(UniversalConfig())
+        keychain = BaseProjectKeychain(project_config, None)
+        config = OrgConfig(
+            {
+                "refresh_token": "OLD_TOKEN",
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+            keychain=keychain,
+        )
+        config._load_userinfo = mock.Mock()
+        config._load_orginfo = mock.Mock()
+        refresh_token = OAuth2Client.return_value.refresh_token
+        refresh_token.return_value = {"access_token": "asdf"}
+
+        config.refresh_oauth_token(keychain)
+
+        refresh_token.assert_called_once_with("OLD_TOKEN")
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__holds_org_lock(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        lock = mock.MagicMock()
+
+        def refresh_token(token):
+            lock.__enter__.assert_called_once()
+            lock.__exit__.assert_not_called()
+            return {"access_token": "asdf"}
+
+        OAuth2Client.return_value.refresh_token.side_effect = refresh_token
+
+        with mock.patch.object(keychain, "org_lock", return_value=lock) as org_lock:
+            config.refresh_oauth_token(keychain)
+
+        org_lock.assert_called_once_with("test", False)
+        lock.__exit__.assert_called_once()
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__invalid_grant(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        OAuth2Client.return_value.refresh_token.side_effect = OAuth2Error(
+            'OAuth failed\nstatus_code: 400\ncontent: b\'{"error":"invalid_grant"}\''
+        )
+
+        with pytest.raises(OAuth2Error, match="Run `cci org connect test`"):
+            config.refresh_oauth_token(keychain)
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__other_oauth_error(self, OAuth2Client):
+        config, keychain = self._org_config_in_keychain()
+        OAuth2Client.return_value.refresh_token.side_effect = OAuth2Error(
+            "OAuth failed\nstatus_code: 500"
+        )
+
+        with pytest.raises(OAuth2Error, match="status_code: 500"):
+            config.refresh_oauth_token(keychain)
 
     @responses.activate
     def test_load_user_info__bad_json(self):

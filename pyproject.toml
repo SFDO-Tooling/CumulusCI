@@ -55,6 +55,7 @@ dependencies = [
     "snowfakery>=4.2.1",
     "xmltodict",
     "docutils<=0.21.2",
+    "filelock",
 ]
 
 [dependency-groups]

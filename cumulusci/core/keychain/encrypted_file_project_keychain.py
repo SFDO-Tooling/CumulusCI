@@ -3,8 +3,11 @@ import json
 import os
 import sys
 import typing as T
+from contextlib import nullcontext
 from pathlib import Path
 from shutil import rmtree
+
+from filelock import FileLock
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -34,6 +37,7 @@ DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 # .org and .service files. Equivalent to -rw-------
 SERVICE_ORG_FILE_MODE = 0o600
 OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+ORG_LOCK_TIMEOUT = 60  # seconds
 if sys.platform.startswith("win"):
     # O_BINARY only available on Windows
     OS_FILE_FLAGS |= os.O_BINARY
@@ -313,16 +317,40 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         @org_bytes - bytes-like objecte to write to disk
         @global_org - whether or not this is a global org
         """
-        if global_org:
-            filename = Path(f"{self.global_config_dir}/{name}.org")
-        elif self.project_local_dir is None:
+        filename = self._get_org_path(name, global_org)
+        if filename is None:
             return
-        else:
-            filename = Path(f"{self.project_local_dir}/{name}.org")
 
         fd = os.open(filename, OS_FILE_FLAGS, SERVICE_ORG_FILE_MODE)
         with open(fd, "wb") as f:
             f.write(org_bytes)
+
+    def _get_org_path(self, name: str, global_org: bool) -> T.Optional[Path]:
+        """Returns the path of the file an org is saved to, or None if it isn't saved to a file."""
+        if global_org:
+            return Path(f"{self.global_config_dir}/{name}.org")
+        elif self.project_local_dir is None:
+            return None
+        else:
+            return Path(f"{self.project_local_dir}/{name}.org")
+
+    def org_lock(self, name: str, global_org: bool = False):
+        """Locks an org's file across processes while its OAuth token is refreshed."""
+        org_path = self._get_org_path(name, global_org)
+        if org_path is None or not org_path.parent.exists():
+            return nullcontext()
+        return FileLock(f"{org_path}.lock", timeout=ORG_LOCK_TIMEOUT)
+
+    def reload_org(self, name: str):
+        """Re-reads an org from its file, which another process may have
+        updated since this keychain was loaded."""
+        org = self.orgs.get(name)
+        org_path = self._get_org_path(name, org.global_org) if org else None
+        if org_path and org_path.exists():
+            self.orgs[name] = org._replace(
+                data=org_path.read_bytes(), filename=str(org_path)
+            )
+        return self.get_org(name)
 
     def _get_org(self, org_name: str) -> ScratchOrgConfig:
         try:

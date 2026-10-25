@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+import responses
+from filelock import FileLock, Timeout
 
 from cumulusci.core import utils
 from cumulusci.core.config import (
@@ -160,6 +162,142 @@ class TestEncryptedFileProjectKeychain:
         with mock.patch.object(EncryptedFileProjectKeychain, "project_local_dir", None):
             keychain._save_org("alias", org_config, global_org=False)
         assert mock_open.call_count == 0
+
+    def test_reload_org__reads_changes_saved_by_another_process(
+        self, keychain, org_config, project_config, key
+    ):
+        org_config.config["refresh_token"] = "OLD_TOKEN"
+        keychain.set_org(org_config)
+        other_keychain = EncryptedFileProjectKeychain(project_config, key)
+        other_org = other_keychain.get_org("test")
+        other_org.config["refresh_token"] = "NEW_TOKEN"
+        other_org.save()
+
+        assert keychain.get_org("test").refresh_token == "OLD_TOKEN"
+        assert keychain.reload_org("test").refresh_token == "NEW_TOKEN"
+        assert keychain.get_org("test").refresh_token == "NEW_TOKEN"
+
+    def test_reload_org__global_org(self, keychain, org_config, project_config, key):
+        org_config.global_org = True
+        keychain.set_org(org_config, global_org=True)
+        other_keychain = EncryptedFileProjectKeychain(project_config, key)
+        other_org = other_keychain.get_org("test")
+        other_org.config["refresh_token"] = "NEW_TOKEN"
+        other_org.save()
+
+        org = keychain.reload_org("test")
+        assert org.refresh_token == "NEW_TOKEN"
+        assert org.global_org
+
+    def test_reload_org__org_not_saved_to_file(self, keychain, org_config):
+        with mock.patch.object(EncryptedFileProjectKeychain, "project_local_dir", None):
+            keychain.set_org(org_config)
+            assert keychain.reload_org("test").config["foo"] == "bar"
+
+    def test_reload_org__not_found(self, keychain):
+        with pytest.raises(OrgNotFound):
+            keychain.reload_org("mythical")
+
+    def test_org_lock__locks_org_file(self, keychain, org_config):
+        keychain.set_org(org_config)
+        lock_path = Path(keychain.project_local_dir, "test.org.lock")
+
+        with keychain.org_lock("test"):
+            with pytest.raises(Timeout):
+                FileLock(lock_path, timeout=0).acquire()
+        with FileLock(lock_path, timeout=0):
+            pass
+
+    def test_org_lock__global_org(self, keychain):
+        lock = keychain.org_lock("test", global_org=True)
+        assert lock.lock_file == str(Path(keychain.global_config_dir, "test.org.lock"))
+
+    def test_org_lock__no_project_local_dir(self, keychain):
+        with mock.patch.object(EncryptedFileProjectKeychain, "project_local_dir", None):
+            with keychain.org_lock("test"):
+                pass
+
+    @pytest.mark.parametrize(
+        "userinfo_status,expected_refresh_tokens_used,expected_stored_token",
+        [
+            # B reuses the access token A just got, instead of ending A's session.
+            (200, ["TOKEN_1"], "TOKEN_2"),
+            # The session has ended, so B refreshes using the token A rotated to.
+            (401, ["TOKEN_1", "TOKEN_2"], "TOKEN_3"),
+            (403, ["TOKEN_1", "TOKEN_2"], "TOKEN_3"),
+        ],
+    )
+    @responses.activate
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._load_orginfo")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._load_userinfo")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotation_across_processes(
+        self,
+        OAuth2Client,
+        _load_userinfo,
+        _load_orginfo,
+        project_config,
+        key,
+        userinfo_status,
+        expected_refresh_tokens_used,
+        expected_stored_token,
+    ):
+        responses.add(
+            responses.GET,
+            "http://instance_url_111.com/services/oauth2/userinfo",
+            status=userinfo_status,
+        )
+        keychain_a = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig(
+            {"refresh_token": "TOKEN_1", "instance_url": "http://instance_url_111.com"},
+            "test",
+            keychain=keychain_a,
+        ).save()
+        # A second cci process loads the org before the first one refreshes it.
+        keychain_b = EncryptedFileProjectKeychain(project_config, key)
+        org_a = keychain_a.get_org("test")
+        org_b = keychain_b.get_org("test")
+        refresh_token = OAuth2Client.return_value.refresh_token
+        refresh_token.side_effect = [
+            {"access_token": "A", "refresh_token": "TOKEN_2"},
+            {"access_token": "B", "refresh_token": "TOKEN_3"},
+        ]
+
+        org_a.refresh_oauth_token(keychain_a)
+        org_b.refresh_oauth_token(keychain_b)
+
+        assert [
+            c.args[0] for c in refresh_token.call_args_list
+        ] == expected_refresh_tokens_used
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == expected_stored_token
+        assert stored_org.refresh_token_rotation
+
+    def test_save__keeps_tokens_rotated_by_another_process(self, project_config, key):
+        keychain_a = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig(
+            {"refresh_token": "TOKEN_1", "refresh_token_rotation": True},
+            "test",
+            keychain=keychain_a,
+        ).save()
+        org_a = keychain_a.get_org("test")
+        # Another cci process rotates the tokens after this one loaded the org.
+        keychain_b = EncryptedFileProjectKeychain(project_config, key)
+        org_b = keychain_b.get_org("test")
+        org_b.config.update({"refresh_token": "TOKEN_2", "access_token": "B"})
+        keychain_b.set_org(org_b)
+
+        org_a.config["userinfo"] = {"name": "A"}
+        with mock.patch.object(
+            keychain_a, "org_lock", wraps=keychain_a.org_lock
+        ) as org_lock:
+            org_a.save()
+
+        org_lock.assert_called_once_with("test", False)
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "TOKEN_2"
+        assert stored_org.access_token == "B"
+        assert stored_org.userinfo == {"name": "A"}
 
     def test_load_files__org_empty(self, keychain):
         self._write_file(
