@@ -14,6 +14,7 @@ from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyResolutionError,
+    OrgCannotBeLoaded,
     OrgNotFound,
     ServiceNotConfigured,
 )
@@ -28,6 +29,13 @@ from cumulusci.utils.version_strings import StrictVersion
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
 MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
+# Checking whether an access token still works is safe to retry, so it gives up
+# instead of keeping other cci processes waiting for the org's lock.
+USERINFO_TIMEOUT = 20  # seconds
+# Refreshing isn't safe to retry with refresh token rotation: if Salesforce rotated
+# the token but its response never arrived, sending the old token again would
+# revoke the whole token family. So only connecting has a timeout.
+TOKEN_REFRESH_TIMEOUT = (10, None)  # (connect, read) seconds
 
 
 VersionInfo = namedtuple("VersionInfo", ["id", "number"])
@@ -83,6 +91,9 @@ class OrgConfig(BaseConfig):
         self._installed_packages = None
         self._is_person_accounts_enabled = None
         self._multiple_currencies_is_enabled = False
+        # The refresh token as of when this org was loaded from the keychain or last
+        # saved, or None if it didn't come from the keychain
+        self._loaded_refresh_token = None
 
         super().__init__(config)
 
@@ -135,8 +146,7 @@ class OrgConfig(BaseConfig):
                         if rotated:
                             self.config["refresh_token_rotation"] = True
                             if self.keychain:
-                                # save() would take the lock again, which is already held
-                                self.keychain.set_org(self, self.global_org)
+                                self.save()
         self._load_userinfo()
         self._load_orginfo()
 
@@ -146,19 +156,29 @@ class OrgConfig(BaseConfig):
         return nullcontext()
 
     def _load_latest_tokens(self):
-        """Use the tokens as currently stored in the keychain, in case
-        another process rotated them after this org config was loaded."""
-        if not self.keychain or not self.name:
+        """Use the tokens as currently stored in the keychain if another process
+        changed them after this org config was loaded from the keychain or saved.
+
+        Tokens in an org config that didn't come from the keychain, like one that
+        `cci org connect` just made, replace the stored ones."""
+        if not self.keychain or not self.name or self._loaded_refresh_token is None:
             return
         try:
             stored_config = self.keychain.reload_org(self.name).config
-        except OrgNotFound:
+        except (OrgNotFound, OrgCannotBeLoaded):
+            # Nothing usable is stored, so this config's tokens replace it.
+            return
+        # If the org was connected again as another org or user, the stored tokens
+        # don't go with the rest of this config. Keep this config's own, as before.
+        stored_id, own_id = stored_config.get("id"), self.config.get("id")
+        if stored_id and own_id and stored_id != own_id:
             return
         stored_token = stored_config.get("refresh_token")
-        if stored_token and stored_token != self.refresh_token:
+        if stored_token and stored_token != self._loaded_refresh_token:
             for key in ("refresh_token", "access_token", "refresh_token_rotation"):
                 if key in stored_config:
                     self.config[key] = stored_config[key]
+            self._loaded_refresh_token = stored_token
 
     def _access_token_works(self) -> bool:
         if not self.access_token:
@@ -166,6 +186,7 @@ class OrgConfig(BaseConfig):
         response = requests.get(
             self.instance_url + "/services/oauth2/userinfo",
             headers={"Authorization": "Bearer " + self.access_token},
+            timeout=USERINFO_TIMEOUT,
         )
         if response.status_code in (401, 403):
             return False
@@ -211,14 +232,25 @@ class OrgConfig(BaseConfig):
         )
         sf_oauth = self.OAuth2Client(sf_oauth_config)
         try:
-            return sf_oauth.refresh_token(self.refresh_token)
+            return sf_oauth.refresh_token(
+                self.refresh_token, timeout=TOKEN_REFRESH_TIMEOUT
+            )
         except OAuth2Error as e:
-            if "invalid_grant" not in str(e):
+            error = None
+            if e.response is not None:
+                try:
+                    error = e.response.json()
+                except ValueError:
+                    pass
+            if not isinstance(error, dict) or error.get("error") != "invalid_grant":
                 raise
+            # invalid_grant also covers problems that reconnecting won't fix,
+            # like an inactive user, so show what Salesforce said.
+            description = error.get("error_description") or "invalid_grant"
             raise OAuth2Error(
-                f"The refresh token for org {self.name} is no longer valid. "
-                "It may have expired from inactivity or been revoked. "
-                f"Run `cci org connect {self.name}` to connect the org again."
+                f"Salesforce rejected the refresh token for org {self.name}: "
+                f"{description}. If the token expired from inactivity or was revoked, "
+                f"run `cci org connect {self.name}` to connect the org again."
             ) from e
 
     @property
@@ -439,12 +471,13 @@ class OrgConfig(BaseConfig):
 
     def save(self):
         assert self.keychain, "Keychain was not set on OrgConfig"
-        if self.refresh_token_rotation:
+        if self.refresh_token:
             # Another cci process may have rotated the tokens since this org was
             # loaded. Saving the old ones would bring back a dead refresh token.
             with self._refresh_lock():
                 self._load_latest_tokens()
                 self.keychain.set_org(self, self.global_org)
+                self._loaded_refresh_token = self.refresh_token
         else:
             self.keychain.set_org(self, self.global_org)
 

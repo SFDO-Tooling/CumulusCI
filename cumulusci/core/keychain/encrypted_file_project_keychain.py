@@ -1,13 +1,15 @@
 import base64
+import errno
 import json
 import os
 import sys
+import tempfile
 import typing as T
-from contextlib import nullcontext
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from shutil import rmtree
 
-from filelock import FileLock
+from filelock import FileLock, Timeout
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -293,8 +295,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
         # if keychain is explicitly set to
         # EnvironmentProjectKeychain never save the org config.
-        keychain_class = os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
-        if keychain_class == "EnvironmentProjectKeychain":
+        if not self._saves_org_files:
             message = (
                 "The keychain is currently set to EnvironmentProjectKeychain; "
                 "skipping save of org config to file. "
@@ -320,10 +321,45 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         filename = self._get_org_path(name, global_org)
         if filename is None:
             return
+        # Replace the file a symlink points to, not the symlink.
+        filename = Path(os.path.realpath(filename))
 
+        # Write to a temporary file and move it into place, so that another process
+        # reading the org file never sees it half written, and a crash doesn't
+        # leave it empty.
+        temp_filename = None
+        try:
+            fd, temp_name = tempfile.mkstemp(
+                prefix=f".{filename.name}.", suffix=".tmp", dir=filename.parent
+            )
+            temp_filename = Path(temp_name)
+            with open(fd, "wb") as f:
+                f.write(org_bytes)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_filename, filename)
+        except OSError as e:
+            if temp_filename is not None:
+                with suppress(OSError):
+                    temp_filename.unlink(missing_ok=True)
+            # The directory may not be writable, on Windows another process may
+            # have the org file open, or the org file may be mounted on its own.
+            # Write the org file in place instead. Other errors, like a full disk,
+            # would likely cut that write short too.
+            if not isinstance(e, PermissionError) and e.errno != errno.EBUSY:
+                raise
+            self._write_org_file(filename, org_bytes)
+
+    def _write_org_file(self, filename: Path, org_bytes: bytes):
         fd = os.open(filename, OS_FILE_FLAGS, SERVICE_ORG_FILE_MODE)
         with open(fd, "wb") as f:
             f.write(org_bytes)
+
+    @property
+    def _saves_org_files(self) -> bool:
+        return (
+            os.environ.get("CUMULUSCI_KEYCHAIN_CLASS") != "EnvironmentProjectKeychain"
+        )
 
     def _get_org_path(self, name: str, global_org: bool) -> T.Optional[Path]:
         """Returns the path of the file an org is saved to, or None if it isn't saved to a file."""
@@ -334,19 +370,50 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         else:
             return Path(f"{self.project_local_dir}/{name}.org")
 
+    @contextmanager
     def org_lock(self, name: str, global_org: bool = False):
-        """Locks an org's file across processes while its OAuth token is refreshed."""
+        """Locks an org's file across processes while its OAuth tokens are
+        refreshed or saved. A process can take the lock again while holding it."""
         org_path = self._get_org_path(name, global_org)
-        if org_path is None or not org_path.parent.exists():
-            return nullcontext()
-        return FileLock(f"{org_path}.lock", timeout=ORG_LOCK_TIMEOUT)
+        if (
+            not self._saves_org_files
+            or org_path is None
+            or not org_path.parent.exists()
+        ):
+            yield
+            return
+        lock_path = Path(f"{org_path}.lock")
+        lock = FileLock(lock_path, timeout=ORG_LOCK_TIMEOUT, is_singleton=True)
+        try:
+            # On Windows, filelock takes "permission denied" when creating the lock
+            # file to mean that another process holds the lock, and waits until it
+            # times out. So create the lock file first.
+            if not lock_path.exists():
+                os.close(os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o644))
+            lock.acquire()
+        except Timeout:
+            raise CumulusCIException(
+                f"Timed out after {ORG_LOCK_TIMEOUT} seconds waiting for another cci "
+                f"process to finish updating org {name}. Try again."
+            )
+        except OSError as e:
+            # For example, the directory isn't writable. Go on without a lock,
+            # as cci did before it had one.
+            self.logger.debug(f"Could not lock org {name}: {e}")
+            lock = None
+        try:
+            yield
+        finally:
+            if lock is not None:
+                lock.release()
 
     def reload_org(self, name: str):
         """Re-reads an org from its file, which another process may have
         updated since this keychain was loaded."""
         org = self.orgs.get(name)
         org_path = self._get_org_path(name, org.global_org) if org else None
-        if org_path and org_path.exists():
+        # When orgs aren't saved to files, the file is older than the org in memory.
+        if self._saves_org_files and org_path and org_path.exists():
             self.orgs[name] = org._replace(
                 data=org_path.read_bytes(), filename=str(org_path)
             )

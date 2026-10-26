@@ -254,7 +254,7 @@ class OAuth2Client(object):
             self.client_config.token_uri, headers=HTTP_HEADERS, data=data
         )
 
-    def refresh_token(self, refresh_token):
+    def refresh_token(self, refresh_token, timeout=None):
         data = {
             "client_id": self.client_config.client_id,
             "client_secret": self.client_config.client_secret,
@@ -262,7 +262,10 @@ class OAuth2Client(object):
             "refresh_token": refresh_token,
         }
         response = requests.post(
-            self.client_config.token_uri, headers=HTTP_HEADERS, data=data
+            self.client_config.token_uri,
+            headers=HTTP_HEADERS,
+            data=data,
+            timeout=timeout,
         )
         self.validate_response(response)
         return safe_json_from_response(response)
@@ -274,7 +277,8 @@ class OAuth2Client(object):
         elif response.status_code == http.client.OK:
             return
         raise OAuth2Error(
-            f"OAuth failed\nstatus_code: {response.status_code}\ncontent: {response.content}"
+            f"OAuth failed\nstatus_code: {response.status_code}\ncontent: {response.content}",
+            response=response,
         )
 
 

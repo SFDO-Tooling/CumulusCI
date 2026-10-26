@@ -1,4 +1,5 @@
 import datetime
+import errno
 import json
 import os
 import re
@@ -49,6 +50,8 @@ from cumulusci.core.keychain.serialization import (
 )
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 from cumulusci.utils import temporary_dir
+
+ORG_KEYCHAIN_MODULE = "cumulusci.core.keychain.encrypted_file_project_keychain"
 
 
 @pytest.fixture(params=[True, False])
@@ -209,8 +212,148 @@ class TestEncryptedFileProjectKeychain:
             pass
 
     def test_org_lock__global_org(self, keychain):
-        lock = keychain.org_lock("test", global_org=True)
-        assert lock.lock_file == str(Path(keychain.global_config_dir, "test.org.lock"))
+        lock_path = Path(keychain.global_config_dir, "test.org.lock")
+
+        with keychain.org_lock("test", global_org=True):
+            with pytest.raises(Timeout):
+                FileLock(lock_path, timeout=0).acquire()
+
+    @mock.patch(f"{ORG_KEYCHAIN_MODULE}.ORG_LOCK_TIMEOUT", 0.01)
+    def test_org_lock__can_be_taken_again_by_same_process(self, keychain, org_config):
+        keychain.set_org(org_config)
+
+        with keychain.org_lock("test"):
+            with keychain.org_lock("test"):
+                pass
+
+    @mock.patch(f"{ORG_KEYCHAIN_MODULE}.ORG_LOCK_TIMEOUT", 0.01)
+    def test_org_lock__timeout(self, keychain, org_config):
+        keychain.set_org(org_config)
+        lock_path = Path(keychain.project_local_dir, "test.org.lock")
+
+        with FileLock(lock_path):
+            with pytest.raises(
+                CumulusCIException, match="another cci process to finish updating org"
+            ):
+                with keychain.org_lock("test"):
+                    pass
+
+    def test_org_lock__directory_not_writable(self, keychain, org_config):
+        keychain.set_org(org_config)
+
+        with mock.patch(f"{ORG_KEYCHAIN_MODULE}.FileLock") as FileLock_:
+            FileLock_.return_value.acquire.side_effect = PermissionError
+            with keychain.org_lock("test"):
+                pass
+
+        FileLock_.return_value.release.assert_not_called()
+
+    def test_org_lock__lock_file_cannot_be_created(self, keychain, org_config):
+        # filelock on Windows would wait for the lock until it timed out.
+        keychain.set_org(org_config)
+
+        with mock.patch(
+            f"{ORG_KEYCHAIN_MODULE}.os.open", side_effect=PermissionError
+        ), mock.patch(f"{ORG_KEYCHAIN_MODULE}.FileLock") as FileLock_:
+            with keychain.org_lock("test"):
+                pass
+
+        FileLock_.return_value.acquire.assert_not_called()
+        FileLock_.return_value.release.assert_not_called()
+
+    def test_org_lock__orgs_not_saved_to_files(self, keychain, org_config):
+        keychain.set_org(org_config)
+
+        with mock.patch.dict(
+            os.environ, {"CUMULUSCI_KEYCHAIN_CLASS": "EnvironmentProjectKeychain"}
+        ), mock.patch(f"{ORG_KEYCHAIN_MODULE}.FileLock") as FileLock_:
+            with keychain.org_lock("test"):
+                pass
+
+        FileLock_.assert_not_called()
+
+    def test_save_org__no_temp_file_left(self, keychain, org_config):
+        keychain.set_org(org_config)
+
+        assert Path(keychain.project_local_dir, "test.org").exists()
+        assert not list(Path(keychain.project_local_dir).glob("*.tmp"))
+
+    def test_save_org__directory_not_writable(self, keychain, org_config):
+        keychain.set_org(org_config)
+        org_config.config["foo"] = "baz"
+        os_open = os.open
+
+        def open_unless_temp(path, *args):
+            if str(path).endswith(".tmp"):
+                raise PermissionError
+            return os_open(path, *args)
+
+        with mock.patch(f"{ORG_KEYCHAIN_MODULE}.os.open", side_effect=open_unless_temp):
+            keychain.set_org(org_config)
+
+        assert keychain.reload_org("test").config["foo"] == "baz"
+
+    def test_save_org__file_in_use(self, keychain, org_config):
+        keychain.set_org(org_config)
+        org_config.config["foo"] = "baz"
+
+        with mock.patch(
+            f"{ORG_KEYCHAIN_MODULE}.os.replace", side_effect=PermissionError
+        ):
+            keychain.set_org(org_config)
+
+        assert keychain.reload_org("test").config["foo"] == "baz"
+        assert not list(Path(keychain.project_local_dir).glob("*.tmp"))
+
+    def test_save_org__write_fails(self, keychain, org_config):
+        keychain.set_org(org_config)
+        org_config.config["foo"] = "baz"
+
+        with mock.patch(
+            f"{ORG_KEYCHAIN_MODULE}.os.fsync", side_effect=OSError(28, "No space left")
+        ), pytest.raises(OSError, match="No space left"):
+            keychain.set_org(org_config)
+
+        # The org file wasn't overwritten.
+        assert keychain.reload_org("test").config["foo"] == "bar"
+        assert not list(Path(keychain.project_local_dir).glob("*.tmp"))
+
+    def test_save_org__symlinked_org_file(self, keychain, org_config, tmp_path):
+        keychain.set_org(org_config)
+        org_path = Path(keychain.project_local_dir, "test.org")
+        target = tmp_path / "test.org"
+        org_path.replace(target)
+        org_path.symlink_to(target)
+        org_config.config["foo"] = "baz"
+
+        keychain.set_org(org_config)
+
+        assert org_path.is_symlink()
+        assert keychain.reload_org("test").config["foo"] == "baz"
+
+    def test_save_org__org_file_mounted_on_its_own(self, keychain, org_config):
+        keychain.set_org(org_config)
+        org_config.config["foo"] = "baz"
+
+        with mock.patch(
+            f"{ORG_KEYCHAIN_MODULE}.os.replace",
+            side_effect=OSError(errno.EBUSY, "Device or resource busy"),
+        ):
+            keychain.set_org(org_config)
+
+        assert keychain.reload_org("test").config["foo"] == "baz"
+        assert not list(Path(keychain.project_local_dir).glob("*.tmp"))
+
+    def test_save_org__temp_file_cannot_be_removed(self, keychain, org_config):
+        keychain.set_org(org_config)
+        org_config.config["foo"] = "baz"
+
+        with mock.patch(
+            f"{ORG_KEYCHAIN_MODULE}.os.replace", side_effect=PermissionError
+        ), mock.patch.object(Path, "unlink", side_effect=PermissionError):
+            keychain.set_org(org_config)
+
+        assert keychain.reload_org("test").config["foo"] == "baz"
 
     def test_org_lock__no_project_local_dir(self, keychain):
         with mock.patch.object(EncryptedFileProjectKeychain, "project_local_dir", None):
@@ -299,6 +442,113 @@ class TestEncryptedFileProjectKeychain:
         assert stored_org.access_token == "B"
         assert stored_org.userinfo == {"name": "A"}
 
+    def test_save__keeps_first_rotation_by_another_process(self, project_config, key):
+        keychain_a = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig({"refresh_token": "TOKEN_1"}, "test", keychain=keychain_a).save()
+        # This process loads the org before any cci process has seen a rotation.
+        org_a = keychain_a.get_org("test")
+        keychain_b = EncryptedFileProjectKeychain(project_config, key)
+        org_b = keychain_b.get_org("test")
+        org_b.config.update(
+            {"refresh_token": "TOKEN_2", "refresh_token_rotation": True}
+        )
+        org_b.save()
+
+        org_a.config["userinfo"] = {"name": "A"}
+        org_a.save()
+
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "TOKEN_2"
+        assert stored_org.refresh_token_rotation
+        assert stored_org.userinfo == {"name": "A"}
+
+    def test_save__org_connected_again_as_another_user(self, project_config, key):
+        keychain_a = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig(
+            {"refresh_token": "TOKEN_1", "id": "ORG_1/USER_1"},
+            "test",
+            keychain=keychain_a,
+        ).save()
+        org_a = keychain_a.get_org("test")
+        # Like `cci org connect test` in another process, as another user
+        keychain_b = EncryptedFileProjectKeychain(project_config, key)
+        org_b = keychain_b.get_org("test")
+        org_b.config.update({"refresh_token": "OTHER_TOKEN", "id": "ORG_2/USER_2"})
+        org_b.save()
+
+        org_a.save()
+
+        # The stored org is consistent: this process's tokens with its own details.
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "TOKEN_1"
+        assert stored_org.config["id"] == "ORG_1/USER_1"
+
+    def test_save__stored_org_cannot_be_loaded(self, project_config, key):
+        keychain = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig({"refresh_token": "TOKEN_1"}, "test", keychain=keychain).save()
+        org = keychain.get_org("test")
+        Path(keychain.project_local_dir, "test.org").write_bytes(b"not an org")
+
+        org.save()
+
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "TOKEN_1"
+
+    def test_save__connected_org_replaces_stored_tokens(self, project_config, key):
+        keychain_a = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig({"refresh_token": "TOKEN_1"}, "test", keychain=keychain_a).save()
+
+        # Like `cci org connect test` in another process
+        keychain_b = EncryptedFileProjectKeychain(project_config, key)
+        keychain_b.get_org("test")
+        OrgConfig({"refresh_token": "CONNECTED"}, "test", keychain=keychain_b).save()
+
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "CONNECTED"
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._load_orginfo")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._load_userinfo")
+    @mock.patch(
+        "cumulusci.core.config.org_config.OrgConfig._access_token_works",
+        return_value=False,
+    )
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__rotation_when_orgs_not_saved_to_files(
+        self,
+        OAuth2Client,
+        _access_token_works,
+        _load_userinfo,
+        _load_orginfo,
+        project_config,
+        key,
+    ):
+        OrgConfig(
+            {"refresh_token": "TOKEN_1", "instance_url": "http://instance_url_111.com"},
+            "test",
+            keychain=EncryptedFileProjectKeychain(project_config, key),
+        ).save()
+        refresh_token = OAuth2Client.return_value.refresh_token
+        refresh_token.side_effect = [
+            {"access_token": "A", "refresh_token": "TOKEN_2"},
+            {"access_token": "B", "refresh_token": "TOKEN_3"},
+        ]
+
+        with mock.patch.dict(
+            os.environ, {"CUMULUSCI_KEYCHAIN_CLASS": "EnvironmentProjectKeychain"}
+        ):
+            keychain = EncryptedFileProjectKeychain(project_config, key)
+            org = keychain.get_org("test")
+            org.refresh_oauth_token(keychain)
+            org.refresh_oauth_token(keychain)
+
+        # The second refresh uses the token in memory, not the older one in the file.
+        assert [c.args[0] for c in refresh_token.call_args_list] == [
+            "TOKEN_1",
+            "TOKEN_2",
+        ]
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "TOKEN_1"
+
     def test_load_files__org_empty(self, keychain):
         self._write_file(
             Path(keychain.global_config_dir, "test.org"),
@@ -352,12 +602,13 @@ class TestEncryptedFileProjectKeychain:
 
         # check that it saves to the right place
         with mock.patch(
-            "cumulusci.core.keychain.encrypted_file_project_keychain.os.open"
-        ) as o:
+            "cumulusci.core.keychain.encrypted_file_project_keychain.os.replace",
+            wraps=os.replace,
+        ) as replace:
             org_config.save()
-            opened_file = o.mock_calls[0][1][0]
-            assert opened_file.parent.name == ".cumulusci"
-            assert opened_file.name == "test.org"
+            saved_file = replace.call_args[0][1]
+            assert saved_file.parent.name == ".cumulusci"
+            assert saved_file.name == "test.org"
 
         # check that it can be loaded in a fresh keychain
         new_keychain = EncryptedFileProjectKeychain(project_config, key)

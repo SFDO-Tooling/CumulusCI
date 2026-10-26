@@ -445,7 +445,7 @@ requires-dist = [
     { name = "defusedxml" },
     { name = "docutils", specifier = "<=0.21.2" },
     { name = "faker" },
-    { name = "filelock" },
+    { name = "filelock", specifier = ">=3.15.2" },
     { name = "github3-py" },
     { name = "jinja2" },
     { name = "keyring", specifier = "<=23.0.1" },

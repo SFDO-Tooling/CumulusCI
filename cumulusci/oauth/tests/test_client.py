@@ -130,8 +130,21 @@ class TestOAuth2Client:
             "https://login.salesforce.com/services/oauth2/token",
             body=b'{"message":"SENTINEL"}',
         )
-        info = client.refresh_token("token")
+        info = client.refresh_token("token", timeout=5)
         assert info["message"] == "SENTINEL"
+        assert responses.calls[0].request.req_kwargs["timeout"] == 5
+
+    @responses.activate
+    def test_refresh_token__error_includes_response(self, client):
+        responses.add(
+            responses.POST,
+            "https://login.salesforce.com/services/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant"},
+        )
+        with pytest.raises(OAuth2Error) as e:
+            client.refresh_token("token")
+        assert e.value.response.json() == {"error": "invalid_grant"}
 
     @responses.activate
     def test_auth_code_flow___http(self, http_client):

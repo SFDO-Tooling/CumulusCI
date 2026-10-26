@@ -351,3 +351,24 @@ class TestSubprocessKeychain:
         skc.set_org()
         with pytest.raises(exc.ServiceNotConfigured):
             skc.get_service("xyzzy")
+
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._load_orginfo")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._load_userinfo")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
+    def test_subprocess_keychain__org_can_be_refreshed(self, OAuth2Client, *_):
+        org_config = OrgConfig(
+            {"refresh_token": "OLD_TOKEN", "instance_url": "https://example.com"},
+            "test",
+        )
+        org_config.keychain = SubprocessKeychain(
+            mock.Mock(client_id="ID", client_secret=None)
+        )
+        OAuth2Client.return_value.refresh_token.return_value = {
+            "access_token": "NEW_ACCESS",
+            "refresh_token": "NEW_TOKEN",
+        }
+
+        org_config.refresh_oauth_token(org_config.keychain)
+        org_config.save()
+
+        assert org_config.refresh_token == "NEW_TOKEN"

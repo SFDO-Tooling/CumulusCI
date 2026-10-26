@@ -132,6 +132,7 @@ class BaseProjectKeychain(BaseConfig):
             assert org.keychain is self
         else:
             org.keychain = self
+        org._loaded_refresh_token = org.config.get("refresh_token")
         return org
 
     def org_lock(self, name: str, global_org: bool = False):
