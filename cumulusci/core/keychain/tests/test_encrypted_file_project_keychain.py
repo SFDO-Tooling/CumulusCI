@@ -53,6 +53,9 @@ from cumulusci.utils import temporary_dir
 
 ORG_KEYCHAIN_MODULE = "cumulusci.core.keychain.encrypted_file_project_keychain"
 
+LOGIN_ID = "https://login.salesforce.com/id"
+MY_DOMAIN_ID = "https://example.my.salesforce.com/id"
+
 
 @pytest.fixture(params=[True, False])
 def withdifferentformats(request):
@@ -465,7 +468,10 @@ class TestEncryptedFileProjectKeychain:
     def test_save__org_connected_again_as_another_user(self, project_config, key):
         keychain_a = EncryptedFileProjectKeychain(project_config, key)
         OrgConfig(
-            {"refresh_token": "TOKEN_1", "id": "ORG_1/USER_1"},
+            {
+                "refresh_token": "TOKEN_1",
+                "id": f"{LOGIN_ID}/00D000000000001/005000000000001",
+            },
             "test",
             keychain=keychain_a,
         ).save()
@@ -473,7 +479,12 @@ class TestEncryptedFileProjectKeychain:
         # Like `cci org connect test` in another process, as another user
         keychain_b = EncryptedFileProjectKeychain(project_config, key)
         org_b = keychain_b.get_org("test")
-        org_b.config.update({"refresh_token": "OTHER_TOKEN", "id": "ORG_2/USER_2"})
+        org_b.config.update(
+            {
+                "refresh_token": "OTHER_TOKEN",
+                "id": f"{LOGIN_ID}/00D000000000001/005000000000002",
+            }
+        )
         org_b.save()
 
         org_a.save()
@@ -481,7 +492,36 @@ class TestEncryptedFileProjectKeychain:
         # The stored org is consistent: this process's tokens with its own details.
         stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
         assert stored_org.refresh_token == "TOKEN_1"
-        assert stored_org.config["id"] == "ORG_1/USER_1"
+        assert stored_org.config["id"].endswith("/005000000000001")
+
+    def test_save__identity_url_host_changed(self, project_config, key):
+        keychain_a = EncryptedFileProjectKeychain(project_config, key)
+        OrgConfig(
+            {
+                "refresh_token": "TOKEN_1",
+                "id": f"{LOGIN_ID}/00D000000000001/005000000000001",
+            },
+            "test",
+            keychain=keychain_a,
+        ).save()
+        org_a = keychain_a.get_org("test")
+        # Another process rotates the token, and Salesforce returns the identity URL
+        # with a different host for the same org and user.
+        keychain_b = EncryptedFileProjectKeychain(project_config, key)
+        org_b = keychain_b.get_org("test")
+        org_b.config.update(
+            {
+                "refresh_token": "TOKEN_2",
+                "id": f"{MY_DOMAIN_ID}/00D000000000001/005000000000001",
+            }
+        )
+        org_b.save()
+
+        org_a.save()
+
+        # The rotated token is kept, not replaced by the one it rotated out.
+        stored_org = EncryptedFileProjectKeychain(project_config, key).get_org("test")
+        assert stored_org.refresh_token == "TOKEN_2"
 
     def test_save__stored_org_cannot_be_loaded(self, project_config, key):
         keychain = EncryptedFileProjectKeychain(project_config, key)

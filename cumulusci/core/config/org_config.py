@@ -170,8 +170,10 @@ class OrgConfig(BaseConfig):
             return
         # If the org was connected again as another org or user, the stored tokens
         # don't go with the rest of this config. Keep this config's own, as before.
+        # Only the org and user IDs at the end of the identity URL are compared,
+        # because its host can differ between logging in and refreshing.
         stored_id, own_id = stored_config.get("id"), self.config.get("id")
-        if stored_id and own_id and stored_id != own_id:
+        if stored_id and own_id and stored_id.split("/")[-2:] != own_id.split("/")[-2:]:
             return
         stored_token = stored_config.get("refresh_token")
         if stored_token and stored_token != self._loaded_refresh_token:
