@@ -1,8 +1,11 @@
+import base64
+import hashlib
 import http.client
 import logging
 import os
 import random
 import re
+import secrets
 import socket
 import ssl
 import threading
@@ -11,7 +14,7 @@ import webbrowser
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import parse_qs, quote, urlparse
 
 import requests
@@ -73,6 +76,16 @@ def create_key_and_self_signed_cert():
         )
 
 
+def generate_pkce_pair() -> Tuple[str, str]:
+    """Returns a (code_verifier, code_challenge) pair for PKCE using the S256 method.
+    See RFC 7636: https://datatracker.ietf.org/doc/html/rfc7636#section-4"""
+    # 96 random bytes encode to 128 base64url characters, the maximum allowed length.
+    code_verifier = secrets.token_urlsafe(96)
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return code_verifier, code_challenge
+
+
 class OAuth2ClientConfig(BaseModel):
     client_id: str
     client_secret: Optional[str] = None
@@ -80,6 +93,7 @@ class OAuth2ClientConfig(BaseModel):
     token_uri: str
     redirect_uri: Optional[str] = None
     scope: Optional[str] = None
+    pkce: bool = False
 
 
 class OAuth2DeviceConfig(BaseModel):
@@ -109,6 +123,8 @@ class OAuth2Client(object):
         self.response = None
         self.httpd = None
         self.httpd_timeout = 300
+        self.code_verifier = None
+        self.code_challenge = None
 
     def auth_code_flow(self, **kwargs) -> dict:
         """Completes the flow for the OAuth2 auth code grant type.
@@ -127,6 +143,8 @@ class OAuth2Client(object):
         }
         """
         assert self.client_config.redirect_uri
+        if self.client_config.pkce:
+            self.code_verifier, self.code_challenge = generate_pkce_pair()
         auth_uri_with_params = self._get_auth_uri(**kwargs)
         # Open up an http daemon to listen for the
         # callback from the auth server
@@ -173,6 +191,8 @@ class OAuth2Client(object):
         url += f"&redirect_uri={self.client_config.redirect_uri}"
         if self.client_config.scope:
             url += f"&scope={quote(self.client_config.scope)}"
+        if self.code_challenge:
+            url += f"&code_challenge={self.code_challenge}&code_challenge_method=S256"
         for k, v in kwargs.items():
             url += f"&{k}={quote(v)}"
         return url
@@ -228,11 +248,13 @@ class OAuth2Client(object):
             "redirect_uri": self.client_config.redirect_uri,
             "code": auth_code,
         }
+        if self.code_verifier:
+            data["code_verifier"] = self.code_verifier
         return requests.post(
             self.client_config.token_uri, headers=HTTP_HEADERS, data=data
         )
 
-    def refresh_token(self, refresh_token):
+    def refresh_token(self, refresh_token, timeout=None):
         data = {
             "client_id": self.client_config.client_id,
             "client_secret": self.client_config.client_secret,
@@ -240,7 +262,10 @@ class OAuth2Client(object):
             "refresh_token": refresh_token,
         }
         response = requests.post(
-            self.client_config.token_uri, headers=HTTP_HEADERS, data=data
+            self.client_config.token_uri,
+            headers=HTTP_HEADERS,
+            data=data,
+            timeout=timeout,
         )
         self.validate_response(response)
         return safe_json_from_response(response)
@@ -252,7 +277,8 @@ class OAuth2Client(object):
         elif response.status_code == http.client.OK:
             return
         raise OAuth2Error(
-            f"OAuth failed\nstatus_code: {response.status_code}\ncontent: {response.content}"
+            f"OAuth failed\nstatus_code: {response.status_code}\ncontent: {response.content}",
+            response=response,
         )
 
 

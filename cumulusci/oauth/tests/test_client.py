@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import http.client
 import ssl
 import sys
@@ -23,6 +25,7 @@ from cumulusci.oauth.client import (
     OAuth2Client,
     OAuth2ClientConfig,
     OAuth2DeviceConfig,
+    generate_pkce_pair,
     get_device_code,
     get_device_oauth_token,
 )
@@ -46,6 +49,21 @@ def test_jwt_session(encode):
         SalesforceCredentialsException, match=f"Error retrieving access token: {error}"
     ):
         jwt_session("client_id", "server_key", "username")
+
+
+def test_generate_pkce_pair():
+    code_verifier, code_challenge = generate_pkce_pair()
+    assert len(code_verifier) == 128
+    assert set(code_verifier) <= set(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    )
+    expected_challenge = (
+        base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest())
+        .rstrip(b"=")
+        .decode()
+    )
+    assert code_challenge == expected_challenge
+    assert generate_pkce_pair()[0] != code_verifier
 
 
 @pytest.fixture
@@ -112,8 +130,21 @@ class TestOAuth2Client:
             "https://login.salesforce.com/services/oauth2/token",
             body=b'{"message":"SENTINEL"}',
         )
-        info = client.refresh_token("token")
+        info = client.refresh_token("token", timeout=5)
         assert info["message"] == "SENTINEL"
+        assert responses.calls[0].request.req_kwargs["timeout"] == 5
+
+    @responses.activate
+    def test_refresh_token__error_includes_response(self, client):
+        responses.add(
+            responses.POST,
+            "https://login.salesforce.com/services/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant"},
+        )
+        with pytest.raises(OAuth2Error) as e:
+            client.refresh_token("token")
+        assert e.value.response.json() == {"error": "invalid_grant"}
 
     @responses.activate
     def test_auth_code_flow___http(self, http_client):
@@ -144,6 +175,52 @@ class TestOAuth2Client:
 
         assert oauth_client.response.json() == expected_response
         assert b"Congratulations" in response.read()
+
+    @responses.activate
+    def test_auth_code_flow__pkce(self, http_client):
+        responses.add(
+            responses.POST,
+            "https://login.salesforce.com/services/oauth2/token",
+            status=http.client.OK,
+            json={"access_token": "abc123", "refresh_token": "abc123"},
+        )
+        http_client.client_config.pkce = True
+
+        with mock.patch("webbrowser.open") as webbrowser_open:
+            with httpd_thread(http_client) as oauth_client:
+                urllib.request.urlopen(
+                    http_client.client_config.redirect_uri + "?code=123"
+                )
+
+        auth_uri = urllib.parse.urlparse(webbrowser_open.call_args[0][0])
+        auth_params = urllib.parse.parse_qs(auth_uri.query)
+        token_params = urllib.parse.parse_qs(responses.calls[0].request.body)
+        code_verifier = token_params["code_verifier"][0]
+        assert code_verifier == oauth_client.code_verifier
+        assert auth_params["code_challenge_method"] == ["S256"]
+        assert auth_params["code_challenge"] == [
+            base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest())
+            .rstrip(b"=")
+            .decode()
+        ]
+
+    @responses.activate
+    def test_auth_code_flow__no_pkce(self, http_client):
+        responses.add(
+            responses.POST,
+            "https://login.salesforce.com/services/oauth2/token",
+            status=http.client.OK,
+            json={"access_token": "abc123", "refresh_token": "abc123"},
+        )
+
+        with mock.patch("webbrowser.open") as webbrowser_open:
+            with httpd_thread(http_client):
+                urllib.request.urlopen(
+                    http_client.client_config.redirect_uri + "?code=123"
+                )
+
+        assert "code_challenge" not in webbrowser_open.call_args[0][0]
+        assert "code_verifier" not in responses.calls[0].request.body
 
     @responses.activate
     def test_auth_code_flow___https(self, client):
