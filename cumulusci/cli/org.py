@@ -134,6 +134,7 @@ def setup_client(connected_app, login_url=None, sandbox=None) -> OAuth2Client:
         auth_uri=f"{base_uri}/services/oauth2/authorize",
         token_uri=f"{base_uri}/services/oauth2/token",
         scope="web full refresh_token",
+        pkce=True,
     )
     return OAuth2Client(sf_client_config)
 

@@ -1,6 +1,7 @@
 import typing as T
+from contextlib import nullcontext
 
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured
 
 
 class SubprocessKeychain(T.NamedTuple):
@@ -22,3 +23,11 @@ class SubprocessKeychain(T.NamedTuple):
 
     def set_org(self, *args):
         pass
+
+    # Orgs aren't saved from sub-processes, so the org file isn't locked or re-read.
+    # A refresh token rotated in a sub-process isn't saved either.
+    def org_lock(self, *args):
+        return nullcontext()
+
+    def reload_org(self, name):
+        raise OrgNotFound(name)
