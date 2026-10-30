@@ -2,6 +2,24 @@
 
 <!-- latest-start -->
 
+## v4.11.0 (2026-10-30)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Critical Changes
+
+- Support PKCE and refresh token rotation for connected app logins by [@sf-brahm-gaur](https://github.com/sf-brahm-gaur) in [#4013](https://github.com/SFDO-Tooling/CumulusCI/pull/4013)
+
+### Changes
+
+- docs(contributing): switch local setup to uv and add UTC test note by [@sf-brahm-gaur](https://github.com/sf-brahm-gaur) in [#4011](https://github.com/SFDO-Tooling/CumulusCI/pull/4011)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.10.1...v4.11.0
+
+<!-- latest-stop -->
+
 ## v4.10.1 (2026-09-07)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -23,8 +41,6 @@
 - @sf-brahm-gaur made their first contribution in [#4009](https://github.com/SFDO-Tooling/CumulusCI/pull/4009)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v4.10.0...v4.10.1
-
-<!-- latest-stop -->
 
 ## v4.10.0 (2026-04-10)
 
