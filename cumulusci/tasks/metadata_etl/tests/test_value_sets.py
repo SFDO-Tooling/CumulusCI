@@ -30,6 +30,31 @@ VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 
 class TestAddValueSetEntries:
+    def test_init_options__entries_as_json_string(self):
+        # Simulates CLI usage: -o entries '[{"fullName": "Test", "label": "Test"}]'
+        task = create_task(
+            AddValueSetEntries,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "entries": '[{"fullName": "Test", "label": "Test"}]',
+            },
+        )
+        assert task.options["entries"] == [{"fullName": "Test", "label": "Test"}]
+
+    def test_init_options__entries_as_invalid_json_string(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(
+                AddValueSetEntries,
+                {
+                    "managed": True,
+                    "api_version": "47.0",
+                    "api_names": "bar,foo",
+                    "entries": '[{"fullName": "Test"',
+                },
+            )
+
     def test_adds_entry(self):
         task = create_task(
             AddValueSetEntries,

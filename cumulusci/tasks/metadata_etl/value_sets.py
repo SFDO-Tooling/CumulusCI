@@ -1,4 +1,5 @@
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_list_of_dicts_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
@@ -51,6 +52,11 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
             "required": True,
         },
     }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.options["entries"] = process_list_of_dicts_arg(self.options["entries"])
 
     def _transform_entity(self, metadata: MetadataElement, api_name: str):
         for entry in self.options.get("entries", []):

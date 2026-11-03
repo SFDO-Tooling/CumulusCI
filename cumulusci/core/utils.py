@@ -50,6 +50,22 @@ def parse_datetime(dt_str, format):
     return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
 
+def process_list_of_dicts_arg(arg):
+    """Parse an option that must be a list of dicts.
+
+    Accepts an actual list of dicts or a JSON string encoding one, which is
+    how complex options arrive when passed through the CLI with ``-o``.
+    """
+    if isinstance(arg, str):
+        try:
+            arg = json.loads(arg)
+        except json.JSONDecodeError as e:
+            raise TaskOptionsError(f"Option value is not valid JSON: {e}")
+    if not isinstance(arg, list) or not all(isinstance(item, dict) for item in arg):
+        raise TaskOptionsError("Option value must be a list of objects.")
+    return arg
+
+
 def process_bool_arg(arg: T.Union[int, str, None]):
     """Determine True/False from argument.
 
