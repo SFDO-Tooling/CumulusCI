@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 import responses
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
@@ -212,9 +213,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
 
     @responses.activate
     def test_run_task__dependency_rejects_task_install_key(self, task, devhub_config):
-        """A dependency protected by a different install key rejects a query
-        filtered by the target package's key with INSTALL_KEY_INVALID; the
-        dependency is then queried without the key filter."""
+        """Exercise the proposed fallback with mocked API responses."""
         task.options["install_key"] = "hunter2"
         query_url = f"{self.devhub_base_url}/tooling/query/"
 
@@ -327,9 +326,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
-            with pytest.raises(
-                CumulusCIException, match="protected by its own install key"
-            ):
+            with pytest.raises(CumulusCIException, match="No records returned"):
                 task()
 
     @responses.activate
@@ -386,7 +383,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             return_value=devhub_config,
         ):
             with pytest.raises(
-                CumulusCIException, match="protected by its own install key"
+                SalesforceMalformedRequest, match="InstallationKey is required"
             ):
                 task()
 
@@ -670,3 +667,78 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             task._query_tooling(
                 ["Id", "Field__c"], "sObjectName", "Id='12345'", raise_error=True
             )
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        [{"errorCode": "INVALID_FIELD", "message": "mentions INSTALL_KEY_INVALID"}],
+        [{"errorCode": "INSTALL_KEY_INVALID_EXTRA", "message": "other error"}],
+        "INSTALL_KEY_INVALID",
+        {"errorCode": "INSTALL_KEY_INVALID"},
+    ],
+)
+def test_dependency_does_not_retry_unrelated_errors(task, content):
+    task.options["install_key"] = "target-key"
+    error = SalesforceMalformedRequest(
+        "query", 400, "SubscriberPackageVersion", content
+    )
+    with mock.patch.object(task, "_query_one_tooling", side_effect=error) as query:
+        with pytest.raises(SalesforceMalformedRequest) as caught:
+            task._query_dependency_SubscriberPackageVersion("04t000000000001")
+    assert caught.value is error
+    assert query.call_count == 1
+
+
+def test_dependency_preserves_unrelated_retry_error(task):
+    task.options["install_key"] = "target-key"
+    keyed_error = SalesforceMalformedRequest(
+        "query",
+        400,
+        "SubscriberPackageVersion",
+        [{"errorCode": "INSTALL_KEY_INVALID", "message": "invalid key"}],
+    )
+    other_error = SalesforceMalformedRequest(
+        "query",
+        400,
+        "SubscriberPackageVersion",
+        [{"errorCode": "INVALID_FIELD", "message": "schema failure"}],
+    )
+    with mock.patch.object(
+        task, "_query_one_tooling", side_effect=[keyed_error, other_error]
+    ) as query:
+        with pytest.raises(SalesforceMalformedRequest) as caught:
+            task._query_dependency_SubscriberPackageVersion("04t000000000001")
+    assert caught.value is other_error
+    assert query.call_count == 2
+    assert "InstallationKey" not in query.call_args.kwargs["where_clause"]
+
+
+def test_target_install_key_error_is_not_retried(task):
+    task.options["install_key"] = "target-key"
+    error = SalesforceMalformedRequest(
+        "query",
+        400,
+        "SubscriberPackageVersion",
+        [{"errorCode": "INSTALL_KEY_INVALID", "message": "invalid key"}],
+    )
+    with mock.patch.object(task, "_query_one_tooling", side_effect=error) as query:
+        with pytest.raises(SalesforceMalformedRequest) as caught:
+            task._get_dependency_spv_ids("04t000000000000")
+    assert caught.value is error
+    assert query.call_count == 1
+    assert "InstallationKey ='target-key'" in query.call_args.kwargs["where_clause"]
+
+
+def test_dependency_without_configured_key_is_not_retried(task):
+    error = SalesforceMalformedRequest(
+        "query",
+        400,
+        "SubscriberPackageVersion",
+        [{"errorCode": "INSTALL_KEY_INVALID", "message": "invalid key"}],
+    )
+    with mock.patch.object(task, "_query_one_tooling", side_effect=error) as query:
+        with pytest.raises(SalesforceMalformedRequest) as caught:
+            task._query_dependency_SubscriberPackageVersion("04t000000000001")
+    assert caught.value is error
+    assert query.call_count == 1
