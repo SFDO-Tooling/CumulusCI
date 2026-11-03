@@ -1,5 +1,9 @@
 from unittest import mock
 
+import pytest
+
+pytest.importorskip("Browser", reason="Playwright support is installed separately")
+
 from cumulusci.robotframework.SalesforcePlaywright import SalesforcePlaywright
 
 
