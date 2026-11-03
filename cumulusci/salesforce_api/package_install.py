@@ -162,17 +162,19 @@ def _install_package_by_version_id(
     PackageInstallRequest.base_url = PackageInstallRequest.base_url.replace(
         "/sobjects/", "/tooling/sobjects/"
     )
-    request = PackageInstallRequest.create(
-        {
-            "EnableRss": options.activate_remote_site_settings,
-            "NameConflictResolution": options.name_conflict_resolution,
-            "Password": options.password,
-            "SecurityType": options.security_type,
-            "SubscriberPackageVersionKey": version_id,
-            "UpgradeType": options.upgrade_type,
-            "ApexCompileType": options.apex_compile_type,
-        }
-    )
+    payload = {
+        "EnableRss": options.activate_remote_site_settings,
+        "NameConflictResolution": options.name_conflict_resolution,
+        "SecurityType": options.security_type,
+        "SubscriberPackageVersionKey": version_id,
+        "UpgradeType": options.upgrade_type,
+        "ApexCompileType": options.apex_compile_type,
+    }
+    # The API rejects a null Password (FIELD_INTEGRITY_EXCEPTION) for
+    # packages without an installation key, so only send it when set.
+    if options.password is not None:
+        payload["Password"] = options.password
+    request = PackageInstallRequest.create(payload)
     poll(functools.partial(_wait_for_package_install, tooling, request))
 
 

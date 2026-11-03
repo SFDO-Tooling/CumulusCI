@@ -1,3 +1,4 @@
+import json
 import logging
 from logging import getLogger
 from unittest import mock
@@ -48,6 +49,58 @@ def test_install_package_by_version_id(caplog):
         project_config, org_config, "04t", PackageInstallOptions()
     )
     assert "Success" in caplog.text
+
+
+@responses.activate
+def test_install_package_by_version_id__no_password_omits_password_key():
+    """Regression test for #4004: when no installation key is provided,
+    the Password field must be omitted entirely - the API (v65+) rejects
+    an explicit null Password for packages without an installation key."""
+    responses.add(
+        "POST",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/PackageInstallRequest/",
+        json={"id": "0Hf"},
+    )
+    responses.add(
+        "GET",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
+        json={"records": [{"Status": "SUCCESS"}]},
+    )
+
+    project_config = create_project_config()
+    org_config = OrgConfig(
+        {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
+    )
+    install_package_by_version_id(
+        project_config, org_config, "04t", PackageInstallOptions()
+    )
+    body = json.loads(responses.calls[0].request.body)
+    assert "Password" not in body
+
+
+@responses.activate
+def test_install_package_by_version_id__password_sent_when_set():
+    """When an installation key is provided, it must be sent as Password."""
+    responses.add(
+        "POST",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/PackageInstallRequest/",
+        json={"id": "0Hf"},
+    )
+    responses.add(
+        "GET",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
+        json={"records": [{"Status": "SUCCESS"}]},
+    )
+
+    project_config = create_project_config()
+    org_config = OrgConfig(
+        {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
+    )
+    install_package_by_version_id(
+        project_config, org_config, "04t", PackageInstallOptions(password="key123")
+    )
+    body = json.loads(responses.calls[0].request.body)
+    assert body["Password"] == "key123"
 
 
 @responses.activate
