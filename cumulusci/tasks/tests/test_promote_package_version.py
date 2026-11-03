@@ -327,7 +327,67 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
-            with pytest.raises(CumulusCIException, match="No records returned"):
+            with pytest.raises(
+                CumulusCIException, match="protected by its own install key"
+            ):
+                task()
+
+    @responses.activate
+    def test_run_task__dependency_install_key_retry_rejected_again(
+        self, task, devhub_config
+    ):
+        """If the keyless retry is also rejected (a version protected by its
+        own key demands that key), the task raises a clear error."""
+        task.options["install_key"] = "hunter2"
+        query_url = f"{self.devhub_base_url}/tooling/query/"
+
+        responses.add(  # query for the target package's dependencies
+            "GET",
+            query_url,
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Dependencies": {
+                            "ids": [{"subscriberPackageVersionId": "04t000000000001"}]
+                        }
+                    }
+                ],
+                "done": True,
+            },
+        )
+        responses.add(  # dependency query filtered by the task install key is rejected
+            "GET",
+            query_url,
+            json=[
+                {
+                    "message": "Invalid InstallationKey for SubscriberPackageVersion",
+                    "errorCode": "INSTALL_KEY_INVALID",
+                }
+            ],
+            status=400,
+        )
+        responses.add(  # keyless retry is rejected: the dependency demands its own key
+            "GET",
+            query_url,
+            json=[
+                {
+                    "message": (
+                        "InstallationKey is required to query this "
+                        "SubscriberPackageVersion"
+                    ),
+                    "errorCode": "INSTALL_KEY_INVALID",
+                }
+            ],
+            status=400,
+        )
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            with pytest.raises(
+                CumulusCIException, match="protected by its own install key"
+            ):
                 task()
 
     @responses.activate
