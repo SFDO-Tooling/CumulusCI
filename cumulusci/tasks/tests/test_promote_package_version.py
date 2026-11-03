@@ -211,6 +211,126 @@ class TestPromotePackageVersion(GithubApiTestMixin):
                 )
 
     @responses.activate
+    def test_run_task__dependency_rejects_task_install_key(self, task, devhub_config):
+        """A dependency protected by a different install key rejects a query
+        filtered by the target package's key with INSTALL_KEY_INVALID; the
+        dependency is then queried without the key filter."""
+        task.options["install_key"] = "hunter2"
+        query_url = f"{self.devhub_base_url}/tooling/query/"
+
+        responses.add(  # query for the target package's dependencies
+            "GET",
+            query_url,
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Dependencies": {
+                            "ids": [{"subscriberPackageVersionId": "04t000000000001"}]
+                        }
+                    }
+                ],
+                "done": True,
+            },
+        )
+        responses.add(  # dependency query filtered by the task install key is rejected
+            "GET",
+            query_url,
+            json=[
+                {
+                    "message": "Invalid InstallationKey for SubscriberPackageVersion",
+                    "errorCode": "INSTALL_KEY_INVALID",
+                }
+            ],
+            status=400,
+        )
+        responses.add(  # retried dependency query without the key filter
+            "GET",
+            query_url,
+            json={
+                "size": 1,
+                "records": [{"SubscriberPackageId": "1", "ReleaseState": "Released"}],
+                "done": True,
+            },
+        )
+        responses.add(  # query for SubscriberPackage
+            "GET",
+            query_url,
+            json={
+                "size": 1,
+                "records": [{"Name": "Dependency_Package_1"}],
+                "done": True,
+            },
+        )
+        responses.add(  # query for Package2Version (already promoted)
+            "GET",
+            query_url,
+            json={
+                "size": 1,
+                "records": [{"Id": "dep_1", "IsReleased": True}],
+                "done": True,
+            },
+        )
+        self._mock_target_package_api_calls(install_key="hunter2")
+
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task()
+
+        keyed_query = responses.calls[1].request.url
+        retried_query = responses.calls[2].request.url
+        assert "InstallationKey" in keyed_query
+        assert "InstallationKey" not in retried_query
+
+    @responses.activate
+    def test_run_task__dependency_install_key_retry_finds_no_record(
+        self, task, devhub_config
+    ):
+        """If the keyless retry also returns no record, the task raises an error."""
+        task.options["install_key"] = "hunter2"
+        query_url = f"{self.devhub_base_url}/tooling/query/"
+
+        responses.add(  # query for the target package's dependencies
+            "GET",
+            query_url,
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Dependencies": {
+                            "ids": [{"subscriberPackageVersionId": "04t000000000001"}]
+                        }
+                    }
+                ],
+                "done": True,
+            },
+        )
+        responses.add(  # dependency query filtered by the task install key is rejected
+            "GET",
+            query_url,
+            json=[
+                {
+                    "message": "Invalid InstallationKey for SubscriberPackageVersion",
+                    "errorCode": "INSTALL_KEY_INVALID",
+                }
+            ],
+            status=400,
+        )
+        responses.add(  # retried dependency query without the key filter: no record
+            "GET",
+            query_url,
+            json={"size": 0, "records": [], "done": True},
+        )
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            with pytest.raises(CumulusCIException, match="No records returned"):
+                task()
+
+    @responses.activate
     def test_run_task__no_dependencies(self, task, devhub_config):
         self._mock_dependencies(0, 0, 0)
         self._mock_target_package_api_calls()
