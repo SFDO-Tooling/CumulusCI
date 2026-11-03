@@ -136,7 +136,9 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         dependencies = []
         for spv_id in dependency_spv_ids:
-            subscriber_package_version = self._query_SubscriberPackageVersion(spv_id)
+            subscriber_package_version = (
+                self._query_dependency_SubscriberPackageVersion(spv_id)
+            )
             subscriber_package = self._query_SubscriberPackage(
                 subscriber_package_version["SubscriberPackageId"]
             )
@@ -298,9 +300,12 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             raise_error=True,
         )
 
-    def _query_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
+    def _query_SubscriberPackageVersion(
+        self, spv_id: str, use_task_install_key: bool = True
+    ) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given SubscriberPackageVersionId"""
 
+        install_key = self.options.get("install_key") if use_task_install_key else None
         return self._query_one_tooling(
             [
                 "Id",
@@ -310,10 +315,41 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             ],
             "SubscriberPackageVersion",
             where_clause=format_subscriber_package_version_where_clause(
-                spv_id, self.options.get("install_key")
+                spv_id, install_key
             ),
             raise_error=True,
         )
+
+    def _query_dependency_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
+        """Queries for a dependency's SubscriberPackageVersion record.
+
+        A dependency package version may be protected by a different install
+        key than the target package, or by no install key at all. The Tooling
+        API only requires the InstallationKey filter when the queried version
+        is itself protected by a key, so if a query filtered by the
+        configured install key is rejected with INSTALL_KEY_INVALID, retry
+        once without the filter.
+        """
+        try:
+            return self._query_SubscriberPackageVersion(spv_id)
+        except SalesforceMalformedRequest as e:
+            if not self.options.get("install_key") or not (
+                isinstance(e.content, list)
+                and any(
+                    isinstance(error, dict)
+                    and error.get("errorCode") == "INSTALL_KEY_INVALID"
+                    for error in e.content
+                )
+            ):
+                raise
+        self.logger.info(
+            f"The configured install key was not accepted for dependency {spv_id}. "
+            "Retrying the query without an install key."
+        )
+        # Preserve the original API error (including its code and response) if
+        # the proposed keyless retry fails. A separate dependency key is not
+        # available here, and promoting a version does not remove its key.
+        return self._query_SubscriberPackageVersion(spv_id, use_task_install_key=False)
 
     def _query_one_tooling(
         self,
