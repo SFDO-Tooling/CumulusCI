@@ -341,7 +341,16 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             f"The configured install key was not accepted for dependency {spv_id}. "
             "Retrying the query without an install key."
         )
-        return self._query_SubscriberPackageVersion(spv_id, use_task_install_key=False)
+        try:
+            return self._query_SubscriberPackageVersion(
+                spv_id, use_task_install_key=False
+            )
+        except (CumulusCIException, SalesforceMalformedRequest):
+            raise CumulusCIException(
+                f"Unable to retrieve dependency package version {spv_id}. "
+                "It may be protected by its own install key. "
+                "Promote that package version separately, then re-run this task."
+            )
 
     def _query_one_tooling(
         self,
