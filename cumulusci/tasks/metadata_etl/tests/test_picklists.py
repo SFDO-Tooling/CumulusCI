@@ -495,6 +495,29 @@ class TestAddPicklistValues:
                 },
             )
 
+    def test_init_options__entries_as_json_string(self):
+        # Simulates CLI usage: -o entries '[{"fullName": "Test", "label": "Test"}]'
+        task = create_task(
+            AddPicklistEntries,
+            {
+                "api_version": "47.0",
+                "picklists": ["Opportunity.Type__c"],
+                "entries": '[{"fullName": "Test", "label": "Test"}]',
+            },
+        )
+        assert task.options["entries"] == [{"fullName": "Test", "label": "Test"}]
+
+    def test_init_options__entries_as_invalid_json_string(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(
+                AddPicklistEntries,
+                {
+                    "api_version": "47.0",
+                    "picklists": ["Opportunity.Type__c"],
+                    "entries": '[{"fullName": "Test"',
+                },
+            )
+
     def test_init_options__multiple_defaults(self):
         with pytest.raises(TaskOptionsError):
             create_task(
