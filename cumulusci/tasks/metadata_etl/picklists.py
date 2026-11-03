@@ -3,7 +3,11 @@ from typing import Dict
 from urllib.parse import unquote
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import (
+    process_bool_arg,
+    process_list_arg,
+    process_list_of_dicts_arg,
+)
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
@@ -64,6 +68,8 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             self.picklists[self._inject_namespace(obj)].append(
                 self._inject_namespace(field)
             )
+
+        self.options["entries"] = process_list_of_dicts_arg(self.options["entries"])
 
         if not all(["fullName" in entry for entry in self.options["entries"]]):
             raise TaskOptionsError(
