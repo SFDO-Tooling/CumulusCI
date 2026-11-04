@@ -107,6 +107,51 @@ class TestCliRuntime:
         with pytest.raises(click.UsageError):
             org_name, org_config_result = config.get_org("test", fail_if_missing=True)
 
+    def test_reload_project_config__applies_additional_yaml(self):
+        config = CliRuntime()
+        assert config.project_config.config_additional_yaml == {}
+
+        config.reload_project_config(
+            additional_yaml=(
+                "tasks:\n"
+                "  injected:\n"
+                "    description: via reload\n"
+                "    class_path: cumulusci.tasks.util.Sleep\n"
+            )
+        )
+
+        assert config.project_config.config_additional_yaml != {}
+        assert config.project_config.tasks["injected"]["description"] == "via reload"
+
+    def test_reload_project_config__rebinds_keychain(self):
+        config = CliRuntime()
+        old_keychain = config.keychain
+        assert old_keychain is not None
+        old_project_config = config.project_config
+
+        config.reload_project_config(
+            additional_yaml="project:\n  custom:\n    reloaded: true\n"
+        )
+
+        assert config.keychain is old_keychain
+        assert config.project_config is not old_project_config
+        assert config.keychain.project_config is config.project_config
+        assert config.project_config.keychain is config.keychain
+
+    def test_reload_project_config__noop_when_none(self):
+        config = CliRuntime()
+        before = config.project_config
+        config.reload_project_config(additional_yaml=None)
+        assert config.project_config is before
+
+    def test_reload_project_config__wraps_config_error(self):
+        config = CliRuntime()
+
+        with mock.patch.object(
+            config, "_load_project_config", side_effect=ConfigError("boom")
+        ), pytest.raises(click.UsageError, match="Config Error: boom"):
+            config.reload_project_config(additional_yaml="project: {}\n")
+
     def test_check_org_expired(self):
         config = CliRuntime()
         config.keychain = mock.Mock()

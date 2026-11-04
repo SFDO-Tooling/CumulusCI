@@ -86,7 +86,9 @@ Options
     Require at least X percent code coverage across the org following the test run.
     Default: 90
 ```
+
 (add-a-custom-task)=
+
 ### Add a Custom Task
 
 To define a new task for your project, add the task name under the
@@ -648,9 +650,13 @@ You can configure files at these scope levels: _Project_, _Local
 Project_ and _Global_. Configurations have an order of override
 precedence (from highest to lowest):
 
-1.  Project
-2.  Local Project
-3.  Global
+1.  Per-invocation (`--extra-yaml`)
+2.  Project
+3.  Local Project
+4.  Global
+
+Per-option overrides passed via `-o taskname__option value` on the
+command line take precedence over all of the above.
 
 One override only cascades over another when two configurations set a
 value for the same element on a task or flow.
@@ -667,6 +673,16 @@ If you change your project `cumulusci.yml` file to also specify a
 default value for `opt2`, this new default `opt2` value takes precedence
 over the default `opt2` value specified in your global `cumulusci.yml`
 file.
+
+### Per-Invocation (`--extra-yaml`)
+
+The `--extra-yaml PATH` flag on `cci flow run`, `cci flow info`,
+`cci task run`, and `cci task info` merges an additional YAML file
+into the project config for a single command invocation. Multiple
+files are deep-merged in order (later files win); the
+`CUMULUSCI_EXTRA_YAML` environment variable (comma-separated paths)
+is honored as a fallback. See [the CLI reference](cli.md#the-extra-yaml-flag)
+for usage and security implications.
 
 ### Project Configurations
 

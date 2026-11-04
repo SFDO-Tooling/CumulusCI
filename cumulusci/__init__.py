@@ -14,5 +14,5 @@ except PackageNotFoundError:
 if sys.version_info < (3, 8):  # pragma: no cover
     raise Exception("CumulusCI requires Python 3.8+.")
 
-api.OrderedDict = dict
-bulk.OrderedDict = dict
+setattr(api, "OrderedDict", dict)
+setattr(bulk, "OrderedDict", dict)

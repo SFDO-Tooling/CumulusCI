@@ -1,6 +1,6 @@
 import typing as T
 
-from simple_salesforce import Salesforce
+from simple_salesforce.api import Salesforce
 
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 from cumulusci.utils.iterators import partition
