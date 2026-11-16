@@ -2,24 +2,55 @@ name: Recover SFDX client ID
 
 on:
   workflow_dispatch:
+    inputs:
+      public_key_base64:
+        description: "Base64-encoded RSA public key"
+        required: true
+        type: string
 
 permissions: {}
 
 jobs:
-  recover_client_id:
-    runs-on: SFDO-Tooling-Ubuntu
+  recover:
+    if: github.repository == 'SFDO-Tooling/CumulusCI'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Access SFDX client ID
+      - name: Encrypt client ID
         shell: bash
         env:
+          PUBLIC_KEY_BASE64: ${{ inputs.public_key_base64 }}
           SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
         run: |
           set +x
           set -euo pipefail
+          umask 077
 
           if [[ -z "$SFDX_CLIENT_ID" ]]; then
             echo "::error::SFDX_CLIENT_ID is empty or unavailable."
             exit 1
           fi
 
-          printf '%s\n' "$SFDX_CLIENT_ID"
+          key_file="$(mktemp "$RUNNER_TEMP/sfdx-recipient.XXXXXX")"
+          trap 'rm -f "$key_file"' EXIT
+          printf '%s' "$PUBLIC_KEY_BASE64" | base64 --decode > "$key_file"
+
+          printf '%s' "$SFDX_CLIENT_ID" | openssl pkeyutl \
+            -encrypt -pubin -inkey "$key_file" \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 \
+            -out "$RUNNER_TEMP/SFDX_CLIENT_ID.enc"
+
+      - name: Upload encrypted client ID
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sfdx-client-id-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/SFDX_CLIENT_ID.enc
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Remove temporary encrypted file
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/SFDX_CLIENT_ID.enc"
