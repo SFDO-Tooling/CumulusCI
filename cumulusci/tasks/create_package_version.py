@@ -578,7 +578,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         # Convert dependencies to correct format for Package2VersionCreateRequest
         dependencies = self._convert_project_dependencies(dependencies)
 
-        # Build additional packages for local unpackaged/pre
+        # Build additional packages for local pre-install metadata
         dependencies = self._get_unpackaged_pre_dependencies(dependencies)
 
         return dependencies
@@ -631,14 +631,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         return new_dependencies
 
     def _get_unpackaged_pre_dependencies(self, dependencies):
-        """Create package for unpackaged/pre metadata, if necessary"""
-        path = pathlib.Path("unpackaged", "pre")
+        """Create an unlocked package for pre-install metadata, if necessary."""
+        path = pathlib.Path(self.project_config.unpackaged_path, "pre")
         if not path.exists():
             return dependencies
 
         if not self.options["create_unlocked_dependency_packages"]:
             self.logger.info(
-                "Skipping unpackaged/pre dependencies because create_unlocked_dependency_packages is False."
+                f"Skipping {path.as_posix()} dependencies because create_unlocked_dependency_packages is False."
             )
             return dependencies
 

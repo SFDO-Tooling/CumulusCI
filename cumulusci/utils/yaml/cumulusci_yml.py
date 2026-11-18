@@ -6,10 +6,10 @@ to update the JSON Schema version in cumulusci.jsonschema.json
 """
 
 from logging import getLogger
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic.v1 import Field, root_validator, validator
+from pydantic.v1 import Field, StrictStr, root_validator, validator
 from pydantic.v1.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
@@ -31,6 +31,25 @@ URL = str
 # Can probably remove it at some future date if the
 # bug/incompatibilty is fixed elsewhere in the stack
 VSCodeFriendlyDict = Field({}, additionalProperties=True)
+
+
+def normalize_project_directory(value: str) -> str:
+    """Normalize a repository-relative path for filesystem and archive use."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("Expected a nonempty directory path")
+    path = PureWindowsPath(value)
+    if path.anchor or not path.parts or ".." in path.parts:
+        raise ValueError("Expected a directory inside the repository")
+    if any(
+        part.endswith((".", " ")) or any(c in '<>:"|?*' or ord(c) < 32 for c in part)
+        for part in path.parts
+    ):
+        raise ValueError("Expected a portable directory path")
+    return path.as_posix()
+
+
+def _validate_project_directory(value: Optional[str]) -> Optional[str]:
+    return normalize_project_directory(value) if value is not None else None
 
 
 class PreflightCheck(CCIDictModel):
@@ -84,6 +103,11 @@ class Package(CCIDictModel):
     uninstall_class: str = None
     api_version: str = None
     metadata_package_id: str = None
+    directory: Optional[StrictStr] = None
+
+    _validate_directory = validator("directory", allow_reuse=True)(
+        _validate_project_directory
+    )
 
 
 class Test(CCIDictModel):
@@ -141,7 +165,12 @@ class Project(CCIDictModel):
     dependency_resolutions: Optional[DependencyResolutions] = None
     dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
+    unpackaged_directory: Optional[StrictStr] = None
     custom: Optional[Dict] = None
+
+    _validate_unpackaged_directory = validator(
+        "unpackaged_directory", allow_reuse=True
+    )(_validate_project_directory)
 
 
 class ScratchOrg(CCIDictModel):

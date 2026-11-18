@@ -2,6 +2,7 @@ import functools
 import io
 import re
 from typing import Optional, Tuple
+from zipfile import ZipFile
 
 from github3.exceptions import NotFoundError
 from github3.git import Tag
@@ -35,6 +36,16 @@ def get_remote_project_config(repo: Repository, ref: str) -> BaseProjectConfig:
     contents_io = io.StringIO(contents.decoded.decode("utf-8"))
     contents_io.url = f"cumulusci.yml from {repo.owner}/{repo.name}"  # for logging
     return BaseProjectConfig(None, cci_safe_load(contents_io))
+
+
+def get_archive_project_config(archive: ZipFile) -> BaseProjectConfig:
+    project = None
+    if "cumulusci.yml" in archive.namelist():
+        with archive.open("cumulusci.yml") as stream:
+            project = cci_safe_load(stream, context="archived cumulusci.yml").get(
+                "project"
+            )
+    return BaseProjectConfig(None, {"project": project or {}})
 
 
 def get_package_data(config: BaseProjectConfig):

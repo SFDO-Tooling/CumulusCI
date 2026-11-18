@@ -47,6 +47,7 @@ from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
     cci_safe_load,
+    normalize_project_directory,
 )
 
 sys.modules.setdefault(
@@ -74,6 +75,23 @@ class ProjectConfigPropertiesMixin(BaseConfig):
     plans: dict
     tasks: dict
     dev_config: dict  # this is not documented and should be deprecated
+
+    def _project_directory(self, setting: str, default: str) -> str:
+        value = self.lookup(setting)
+        if value is None:
+            return default
+        try:
+            return normalize_project_directory(value)
+        except ValueError as exc:
+            raise ConfigError(f"{setting.replace('__', '.')}: {exc}") from exc
+
+    @property
+    def mdapi_package_path(self) -> str:
+        return self._project_directory("project__package__directory", "src")
+
+    @property
+    def unpackaged_path(self) -> str:
+        return self._project_directory("project__unpackaged_directory", "unpackaged")
 
 
 class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
@@ -514,20 +532,36 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return path
 
     @property
-    def default_package_path(self) -> Path:
+    def package_source_path(self) -> str:
+        return self.get_package_source_path()
+
+    def get_package_source_path(self, mdapi_default: str = "src") -> str:
         if self.project__source_format == "sfdx":
-            relpath = "force-app"
-            for pkg in self.sfdx_project_config.get("packageDirectories", []):
-                if pkg.get("default"):
-                    relpath = pkg["path"]
-        else:
-            relpath = "src"
-        return Path(self.repo_root, relpath).resolve()
+            return self.sfdx_default_package_path or "force-app"
+        return self._project_directory("project__package__directory", mdapi_default)
+
+    @property
+    def sfdx_default_package_path(self) -> Optional[str]:
+        for package in reversed(self.sfdx_package_directories):
+            if package.get("default"):
+                return package["path"]
+        return None
+
+    @property
+    def sfdx_package_directories(self) -> list[dict]:
+        try:
+            return self.sfdx_project_config.get("packageDirectories", [])
+        except FileNotFoundError:
+            return []
+
+    @property
+    def default_package_path(self) -> Path:
+        return Path(self.repo_root, self.package_source_path).resolve()
 
     @property
     def sfdx_project_config(self) -> Dict[str, Any]:
         with open(
-            Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
+            Path(self.repo_root or ".", "sfdx-project.json"), "r", encoding="utf-8"
         ) as f:
             config = json.load(f)
         return config

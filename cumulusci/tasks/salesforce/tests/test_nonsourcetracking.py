@@ -163,18 +163,19 @@ class TestListComponents:
 @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
 class TestRetrieveComponents:
     def test_init_options__sfdx_format(self, sfdx, create_task_fixture):
-        with temporary_dir():
+        with temporary_dir() as root:
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
+            project_config.repo_info["root"] = root
             with open("sfdx-project.json", "w") as f:
                 json.dump(
-                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                    {"packageDirectories": [{"path": "packages/my-app", "default": True}]}, f
                 )
             task = create_task_fixture(
                 RetrieveComponents, {"metadata_types": "SharingRules"}, project_config
             )
             assert not task.md_format
-            assert task.options["path"] == "force-app"
+            assert task.options["path"] == "packages/my-app"
 
     def test_run_task(self, sfdx, create_task_fixture):
         sfdx_calls = []

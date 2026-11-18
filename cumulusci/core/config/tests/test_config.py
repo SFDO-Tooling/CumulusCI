@@ -19,6 +19,7 @@ from cumulusci.core.config import (
     BaseTaskFlowConfig,
     OrgConfig,
     ServiceConfig,
+    TaskConfig,
     UniversalConfig,
 )
 from cumulusci.core.config.org_config import (
@@ -42,13 +43,16 @@ from cumulusci.core.exceptions import (
     ServiceNotConfigured,
     TaskNotFoundError,
 )
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.keychain.base_project_keychain import (
     DEFAULT_CONNECTED_APP,
     BaseProjectKeychain,
 )
 from cumulusci.core.source import LocalFolderSource
+from cumulusci.core.tasks import BaseTask
 from cumulusci.oauth.exceptions import OAuth2Error
-from cumulusci.tests.util import CURRENT_SF_API_VERSION, DummyKeychain
+from cumulusci.tasks.salesforce import Deploy
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, DummyKeychain, DummyOrgConfig
 from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.version_strings import StrictVersion
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
@@ -770,6 +774,97 @@ class TestBaseProjectConfig:
     def test_default_package_path(self):
         config = BaseProjectConfig(UniversalConfig())
         assert str(config.default_package_path.relative_to(config.repo_root)) == "src"
+        assert config.unpackaged_path == "unpackaged"
+
+    def test_metadata_directory_task_defaults(self):
+        with temporary_dir() as root:
+            pathlib.Path(root, "cumulusci.yml").write_text(
+                "project:\n"
+                "    package:\n"
+                "        directory: metadata/my app\n"
+                "    unpackaged_directory: metadata/extra\n"
+                "tasks:\n"
+                "    deploy_post:\n"
+                "        options:\n"
+                "            path: alternate/post\n",
+                encoding="utf-8",
+            )
+            config = BaseProjectConfig(UniversalConfig(), repo_info={"root": root})
+            assert config.default_package_path == pathlib.Path(root, "metadata/my app")
+
+            for name, expected in {
+                "create_managed_src": {
+                    "path": "metadata/my app",
+                    "revert_path": "metadata/my app.orig",
+                },
+                "revert_managed_src": {
+                    "path": "metadata/my app",
+                    "revert_path": "metadata/my app.orig",
+                },
+                "strip_unwanted_components": {
+                    "path": "metadata/my app",
+                    "package_xml": "metadata/my app/package.xml",
+                },
+                "deploy_pre": {"path": "metadata/extra/pre"},
+                "deploy_post": {"path": "alternate/post"},
+                "retrieve_qa_config": {"path": "metadata/extra/config/qa"},
+                "uninstall_pre": {"path": "metadata/extra/pre"},
+                "uninstall_post": {"path": "metadata/extra/post"},
+                "dx_convert_from": {"src_dir": "metadata/my app"},
+            }.items():
+                task = BaseTask(config, config.get_task(name))
+                assert {key: task.options[key] for key in expected} == expected
+
+            override = BaseTask(config, config.get_task("deploy_pre"), path="one-off")
+            assert override.options["path"] == "one-off"
+            deploy = Deploy(config, config.get_task("deploy"), DummyOrgConfig())
+            assert deploy.options["path"] == "metadata/my app"
+
+    @pytest.mark.parametrize(
+        "directory", [".", "../outside", "/absolute", "C:\\outside", 1]
+    )
+    def test_invalid_metadata_directory(self, directory):
+        config = BaseProjectConfig(
+            None, {"project": {"unpackaged_directory": directory}}
+        )
+        with pytest.raises(ConfigError, match="project.unpackaged_directory"):
+            _ = config.unpackaged_path
+
+    def test_custom_sfdx_source_path_in_deploy_flow(self):
+        with temporary_dir() as root:
+            pathlib.Path(root, "cumulusci.yml").write_text(
+                "project:\n    source_format: sfdx\n    package:\n        directory: converted\n",
+                encoding="utf-8",
+            )
+            pathlib.Path(root, "sfdx-project.json").write_text(
+                json.dumps(
+                    {
+                        "packageDirectories": [
+                            {"path": "another-app"},
+                            {"path": "packages/my-app", "default": True},
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = BaseProjectConfig(UniversalConfig(), repo_info={"root": root})
+            assert config.default_package_path == pathlib.Path(root, "packages/my-app")
+            org = DummyOrgConfig()
+            standalone = Deploy(config, config.get_task("deploy"), org)
+            assert standalone.options["path"] == "packages/my-app"
+            flow = FlowCoordinator(config, config.get_flow("deploy_unmanaged"))
+            deploy_steps = [step for step in flow.steps if step.task_name == "deploy"]
+            assert [
+                Deploy(config, TaskConfig(step.task_config), org).options["path"]
+                for step in deploy_steps
+            ] == ["converted", "packages/my-app"]
+            config.config["tasks"]["deploy"]["options"]["path"] = "overridden"
+            flow = FlowCoordinator(config, config.get_flow("deploy_unmanaged"))
+            assert [
+                Deploy(config, TaskConfig(step.task_config), org).options["path"]
+                for step in flow.steps
+                if step.task_name == "deploy"
+            ] == ["overridden", "overridden"]
 
     def test_default_package_path__sfdx(self):
         with temporary_dir() as path:

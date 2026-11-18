@@ -177,11 +177,11 @@ tasks:
         class_path: cumulusci.tasks.create_package_version.CreatePackageVersion
         group: Salesforce Packages
     create_managed_src:
-        description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
+        description: Modifies the Metadata API package directory for managed deployment.  Strips //cumulusci-managed from all Apex code
         class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
         options:
-            path: src
-            revert_path: src.orig
+            path: $project_config.mdapi_package_path
+            revert_path: $project_config.mdapi_package_path.orig
         group: Salesforce Metadata
     create_permission_set:
         group: Metadata Transformations
@@ -198,11 +198,11 @@ tasks:
                 - PermissionsBulkApiHardDelete
                 - PermissionsCreateAuditFields
     create_unmanaged_ee_src:
-        description: Modifies the src directory for unmanaged deployment to an EE org
+        description: Modifies the Metadata API package directory for unmanaged deployment to an EE org
         class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
         options:
-            path: src
-            revert_path: src.orig
+            path: $project_config.mdapi_package_path
+            revert_path: $project_config.mdapi_package_path.orig
         group: Salesforce Metadata
     create_blank_profile:
         description: Creates a blank profile, or a profile with no permissions
@@ -223,10 +223,10 @@ tasks:
         class_path: cumulusci.tasks.bulkdata.update_data.UpdateData
         group: Data Operations
     deploy:
-        description: Deploys the src directory of the repository to the org
+        description: Deploys the project's package metadata to the org
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            path: src
+            default_path: $project_config.package_source_path
         group: Salesforce Metadata
     deploy_marketing_cloud_package:
         class_path: cumulusci.tasks.marketing_cloud.deploy.MarketingCloudDeployTask
@@ -253,38 +253,36 @@ tasks:
         description: Deploys remote site settings needed for OmniStudio.
         group: OmniStudio
     deploy_pre:
-        description: Deploys all metadata bundles under unpackaged/pre/
+        description: Deploys the pre-install metadata bundles
         class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
-            path: unpackaged/pre
+            path: $project_config.unpackaged_path/pre
         group: Salesforce Metadata
     deploy_post:
-        description: Deploys all metadata bundles under unpackaged/post/
+        description: Deploys the post-install metadata bundles
         class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
-            path: unpackaged/post
+            path: $project_config.unpackaged_path/post
         group: Salesforce Metadata
     deploy_qa_config:
         description: Deploys configuration for QA.
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            path: unpackaged/config/qa
+            path: $project_config.unpackaged_path/config/qa
         group: Salesforce Metadata
     dx:
         description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'package install'
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         group: Salesforce DX
     dx_convert_to:
-        description: Converts src directory metadata format into sfdx format under force-app
-        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
-        options:
-            command: "project convert mdapi -r src"
+        description: Converts the Metadata API package directory to Salesforce DX format
+        class_path: cumulusci.tasks.sfdx.DxConvertTo
         group: Salesforce DX
     dx_convert_from:
-        description: Converts force-app directory in sfdx format into metadata format under src
+        description: Converts Salesforce DX source to the Metadata API package directory
         class_path: cumulusci.tasks.dx_convert_from.DxConvertFrom
         options:
-            src_dir: src
+            src_dir: $project_config.mdapi_package_path
         group: Salesforce DX
     enable_einstein_prediction:
         description: Enable an Einstein Prediction Builder prediction.
@@ -504,10 +502,10 @@ tasks:
         description: Retrieves the metadata types supported by the org based on the api version
         group: Salesforce Metadata
     retrieve_src:
-        description: Retrieves the packaged metadata into the src directory
+        description: Retrieves packaged metadata into the Metadata API package directory
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
-            path: src
+            path: $project_config.mdapi_package_path
         group: Salesforce Metadata
     retrieve_unpackaged:
         description: Retrieve the contents of a package.xml file.
@@ -525,10 +523,10 @@ tasks:
         class_path: cumulusci.tasks.salesforce.nonsourcetracking.RetrieveComponents
         group: Salesforce Metadata
     retrieve_qa_config:
-        description: Retrieves the current changes in the scratch org into unpackaged/config/qa
+        description: Retrieves scratch org changes into the unpackaged QA configuration directory
         class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
         options:
-            path: unpackaged/config/qa
+            path: $project_config.unpackaged_path/config/qa
             namespace_tokenize: $project_config.project__package__namespace
         group: Salesforce Metadata
     set_field_help_text:
@@ -555,15 +553,15 @@ tasks:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
         options:
-            path: src
-            revert_path: src.orig
+            path: $project_config.mdapi_package_path
+            revert_path: $project_config.mdapi_package_path.orig
         group: Salesforce Metadata
     revert_unmanaged_ee_src:
         description: Reverts the changes from create_unmanaged_ee_src
         class_path: cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
         options:
-            path: src
-            revert_path: src.orig
+            path: $project_config.mdapi_package_path
+            revert_path: $project_config.mdapi_package_path.orig
         group: Salesforce Metadata
     robot:
         description: Runs a Robot Framework test from a .robot file
@@ -606,11 +604,11 @@ tasks:
         options:
             namespace_inject: $project_config.project__package__namespace
     strip_unwanted_components:
-        description: Removes components from src folder which are not mentioned in given package.xml file
+        description: Removes components from the Metadata API package directory which are not mentioned in given package.xml file
         class_path: cumulusci.tasks.metadata.package.RemoveUnwantedComponents
         options:
-            path: src
-            package_xml: src/package.xml
+            path: $project_config.mdapi_package_path
+            package_xml: $project_config.mdapi_package_path/package.xml
         group: Salesforce Metadata
     uninstall_managed:
         description: Uninstalls the managed version of the package
@@ -625,22 +623,22 @@ tasks:
         class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
         group: Salesforce Metadata
     uninstall_src:
-        description: Uninstalls all metadata in the local src directory
+        description: Uninstalls all metadata in the local Metadata API package directory
         class_path: cumulusci.tasks.salesforce.UninstallLocal
         options:
-            path: src
+            path: $project_config.mdapi_package_path
         group: Salesforce Metadata
     uninstall_pre:
-        description: Uninstalls the unpackaged/pre bundles
+        description: Uninstalls the pre-install metadata bundles
         class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
         options:
-            path: unpackaged/pre
+            path: $project_config.unpackaged_path/pre
         group: Salesforce Metadata
     uninstall_post:
-        description: Uninstalls the unpackaged/post bundles
+        description: Uninstalls the post-install metadata bundles
         class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
         options:
-            path: unpackaged/post
+            path: $project_config.unpackaged_path/post
             filename_token: ___NAMESPACE___
         group: Salesforce Metadata
     unschedule_apex:
@@ -665,10 +663,10 @@ tasks:
         options:
             namespace_inject: $project_config.project__package__namespace
     update_package_xml:
-        description: Updates src/package.xml with metadata in src/
+        description: Updates package.xml with metadata in the Metadata API package directory
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
         options:
-            path: src
+            path: $project_config.mdapi_package_path
         group: Salesforce Metadata
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
@@ -923,11 +921,11 @@ flows:
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3:
                 task: deploy
+                options:
+                    default_path: $project_config.mdapi_package_path
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3.1:
                 task: deploy
-                options:
-                    path: force-app
                 when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
@@ -949,6 +947,8 @@ flows:
                 task: create_unmanaged_ee_src
             4:
                 task: deploy
+                options:
+                    default_path: $project_config.mdapi_package_path
             5:
                 task: revert_unmanaged_ee_src
             6:
@@ -972,6 +972,8 @@ flows:
                     managed: True
             4:
                 task: deploy
+                options:
+                    default_path: $project_config.mdapi_package_path
             5:
                 task: revert_managed_src
             6:

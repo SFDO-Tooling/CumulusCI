@@ -14,6 +14,7 @@ how the CLI formats args opts commands etc.
 import json
 
 from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.sfdx import shell_quote
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
 
@@ -38,6 +39,14 @@ class SFDXBaseTask(Command):
         if self.options.get("extra"):
             command += " {}".format(self.options["extra"])
         return command
+
+
+class DxConvertTo(SFDXBaseTask):
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        if "command" not in self.options:
+            path = shell_quote(self.project_config.mdapi_package_path)
+            self.options["command"] = f"project convert mdapi -r {path}"
 
 
 class SFDXOrgTask(SFDXBaseTask, BaseSalesforceTask):

@@ -38,6 +38,10 @@ class TestSfdx:
         actual = shell_quote("pkg-name Managed Feature Test")
         assert '"pkg-name Managed Feature Test"' == actual
 
+    @mock.patch("platform.system", mock.Mock(return_value="Windows"))
+    def test_shell_quote__directory_with_ampersand(self):
+        assert shell_quote("metadata/sales&service") == '"metadata/sales&service"'
+
     @mock.patch("sarge.Command")
     def test_check_return(self, Command):
         Command.return_value.returncode = 1

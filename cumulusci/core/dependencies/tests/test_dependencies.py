@@ -259,6 +259,39 @@ class TestGitHubDynamicDependency:
             ),
         ]
 
+    def test_flatten__custom_unpackaged_directory(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/RootRepo",
+            skip=["metadata/extra/pre/skip"],
+        )
+        gh.ref = "aaaaa"
+        upstream = BaseProjectConfig(
+            None, {"project": {"unpackaged_directory": "metadata/extra"}}
+        )
+        repo = project_config.get_repo_from_url(gh.github)
+        with (
+            mock.patch(
+                "cumulusci.core.dependencies.dependencies.get_remote_project_config",
+                return_value=upstream,
+            ),
+            mock.patch.object(
+                repo,
+                "directory_contents",
+                side_effect=[{"seed": {}, "skip": {}}, {"config": {}}],
+            ) as contents,
+        ):
+            dependencies = gh.flatten(project_config)
+
+        assert [dependency.subfolder for dependency in dependencies] == [
+            "metadata/extra/pre/seed",
+            None,
+            "metadata/extra/post/config",
+        ]
+        assert contents.call_args_list == [
+            mock.call("metadata/extra/pre", return_as=dict, ref=gh.ref),
+            mock.call("metadata/extra/post", return_as=dict, ref=gh.ref),
+        ]
+
     def test_flatten__skip(self, project_config):
         gh = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/RootRepo",
@@ -604,6 +637,35 @@ class TestUnmanagedGitHubRefDependency:
             repo_owner="Test", repo_name="TestRepo", ref="aaaaaaaa"
         )
         assert u.github == "https://github.com/Test/TestRepo"
+
+    @pytest.mark.parametrize(
+        "subfolder, expected_marker", [(None, "configured"), ("explicit", "overridden")]
+    )
+    def test_archive_package_directory(self, subfolder, expected_marker):
+        dependency = UnmanagedGitHubRefDependency(
+            github="https://github.com/Test/TestRepo",
+            ref="aaaaaaaa",
+            subfolder=subfolder,
+        )
+        with ZipFile(io.BytesIO(), "w") as archive:
+            archive.writestr(
+                "cumulusci.yml",
+                "project:\n    package:\n        directory: metadata/my-app\n",
+            )
+            archive.writestr("metadata/my-app/package.xml", "configured")
+            archive.writestr("explicit/package.xml", "overridden")
+            archive.writestr("src/package.xml", "legacy")
+            with (
+                mock.patch.object(
+                    UnmanagedGitHubRefDependency, "_get_zip_src", return_value=archive
+                ),
+                mock.patch(
+                    "cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder"
+                ) as builder,
+            ):
+                dependency.get_metadata_package_zip_builder(mock.Mock(), mock.Mock())
+                selected_archive = builder.from_zipfile.call_args.args[0]
+                assert selected_archive.read("package.xml").decode() == expected_marker
 
     @mock.patch(
         "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"

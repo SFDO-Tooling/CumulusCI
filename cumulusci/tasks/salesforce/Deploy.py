@@ -74,6 +74,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
     def _init_options(self, kwargs):
         super(Deploy, self)._init_options(kwargs)
 
+        if "default_path" in self.options:
+            self.options.setdefault("path", self.options.pop("default_path"))
+
         self.check_only = process_bool_arg(self.options.get("check_only", False))
         self.test_level = self.options.get("test_level")
         if self.test_level and self.test_level not in [

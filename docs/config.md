@@ -31,6 +31,37 @@ A `cumulusci.yml` file contains these top-level sections.
     into a customer org. See the [](metadeploy-publish) task for more
     information.
 
+## Metadata Directories
+
+Set `project.package.directory` to change the Metadata API package
+directory and `project.unpackaged_directory` to change the root for
+unpackaged metadata. Both paths are relative to the repository root.
+
+```yaml
+project:
+    package:
+        directory: my-app
+    unpackaged_directory: extra-metadata
+```
+
+With this configuration, tasks that work with Metadata API package
+contents use `my-app` by default. Pre-install bundles, post-install
+bundles, and QA configuration live under `extra-metadata/pre`,
+`extra-metadata/post`, and `extra-metadata/config/qa`, respectively.
+Existing task and flow option overrides still take precedence over their
+configured defaults.
+
+For a project with `project.source_format: sfdx`, set the source path on
+the `packageDirectories` entry marked `default: true` in
+`sfdx-project.json`. The standalone `deploy` task uses that directory.
+When a deployment flow converts the source to Metadata API format, it
+writes and deploys the output from `project.package.directory`. Keep the
+conversion directory separate from the Salesforce DX package directories.
+
+The defaults are `src` for Metadata API contents and `unpackaged` for
+unpackaged metadata. CumulusCI falls back to `force-app` when looking up a
+Salesforce DX project’s source root without a default package entry.
+
 (task-configurations)=
 
 ## Task Configurations
@@ -86,7 +117,9 @@ Options
     Require at least X percent code coverage across the org following the test run.
     Default: 90
 ```
+
 (add-a-custom-task)=
+
 ### Add a Custom Task
 
 To define a new task for your project, add the task name under the

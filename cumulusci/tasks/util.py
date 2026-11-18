@@ -53,7 +53,7 @@ class ListMetadataTypes(BaseTask):
             None,
             description=(
                 "The project package.xml file."
-                + " Defaults to <project_root>/src/package.xml"
+                + " Defaults to package.xml in the Metadata API package directory."
             ),
         )
 
@@ -61,7 +61,9 @@ class ListMetadataTypes(BaseTask):
         super(ListMetadataTypes, self)._init_options(kwargs)
         if not self.parsed_options.get("package_xml"):
             self.parsed_options["package_xml"] = os.path.join(
-                self.project_config.repo_root, "src", "package.xml"
+                self.project_config.repo_root,
+                self.project_config.mdapi_package_path,
+                "package.xml",
             )
 
     def _run_task(self):
