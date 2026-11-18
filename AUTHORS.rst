@@ -40,4 +40,4 @@ For example:
 * Ben French (BenjaminFrench)
 * Rupert Barrow (rupertbarrow)
 * Rupesh J (rupeshjSFDC)
-* David B (db-lyon)
+* David Lyon (db-lyon)
