@@ -1,6 +1,7 @@
 import io
 from collections import defaultdict
 from unittest.mock import Mock, call, mock_open, patch
+from zipfile import ZipFile
 
 import pytest
 
@@ -31,6 +32,30 @@ from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 class TestGenerateDataDictionary:
+    def test_process_archive_with_custom_mdapi_directory(self):
+        task = create_task(GenerateDataDictionary, {})
+        task._process_object_element = Mock()
+        version = PackageVersion(
+            package=Package(
+                repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
+            ),
+            version=LooseVersion("1.1"),
+        )
+        with ZipFile(io.BytesIO(), "w") as archive:
+            archive.writestr(
+                "cumulusci.yml",
+                "project:\n    package:\n        directory: metadata/my-app\n",
+            )
+            archive.writestr(
+                "metadata/my-app/objects/Custom__c.object",
+                '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"/>',
+            )
+            archive.writestr("src/objects/Legacy__c.object", "")
+            task._process_zipfile(archive, version)
+
+        assert task._process_object_element.call_args.args[0] == "test__Custom__c"
+        task._process_object_element.assert_called_once()
+
     def test_version_from_tag_name(self):
         task = create_task(GenerateDataDictionary, {})
 
@@ -1067,6 +1092,7 @@ class TestGenerateDataDictionary:
         task._process_mdapi_release.assert_called_once_with(
             extract_github.return_value,
             PackageVersion(package=p, version=LooseVersion("1.1")),
+            "src/objects/",
         )
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
@@ -1098,6 +1124,7 @@ class TestGenerateDataDictionary:
         task._process_sfdx_release.assert_called_once_with(
             extract_github.return_value,
             PackageVersion(package=p, version=LooseVersion("1.1")),
+            "unpackaged",
         )
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
@@ -1163,10 +1190,12 @@ class TestGenerateDataDictionary:
                 call(
                     extract_github.return_value,
                     PackageVersion(package=p, version=LooseVersion("1.1")),
+                    "src/objects/",
                 ),
                 call(
                     extract_github.return_value,
                     PackageVersion(package=p, version=PRERELEASE_SIGIL),
+                    "src/objects/",
                 ),
             ]
         )

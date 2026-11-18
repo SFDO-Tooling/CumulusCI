@@ -4,6 +4,7 @@ from pathlib import Path
 
 import github3.exceptions
 
+from cumulusci.core.dependencies.github import get_archive_project_config
 from cumulusci.core.exceptions import (
     CumulusCIException,
     GithubException,
@@ -56,11 +57,8 @@ class PublishSubtree(BaseGithubTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.options["include"] = process_list_arg(
-            self.options.get(
-                "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
-            )
-        )
+        if "include" in self.options:
+            self.options["include"] = process_list_arg(self.options["include"])
 
         self.options["renames"] = self._process_renames(self.options.get("renames", []))
 
@@ -160,8 +158,18 @@ class PublishSubtree(BaseGithubTask):
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(self.get_repo(), ref=self.ref)
+        if "include" in self.options:
+            includes = self.options["include"]
+        else:
+            config = get_archive_project_config(zf)
+            includes = [
+                "datasets/",
+                "documentation/",
+                "tasks/",
+                f"{config.unpackaged_path}/",
+            ]
         included_members = self._filter_namelist(
-            includes=self.options["include"], namelist=zf.namelist()
+            includes=includes, namelist=zf.namelist()
         )
         zf.extractall(path=path, members=included_members)
 

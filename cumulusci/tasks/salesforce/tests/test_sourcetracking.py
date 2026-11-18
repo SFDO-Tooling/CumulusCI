@@ -144,22 +144,27 @@ class TestRetrieveChanges:
     """Retrieve changed components from a scratch org"""
 
     def test_init_options__sfdx_format(self, sfdx, create_task_fixture):
-        with temporary_dir():
+        with temporary_dir() as root:
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
+            project_config.repo_info["root"] = root
             with open("sfdx-project.json", "w") as f:
                 json.dump(
-                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                    {"packageDirectories": [{"path": "packages/my-app", "default": True}]}, f
                 )
             task = create_task_fixture(RetrieveChanges, {}, project_config)
             assert not task.md_format
-            assert task.options["path"] == "force-app"
+            assert task.options["path"] == "packages/my-app"
 
-    def test_run_task(self, sfdx, create_task_fixture):
+    @pytest.mark.parametrize("package_directory", ["src", "metadata/my-app"])
+    def test_run_task(self, sfdx, create_task_fixture, package_directory):
         sfdx_calls = []
         sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
 
-        with temporary_dir():
+        with temporary_dir() as root:
+            project_config = create_project_config()
+            project_config.repo_info["root"] = root
+            project_config.config["project"]["package"]["directory"] = package_directory
             task = create_task_fixture(
                 RetrieveChanges,
                 {
@@ -167,6 +172,7 @@ class TestRetrieveChanges:
                     "namespace_tokenize": "ns",
                     "retrieve_complete_profile": True,
                 },
+                project_config,
             )
             task._init_task()
             task.tooling = mock.Mock()
@@ -187,7 +193,7 @@ class TestRetrieveChanges:
             }
             with (
                 mock.patch.object(
-                    RetrieveProfile, "_run_task"
+                    RetrieveProfile, "_run_task", autospec=True
                 ) as mock_retrieve_profile,
                 mock.patch.object(pathlib.Path, "exists", return_value=True),
                 mock.patch.object(pathlib.Path, "is_dir", return_value=True),
@@ -198,8 +204,15 @@ class TestRetrieveChanges:
                     "project retrieve start",
                     "project convert source",
                 ]
-                assert os.path.exists(os.path.join("src", "package.xml"))
-                mock_retrieve_profile.assert_called()
+                assert os.path.exists(os.path.join(package_directory, "package.xml"))
+                profile_task = mock_retrieve_profile.call_args.args[0]
+                assert profile_task.extract_dir.parts[-3:] == (
+                    "force-app",
+                    "main",
+                    "default",
+                )
+                assert profile_task.extract_dir.is_absolute()
+                assert not profile_task.extract_dir.is_relative_to(root)
 
     def test_run_task__no_changes(self, sfdx, create_task_fixture):
         with temporary_dir() as path:

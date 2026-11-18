@@ -14,6 +14,7 @@ from cumulusci.core.dependencies.dependencies import (
     parse_dependencies,
 )
 from cumulusci.core.dependencies.github import (
+    get_archive_project_config,
     get_package_data,
     get_remote_project_config,
     get_repo,
@@ -310,21 +311,29 @@ class GenerateDataDictionary(BaseGithubTask):
             self._process_zipfile(zip_file, version)
 
     def _process_zipfile(self, zip_file: ZipFile, version: PackageVersion):
-        if "src/objects/" in zip_file.namelist():
+        config = get_archive_project_config(zip_file)
+        objects_dir = f"{config.mdapi_package_path}/objects/"
+        if any(name.startswith(objects_dir) for name in zip_file.namelist()):
             # MDAPI format
-            self._process_mdapi_release(zip_file, version)
+            self._process_mdapi_release(zip_file, version, objects_dir)
         elif "sfdx-project.json" in zip_file.namelist():
             # SFDX format
             # Note: we check MDAPI first, because many
             # CumulusCI projects contain an sfdx-project.json
             # along with MDAPI source.
-            self._process_sfdx_release(zip_file, version)
+            self._process_sfdx_release(zip_file, version, config.unpackaged_path)
 
-    def _process_mdapi_release(self, zip_file: ZipFile, version: PackageVersion):
+    def _process_mdapi_release(
+        self,
+        zip_file: ZipFile,
+        version: PackageVersion,
+        objects_dir: str,
+    ):
         """Process an MDAPI ZIP file for objects and fields"""
+        objects_path = PurePosixPath(objects_dir)
         for f in zip_file.namelist():
             path = PurePosixPath(f)
-            if path.parent == PurePosixPath("src/objects") and path.suffix == ".object":
+            if path.parent == objects_path and path.suffix == ".object":
                 sobject_name = path.stem
                 if sobject_name.count("__") == 1:
                     sobject_name = f"{version.package.namespace}{sobject_name}"
@@ -397,14 +406,19 @@ class GenerateDataDictionary(BaseGithubTask):
 
         return False
 
-    def _process_sfdx_release(self, zip_file: ZipFile, version: PackageVersion):
+    def _process_sfdx_release(
+        self,
+        zip_file: ZipFile,
+        version: PackageVersion,
+        unpackaged_path: str = "unpackaged",
+    ):
         """Process an SFDX ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
             # Be flexible about processing directories in SFDX context.
             # This may not be optimal if the repo contains multiple
             # 2GP package subdirectories.
-            if "objects/" in f and not f.startswith("unpackaged/"):
+            if "objects/" in f and not f.startswith(f"{unpackaged_path}/"):
                 if path.suffixes == [".object-meta", ".xml"]:
                     sobject_name = path.name[: -len(".object-meta.xml")]
                     if sobject_name.count("__") == 1:

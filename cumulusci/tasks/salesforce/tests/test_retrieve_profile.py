@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import xml.etree.ElementTree as ET
@@ -11,6 +12,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.retrieve_profile_api import RetrieveProfileApi
 from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
+from cumulusci.tests.util import create_project_config
 
 
 @pytest.fixture
@@ -80,6 +82,22 @@ def test_init_options(retrieve_profile_task):
     retrieve_profile_task._init_options(retrieve_profile_task.task_config.config)
     assert retrieve_profile_task.profiles == ["Profile1", "Profile2"]
     assert retrieve_profile_task.strictMode is False
+
+
+def test_init_options_uses_default_sfdx_package(tmp_path):
+    project_config = create_project_config()
+    project_config.project__source_format = "sfdx"
+    project_config.repo_info["root"] = str(tmp_path)
+    (tmp_path / "my-app").mkdir()
+    (tmp_path / "sfdx-project.json").write_text(
+        json.dumps({"packageDirectories": [{"path": "my-app", "default": True}]}),
+        encoding="utf-8",
+    )
+    task_config = TaskConfig({"options": {"profiles": ["Profile1"]}})
+    task = RetrieveProfile(project_config, task_config, MagicMock())
+
+    assert task.extract_dir == tmp_path / "my-app" / "main" / "default"
+    assert task.extract_dir.is_dir()
 
 
 def test_init_options_raises_error_with_no_profiles():

@@ -1,7 +1,9 @@
+import io
 import json
 import tempfile
 from pathlib import Path
 from unittest import mock
+from zipfile import ZipFile
 
 import pytest
 import responses
@@ -43,6 +45,41 @@ class TestPublishSubtree(GithubApiTestMixin):
                 }
             ),
         )
+
+    @pytest.mark.parametrize("archive_directory", ["unpackaged", "metadata/extra"])
+    def test_default_includes_use_archive_directory(self, archive_directory, tmp_path):
+        self.project_config.config["project"]["unpackaged_directory"] = "local/extra"
+        config = TaskConfig(
+            {
+                "options": {
+                    "branch": "main",
+                    "ref": "release/1.0",
+                    "repo_url": self.public_repo_url,
+                }
+            }
+        )
+        task = PublishSubtree(self.project_config, config)
+        task._set_ref()
+        bundle = Path(archive_directory, "pre", "bundle", "package.xml")
+        with ZipFile(io.BytesIO(), "w") as archive:
+            if archive_directory != "unpackaged":
+                archive.writestr(
+                    "cumulusci.yml",
+                    f"project:\n    unpackaged_directory: {archive_directory}\n",
+                )
+            archive.writestr(bundle.as_posix(), "bundle")
+            archive.writestr("local/extra/pre/bundle/package.xml", "unused")
+            with (
+                mock.patch.object(task, "get_repo"),
+                mock.patch(
+                    "cumulusci.tasks.github.publish.download_extract_github_from_repo",
+                    return_value=archive,
+                ),
+            ):
+                task._download_repo_and_extract(tmp_path)
+
+        assert (tmp_path / bundle).read_text() == "bundle"
+        assert not (tmp_path / "local").exists()
 
     def test_run_task__invalid_version_option_value(self):
         task_config = TaskConfig(

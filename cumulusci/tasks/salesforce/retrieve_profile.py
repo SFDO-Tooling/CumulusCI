@@ -8,6 +8,31 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
 )
 
 
+def profile_path(project_config, path=None, *, sfdx=False) -> Path:
+    """Resolve the profile destination and create the Salesforce DX subdirectory."""
+    if path is None:
+        path = project_config.get_package_source_path(mdapi_default="force-app")
+        sfdx = (
+            project_config.project__source_format == "sfdx"
+            or project_config.project__package__directory is None
+        )
+    elif path == "force-app":
+        sfdx = True
+
+    destination = Path(path)
+    if not destination.is_absolute():
+        destination = Path(project_config.repo_root or ".") / destination
+    if not destination.exists():
+        raise FileNotFoundError(f"The extract directory '{path}' does not exist.")
+    if not destination.is_dir():
+        raise NotADirectoryError(f"'{path}' is not a directory.")
+
+    if sfdx:
+        destination = destination / "main" / "default"
+        destination.mkdir(parents=True, exist_ok=True)
+    return destination
+
+
 class RetrieveProfile(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveUnpackaged
     task_options = {
@@ -16,7 +41,7 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
             "required": True,
         },
         "path": {
-            "description": "Target folder path. By default, it uses force-app/main/default",
+            "description": "Target folder path. Defaults to main/default inside the Salesforce DX package directory or to the configured Metadata API package directory.",
         },
         "strict_mode": {
             "description": "When set to False, enables leniency by ignoring missing profiles when provided with a list of profiles."
@@ -35,22 +60,7 @@ class RetrieveProfile(BaseSalesforceMetadataApiTask):
         if not self.profiles:
             raise ValueError("At least one profile must be specified.")
 
-        self.extract_dir = self.options.get("path", "force-app")
-        extract_path = Path(self.extract_dir)
-
-        if not extract_path.exists():
-            raise FileNotFoundError(
-                f"The extract directory '{self.extract_dir}' does not exist."
-            )
-        if not extract_path.is_dir():
-            raise NotADirectoryError(f"'{self.extract_dir}' is not a directory.")
-
-        # If extract_dir is force-app and main/default is not present
-        if self.extract_dir == "force-app":
-            if not (extract_path / "main" / "default").exists():
-                (extract_path / "main" / "default").mkdir(parents=True, exist_ok=True)
-            self.extract_dir = "force-app/main/default"
-
+        self.extract_dir = profile_path(self.project_config, self.options.get("path"))
         self.strictMode = process_bool_arg(self.options.get("strict_mode", True))
 
     def _check_existing_profiles(self, retrieve_profile_api_task):

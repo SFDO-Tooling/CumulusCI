@@ -14,6 +14,7 @@ from pydantic.v1.networks import AnyUrl
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.github import (
+    get_archive_project_config,
     get_package_data,
     get_remote_project_config,
     get_repo,
@@ -341,9 +342,9 @@ class GitHubDynamicDependency(BaseGitHubDependency):
 
         Includes:
         - dependencies from cumulusci.yml
-        - subfolders of unpackaged/pre
-        - the contents of src, if this is not a managed package
-        - subfolders of unpackaged/post
+        - pre-install bundles under the project's unpackaged directory
+        - the package source for an unmanaged dependency
+        - post-install bundles under the project's unpackaged directory
         """
         if not self.is_resolved:
             raise DependencyResolutionError(
@@ -372,11 +373,15 @@ class GitHubDynamicDependency(BaseGitHubDependency):
         # Check for unmanaged flag on a namespaced package
         managed = bool(namespace and not self.unmanaged)
 
-        # Look for subfolders under unpackaged/pre
-        # unpackaged/pre is always deployed unmanaged, no namespace manipulation.
+        # Pre-install bundles are deployed unmanaged without namespace changes.
+        unpackaged_path = package_config.unpackaged_path
         deps.extend(
             self._flatten_unpackaged(
-                repo, "unpackaged/pre", self.skip, managed=False, namespace=None
+                repo,
+                f"{unpackaged_path}/pre",
+                self.skip,
+                managed=False,
+                namespace=None,
             )
         )
 
@@ -400,11 +405,11 @@ class GitHubDynamicDependency(BaseGitHubDependency):
         else:
             deps.append(self.package_dependency)
 
-        # We always inject the project's namespace into unpackaged/post metadata if managed
+        # Inject the project's namespace into post-install metadata for managed packages.
         deps.extend(
             self._flatten_unpackaged(
                 repo,
-                "unpackaged/post",
+                f"{unpackaged_path}/post",
                 self.skip,
                 managed=managed,
                 namespace=namespace,
@@ -576,20 +581,14 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         # MDAPI/SFDX format, with or without a subfolder specified.
 
         # In only two cases do we need to do a zip subset.
-        # Either we have a repo root in MDAPI format and need to get `src`,
-        # or we're deploying a subfolder that is in MDAPI format.
+        # Extract the configured Metadata API package or an explicit Metadata API subfolder.
         zip_extract_subfolder = None
-        if (
-            not self.subfolder
-            and get_source_format_for_zipfile(zip_src, "src") is SourceFormat.MDAPI
-        ):
-            zip_extract_subfolder = "src"
-        elif (
-            self.subfolder
-            and get_source_format_for_zipfile(zip_src, self.subfolder)
-            is SourceFormat.MDAPI
-        ):
-            zip_extract_subfolder = self.subfolder
+        subfolder = self.subfolder
+        if not subfolder:
+            archive_config = get_archive_project_config(zip_src)
+            subfolder = archive_config.mdapi_package_path
+        if get_source_format_for_zipfile(zip_src, subfolder) is SourceFormat.MDAPI:
+            zip_extract_subfolder = subfolder
 
         if zip_extract_subfolder:
             zip_src = zip_subfolder(zip_src, zip_extract_subfolder)

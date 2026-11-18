@@ -13,7 +13,9 @@ class MetaXmlBaseTask(BaseTask):
     def _init_options(self, kwargs):
         super(MetaXmlBaseTask, self)._init_options(kwargs)
         if "dir" not in self.options or not self.options["dir"]:
-            self.options["dir"] = os.path.join(self.project_config.repo_root, "src")
+            self.options["dir"] = os.path.join(
+                self.project_config.repo_root, self.project_config.package_source_path
+            )
 
     def _run_task(self):
         for root, dirs, files in os.walk(self.options["dir"]):

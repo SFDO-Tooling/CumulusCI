@@ -1,5 +1,5 @@
-import json
 import os
+from pathlib import Path
 
 import requests
 
@@ -12,7 +12,11 @@ from cumulusci.tasks.salesforce import (
     BaseSalesforceApiTask,
     DescribeMetadataTypes,
 )
-from cumulusci.tasks.salesforce.sourcetracking import ListChanges, retrieve_components
+from cumulusci.tasks.salesforce.sourcetracking import (
+    ListChanges,
+    resolve_retrieve_path,
+    retrieve_components,
+)
 
 nl = "\n"
 
@@ -170,33 +174,9 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
         self._exclude = self.options["exclude"]
         self._exclude.extend(self.project_config.project__source__ignore or [])
 
-        package_directories = []
-        default_package_directory = None
-        if os.path.exists("sfdx-project.json"):
-            with open("sfdx-project.json", "r", encoding="utf-8") as f:
-                sfdx_project = json.load(f)
-                for package_directory in sfdx_project.get("packageDirectories", []):
-                    package_directories.append(package_directory["path"])
-                    if package_directory.get("default"):
-                        default_package_directory = package_directory["path"]
-
-        path = self.options.get("path")
-        if path is None:
-            # set default path to src for mdapi format,
-            # or the default package directory from sfdx-project.json for dx format
-            if (
-                default_package_directory
-                and self.project_config.project__source_format == "sfdx"
-            ):
-                path = default_package_directory
-                md_format = False
-            else:
-                path = "src"
-                md_format = True
-        else:
-            md_format = path not in package_directories
-        self.md_format = md_format
-        self.options["path"] = path
+        self.options["path"], self.md_format = resolve_retrieve_path(
+            self.project_config, self.options.get("path")
+        )
 
     def _run_task(self):
         components = self._get_components()
@@ -209,7 +189,10 @@ class RetrieveComponents(ListComponents, BaseSalesforceApiTask):
 
         target = os.path.realpath(self.options["path"])
         package_xml_opts = {}
-        if self.options["path"] == "src":
+        if (
+            self.md_format
+            and Path(target) == Path(self.project_config.mdapi_package_path).resolve()
+        ):
             package_xml_opts.update(
                 {
                     "package_name": self.project_config.project__package__name,

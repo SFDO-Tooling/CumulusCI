@@ -13,7 +13,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
     name = "UninstallPackagedIncremental"
     task_options = {
         "path": {
-            "description": "The local path to compare to the retrieved packaged metadata from the org.  Defaults to src.",
+            "description": "The local path to compare to the retrieved packaged metadata from the org.  Defaults to the Metadata API package directory.",
             "required": True,
         },
         "package": {
@@ -38,7 +38,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
     def _init_options(self, kwargs):
         super(UninstallPackagedIncremental, self)._init_options(kwargs)
         if "path" not in self.options:
-            self.options["path"] = "src"
+            self.options["path"] = self.project_config.mdapi_package_path
         self.options["ignore"] = self.options.get("ignore", {})
         self.options["ignore_types"] = self.options.get(
             "ignore_types", DEFAULT_IGNORE_TYPES

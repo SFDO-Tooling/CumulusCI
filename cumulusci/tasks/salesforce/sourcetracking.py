@@ -5,6 +5,7 @@ import os
 import re
 import time
 from collections import defaultdict
+from pathlib import Path
 
 from cumulusci.core.config import BaseProjectConfig, ScratchOrgConfig, TaskConfig
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -12,7 +13,7 @@ from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata, BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile
+from cumulusci.tasks.salesforce.retrieve_profile import RetrieveProfile, profile_path
 from cumulusci.utils import (
     inject_namespace,
     process_text_in_directory,
@@ -224,6 +225,22 @@ def separate_profiles(components):
     return updated_components, profiles
 
 
+def resolve_retrieve_path(
+    project_config: BaseProjectConfig, path: str | os.PathLike[str] | None
+) -> tuple[str | os.PathLike[str], bool]:
+    """Return the retrieval path and whether it uses Metadata API format."""
+    if path is not None:
+        return path, all(
+            Path(path) != Path(package["path"])
+            for package in project_config.sfdx_package_directories
+        )
+    if project_config.project__source_format == "sfdx":
+        default_path = project_config.sfdx_default_package_path
+        if default_path:
+            return default_path, False
+    return project_config.mdapi_package_path, True
+
+
 def retrieve_components(
     components,
     org_config,
@@ -259,10 +276,11 @@ def retrieve_components(
         )
 
     with contextlib.ExitStack() as stack:
+        temporary_package = None
         if md_format:
             # Create target if it doesn't exist
             if not os.path.exists(target):
-                os.mkdir(target)
+                os.makedirs(target)
                 touch(os.path.join(target, "package.xml"))
 
             # Inject namespace
@@ -275,18 +293,23 @@ def retrieve_components(
                 )
 
             # Temporarily convert metadata format to DX format
-            stack.enter_context(temporary_dir())
+            conversion_root = stack.enter_context(temporary_dir())
+            temporary_package = Path(conversion_root, "force-app")
             os.mkdir("target")
-            # We need to create sfdx-project.json
-            # so that sfdx will recognize force-app as a package directory.
+            # Register the package directory in the temporary Salesforce DX project.
             with open("sfdx-project.json", "w", encoding="utf-8") as f:
                 json.dump(
-                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                    {
+                        "packageDirectories": [
+                            {"path": temporary_package.name, "default": True}
+                        ]
+                    },
+                    f,
                 )
             sfdx(
                 "project convert mdapi",
                 log_note="Converting to DX format",
-                args=["-r", target, "-d", "force-app"],
+                args=["-r", target, "-d", temporary_package.name],
                 check_return=True,
             )
 
@@ -325,9 +348,15 @@ def retrieve_components(
 
         # Extract Profiles
         if profiles:
+            destination = None
+            if temporary_package is not None:
+                destination = profile_path(project_config, temporary_package, sfdx=True)
             task_config = TaskConfig(
                 config={
-                    "options": {"profiles": ",".join(profiles), "path": "force-app"}
+                    "options": {
+                        "profiles": ",".join(profiles),
+                        "path": destination,
+                    }
                 }
             )
             cls_retrieve_profile = RetrieveProfile(
@@ -336,12 +365,12 @@ def retrieve_components(
                 task_config=task_config,
             )
             cls_retrieve_profile()
-        if md_format:
+        if temporary_package is not None:
             # Convert back to metadata format
             sfdx(
                 "project convert source",
                 log_note="Converting back to metadata format",
-                args=["-r", "force-app", "-d", target],
+                args=["-r", temporary_package.name, "-d", target],
                 capture_output=capture_output,
                 check_return=True,
             )
@@ -382,34 +411,9 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         # Get output_dir first
         output_dir = self.options.get("output_dir")
 
-        # Check which directories are configured as dx packages
-        package_directories = []
-        default_package_directory = None
-        if os.path.exists("sfdx-project.json"):
-            with open("sfdx-project.json", "r", encoding="utf-8") as f:
-                sfdx_project = json.load(f)
-                for package_directory in sfdx_project.get("packageDirectories", []):
-                    package_directories.append(package_directory["path"])
-                    if package_directory.get("default"):
-                        default_package_directory = package_directory["path"]
-
-        path = self.options.get("path")
-        if path is None:
-            # set default path to src for mdapi format,
-            # or the default package directory from sfdx-project.json for dx format
-            if (
-                default_package_directory
-                and self.project_config.project__source_format == "sfdx"
-            ):
-                path = default_package_directory
-                md_format = False
-            else:
-                path = "src"
-                md_format = True
-        else:
-            md_format = path not in package_directories
-        self.md_format = md_format
-        self.options["path"] = path
+        self.options["path"], self.md_format = resolve_retrieve_path(
+            self.project_config, self.options.get("path")
+        )
         self.options["output_dir"] = output_dir
 
         if "api_version" not in self.options:
@@ -431,7 +435,10 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         target = os.path.realpath(self.options["path"])
         output_dir = self.options.get("output_dir")
         package_xml_opts = {}
-        if self.options["path"] == "src":
+        if (
+            self.md_format
+            and Path(target) == Path(self.project_config.mdapi_package_path).resolve()
+        ):
             package_xml_opts.update(
                 {
                     "package_name": self.project_config.project__package__name,

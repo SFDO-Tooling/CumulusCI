@@ -623,6 +623,18 @@ class TestCreatePackageVersion:
 
         assert task._get_unpackaged_pre_dependencies([]) == []
 
+    def test_unpackaged_pre_dependencies__custom_directory(self, task):
+        task.project_config.config["project"]["unpackaged_directory"] = "metadata/extra"
+        custom_bundle = pathlib.Path("metadata", "extra", "pre", "custom")
+        custom_bundle.mkdir(parents=True)
+        with mock.patch.object(
+            task, "_create_unlocked_package_from_local", return_value="04t000000000000"
+        ) as create_package:
+            assert task._get_unpackaged_pre_dependencies([]) == [
+                {"subscriberPackageVersionId": "04t000000000000"}
+            ]
+        assert create_package.call_args.args[0] == custom_bundle
+
     @responses.activate
     def test_poll_action__error(self, task):
         responses.add(

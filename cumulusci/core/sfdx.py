@@ -73,7 +73,7 @@ def shell_quote(s: str):
             result = '""'
         elif '"' not in s:
             result = s
-            if " " in result:
+            if any(char.isspace() or char in "&()^|<>;" for char in result):
                 result = f'"{result}"'
         else:
             escaped = s.replace('"', r"\"")
