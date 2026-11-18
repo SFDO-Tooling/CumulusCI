@@ -1487,6 +1487,7 @@ class TestOrgConfig:
                 {
                     "SubscriberPackage": {
                         "Id": "03350000000DEz4AAG",
+                        "Name": "Volunteers for Salesforce",
                         "NamespacePrefix": "GW_Volunteers",
                     },
                     "SubscriberPackageVersionId": "04t1T00000070yqQAA",
@@ -1494,6 +1495,7 @@ class TestOrgConfig:
                 {
                     "SubscriberPackage": {
                         "Id": "03350000000DEz5AAG",
+                        "Name": "Volunteers for Salesforce",
                         "NamespacePrefix": "GW_Volunteers",
                     },
                     "SubscriberPackageVersionId": "04t000000000001AAA",
@@ -1501,6 +1503,7 @@ class TestOrgConfig:
                 {
                     "SubscriberPackage": {
                         "Id": "03350000000DEz7AAG",
+                        "Name": "Test Package",
                         "NamespacePrefix": "TESTY",
                     },
                     "SubscriberPackageVersionId": "04t000000000002AAA",
@@ -1508,6 +1511,7 @@ class TestOrgConfig:
                 {
                     "SubscriberPackage": {
                         "Id": "03350000000DEz4AAG",
+                        "Name": "Blah Package",
                         "NamespacePrefix": "blah",
                     },
                     "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
@@ -1515,6 +1519,7 @@ class TestOrgConfig:
                 {
                     "SubscriberPackage": {
                         "Id": "03350000000DEz8AAG",
+                        "Name": "Error Package",
                         "NamespacePrefix": "error",
                     },
                     "SubscriberPackageVersionId": "04t0000000ERRORAAA",
@@ -1597,6 +1602,13 @@ class TestOrgConfig:
                 VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
             ],
             "03350000000DEz7AAG": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
+            "Volunteers for Salesforce": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1")),
+            ],
+            "Test Package": [
                 VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
             ],
         }

@@ -362,3 +362,40 @@ def make_jsonable(x):
         return x
     except (TypeError, OverflowError):
         return str(x)
+
+
+def determine_managed_mode(options, project_config, org_config):
+    """Determine the managed mode based on options, project config, and org config.
+
+    Args:
+        options: Dict of task options that may contain 'managed' or 'unmanaged' flags
+        project_config: Project configuration object with package info
+        org_config: Org configuration object with installed packages and namespace info
+
+    Returns:
+        bool: True if in managed mode, False if in unmanaged mode
+    """
+    if "managed" in options:
+        return process_bool_arg(options["managed"])
+
+    if "unmanaged" in options:
+        return not process_bool_arg(options.get("unmanaged", True))
+
+    # Get package and namespace information
+    package_name = getattr(project_config, 'project__package__name', None)
+    namespace = (
+        getattr(project_config, 'project__package__namespace', None)
+        or options.get("namespace")
+    )
+
+    if not package_name and not namespace:
+        return False
+
+    if bool(namespace) and namespace == getattr(org_config, 'namespace', None):
+        return False
+
+    installed_packages = getattr(org_config, 'installed_packages', {})
+    if package_name and any(package_name in key for key in installed_packages.keys()):
+        return True
+
+    return bool(namespace) and namespace in installed_packages
