@@ -410,7 +410,57 @@ project:
 Package dependencies can include any package, whether or not it is built
 as a CumulusCI project. Dependencies on managed packages may be
 specified using the namespace and version or the version id.
-Dependencies on unlocked packages should use the version id.
+Use the version ID to specify an unlocked package directly in `cumulusci.yml`.
+
+### Salesforce DX Project Dependencies
+
+Add a `project` entry to resolve the package dependencies declared in an
+existing Salesforce DX project file. CumulusCI expands the entry in place,
+so you can put prerequisites before it and dependent packages after it.
+
+```yaml
+project:
+    dependencies:
+        - github: https://github.com/owner/repo
+        - version_id: 04t000000000001
+        - project: sfdx-project.json
+        - version_id: 04t000000000002
+```
+
+The file path is relative to the repository that declares the dependency.
+CumulusCI reads package directories in the order they appear in
+`packageDirectories` and each directory's dependencies in their declared
+order. To use just one directory, set `package_directory` to the exact
+`path` value from the Salesforce DX project file.
+
+```yaml
+project:
+    dependencies:
+        - project: sfdx-project.json
+          package_directory: packages/storefront
+```
+
+Use a package version ID (`04t`) or an alias for a specific version to
+install it directly. For a package ID (`0Ho`) or an alias for that ID,
+specify `versionNumber` in the Salesforce DX dependency declaration.
+CumulusCI resolves a numeric build, `LATEST`, or `RELEASED` through the
+configured Dev Hub. `LATEST` uses the dependency's branch or the package
+directory's branch. If it finds no eligible build on an inherited branch,
+it checks versions with no branch. `RELEASED` uses the latest promoted
+build for the specified major, minor, and patch version. These follow the
+[Salesforce packaging keyword rules](https://developer.salesforce.com/docs/platform/sfdx-dev/guide/sfdx-dev-unlocked-pkg-config-keywords.html).
+
+Resolution uses the CumulusCI `devhub` service or the Salesforce CLI
+`target-dev-hub`. Direct `04t` IDs and aliases for them require no Dev Hub
+lookup. Local Salesforce DX project dependencies require no GitHub
+credentials, and namespace-free unlocked packages work with either ID
+form.
+
+If an expanded ID appears more than once, CumulusCI keeps its first
+position. Different versions resolved for the same `0Ho` package produce
+an error. Salesforce still checks package compatibility during install,
+including for versions supplied directly as `04t` IDs. Declare
+prerequisites before packages that need them.
 
 ### Package Install Keys (Passwords)
 

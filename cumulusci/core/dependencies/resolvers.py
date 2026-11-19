@@ -25,6 +25,7 @@ from cumulusci.core.dependencies.github import (
     get_remote_project_config,
     get_repo,
 )
+from cumulusci.core.dependencies.sfdx_project import SfdxPackageVersionDependency
 from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.github import (
@@ -564,9 +565,7 @@ def get_static_dependencies(
     filter_function: Optional[Callable] = None,
     pins: Optional[List[DependencyPin]] = None,
 ) -> List[StaticDependency]:
-    """Resolves the dependencies of a CumulusCI project
-    to convert dynamic GitHub dependencies into static dependencies
-    by inspecting the referenced repositories.
+    """Resolve a CumulusCI project's installable dependencies in order.
 
     Keyword arguments:
     :param context: a project config
@@ -617,7 +616,58 @@ def get_static_dependencies(
 
     # Make sure, if we had no flattening or resolving to do, that we apply the ignore list.
     # Type is guaranteed via the logic above.
-    return [d for d in dependencies if filter_function(d)]  # type: ignore
+    filtered = [d for d in dependencies if filter_function(d)]
+    return _finalize_sfdx_dependencies(filtered)
+
+
+def _finalize_sfdx_dependencies(dependencies):
+    """Coalesce identical expanded IDs and report conflicts with known package IDs."""
+    sfdx_versions = {
+        dependency.version_id[:15]
+        for dependency in dependencies
+        if isinstance(dependency, SfdxPackageVersionDependency)
+    }
+    if not sfdx_versions:
+        return dependencies
+
+    version_positions = {}
+    expanded_positions = set()
+    package_versions = {}
+    result = []
+    for dependency in dependencies:
+        expanded = isinstance(dependency, SfdxPackageVersionDependency)
+        if expanded:
+            if dependency.package2_id:
+                package = dependency.package2_id[:15]
+                existing = package_versions.setdefault(package, dependency)
+                if existing.version_id[:15] != dependency.version_id[:15]:
+                    raise DependencyResolutionError(
+                        f"Conflicting versions of package {dependency.package2_id}: "
+                        f"{existing.version_id} from {existing.source} and "
+                        f"{dependency.version_id} from {dependency.source}. "
+                        "Specify one version or select a single package_directory."
+                    )
+            dependency = PackageVersionIdDependency(
+                **dependency.dict(exclude={"package2_id", "source"})
+            )
+        if isinstance(
+            dependency, (PackageVersionIdDependency, PackageNamespaceVersionDependency)
+        ):
+            version = dependency.version_id and dependency.version_id[:15]
+            if version in sfdx_versions:
+                if version in version_positions:
+                    position = version_positions[version]
+                    if not expanded and position in expanded_positions:
+                        # Keep explicit install options at the first occurrence.
+                        result[position] = dependency
+                        expanded_positions.remove(position)
+                    continue
+                position = len(result)
+                version_positions[version] = position
+                if expanded:
+                    expanded_positions.add(position)
+        result.append(dependency)
+    return result
 
 
 def resolve_dependency(

@@ -27,11 +27,10 @@ class UpdateDependencies(BaseSalesforceTask):
     name = "UpdateDependencies"
     task_options = {
         "dependencies": {
-            "description": "List of dependencies to update. Defaults to project__dependencies. "
-            "Each dependency is a dict with either 'github' set to a github repository URL "
-            "or 'namespace' set to a Salesforce package namespace. "
-            "GitHub dependencies may include 'tag' to install a particular git ref. "
-            "Package dependencies may include 'version' to install a particular version."
+            "description": "Ordered dependencies to install. Defaults to project.dependencies. "
+            "Use 'github' for a repository, 'namespace' and 'version' for a named package version, "
+            "'version_id' for a package version ID, or 'project' for a Salesforce DX project file. "
+            "GitHub dependencies may include 'tag' to select a release."
         },
         "ignore_dependencies": {
             "description": "List of dependencies to be ignored, including if they are present as transitive "

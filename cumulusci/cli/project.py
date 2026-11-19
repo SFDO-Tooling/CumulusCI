@@ -6,10 +6,13 @@ from pathlib import Path
 from typing import Dict
 
 import click
+import yaml
 from jinja2 import Environment, PackageLoader
 
 import cumulusci
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.dependencies.sfdx_project import load_sfdx_project
+from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.utils.git import current_branch
 
 from .runtime import pass_runtime
@@ -32,6 +35,61 @@ def validate_project_name(value):
             "letters, numbers, dash, and underscore"
         )
     return value
+
+
+@project.command(
+    name="import", help="Create cumulusci.yml from an existing Salesforce DX project"
+)
+@click.option("--name", help="Override the CumulusCI project name.")
+@click.option(
+    "--print", "print_config", is_flag=True, help="Print the proposed configuration."
+)
+def project_import(name, print_config):
+    """Generate a minimal CumulusCI configuration for a Salesforce DX project."""
+    if not Path(".git").exists():
+        raise click.ClickException(
+            "Run this command from the root of the Git repository."
+        )
+    destination = Path("cumulusci.yml")
+    if destination.exists() and not print_config:
+        raise click.ClickException(
+            "cumulusci.yml already exists. Use --print to see the configuration to merge."
+        )
+
+    source = Path("sfdx-project.json")
+    try:
+        sfdx_project = load_sfdx_project(source.read_text(encoding="utf-8-sig"), source)
+    except (OSError, UnicodeError, DependencyResolutionError) as exc:
+        raise click.ClickException(f"Cannot import {source}: {exc}") from exc
+
+    name = validate_project_name(name or Path.cwd().name)
+    directories = sfdx_project["packageDirectories"]
+    default_directory = next(
+        (directory for directory in reversed(directories) if directory.get("default")),
+        directories[0] if len(directories) == 1 else {},
+    )
+    package = {"name": default_directory.get("package") or name}
+    if namespace := sfdx_project.get("namespace"):
+        package["namespace"] = namespace
+    if api_version := sfdx_project.get("sourceApiVersion"):
+        package["api_version"] = str(api_version)
+    config = yaml.safe_dump(
+        {
+            "project": {
+                "name": name,
+                "source_format": "sfdx",
+                "package": package,
+                "dependencies": [{"project": source.name}],
+            }
+        },
+        sort_keys=False,
+    )
+    if print_config:
+        click.echo(config, nl=False)
+    else:
+        with destination.open("x", encoding="utf-8") as handle:
+            handle.write(config)
+        click.echo(f"Created {destination} from {source}.")
 
 
 @project.command(

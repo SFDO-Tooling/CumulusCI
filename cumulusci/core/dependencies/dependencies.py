@@ -3,6 +3,8 @@ import contextlib
 import itertools
 import logging
 import os
+import re
+from pathlib import Path, PureWindowsPath
 from typing import List, Optional
 from zipfile import ZipFile
 
@@ -363,7 +365,12 @@ class GitHubDynamicDependency(BaseGitHubDependency):
         # will manage them.
         dependencies = package_config.project__dependencies
         if dependencies:
-            deps.extend([parse_dependency(d) for d in dependencies])
+            for dependency in map(parse_dependency, dependencies):
+                if isinstance(dependency, SfdxProjectDependency):
+                    dependency = RemoteSfdxProjectDependency(
+                        **dependency.dict(), github=self.github, ref=self.ref
+                    )
+                deps.append(dependency)
             if None in deps:
                 raise DependencyResolutionError(
                     f"Unable to flatten dependency {self} because a transitive dependency could not be parsed."
@@ -535,6 +542,67 @@ class PackageVersionIdDependency(StaticDependency):
     @property
     def description(self):
         return f"{self.package} {self.version_number or self.version_id}"
+
+
+class SfdxProjectDependency(Dependency):
+    """Expand dependencies from a Salesforce DX project at this position."""
+
+    project: pydantic.StrictStr
+    package_directory: Optional[pydantic.StrictStr] = None
+
+    @pydantic.validator("project")
+    def validate_project_path(cls, value):
+        path = PureWindowsPath(value)
+        if path.anchor or not path.parts or ".." in path.parts:
+            raise ValueError("Expected a Salesforce DX project file inside the repository.")
+        return path.as_posix()
+
+    @property
+    def name(self):
+        return f"Salesforce DX project {self.project}"
+
+    @property
+    def is_resolved(self):
+        return False
+
+    @property
+    def is_flattened(self):
+        return False
+
+    def _read(self, context):
+        return Path(context.repo_root or ".", self.project).read_text(
+            encoding="utf-8-sig"
+        )
+
+    def flatten(self, context):
+        from cumulusci.core.dependencies.sfdx_project import (
+            resolve_project_dependencies,
+        )
+
+        try:
+            contents = self._read(context)
+        except (OSError, UnicodeError, NotFoundError) as exc:
+            raise DependencyResolutionError(f"Cannot read {self.name}: {exc}") from exc
+        return resolve_project_dependencies(
+            context, contents, self.name, self.package_directory
+        )
+
+
+class RemoteSfdxProjectDependency(SfdxProjectDependency):
+    """Read a transitive project dependency at the upstream GitHub ref."""
+
+    github: str
+    ref: str
+
+    @property
+    def name(self):
+        return f"{super().name} in {self.github}@{self.ref}"
+
+    def _read(self, context):
+        repo = get_repo(self.github, context)
+        return repo.file_contents(self.project, ref=self.ref).decoded.decode(
+            "utf-8-sig"
+        )
 
 
 class UnmanagedDependency(StaticDependency, abc.ABC):
@@ -759,6 +827,7 @@ def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
 
 
 AVAILABLE_DEPENDENCY_CLASSES = [
+    SfdxProjectDependency,
     PackageVersionIdDependency,
     PackageNamespaceVersionDependency,
     UnmanagedGitHubRefDependency,
@@ -780,6 +849,10 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
 
     # We also want PackageVersionIdDependency to match before
     # PackageNamespaceVersionDependency, which can also accept a `version_id`.
+
+    github = dep_dict.get("github") if isinstance(dep_dict, dict) else None
+    if isinstance(github, str) and re.fullmatch(r"[\w-]+/[\w.-]+", github):
+        dep_dict = {**dep_dict, "github": f"https://github.com/{github}"}
 
     for dependency_class in AVAILABLE_DEPENDENCY_CLASSES:
         try:
