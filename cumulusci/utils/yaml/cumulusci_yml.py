@@ -132,12 +132,20 @@ class DependencyResolutions(CCIDictModel):
     resolution_strategies: Dict[str, List[str]] = None
 
 
+class SfdxProjectDependencyConfig(CCIDictModel):
+    project: str
+    package_directory: Optional[str] = None
+    password_env_names: Optional[Dict[str, str]] = None
+
+
 class Project(CCIDictModel):
     name: Optional[str] = None
     package: Optional[Package] = None
     test: Optional[Test] = None
     git: Optional[Git] = None
-    dependencies: Optional[List[Dict[str, str]]] = None
+    dependencies: Optional[
+        List[Union[SfdxProjectDependencyConfig, Dict[str, str]]]
+    ] = None
     dependency_resolutions: Optional[DependencyResolutions] = None
     dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"

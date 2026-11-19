@@ -448,10 +448,6 @@ class PackageNamespaceVersionDependency(StaticDependency):
         options: Optional[PackageInstallOptions] = None,
         retry_options=None,
     ):
-        if not options:
-            options = PackageInstallOptions()
-        if self.password_env_name:
-            options.password = os.environ.get(self.password_env_name)
         if not retry_options:
             retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 
@@ -477,7 +473,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
             org,
             self.namespace,
             self.version,
-            options,
+            _package_install_options(options, self.password_env_name, self.description),
             retry_options=retry_options,
         )
 
@@ -510,10 +506,6 @@ class PackageVersionIdDependency(StaticDependency):
         options: Optional[PackageInstallOptions] = None,
         retry_options=None,
     ):
-        if not options:
-            options = PackageInstallOptions()
-        if self.password_env_name:
-            options.password = os.environ.get(self.password_env_name)
         if not retry_options:
             retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 
@@ -531,7 +523,7 @@ class PackageVersionIdDependency(StaticDependency):
             context,
             org,
             self.version_id,
-            options,
+            _package_install_options(options, self.password_env_name, self.description),
             retry_options=retry_options,
         )
 
@@ -544,17 +536,37 @@ class PackageVersionIdDependency(StaticDependency):
         return f"{self.package} {self.version_number or self.version_id}"
 
 
+def _package_install_options(options, password_env_name, package):
+    if options is None:
+        options = PackageInstallOptions()
+    if password_env_name is None:
+        return options
+    password = os.environ.get(password_env_name)
+    if not password:
+        raise DependencyResolutionError(
+            f"Set the {password_env_name} environment variable before installing {package}."
+        )
+    package_options = options.copy()
+    package_options.password = password
+    return package_options
+
+
 class SfdxProjectDependency(Dependency):
     """Expand dependencies from a Salesforce DX project at this position."""
 
     project: pydantic.StrictStr
     package_directory: Optional[pydantic.StrictStr] = None
+    password_env_names: dict[pydantic.StrictStr, pydantic.StrictStr] = pydantic.Field(
+        default_factory=dict
+    )
 
     @pydantic.validator("project")
     def validate_project_path(cls, value):
         path = PureWindowsPath(value)
         if path.anchor or not path.parts or ".." in path.parts:
-            raise ValueError("Expected a Salesforce DX project file inside the repository.")
+            raise ValueError(
+                "Expected a Salesforce DX project file inside the repository."
+            )
         return path.as_posix()
 
     @property
@@ -584,7 +596,11 @@ class SfdxProjectDependency(Dependency):
         except (OSError, UnicodeError, NotFoundError) as exc:
             raise DependencyResolutionError(f"Cannot read {self.name}: {exc}") from exc
         return resolve_project_dependencies(
-            context, contents, self.name, self.package_directory
+            context,
+            contents,
+            self.name,
+            self.package_directory,
+            self.password_env_names,
         )
 
 

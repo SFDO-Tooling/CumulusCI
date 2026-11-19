@@ -657,10 +657,25 @@ def _finalize_sfdx_dependencies(dependencies):
             if version in sfdx_versions:
                 if version in version_positions:
                     position = version_positions[version]
+                    existing = result[position]
+                    password_env_name = (
+                        existing.password_env_name or dependency.password_env_name
+                    )
+                    if (
+                        existing.password_env_name
+                        and dependency.password_env_name
+                        and existing.password_env_name != dependency.password_env_name
+                    ):
+                        raise DependencyResolutionError(
+                            f"Conflicting installation key variables for {dependency.version_id}: "
+                            f"{existing.password_env_name} and {dependency.password_env_name}."
+                        )
                     if not expanded and position in expanded_positions:
                         # Keep explicit install options at the first occurrence.
-                        result[position] = dependency
+                        existing = dependency
                         expanded_positions.remove(position)
+                    result[position] = existing.copy()
+                    result[position].password_env_name = password_env_name
                     continue
                 position = len(result)
                 version_positions[version] = position

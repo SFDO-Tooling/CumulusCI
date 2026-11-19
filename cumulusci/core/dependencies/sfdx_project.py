@@ -57,7 +57,9 @@ def load_sfdx_project(contents, source):
     return project
 
 
-def resolve_project_dependencies(context, contents, source, package_directory):
+def resolve_project_dependencies(
+    context, contents, source, package_directory, password_env_names
+):
     """Resolve each package directory's declarations in file order."""
     project = load_sfdx_project(contents, source)
     directories = project["packageDirectories"]
@@ -72,7 +74,9 @@ def resolve_project_dependencies(context, contents, source, package_directory):
                 f"Expected one package directory with path {package_directory!r} in {source}."
             )
 
-    resolver = ProjectPackageResolver(context, project.get("packageAliases", {}))
+    resolver = ProjectPackageResolver(
+        context, project.get("packageAliases", {}), password_env_names
+    )
     resolved = []
     for directory in directories:
         declarations = directory.get("dependencies", [])
@@ -96,9 +100,10 @@ def resolve_project_dependencies(context, contents, source, package_directory):
 class ProjectPackageResolver:
     """Resolve aliases and version selectors for one project file."""
 
-    def __init__(self, context, aliases):
+    def __init__(self, context, aliases, password_env_names):
         self.context = context
         self.aliases = aliases
+        self.password_env_names = password_env_names
 
     @cached_property
     def tooling(self):
@@ -132,7 +137,7 @@ class ProjectPackageResolver:
         identifier = identifiers[0]
         package_id = self.aliases.get(identifier, identifier)
         if isinstance(package_id, str) and VERSION_ID.fullmatch(package_id):
-            return self._dependency(package_id, source)
+            return self._dependency(package_id, source, identifier=identifier)
         if not isinstance(package_id, str) or not PACKAGE_ID.fullmatch(package_id):
             raise DependencyResolutionError(
                 f"{identifier!r} must be a 0Ho or 04t ID, or an alias for one in packageAliases."
@@ -190,7 +195,7 @@ class ProjectPackageResolver:
                 f"{problem} for {identifier!r} ({package_id}) at {version} in the configured Dev Hub ({scope})."
             )
         return self._dependency(
-            records[0].get("SubscriberPackageVersionId"), source, package_id
+            records[0].get("SubscriberPackageVersionId"), source, package_id, identifier
         )
 
     @staticmethod
@@ -206,12 +211,22 @@ class ProjectPackageResolver:
         )["records"]
         return records[0].get("expr0") if records else None
 
-    @staticmethod
-    def _dependency(version_id, source, package_id=None):
+    def _dependency(self, version_id, source, package_id=None, identifier=None):
         if not isinstance(version_id, str) or not VERSION_ID.fullmatch(version_id):
             raise DependencyResolutionError(
                 f"Expected a valid 04t package version ID, got {version_id!r}."
             )
+        password_env_name = next(
+            (
+                self.password_env_names[key]
+                for key in (identifier, version_id, package_id)
+                if key in self.password_env_names
+            ),
+            None,
+        )
         return SfdxPackageVersionDependency(
-            version_id=version_id, package2_id=package_id, source=source
+            version_id=version_id,
+            package2_id=package_id,
+            source=source,
+            password_env_name=password_env_name,
         )

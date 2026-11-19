@@ -462,6 +462,20 @@ an error. Salesforce still checks package compatibility during install,
 including for versions supplied directly as `04t` IDs. Declare
 prerequisites before packages that need them.
 
+For a package protected by an installation key, map its alias or ID to an
+environment variable in the `project` entry. For example, if the
+dependency in `sfdx-project.json` uses `Storefront Library` as its package
+alias, set `STOREFRONT_INSTALL_KEY` in the environment that runs CumulusCI
+and add this configuration:
+
+```yaml
+project:
+    dependencies:
+        - project: sfdx-project.json
+          password_env_names:
+              Storefront Library: STOREFRONT_INSTALL_KEY
+```
+
 ### Package Install Keys (Passwords)
 
 Some packages are protected by an install key, which must be present in

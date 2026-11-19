@@ -9,6 +9,7 @@ from cumulusci.core.dependencies.dependencies import (
 )
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import DependencyResolutionError, SfdxOrgException
+from cumulusci.salesforce_api.package_install import PackageInstallOptions
 from cumulusci.tests.util import create_project_config
 
 PACKAGE_ID = "0Ho000000000001"
@@ -59,6 +60,9 @@ def test_dynamic_version(config, tmp_path, version_number, scope, responses):
         tmp_path / "sfdx-project.json",
         [{"package": "Library", "versionNumber": version_number, "branch": "feature"}],
     )
+    config.config["project"]["dependencies"][0]["password_env_names"] = {
+        PACKAGE_ID: "LIBRARY_INSTALL_KEY"
+    }
     hub = mock.Mock()
     hub.query.side_effect = [
         *responses,
@@ -74,7 +78,9 @@ def test_dynamic_version(config, tmp_path, version_number, scope, responses):
         ) as connection,
     ):
         assert get_static_dependencies(config, strategies=[]) == [
-            PackageVersionIdDependency(version_id=VERSION_ID),
+            PackageVersionIdDependency(
+                version_id=VERSION_ID, password_env_name="LIBRARY_INSTALL_KEY"
+            ),
             PackageVersionIdDependency(version_id=OTHER_VERSION_ID),
         ]
     connection.assert_called_once_with(config, devhub.return_value, base_url="tooling")
@@ -156,6 +162,43 @@ def test_missing_project_file(config):
         DependencyResolutionError, match="Cannot read Salesforce DX project"
     ):
         get_static_dependencies(config, strategies=[])
+
+
+@pytest.mark.parametrize("key", ["Library@1", VERSION_ID])
+def test_installation_key_is_used_only_for_its_package(
+    config, tmp_path, monkeypatch, key
+):
+    write_project(tmp_path / "sfdx-project.json", [{"package": "Library@1"}])
+    config.config["project"]["dependencies"][0]["password_env_names"] = {
+        key: "LIBRARY_INSTALL_KEY"
+    }
+    config.config["project"]["dependencies"].append({"version_id": VERSION_ID})
+    protected, unprotected = get_static_dependencies(config, strategies=[])
+    assert protected.password_env_name == "LIBRARY_INSTALL_KEY"
+
+    options = PackageInstallOptions()
+    org = mock.Mock(installed_packages={})
+    with mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_version_id"
+    ) as install:
+        monkeypatch.delenv("LIBRARY_INSTALL_KEY", raising=False)
+        with pytest.raises(
+            DependencyResolutionError, match="Set the LIBRARY_INSTALL_KEY"
+        ):
+            protected.install(config, org, options)
+        install.assert_not_called()
+
+        monkeypatch.setenv("LIBRARY_INSTALL_KEY", "example-key")
+        protected.install(config, org, options)
+        unprotected.install(config, org, options)
+
+    assert [
+        (call.args[2], call.args[3].password) for call in install.call_args_list
+    ] == [
+        (VERSION_ID, "example-key"),
+        (OTHER_VERSION_ID, None),
+    ]
+    assert options.password is None
 
 
 def test_duplicate_keeps_explicit_install_options_at_first_position(config, tmp_path):
