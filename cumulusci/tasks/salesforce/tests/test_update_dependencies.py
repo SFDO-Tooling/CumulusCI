@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import zipfile
 from unittest import mock
@@ -220,6 +221,65 @@ def test_run_task_gets_static_dependencies_and_installs():
             mock.call(PackageVersionIdDependency(version_id="04t000000000000")),
         ]
     )
+
+
+def test_installs_project_dependencies_at_each_expansion_point(tmp_path):
+    """Exercise the real flattening and installation loop with two project entries."""
+    github_version = "04t000000000001"
+    first = "04t000000000002"
+    project_first = "04t000000000003"
+    project_second = "04t000000000004"
+    second = "04t000000000005"
+    project_third = "04t000000000006"
+    for filename, versions in (
+        ("sfdx-project.json", [project_first, project_second]),
+        ("other-project.json", [project_third]),
+    ):
+        (tmp_path / filename).write_text(
+            json.dumps(
+                {
+                    "packageDirectories": [
+                        {"path": "force-app", "dependencies": [{"package": version}]}
+                        for version in versions
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    config = create_project_config()
+    config.repo_info["root"] = str(tmp_path)
+    config.config["project"]["dependencies"] = [
+        {"github": "owner/repo"},
+        {"version_id": first},
+        {"project": "sfdx-project.json"},
+        {"version_id": second},
+        {"project": "other-project.json"},
+    ]
+    task = create_task(UpdateDependencies, project_config=config)
+
+    def resolve_github(dependency, context, strategies, pins):
+        dependency.ref = "abc123"
+
+    with (
+        mock.patch.object(GitHubDynamicDependency, "resolve", resolve_github),
+        mock.patch.object(
+            GitHubDynamicDependency,
+            "flatten",
+            return_value=[PackageVersionIdDependency(version_id=github_version)],
+        ),
+        mock.patch.object(task, "_install_dependency") as install,
+    ):
+        task()
+
+    assert [call.args[0].version_id for call in install.call_args_list] == [
+        github_version,
+        first,
+        project_first,
+        project_second,
+        second,
+        project_third,
+    ]
 
 
 @mock.patch("cumulusci.tasks.salesforce.update_dependencies.click.confirm")

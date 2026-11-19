@@ -328,6 +328,29 @@
             },
             "additionalProperties": false
         },
+        "SfdxProjectDependencyConfig": {
+            "title": "SfdxProjectDependencyConfig",
+            "type": "object",
+            "properties": {
+                "project": {
+                    "title": "Project",
+                    "type": "string"
+                },
+                "package_directory": {
+                    "title": "Package Directory",
+                    "type": "string"
+                },
+                "password_env_names": {
+                    "title": "Password Env Names",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": ["project"],
+            "additionalProperties": false
+        },
         "DependencyResolutions": {
             "title": "DependencyResolutions",
             "type": "object",
@@ -374,10 +397,17 @@
                     "title": "Dependencies",
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/SfdxProjectDependencyConfig"
+                            },
+                            {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            }
+                        ]
                     }
                 },
                 "dependency_resolutions": {

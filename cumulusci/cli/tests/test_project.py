@@ -1,9 +1,12 @@
+import json
 import os
 from pathlib import Path
 from unittest import mock
 
 import click
 import pytest
+import yaml
+from click.testing import CliRunner
 
 from cumulusci.cli.tests.utils import recursive_list_files, run_click_command
 from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
@@ -15,6 +18,43 @@ from ..runtime import CliRuntime
 
 
 class TestProjectCommands:
+    def test_import_existing_salesforce_dx_project(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / ".git").mkdir()
+        source_file = tmp_path / "sfdx-project.json"
+        source = json.dumps(
+            {
+                "packageDirectories": [
+                    {"package": "My Package", "path": "my-app", "default": True}
+                ],
+                "sourceApiVersion": "67.0",
+            }
+        )
+        source_file.write_text(source, encoding="utf-8")
+        runner = CliRunner()
+        result = runner.invoke(project.project_import, ["--name", "ExistingProject"])
+        assert result.exit_code == 0, result.output
+        config_file = tmp_path / "cumulusci.yml"
+        config = config_file.read_text(encoding="utf-8")
+        assert yaml.safe_load(config) == {
+            "project": {
+                "name": "ExistingProject",
+                "package": {"api_version": "67.0", "name": "My Package"},
+                "source_format": "sfdx",
+                "dependencies": [{"project": "sfdx-project.json"}],
+            }
+        }
+        assert source_file.read_text(encoding="utf-8") == source
+        preview = runner.invoke(
+            project.project_import, ["--name", "Preview", "--print"]
+        )
+        assert preview.exit_code == 0
+        assert yaml.safe_load(preview.output)["project"]["name"] == "Preview"
+        blocked = runner.invoke(project.project_import, [])
+        assert blocked.exit_code != 0
+        assert "already exists" in blocked.output
+        assert config_file.read_text(encoding="utf-8") == config
+
     def test_validate_project_name(self):
         with pytest.raises(click.UsageError):
             project.validate_project_name("with spaces")

@@ -31,6 +31,20 @@ A `cumulusci.yml` file contains these top-level sections.
     into a customer org. See the [](metadeploy-publish) task for more
     information.
 
+## Import an Existing Salesforce DX Project
+
+From the Git repository root, run `cci project import` to create a
+`cumulusci.yml` from `sfdx-project.json`. The command sets
+`source_format: sfdx`, copies available package settings, and adds a
+dependency entry that stays linked to the Salesforce DX project file.
+Use `--name` to choose a CumulusCI project name.
+
+If you already have a `cumulusci.yml`, run `cci project import --print`
+and merge the settings you need. Place the generated dependency entry
+where its packages should be installed relative to your existing
+dependencies. Run `cci project dependencies` to preview the resolved
+installation order. See [Salesforce DX Project Dependencies](dev.md#salesforce-dx-project-dependencies).
+
 (task-configurations)=
 
 ## Task Configurations
