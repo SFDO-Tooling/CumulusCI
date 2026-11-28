@@ -1013,3 +1013,138 @@ class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
         )
         with pytest.raises(CumulusCIException):
             api._process_response(response)
+
+
+class TestMdapiRetryAndSessionCleanup:
+    def _create_task(self):
+        project_config = create_project_config("TestRepo", "TestOwner")
+        return BaseTask(
+            project_config=project_config,
+            task_config=TaskConfig({}),
+            org_config=DummyOrgConfig(
+                {
+                    "instance_url": "https://na12.salesforce.com",
+                    "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
+                    "access_token": "0123456789",
+                }
+            ),
+        )
+
+    def test_retry_policies_only_allow_post_for_idempotent_calls(self):
+        from cumulusci.salesforce_api.metadata import (
+            idempotent_retry_policy,
+            retry_policy,
+        )
+
+        assert "POST" not in retry_policy.allowed_methods
+        assert "POST" in idempotent_retry_policy.allowed_methods
+        assert retry_policy.is_retry("POST", 500) is False
+
+    def test_call_mdapi_closes_session_and_routes_idempotent_retries(self, monkeypatch):
+        from cumulusci.salesforce_api import metadata as md_module
+
+        task = self._create_task()
+        api = ApiDeploy(task, DummyPackageZipBuilder().as_base64())
+        recorded = []
+
+        class FakeSession:
+            def __init__(self):
+                self.adapters = {}
+                self.closed = False
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                self.close()
+
+            def mount(self, prefix, adapter):
+                self.adapters[prefix] = adapter
+
+            def post(self, url, headers=None, data=None):
+                recorded.append(
+                    (
+                        headers.get("SOAPAction"),
+                        self.adapters["https://"].max_retries,
+                        self,
+                    )
+                )
+                resp = Response()
+                resp.status_code = 200
+                if len(recorded) == 1:
+                    resp._content = (
+                        b'<?xml version="1.0" encoding="UTF-8"?><id>123</id>'
+                    )
+                else:
+                    resp._content = deploy_result.format(
+                        status="Succeeded", extra="<done>true</done>"
+                    ).encode()
+                return resp
+
+            def close(self):
+                self.closed = True
+
+        monkeypatch.setattr(md_module.requests, "Session", FakeSession)
+        result = api()
+
+        assert result == "Success"
+        assert len(recorded) == 2
+        deploy_action, deploy_retry, deploy_session = recorded[0]
+        status_action, status_retry, status_session = recorded[1]
+        assert deploy_action == "deploy"
+        assert "POST" not in deploy_retry.allowed_methods
+        assert deploy_session.closed is True
+        assert status_action == "checkDeployStatus"
+        assert "POST" in status_retry.allowed_methods
+        assert status_session.closed is True
+
+    def test_status_call_retries_transient_connection_drop(self, monkeypatch):
+        from requests.adapters import HTTPAdapter
+        from urllib3.exceptions import ProtocolError
+
+        task = self._create_task()
+        api = ApiRetrieveUnpackaged(
+            task, "<Package/>", task.project_config.project__package__api_version
+        )
+        url = api._build_endpoint_url()
+        attempts = {"status": 0}
+
+        with responses.RequestsMock() as rsps:
+            for body in (
+                '<?xml version="1.0" encoding="UTF-8"?><id>123</id>',
+                '<?xml version="1.0" encoding="UTF-8"?><done>true</done>',
+                retrieve_result.format(
+                    zip=CreatePackageZipBuilder("test", api.api_version).as_base64(),
+                    extra="",
+                ),
+            ):
+                rsps.add(
+                    method=responses.POST,
+                    url=url,
+                    body=body,
+                    status=200,
+                    content_type="text/xml; charset=utf-8",
+                )
+
+            orig_send = HTTPAdapter.send
+
+            def flaky_send(adapter_self, request, *args, **kwargs):
+                if request.headers.get("SOAPAction") == "checkStatus":
+                    assert "POST" in adapter_self.max_retries.allowed_methods
+                    attempts["status"] += 1
+                    if attempts["status"] == 1:
+                        next_retry = adapter_self.max_retries.increment(
+                            method=request.method,
+                            url=request.url,
+                            error=ProtocolError("Connection aborted."),
+                        )
+                        assert next_retry is not None
+                        return orig_send(adapter_self, request, *args, **kwargs)
+                return orig_send(adapter_self, request, *args, **kwargs)
+
+            with monkeypatch.context() as mp:
+                mp.setattr(HTTPAdapter, "send", flaky_send)
+                zipfile = api()
+                zipfile.close()
+
+        assert attempts["status"] == 1

@@ -42,6 +42,19 @@ else:
 INVALID_CROSS_REF_ERROR = "INVALID_CROSS_REFERENCE_KEY: No package named"
 
 retry_policy = Retry(backoff_factor=0.3)
+idempotent_retry_policy = Retry(
+    backoff_factor=0.3,
+    allowed_methods=frozenset(Retry.DEFAULT_ALLOWED_METHODS) | {"POST"},
+)
+IDEMPOTENT_SOAP_ACTIONS = frozenset(
+    {
+        "checkStatus",
+        "checkDeployStatus",
+        "checkRetrieveStatus",
+        "listMetadata",
+        "describemetadatatypes",
+    }
+)
 
 
 class BaseMetadataApiCall(object):
@@ -102,24 +115,28 @@ class BaseMetadataApiCall(object):
             "SOAPAction": action,
         }
 
-    def _call_mdapi(self, headers, envelope, refresh=None):
+    def _call_mdapi(self, headers, envelope, refresh=None, idempotent=False):
         # Insert the session id
         session_id = self.task.org_config.access_token
         auth_envelope = envelope.replace("###SESSION_ID###", session_id)
-        session = requests.Session()
-        http_adapter = HTTPAdapter(max_retries=retry_policy)
-        session.mount("https://", http_adapter)
-        response = session.post(
-            self._build_endpoint_url(),
-            headers=headers,
-            data=auth_envelope.encode("utf-8"),
+        http_adapter = HTTPAdapter(
+            max_retries=idempotent_retry_policy if idempotent else retry_policy
         )
+        with requests.Session() as session:
+            session.mount("https://", http_adapter)
+            response = session.post(
+                self._build_endpoint_url(),
+                headers=headers,
+                data=auth_envelope.encode("utf-8"),
+            )
         faultcode = parseString(response.content).getElementsByTagName("faultcode")
         # refresh = False can be passed to prevent a loop if refresh fails
         if refresh is None:
             refresh = True
         if faultcode:
-            return self._handle_soap_error(headers, envelope, refresh, response)
+            return self._handle_soap_error(
+                headers, envelope, refresh, response, idempotent=idempotent
+            )
         return response
 
     def _get_element_value(self, dom, tag):
@@ -136,7 +153,11 @@ class BaseMetadataApiCall(object):
         # Start the call
         envelope = self._build_envelope_start()
         headers = self._build_headers(self.soap_action_start, envelope)
-        response = self._call_mdapi(headers, envelope)
+        response = self._call_mdapi(
+            headers,
+            envelope,
+            idempotent=self.soap_action_start in IDEMPOTENT_SOAP_ACTIONS,
+        )
         # If no status envelope is configured, return the response directly
         if not self.soap_envelope_status:
             return response
@@ -149,7 +170,7 @@ class BaseMetadataApiCall(object):
                 # Check status in a loop until done
                 envelope = self._build_envelope_status()
                 headers = self._build_headers(self.soap_action_status, envelope)
-                response = self._call_mdapi(headers, envelope)
+                response = self._call_mdapi(headers, envelope, idempotent=True)
                 response = self._process_response_status(response)
 
                 # start increasing the check interval progressively to handle long pending jobs
@@ -161,12 +182,12 @@ class BaseMetadataApiCall(object):
             if self.soap_envelope_result:
                 envelope = self._build_envelope_result()
                 headers = self._build_headers(self.soap_action_result, envelope)
-                response = self._call_mdapi(headers, envelope)
+                response = self._call_mdapi(headers, envelope, idempotent=True)
             else:
                 return response
         return response
 
-    def _handle_soap_error(self, headers, envelope, refresh, response):
+    def _handle_soap_error(self, headers, envelope, refresh, response, idempotent=False):
         resp_xml = parseString(response.content)
         faultcode = resp_xml.getElementsByTagName("faultcode")
         if faultcode:
@@ -186,7 +207,9 @@ class BaseMetadataApiCall(object):
                 self.task.org_config.refresh_oauth_token(
                     self.task.project_config.keychain
                 )
-                return self._call_mdapi(headers, envelope, refresh=False)
+                return self._call_mdapi(
+                    headers, envelope, refresh=False, idempotent=idempotent
+                )
         # Log the error
         message = f"{faultcode}: {faultstring}"
         self._set_status("Failed", message)
@@ -317,19 +340,20 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
         else:
             return self.packages
         zipstringio = io.BytesIO(base64.b64decode(zipstr))
-        zipfile = ZipFile(zipstringio, "r")
-        # Loop through all files in the zip skipping anything other than
-        # InstalledPackages
-        for path in zipfile.namelist():
-            if not path.endswith(".installedPackage"):
-                continue
-            namespace = path.split("/")[-1].split(".")[0]
-            version = parseString(zipfile.open(path).read()).getElementsByTagName(
-                "versionNumber"
-            )
-            if version:
-                version = version[0].firstChild.nodeValue
-            self.packages[namespace] = version
+        with ZipFile(zipstringio, "r") as zipfile:
+            # Loop through all files in the zip skipping anything other than
+            # InstalledPackages
+            for path in zipfile.namelist():
+                if not path.endswith(".installedPackage"):
+                    continue
+                namespace = path.split("/")[-1].split(".")[0]
+                with zipfile.open(path) as installed_pkg_file:
+                    version = parseString(
+                        installed_pkg_file.read()
+                    ).getElementsByTagName("versionNumber")
+                if version:
+                    version = version[0].firstChild.nodeValue
+                self.packages[namespace] = version
         return self.packages
 
 
